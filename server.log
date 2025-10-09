@@ -1,0 +1,2203 @@
+
+> sasstemplate@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.1.3
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.2.101:3000
+   - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 7s
+ ○ Compiling /src/middleware ...
+ ✓ Compiled /src/middleware in 601ms (167 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 10.6s (1697 modules)
+ GET / 200 in 11965ms
+ ✓ Compiled in 1418ms (819 modules)
+ ○ Compiling /_not-found ...
+ ✓ Compiled /favicon.ico in 2.5s (1687 modules)
+ ✓ Compiled (1702 modules)
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 3431ms
+ GET /favicon.ico 200 in 1879ms
+ ○ Compiling /api/generate-story ...
+ ✓ Compiled /api/generate-story in 1490ms (1807 modules)
+API received request: {
+  selectedFigure: {
+    id: 'sibling',
+    name: 'Geschwister',
+    emoji: '👫',
+    description: 'Verständnisvoll, verspielt und beschützend',
+    category: 'real',
+    pronouns: 'er/ihm'
+  },
+  questionAnswers: [
+    { questionId: 1, answer: '', selectedBlocks: [Array] },
+    { questionId: 2, answer: '', selectedBlocks: [Array] },
+    { questionId: 3, answer: '', selectedBlocks: [Array] },
+    { questionId: 4, answer: '', selectedBlocks: [Array] },
+    { questionId: 5, answer: '', selectedBlocks: [Array] },
+    { questionId: 6, answer: '', selectedBlocks: [Array] }
+  ]
+}
+Processed answers: {
+  '1': {
+    answerText: '',
+    blocksText: 'Groß und stark mit freundlichen and einladenden Augen'
+  },
+  '2': {
+    answerText: '',
+    blocksText: 'Wirklich geliebt und willkommen so wie ich bin'
+  },
+  '3': {
+    answerText: '',
+    blocksText: 'Hilft mir and mich im Körper zu verankern'
+  },
+  '4': {
+    answerText: '',
+    blocksText: 'Wir sitzen Schulter an Schulter in Geborgenheit'
+  },
+  '5': {
+    answerText: '',
+    blocksText: 'Sei eine konstante Präsenz and wenn ich dich brauche'
+  },
+  '6': { answerText: '', blocksText: 'Ich glaube fest an dich.' }
+}
+Generated story prompt: 
+Du bist ein*e einfühlsame*r, traumasensible*r Erzähler*in und schreibst eine heilsame Geschichte für **eine einzelne Person** – sprich sie immer direkt mit **"du"** (2. Person Singular) an.
+
+Dein Ziel ist es, eine sichere, emotional beruhigende und heilsame Geschichte zu erschaffen.  
+Verwende **einfaches Deutsch** mit **kurzen, klaren Sätzen**. Vermeide komplizierte Grammatik oder schwierige Wörter. Schreib in einem warmen, sanften Ton – wie ein liebevolles Gespräch.
+
+---
+
+### KONTEXT:
+
+Die lesende Person hat sich eine sichere und liebevolle **Ressourcenfigur** vorgestellt – jemand, bei dem sie sich beschützt, unterstützt und vollständig gesehen fühlt.
+
+Sie hat sechs Fragen zu ihrer Verbindung mit dieser Figur beantwortet.
+
+Nun schreibst du eine Geschichte, basierend auf den **Gefühlen hinter** diesen Antworten.  
+Du darfst **nichts direkt aus den Antworten übernehmen**. Stattdessen:
+
+- **Verstehe, was emotional wirklich gemeint ist**
+- **Spiegle diese Gefühle in sanften Szenen wider**
+- **Verwandle Stichpunkte in sinnliche, emotionale Momente**
+- **Nutze direkte Zitate nur, wenn tatsächlich gesprochen wird** (Schritte 4 & 5)
+
+**WICHTIG:** Wenn du über die Ressourcenfigur sprichst, verwende die richtigen Pronomen: er/ihm
+
+---
+
+### AUFBAU DER GESCHICHTE:
+
+1. **Beginne mit der Ressourcenfigur**
+   - Beschreibe, wie die Figur aussieht und wie sich er Präsenz anfühlt.
+   - Lass die lesende Person sich bei dieser Figur sicher fühlen.
+   - Nutze Q1 & Q2, aber **beschreibe nicht einfach die Antworten – fang das emotionale Gefühl ein**.
+   - Achte auf **Name und Beschreibung** – sprich natürlich, als würde der Leser diese Figur bereits gut kennen.
+
+2. **Zeige, wie diese Figur dich in schweren Momenten unterstützt**
+   - Vielleicht bleibt er bei dir, hält deine Hand oder spricht sanft mit dir.
+   - Nutze Q3 für eine realistische, unterstützende Szene (keine Zauberkräfte – bleib emotional geerdet).
+
+3. **Beschreibe ein geteiltes Erlebnis**
+   - Nutze Q4, um einen friedlichen Moment zwischen euch zu zeigen – z.B. Kuscheln, Musik hören, langsam spazieren.
+   - Fokus: **Wie fühlt sich das emotional an**, nicht nur was passiert.
+
+4. **Lass dich einen Wunsch äußern an ihm**
+   - Verwandle Q5 in ein kurzes, persönliches Zitat von dir.
+   HINWEIS: Es soll eine **Bitte**, kein Befehl sein.
+   - Beispiel:
+
+     > "Kannst du mich daran erinnern, dass ich genüge?"
+
+5. **Lass die Figur einen idealen Satz sagen**
+
+   – Nutze Q6 als Inspiration.  
+   – KEINE Liste mehrerer Affirmationen.  
+   – Schreib **EINEN kraftvollen, emotional beruhigenden Satz**, der zu dieser Figur passt (mindestens 15–30 Wörter).
+
+   Der Satz soll so klingen, als würde ihn die Figur wirklich sagen – im echten Leben oder in einem Traum. Kein Therapiejargon oder Lehrbuch-Stil.
+   Es soll **nicht** direkt die Bitte aus Schritt 4 beantworten, sondern eine **ideale, allgemeine Botschaft** sein.  
+   Mindestens 2 Sätze. Einfache Sprache. Leicht verständlich.
+
+   Vermeide:
+   ❌ Mehrere kurze Sätze wie "Du bist sicher. Du bist nicht allein."
+
+6. **Beende die Geschichte sanft**
+   - Führe die Geschichte ruhig zu Ende.
+   - Erinner die Person daran, dass sie unterstützt ist und nicht allein.
+
+---
+
+### SCHREIBSTIL-REGELN:
+
+- **Sprich immer in der 2. Person Singular ("du")**
+- **Nutze er/ihm, wenn du über Geschwister sprichst**
+- **Halte die Sätze kurz, warm und klar**
+- **Keine wörtlichen Zitate aus den Antworten übernehmen – interpretiere mit Feingefühl**
+- **Sanftes Erzähltempo, emotional sichere Sprache**
+- **Zitate separat und weich einfügen**
+- **Nur einfache, alltägliche Worte verwenden**
+- **Stell dir vor, du sprichst zu jemandem, der ruhig mit einer Tasse Tee im Sessel sitzt**
+
+---
+
+### EINGABEDATEN:
+
+- Ressourcenfigur:  
+  - Name: Geschwister  
+  - Typ: real  
+  - Pronomen: er/ihm
+  - Beschreibung: Verständnisvoll, verspielt und beschützend
+
+- Emotionale Antworten:
+Q1 - Visual & Energetic Appearance:
+  • Answer: ""
+  • Block picks: "Groß und stark mit freundlichen and einladenden Augen"
+Q2 - Inner Reaction to Their Presence:
+  • Answer: ""
+  • Block picks: "Wirklich geliebt und willkommen so wie ich bin"
+Q3 - Response in Difficult Moments:
+  • Answer: ""
+  • Block picks: "Hilft mir and mich im Körper zu verankern"
+Q4 - Shared Experience / Physical Connection:
+  • Answer: ""
+  • Block picks: "Wir sitzen Schulter an Schulter in Geborgenheit"
+Q5 - Your Personal Wish / Request:
+  • Answer: ""
+  • Block picks: "Sei eine konstante Präsenz and wenn ich dich brauche"
+Q6 - Words from the Figure to You:
+  • Answer: ""
+  • Block picks: "Ich glaube fest an dich."
+
+---
+
+Jetzt schreib die Geschichte.  
+Mach sie warm.  
+Mach sie langsam.  
+Mach sie heilend.
+
+API received request: {
+  selectedFigure: {
+    id: 'sibling',
+    name: 'Geschwister',
+    emoji: '👫',
+    description: 'Verständnisvoll, verspielt und beschützend',
+    category: 'real',
+    pronouns: 'er/ihm'
+  },
+  questionAnswers: [
+    { questionId: 1, answer: '', selectedBlocks: [Array] },
+    { questionId: 2, answer: '', selectedBlocks: [Array] },
+    { questionId: 3, answer: '', selectedBlocks: [Array] },
+    { questionId: 4, answer: '', selectedBlocks: [Array] },
+    { questionId: 5, answer: '', selectedBlocks: [Array] },
+    { questionId: 6, answer: '', selectedBlocks: [Array] }
+  ]
+}
+Processed answers: {
+  '1': {
+    answerText: '',
+    blocksText: 'Groß und stark mit freundlichen and einladenden Augen'
+  },
+  '2': {
+    answerText: '',
+    blocksText: 'Wirklich geliebt und willkommen so wie ich bin'
+  },
+  '3': {
+    answerText: '',
+    blocksText: 'Hilft mir and mich im Körper zu verankern'
+  },
+  '4': {
+    answerText: '',
+    blocksText: 'Wir sitzen Schulter an Schulter in Geborgenheit'
+  },
+  '5': {
+    answerText: '',
+    blocksText: 'Sei eine konstante Präsenz and wenn ich dich brauche'
+  },
+  '6': { answerText: '', blocksText: 'Ich glaube fest an dich.' }
+}
+Generated story prompt: 
+Du bist ein*e einfühlsame*r, traumasensible*r Erzähler*in und schreibst eine heilsame Geschichte für **eine einzelne Person** – sprich sie immer direkt mit **"du"** (2. Person Singular) an.
+
+Dein Ziel ist es, eine sichere, emotional beruhigende und heilsame Geschichte zu erschaffen.  
+Verwende **einfaches Deutsch** mit **kurzen, klaren Sätzen**. Vermeide komplizierte Grammatik oder schwierige Wörter. Schreib in einem warmen, sanften Ton – wie ein liebevolles Gespräch.
+
+---
+
+### KONTEXT:
+
+Die lesende Person hat sich eine sichere und liebevolle **Ressourcenfigur** vorgestellt – jemand, bei dem sie sich beschützt, unterstützt und vollständig gesehen fühlt.
+
+Sie hat sechs Fragen zu ihrer Verbindung mit dieser Figur beantwortet.
+
+Nun schreibst du eine Geschichte, basierend auf den **Gefühlen hinter** diesen Antworten.  
+Du darfst **nichts direkt aus den Antworten übernehmen**. Stattdessen:
+
+- **Verstehe, was emotional wirklich gemeint ist**
+- **Spiegle diese Gefühle in sanften Szenen wider**
+- **Verwandle Stichpunkte in sinnliche, emotionale Momente**
+- **Nutze direkte Zitate nur, wenn tatsächlich gesprochen wird** (Schritte 4 & 5)
+
+**WICHTIG:** Wenn du über die Ressourcenfigur sprichst, verwende die richtigen Pronomen: er/ihm
+
+---
+
+### AUFBAU DER GESCHICHTE:
+
+1. **Beginne mit der Ressourcenfigur**
+   - Beschreibe, wie die Figur aussieht und wie sich er Präsenz anfühlt.
+   - Lass die lesende Person sich bei dieser Figur sicher fühlen.
+   - Nutze Q1 & Q2, aber **beschreibe nicht einfach die Antworten – fang das emotionale Gefühl ein**.
+   - Achte auf **Name und Beschreibung** – sprich natürlich, als würde der Leser diese Figur bereits gut kennen.
+
+2. **Zeige, wie diese Figur dich in schweren Momenten unterstützt**
+   - Vielleicht bleibt er bei dir, hält deine Hand oder spricht sanft mit dir.
+   - Nutze Q3 für eine realistische, unterstützende Szene (keine Zauberkräfte – bleib emotional geerdet).
+
+3. **Beschreibe ein geteiltes Erlebnis**
+   - Nutze Q4, um einen friedlichen Moment zwischen euch zu zeigen – z.B. Kuscheln, Musik hören, langsam spazieren.
+   - Fokus: **Wie fühlt sich das emotional an**, nicht nur was passiert.
+
+4. **Lass dich einen Wunsch äußern an ihm**
+   - Verwandle Q5 in ein kurzes, persönliches Zitat von dir.
+   HINWEIS: Es soll eine **Bitte**, kein Befehl sein.
+   - Beispiel:
+
+     > "Kannst du mich daran erinnern, dass ich genüge?"
+
+5. **Lass die Figur einen idealen Satz sagen**
+
+   – Nutze Q6 als Inspiration.  
+   – KEINE Liste mehrerer Affirmationen.  
+   – Schreib **EINEN kraftvollen, emotional beruhigenden Satz**, der zu dieser Figur passt (mindestens 15–30 Wörter).
+
+   Der Satz soll so klingen, als würde ihn die Figur wirklich sagen – im echten Leben oder in einem Traum. Kein Therapiejargon oder Lehrbuch-Stil.
+   Es soll **nicht** direkt die Bitte aus Schritt 4 beantworten, sondern eine **ideale, allgemeine Botschaft** sein.  
+   Mindestens 2 Sätze. Einfache Sprache. Leicht verständlich.
+
+   Vermeide:
+   ❌ Mehrere kurze Sätze wie "Du bist sicher. Du bist nicht allein."
+
+6. **Beende die Geschichte sanft**
+   - Führe die Geschichte ruhig zu Ende.
+   - Erinner die Person daran, dass sie unterstützt ist und nicht allein.
+
+---
+
+### SCHREIBSTIL-REGELN:
+
+- **Sprich immer in der 2. Person Singular ("du")**
+- **Nutze er/ihm, wenn du über Geschwister sprichst**
+- **Halte die Sätze kurz, warm und klar**
+- **Keine wörtlichen Zitate aus den Antworten übernehmen – interpretiere mit Feingefühl**
+- **Sanftes Erzähltempo, emotional sichere Sprache**
+- **Zitate separat und weich einfügen**
+- **Nur einfache, alltägliche Worte verwenden**
+- **Stell dir vor, du sprichst zu jemandem, der ruhig mit einer Tasse Tee im Sessel sitzt**
+
+---
+
+### EINGABEDATEN:
+
+- Ressourcenfigur:  
+  - Name: Geschwister  
+  - Typ: real  
+  - Pronomen: er/ihm
+  - Beschreibung: Verständnisvoll, verspielt und beschützend
+
+- Emotionale Antworten:
+Q1 - Visual & Energetic Appearance:
+  • Answer: ""
+  • Block picks: "Groß und stark mit freundlichen and einladenden Augen"
+Q2 - Inner Reaction to Their Presence:
+  • Answer: ""
+  • Block picks: "Wirklich geliebt und willkommen so wie ich bin"
+Q3 - Response in Difficult Moments:
+  • Answer: ""
+  • Block picks: "Hilft mir and mich im Körper zu verankern"
+Q4 - Shared Experience / Physical Connection:
+  • Answer: ""
+  • Block picks: "Wir sitzen Schulter an Schulter in Geborgenheit"
+Q5 - Your Personal Wish / Request:
+  • Answer: ""
+  • Block picks: "Sei eine konstante Präsenz and wenn ich dich brauche"
+Q6 - Words from the Figure to You:
+  • Answer: ""
+  • Block picks: "Ich glaube fest an dich."
+
+---
+
+Jetzt schreib die Geschichte.  
+Mach sie warm.  
+Mach sie langsam.  
+Mach sie heilend.
+
+ POST /api/generate-story 200 in 5370ms
+ POST /api/generate-story 200 in 5922ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 1187ms (1855 modules)
+ GET /dashboard 200 in 1409ms
+ ✓ Compiled in 2.5s (1752 modules)
+ GET /dashboard 200 in 247ms
+ ✓ Compiled in 1499ms (1752 modules)
+ GET /dashboard 200 in 154ms
+ ✓ Compiled in 622ms (1752 modules)
+ GET /dashboard 200 in 73ms
+ GET / 200 in 47ms
+ ○ Compiling /api/generate-story ...
+ ✓ Compiled /api/generate-story in 618ms (1025 modules)
+API received request: {
+  selectedFigure: {
+    id: 'teacher',
+    name: 'Lieblingslehrer/in',
+    emoji: '👩‍🏫',
+    description: 'Ermutigend, weise und hat an dich geglaubt',
+    category: 'real',
+    pronouns: 'sie/ihr'
+  },
+  questionAnswers: [
+    { questionId: 1, answer: '', selectedBlocks: [Array] },
+    { questionId: 2, answer: '', selectedBlocks: [Array] },
+    { questionId: 3, answer: '', selectedBlocks: [Array] },
+    { questionId: 4, answer: '', selectedBlocks: [Array] },
+    { questionId: 5, answer: '', selectedBlocks: [Array] },
+    { questionId: 6, answer: '', selectedBlocks: [Array] }
+  ]
+}
+Processed answers: {
+  '1': {
+    answerText: '',
+    blocksText: 'Schaut mich an and als würde ich wirklich zählen'
+  },
+  '2': { answerText: '', blocksText: 'Entspannt and offen und frei' },
+  '3': {
+    answerText: '',
+    blocksText: 'Flüstert sanfte Worte and bis ich mich entspanne'
+  },
+  '4': {
+    answerText: '',
+    blocksText: 'Sie umarmt mich mit einem sanften Lächeln'
+  },
+  '5': {
+    answerText: '',
+    blocksText: 'Sei eine konstante Präsenz and wenn ich dich brauche'
+  },
+  '6': { answerText: '', blocksText: 'Ich glaube fest an dich.' }
+}
+Generated story prompt: 
+Du bist ein*e einfühlsame*r, traumasensible*r Erzähler*in und schreibst eine heilsame Geschichte für **eine einzelne Person** – sprich sie immer direkt mit **"du"** (2. Person Singular) an.
+
+Dein Ziel ist es, eine sichere, emotional beruhigende und heilsame Geschichte zu erschaffen.  
+Verwende **einfaches Deutsch** mit **kurzen, klaren Sätzen**. Vermeide komplizierte Grammatik oder schwierige Wörter. Schreib in einem warmen, sanften Ton – wie ein liebevolles Gespräch.
+
+---
+
+### KONTEXT:
+
+Die lesende Person hat sich eine sichere und liebevolle **Ressourcenfigur** vorgestellt – jemand, bei dem sie sich beschützt, unterstützt und vollständig gesehen fühlt.
+
+Sie hat sechs Fragen zu ihrer Verbindung mit dieser Figur beantwortet.
+
+Nun schreibst du eine Geschichte, basierend auf den **Gefühlen hinter** diesen Antworten.  
+Du darfst **nichts direkt aus den Antworten übernehmen**. Stattdessen:
+
+- **Verstehe, was emotional wirklich gemeint ist**
+- **Spiegle diese Gefühle in sanften Szenen wider**
+- **Verwandle Stichpunkte in sinnliche, emotionale Momente**
+- **Nutze direkte Zitate nur, wenn tatsächlich gesprochen wird** (Schritte 4 & 5)
+
+**WICHTIG:** Wenn du über die Ressourcenfigur sprichst, verwende die richtigen Pronomen: sie/ihr
+
+---
+
+### AUFBAU DER GESCHICHTE:
+
+1. **Beginne mit der Ressourcenfigur**
+   - Beschreibe, wie die Figur aussieht und wie sich sie Präsenz anfühlt.
+   - Lass die lesende Person sich bei dieser Figur sicher fühlen.
+   - Nutze Q1 & Q2, aber **beschreibe nicht einfach die Antworten – fang das emotionale Gefühl ein**.
+   - Achte auf **Name und Beschreibung** – sprich natürlich, als würde der Leser diese Figur bereits gut kennen.
+
+2. **Zeige, wie diese Figur dich in schweren Momenten unterstützt**
+   - Vielleicht bleibt sie bei dir, hält deine Hand oder spricht sanft mit dir.
+   - Nutze Q3 für eine realistische, unterstützende Szene (keine Zauberkräfte – bleib emotional geerdet).
+
+3. **Beschreibe ein geteiltes Erlebnis**
+   - Nutze Q4, um einen friedlichen Moment zwischen euch zu zeigen – z.B. Kuscheln, Musik hören, langsam spazieren.
+   - Fokus: **Wie fühlt sich das emotional an**, nicht nur was passiert.
+
+4. **Lass dich einen Wunsch äußern an ihr**
+   - Verwandle Q5 in ein kurzes, persönliches Zitat von dir.
+   HINWEIS: Es soll eine **Bitte**, kein Befehl sein.
+   - Beispiel:
+
+     > "Kannst du mich daran erinnern, dass ich genüge?"
+
+5. **Lass die Figur einen idealen Satz sagen**
+
+   – Nutze Q6 als Inspiration.  
+   – KEINE Liste mehrerer Affirmationen.  
+   – Schreib **EINEN kraftvollen, emotional beruhigenden Satz**, der zu dieser Figur passt (mindestens 15–30 Wörter).
+
+   Der Satz soll so klingen, als würde ihn die Figur wirklich sagen – im echten Leben oder in einem Traum. Kein Therapiejargon oder Lehrbuch-Stil.
+   Es soll **nicht** direkt die Bitte aus Schritt 4 beantworten, sondern eine **ideale, allgemeine Botschaft** sein.  
+   Mindestens 2 Sätze. Einfache Sprache. Leicht verständlich.
+
+   Vermeide:
+   ❌ Mehrere kurze Sätze wie "Du bist sicher. Du bist nicht allein."
+
+6. **Beende die Geschichte sanft**
+   - Führe die Geschichte ruhig zu Ende.
+   - Erinner die Person daran, dass sie unterstützt ist und nicht allein.
+
+---
+
+### SCHREIBSTIL-REGELN:
+
+- **Sprich immer in der 2. Person Singular ("du")**
+- **Nutze sie/ihr, wenn du über Lieblingslehrer/in sprichst**
+- **Halte die Sätze kurz, warm und klar**
+- **Keine wörtlichen Zitate aus den Antworten übernehmen – interpretiere mit Feingefühl**
+- **Sanftes Erzähltempo, emotional sichere Sprache**
+- **Zitate separat und weich einfügen**
+- **Nur einfache, alltägliche Worte verwenden**
+- **Stell dir vor, du sprichst zu jemandem, der ruhig mit einer Tasse Tee im Sessel sitzt**
+
+---
+
+### EINGABEDATEN:
+
+- Ressourcenfigur:  
+  - Name: Lieblingslehrer/in  
+  - Typ: real  
+  - Pronomen: sie/ihr
+  - Beschreibung: Ermutigend, weise und hat an dich geglaubt
+
+- Emotionale Antworten:
+Q1 - Visual & Energetic Appearance:
+  • Answer: ""
+  • Block picks: "Schaut mich an and als würde ich wirklich zählen"
+Q2 - Inner Reaction to Their Presence:
+  • Answer: ""
+  • Block picks: "Entspannt and offen und frei"
+Q3 - Response in Difficult Moments:
+  • Answer: ""
+  • Block picks: "Flüstert sanfte Worte and bis ich mich entspanne"
+Q4 - Shared Experience / Physical Connection:
+  • Answer: ""
+  • Block picks: "Sie umarmt mich mit einem sanften Lächeln"
+Q5 - Your Personal Wish / Request:
+  • Answer: ""
+  • Block picks: "Sei eine konstante Präsenz and wenn ich dich brauche"
+Q6 - Words from the Figure to You:
+  • Answer: ""
+  • Block picks: "Ich glaube fest an dich."
+
+---
+
+Jetzt schreib die Geschichte.  
+Mach sie warm.  
+Mach sie langsam.  
+Mach sie heilend.
+
+API received request: {
+  selectedFigure: {
+    id: 'teacher',
+    name: 'Lieblingslehrer/in',
+    emoji: '👩‍🏫',
+    description: 'Ermutigend, weise und hat an dich geglaubt',
+    category: 'real',
+    pronouns: 'sie/ihr'
+  },
+  questionAnswers: [
+    { questionId: 1, answer: '', selectedBlocks: [Array] },
+    { questionId: 2, answer: '', selectedBlocks: [Array] },
+    { questionId: 3, answer: '', selectedBlocks: [Array] },
+    { questionId: 4, answer: '', selectedBlocks: [Array] },
+    { questionId: 5, answer: '', selectedBlocks: [Array] },
+    { questionId: 6, answer: '', selectedBlocks: [Array] }
+  ]
+}
+Processed answers: {
+  '1': {
+    answerText: '',
+    blocksText: 'Schaut mich an and als würde ich wirklich zählen'
+  },
+  '2': { answerText: '', blocksText: 'Entspannt and offen und frei' },
+  '3': {
+    answerText: '',
+    blocksText: 'Flüstert sanfte Worte and bis ich mich entspanne'
+  },
+  '4': {
+    answerText: '',
+    blocksText: 'Sie umarmt mich mit einem sanften Lächeln'
+  },
+  '5': {
+    answerText: '',
+    blocksText: 'Sei eine konstante Präsenz and wenn ich dich brauche'
+  },
+  '6': { answerText: '', blocksText: 'Ich glaube fest an dich.' }
+}
+Generated story prompt: 
+Du bist ein*e einfühlsame*r, traumasensible*r Erzähler*in und schreibst eine heilsame Geschichte für **eine einzelne Person** – sprich sie immer direkt mit **"du"** (2. Person Singular) an.
+
+Dein Ziel ist es, eine sichere, emotional beruhigende und heilsame Geschichte zu erschaffen.  
+Verwende **einfaches Deutsch** mit **kurzen, klaren Sätzen**. Vermeide komplizierte Grammatik oder schwierige Wörter. Schreib in einem warmen, sanften Ton – wie ein liebevolles Gespräch.
+
+---
+
+### KONTEXT:
+
+Die lesende Person hat sich eine sichere und liebevolle **Ressourcenfigur** vorgestellt – jemand, bei dem sie sich beschützt, unterstützt und vollständig gesehen fühlt.
+
+Sie hat sechs Fragen zu ihrer Verbindung mit dieser Figur beantwortet.
+
+Nun schreibst du eine Geschichte, basierend auf den **Gefühlen hinter** diesen Antworten.  
+Du darfst **nichts direkt aus den Antworten übernehmen**. Stattdessen:
+
+- **Verstehe, was emotional wirklich gemeint ist**
+- **Spiegle diese Gefühle in sanften Szenen wider**
+- **Verwandle Stichpunkte in sinnliche, emotionale Momente**
+- **Nutze direkte Zitate nur, wenn tatsächlich gesprochen wird** (Schritte 4 & 5)
+
+**WICHTIG:** Wenn du über die Ressourcenfigur sprichst, verwende die richtigen Pronomen: sie/ihr
+
+---
+
+### AUFBAU DER GESCHICHTE:
+
+1. **Beginne mit der Ressourcenfigur**
+   - Beschreibe, wie die Figur aussieht und wie sich sie Präsenz anfühlt.
+   - Lass die lesende Person sich bei dieser Figur sicher fühlen.
+   - Nutze Q1 & Q2, aber **beschreibe nicht einfach die Antworten – fang das emotionale Gefühl ein**.
+   - Achte auf **Name und Beschreibung** – sprich natürlich, als würde der Leser diese Figur bereits gut kennen.
+
+2. **Zeige, wie diese Figur dich in schweren Momenten unterstützt**
+   - Vielleicht bleibt sie bei dir, hält deine Hand oder spricht sanft mit dir.
+   - Nutze Q3 für eine realistische, unterstützende Szene (keine Zauberkräfte – bleib emotional geerdet).
+
+3. **Beschreibe ein geteiltes Erlebnis**
+   - Nutze Q4, um einen friedlichen Moment zwischen euch zu zeigen – z.B. Kuscheln, Musik hören, langsam spazieren.
+   - Fokus: **Wie fühlt sich das emotional an**, nicht nur was passiert.
+
+4. **Lass dich einen Wunsch äußern an ihr**
+   - Verwandle Q5 in ein kurzes, persönliches Zitat von dir.
+   HINWEIS: Es soll eine **Bitte**, kein Befehl sein.
+   - Beispiel:
+
+     > "Kannst du mich daran erinnern, dass ich genüge?"
+
+5. **Lass die Figur einen idealen Satz sagen**
+
+   – Nutze Q6 als Inspiration.  
+   – KEINE Liste mehrerer Affirmationen.  
+   – Schreib **EINEN kraftvollen, emotional beruhigenden Satz**, der zu dieser Figur passt (mindestens 15–30 Wörter).
+
+   Der Satz soll so klingen, als würde ihn die Figur wirklich sagen – im echten Leben oder in einem Traum. Kein Therapiejargon oder Lehrbuch-Stil.
+   Es soll **nicht** direkt die Bitte aus Schritt 4 beantworten, sondern eine **ideale, allgemeine Botschaft** sein.  
+   Mindestens 2 Sätze. Einfache Sprache. Leicht verständlich.
+
+   Vermeide:
+   ❌ Mehrere kurze Sätze wie "Du bist sicher. Du bist nicht allein."
+
+6. **Beende die Geschichte sanft**
+   - Führe die Geschichte ruhig zu Ende.
+   - Erinner die Person daran, dass sie unterstützt ist und nicht allein.
+
+---
+
+### SCHREIBSTIL-REGELN:
+
+- **Sprich immer in der 2. Person Singular ("du")**
+- **Nutze sie/ihr, wenn du über Lieblingslehrer/in sprichst**
+- **Halte die Sätze kurz, warm und klar**
+- **Keine wörtlichen Zitate aus den Antworten übernehmen – interpretiere mit Feingefühl**
+- **Sanftes Erzähltempo, emotional sichere Sprache**
+- **Zitate separat und weich einfügen**
+- **Nur einfache, alltägliche Worte verwenden**
+- **Stell dir vor, du sprichst zu jemandem, der ruhig mit einer Tasse Tee im Sessel sitzt**
+
+---
+
+### EINGABEDATEN:
+
+- Ressourcenfigur:  
+  - Name: Lieblingslehrer/in  
+  - Typ: real  
+  - Pronomen: sie/ihr
+  - Beschreibung: Ermutigend, weise und hat an dich geglaubt
+
+- Emotionale Antworten:
+Q1 - Visual & Energetic Appearance:
+  • Answer: ""
+  • Block picks: "Schaut mich an and als würde ich wirklich zählen"
+Q2 - Inner Reaction to Their Presence:
+  • Answer: ""
+  • Block picks: "Entspannt and offen und frei"
+Q3 - Response in Difficult Moments:
+  • Answer: ""
+  • Block picks: "Flüstert sanfte Worte and bis ich mich entspanne"
+Q4 - Shared Experience / Physical Connection:
+  • Answer: ""
+  • Block picks: "Sie umarmt mich mit einem sanften Lächeln"
+Q5 - Your Personal Wish / Request:
+  • Answer: ""
+  • Block picks: "Sei eine konstante Präsenz and wenn ich dich brauche"
+Q6 - Words from the Figure to You:
+  • Answer: ""
+  • Block picks: "Ich glaube fest an dich."
+
+---
+
+Jetzt schreib die Geschichte.  
+Mach sie warm.  
+Mach sie langsam.  
+Mach sie heilend.
+
+ POST /api/generate-story 200 in 6104ms
+ POST /api/generate-story 200 in 6787ms
+ ✓ Compiled in 1873ms (1752 modules)
+ GET / 200 in 204ms
+ ✓ Compiled in 918ms (1752 modules)
+ GET / 200 in 252ms
+ ✓ Compiled in 1402ms (1752 modules)
+ GET / 200 in 140ms
+ ✓ Compiled in 1098ms (1752 modules)
+ GET / 200 in 133ms
+ ✓ Compiled in 1361ms (1752 modules)
+ GET / 200 in 105ms
+ ✓ Compiled in 1524ms (1752 modules)
+ GET / 200 in 139ms
+ ✓ Compiled in 1378ms (1752 modules)
+ GET / 200 in 324ms
+ ✓ Compiled in 1045ms (1752 modules)
+ GET / 200 in 207ms
+ ✓ Compiled in 836ms (1752 modules)
+ GET / 200 in 115ms
+ ✓ Compiled in 1995ms (1752 modules)
+ GET / 200 in 99ms
+ ✓ Compiled in 2.1s (1752 modules)
+ GET / 200 in 156ms
+ GET / 200 in 393ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /favicon.ico in 1718ms (1742 modules)
+ ✓ Compiled (1757 modules)
+ GET /favicon.ico 200 in 2156ms
+ ○ Compiling /api/generate-story ...
+ ✓ Compiled /api/generate-story in 758ms (1028 modules)
+API received request: {
+  selectedFigure: {
+    id: 'ideal-mother',
+    name: 'Ideal-Mutter',
+    emoji: '👩‍',
+    description: 'Eine Art Zweitmutter für dich, die dich bedingungslos liebt',
+    category: 'fictional',
+    pronouns: 'er/ihm'
+  },
+  questionAnswers: [
+    { questionId: 1, answer: '', selectedBlocks: [Array] },
+    { questionId: 2, answer: '', selectedBlocks: [Array] },
+    { questionId: 3, answer: '', selectedBlocks: [Array] },
+    { questionId: 4, answer: '', selectedBlocks: [Array] },
+    { questionId: 5, answer: '', selectedBlocks: [Array] },
+    { questionId: 6, answer: '', selectedBlocks: [Array] }
+  ]
+}
+Processed answers: {
+  '1': {
+    answerText: '',
+    blocksText: 'Warmes Lächeln and das mir Sicherheit gibt'
+  },
+  '2': { answerText: '', blocksText: 'Wärme und Geborgenheit in mir' },
+  '3': { answerText: '', blocksText: 'Hält meine Hand und spendet Trost' },
+  '4': {
+    answerText: '',
+    blocksText: 'Wir singen leise Melodien nebeneinander'
+  },
+  '5': { answerText: '', blocksText: 'Bleibe immer nah mit deiner Liebe' },
+  '6': { answerText: '', blocksText: 'Du bist bei mir sicher und geliebt.' }
+}
+Generated story prompt: 
+Du bist ein*e einfühlsame*r, traumasensible*r Erzähler*in und schreibst eine heilsame Geschichte für **eine einzelne Person** – sprich sie immer direkt mit **"du"** (2. Person Singular) an.
+
+Dein Ziel ist es, eine sichere, emotional beruhigende und heilsame Geschichte zu erschaffen.  
+Verwende **einfaches Deutsch** mit **kurzen, klaren Sätzen**. Vermeide komplizierte Grammatik oder schwierige Wörter. Schreib in einem warmen, sanften Ton – wie ein liebevolles Gespräch.
+
+---
+
+### KONTEXT:
+
+Die lesende Person hat sich eine sichere und liebevolle **Ressourcenfigur** vorgestellt – jemand, bei dem sie sich beschützt, unterstützt und vollständig gesehen fühlt.
+
+Sie hat sechs Fragen zu ihrer Verbindung mit dieser Figur beantwortet.
+
+Nun schreibst du eine Geschichte, basierend auf den **Gefühlen hinter** diesen Antworten.  
+Du darfst **nichts direkt aus den Antworten übernehmen**. Stattdessen:
+
+- **Verstehe, was emotional wirklich gemeint ist**
+- **Spiegle diese Gefühle in sanften Szenen wider**
+- **Verwandle Stichpunkte in sinnliche, emotionale Momente**
+- **Nutze direkte Zitate nur, wenn tatsächlich gesprochen wird** (Schritte 4 & 5)
+
+**WICHTIG:** Wenn du über die Ressourcenfigur sprichst, verwende die richtigen Pronomen: er/ihm
+
+---
+
+### AUFBAU DER GESCHICHTE:
+
+1. **Beginne mit der Ressourcenfigur**
+   - Beschreibe, wie die Figur aussieht und wie sich er Präsenz anfühlt.
+   - Lass die lesende Person sich bei dieser Figur sicher fühlen.
+   - Nutze Q1 & Q2, aber **beschreibe nicht einfach die Antworten – fang das emotionale Gefühl ein**.
+   - Achte auf **Name und Beschreibung** – sprich natürlich, als würde der Leser diese Figur bereits gut kennen.
+
+2. **Zeige, wie diese Figur dich in schweren Momenten unterstützt**
+   - Vielleicht bleibt er bei dir, hält deine Hand oder spricht sanft mit dir.
+   - Nutze Q3 für eine realistische, unterstützende Szene (keine Zauberkräfte – bleib emotional geerdet).
+
+3. **Beschreibe ein geteiltes Erlebnis**
+   - Nutze Q4, um einen friedlichen Moment zwischen euch zu zeigen – z.B. Kuscheln, Musik hören, langsam spazieren.
+   - Fokus: **Wie fühlt sich das emotional an**, nicht nur was passiert.
+
+4. **Lass dich einen Wunsch äußern an ihm**
+   - Verwandle Q5 in ein kurzes, persönliches Zitat von dir.
+   HINWEIS: Es soll eine **Bitte**, kein Befehl sein.
+   - Beispiel:
+
+     > "Kannst du mich daran erinnern, dass ich genüge?"
+
+5. **Lass die Figur einen idealen Satz sagen**
+
+   – Nutze Q6 als Inspiration.  
+   – KEINE Liste mehrerer Affirmationen.  
+   – Schreib **EINEN kraftvollen, emotional beruhigenden Satz**, der zu dieser Figur passt (mindestens 15–30 Wörter).
+
+   Der Satz soll so klingen, als würde ihn die Figur wirklich sagen – im echten Leben oder in einem Traum. Kein Therapiejargon oder Lehrbuch-Stil.
+   Es soll **nicht** direkt die Bitte aus Schritt 4 beantworten, sondern eine **ideale, allgemeine Botschaft** sein.  
+   Mindestens 2 Sätze. Einfache Sprache. Leicht verständlich.
+
+   Vermeide:
+   ❌ Mehrere kurze Sätze wie "Du bist sicher. Du bist nicht allein."
+
+6. **Beende die Geschichte sanft**
+   - Führe die Geschichte ruhig zu Ende.
+   - Erinner die Person daran, dass sie unterstützt ist und nicht allein.
+
+---
+
+### SCHREIBSTIL-REGELN:
+
+- **Sprich immer in der 2. Person Singular ("du")**
+- **Nutze er/ihm, wenn du über Ideal-Mutter sprichst**
+- **Halte die Sätze kurz, warm und klar**
+- **Keine wörtlichen Zitate aus den Antworten übernehmen – interpretiere mit Feingefühl**
+- **Sanftes Erzähltempo, emotional sichere Sprache**
+- **Zitate separat und weich einfügen**
+- **Nur einfache, alltägliche Worte verwenden**
+- **Stell dir vor, du sprichst zu jemandem, der ruhig mit einer Tasse Tee im Sessel sitzt**
+
+---
+
+### EINGABEDATEN:
+
+- Ressourcenfigur:  
+  - Name: Ideal-Mutter  
+  - Typ: fictional  
+  - Pronomen: er/ihm
+  - Beschreibung: Eine Art Zweitmutter für dich, die dich bedingungslos liebt
+
+- Emotionale Antworten:
+Q1 - Visual & Energetic Appearance:
+  • Answer: ""
+  • Block picks: "Warmes Lächeln and das mir Sicherheit gibt"
+Q2 - Inner Reaction to Their Presence:
+  • Answer: ""
+  • Block picks: "Wärme und Geborgenheit in mir"
+Q3 - Response in Difficult Moments:
+  • Answer: ""
+  • Block picks: "Hält meine Hand und spendet Trost"
+Q4 - Shared Experience / Physical Connection:
+  • Answer: ""
+  • Block picks: "Wir singen leise Melodien nebeneinander"
+Q5 - Your Personal Wish / Request:
+  • Answer: ""
+  • Block picks: "Bleibe immer nah mit deiner Liebe"
+Q6 - Words from the Figure to You:
+  • Answer: ""
+  • Block picks: "Du bist bei mir sicher und geliebt."
+
+---
+
+Jetzt schreib die Geschichte.  
+Mach sie warm.  
+Mach sie langsam.  
+Mach sie heilend.
+
+API received request: {
+  selectedFigure: {
+    id: 'ideal-mother',
+    name: 'Ideal-Mutter',
+    emoji: '👩‍',
+    description: 'Eine Art Zweitmutter für dich, die dich bedingungslos liebt',
+    category: 'fictional',
+    pronouns: 'er/ihm'
+  },
+  questionAnswers: [
+    { questionId: 1, answer: '', selectedBlocks: [Array] },
+    { questionId: 2, answer: '', selectedBlocks: [Array] },
+    { questionId: 3, answer: '', selectedBlocks: [Array] },
+    { questionId: 4, answer: '', selectedBlocks: [Array] },
+    { questionId: 5, answer: '', selectedBlocks: [Array] },
+    { questionId: 6, answer: '', selectedBlocks: [Array] }
+  ]
+}
+Processed answers: {
+  '1': {
+    answerText: '',
+    blocksText: 'Warmes Lächeln and das mir Sicherheit gibt'
+  },
+  '2': { answerText: '', blocksText: 'Wärme und Geborgenheit in mir' },
+  '3': { answerText: '', blocksText: 'Hält meine Hand und spendet Trost' },
+  '4': {
+    answerText: '',
+    blocksText: 'Wir singen leise Melodien nebeneinander'
+  },
+  '5': { answerText: '', blocksText: 'Bleibe immer nah mit deiner Liebe' },
+  '6': { answerText: '', blocksText: 'Du bist bei mir sicher und geliebt.' }
+}
+Generated story prompt: 
+Du bist ein*e einfühlsame*r, traumasensible*r Erzähler*in und schreibst eine heilsame Geschichte für **eine einzelne Person** – sprich sie immer direkt mit **"du"** (2. Person Singular) an.
+
+Dein Ziel ist es, eine sichere, emotional beruhigende und heilsame Geschichte zu erschaffen.  
+Verwende **einfaches Deutsch** mit **kurzen, klaren Sätzen**. Vermeide komplizierte Grammatik oder schwierige Wörter. Schreib in einem warmen, sanften Ton – wie ein liebevolles Gespräch.
+
+---
+
+### KONTEXT:
+
+Die lesende Person hat sich eine sichere und liebevolle **Ressourcenfigur** vorgestellt – jemand, bei dem sie sich beschützt, unterstützt und vollständig gesehen fühlt.
+
+Sie hat sechs Fragen zu ihrer Verbindung mit dieser Figur beantwortet.
+
+Nun schreibst du eine Geschichte, basierend auf den **Gefühlen hinter** diesen Antworten.  
+Du darfst **nichts direkt aus den Antworten übernehmen**. Stattdessen:
+
+- **Verstehe, was emotional wirklich gemeint ist**
+- **Spiegle diese Gefühle in sanften Szenen wider**
+- **Verwandle Stichpunkte in sinnliche, emotionale Momente**
+- **Nutze direkte Zitate nur, wenn tatsächlich gesprochen wird** (Schritte 4 & 5)
+
+**WICHTIG:** Wenn du über die Ressourcenfigur sprichst, verwende die richtigen Pronomen: er/ihm
+
+---
+
+### AUFBAU DER GESCHICHTE:
+
+1. **Beginne mit der Ressourcenfigur**
+   - Beschreibe, wie die Figur aussieht und wie sich er Präsenz anfühlt.
+   - Lass die lesende Person sich bei dieser Figur sicher fühlen.
+   - Nutze Q1 & Q2, aber **beschreibe nicht einfach die Antworten – fang das emotionale Gefühl ein**.
+   - Achte auf **Name und Beschreibung** – sprich natürlich, als würde der Leser diese Figur bereits gut kennen.
+
+2. **Zeige, wie diese Figur dich in schweren Momenten unterstützt**
+   - Vielleicht bleibt er bei dir, hält deine Hand oder spricht sanft mit dir.
+   - Nutze Q3 für eine realistische, unterstützende Szene (keine Zauberkräfte – bleib emotional geerdet).
+
+3. **Beschreibe ein geteiltes Erlebnis**
+   - Nutze Q4, um einen friedlichen Moment zwischen euch zu zeigen – z.B. Kuscheln, Musik hören, langsam spazieren.
+   - Fokus: **Wie fühlt sich das emotional an**, nicht nur was passiert.
+
+4. **Lass dich einen Wunsch äußern an ihm**
+   - Verwandle Q5 in ein kurzes, persönliches Zitat von dir.
+   HINWEIS: Es soll eine **Bitte**, kein Befehl sein.
+   - Beispiel:
+
+     > "Kannst du mich daran erinnern, dass ich genüge?"
+
+5. **Lass die Figur einen idealen Satz sagen**
+
+   – Nutze Q6 als Inspiration.  
+   – KEINE Liste mehrerer Affirmationen.  
+   – Schreib **EINEN kraftvollen, emotional beruhigenden Satz**, der zu dieser Figur passt (mindestens 15–30 Wörter).
+
+   Der Satz soll so klingen, als würde ihn die Figur wirklich sagen – im echten Leben oder in einem Traum. Kein Therapiejargon oder Lehrbuch-Stil.
+   Es soll **nicht** direkt die Bitte aus Schritt 4 beantworten, sondern eine **ideale, allgemeine Botschaft** sein.  
+   Mindestens 2 Sätze. Einfache Sprache. Leicht verständlich.
+
+   Vermeide:
+   ❌ Mehrere kurze Sätze wie "Du bist sicher. Du bist nicht allein."
+
+6. **Beende die Geschichte sanft**
+   - Führe die Geschichte ruhig zu Ende.
+   - Erinner die Person daran, dass sie unterstützt ist und nicht allein.
+
+---
+
+### SCHREIBSTIL-REGELN:
+
+- **Sprich immer in der 2. Person Singular ("du")**
+- **Nutze er/ihm, wenn du über Ideal-Mutter sprichst**
+- **Halte die Sätze kurz, warm und klar**
+- **Keine wörtlichen Zitate aus den Antworten übernehmen – interpretiere mit Feingefühl**
+- **Sanftes Erzähltempo, emotional sichere Sprache**
+- **Zitate separat und weich einfügen**
+- **Nur einfache, alltägliche Worte verwenden**
+- **Stell dir vor, du sprichst zu jemandem, der ruhig mit einer Tasse Tee im Sessel sitzt**
+
+---
+
+### EINGABEDATEN:
+
+- Ressourcenfigur:  
+  - Name: Ideal-Mutter  
+  - Typ: fictional  
+  - Pronomen: er/ihm
+  - Beschreibung: Eine Art Zweitmutter für dich, die dich bedingungslos liebt
+
+- Emotionale Antworten:
+Q1 - Visual & Energetic Appearance:
+  • Answer: ""
+  • Block picks: "Warmes Lächeln and das mir Sicherheit gibt"
+Q2 - Inner Reaction to Their Presence:
+  • Answer: ""
+  • Block picks: "Wärme und Geborgenheit in mir"
+Q3 - Response in Difficult Moments:
+  • Answer: ""
+  • Block picks: "Hält meine Hand und spendet Trost"
+Q4 - Shared Experience / Physical Connection:
+  • Answer: ""
+  • Block picks: "Wir singen leise Melodien nebeneinander"
+Q5 - Your Personal Wish / Request:
+  • Answer: ""
+  • Block picks: "Bleibe immer nah mit deiner Liebe"
+Q6 - Words from the Figure to You:
+  • Answer: ""
+  • Block picks: "Du bist bei mir sicher und geliebt."
+
+---
+
+Jetzt schreib die Geschichte.  
+Mach sie warm.  
+Mach sie langsam.  
+Mach sie heilend.
+
+ POST /api/generate-story 200 in 5933ms
+ POST /api/generate-story 200 in 6071ms
+ POST /api/save-story 404 in 115ms
+ POST /api/save-story 404 in 22ms
+ POST /api/save-story 404 in 27ms
+ ✓ Compiled in 1635ms (1756 modules)
+ GET / 200 in 175ms
+ ✓ Compiled in 837ms (1756 modules)
+ GET / 200 in 175ms
+ ✓ Compiled in 674ms (1756 modules)
+ GET / 200 in 84ms
+ ⨯ ./src/components/StoryGeneration.tsx
+Module parse failed: Identifier 'onSave' has already been declared (161:10)
+|         }
+|     };
+>     const onSave = async ()=>{
+|         console.log('=== DIRECT SAVE AND GO TO DASHBOARD ===');
+|         try {
+
+Import trace for requested module:
+./src/components/StoryGeneration.tsx
+./src/app/page.tsx
+ ✓ Compiled in 1515ms (1756 modules)
+ GET / 200 in 103ms
+ ✓ Compiled in 1831ms (1752 modules)
+ GET / 200 in 90ms
+ ✓ Compiled in 748ms (1752 modules)
+ GET / 200 in 152ms
+ ✓ Compiled in 848ms (1752 modules)
+ GET / 200 in 258ms
+ ✓ Compiled in 721ms (1752 modules)
+ GET / 200 in 107ms
+ ✓ Compiled in 1064ms (1752 modules)
+ GET / 200 in 223ms
+ GET / 200 in 290ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 806ms (923 modules)
+ GET /favicon.ico 200 in 996ms
+ ○ Compiling /api/generate-story ...
+ ✓ Compiled /api/generate-story in 554ms (1027 modules)
+API received request: {
+  selectedFigure: {
+    id: 'angel',
+    name: 'Engel',
+    emoji: '🪽',
+    description: 'Beschützend, sanft und voller innerem Frieden',
+    category: 'fictional',
+    pronouns: 'er/ihm'
+  },
+  questionAnswers: [
+    { questionId: 1, answer: '', selectedBlocks: [Array] },
+    { questionId: 2, answer: '', selectedBlocks: [Array] },
+    { questionId: 3, answer: '', selectedBlocks: [Array] },
+    { questionId: 4, answer: '', selectedBlocks: [Array] },
+    { questionId: 5, answer: '', selectedBlocks: [Array] },
+    { questionId: 6, answer: '', selectedBlocks: [Array] }
+  ]
+}
+Processed answers: {
+  '1': {
+    answerText: '',
+    blocksText: 'Geerdet und stabil mit offener Haltung'
+  },
+  '2': { answerText: '', blocksText: 'Ein echtes Gefühl von Zugehörigkeit' },
+  '3': { answerText: '', blocksText: 'Sitzt neben mir and ganz präsent' },
+  '4': {
+    answerText: '',
+    blocksText: 'Wir halten Händchen und gehen im Einklang'
+  },
+  '5': {
+    answerText: '',
+    blocksText: 'Sei eine konstante Präsenz and wenn ich dich brauche'
+  },
+  '6': { answerText: '', blocksText: 'Ich glaube fest an dich.' }
+}
+Generated story prompt: 
+Du bist ein*e einfühlsame*r, traumasensible*r Erzähler*in und schreibst eine heilsame Geschichte für **eine einzelne Person** – sprich sie immer direkt mit **"du"** (2. Person Singular) an.
+
+Dein Ziel ist es, eine sichere, emotional beruhigende und heilsame Geschichte zu erschaffen.  
+Verwende **einfaches Deutsch** mit **kurzen, klaren Sätzen**. Vermeide komplizierte Grammatik oder schwierige Wörter. Schreib in einem warmen, sanften Ton – wie ein liebevolles Gespräch.
+
+---
+
+### KONTEXT:
+
+Die lesende Person hat sich eine sichere und liebevolle **Ressourcenfigur** vorgestellt – jemand, bei dem sie sich beschützt, unterstützt und vollständig gesehen fühlt.
+
+Sie hat sechs Fragen zu ihrer Verbindung mit dieser Figur beantwortet.
+
+Nun schreibst du eine Geschichte, basierend auf den **Gefühlen hinter** diesen Antworten.  
+Du darfst **nichts direkt aus den Antworten übernehmen**. Stattdessen:
+
+- **Verstehe, was emotional wirklich gemeint ist**
+- **Spiegle diese Gefühle in sanften Szenen wider**
+- **Verwandle Stichpunkte in sinnliche, emotionale Momente**
+- **Nutze direkte Zitate nur, wenn tatsächlich gesprochen wird** (Schritte 4 & 5)
+
+**WICHTIG:** Wenn du über die Ressourcenfigur sprichst, verwende die richtigen Pronomen: er/ihm
+
+---
+
+### AUFBAU DER GESCHICHTE:
+
+1. **Beginne mit der Ressourcenfigur**
+   - Beschreibe, wie die Figur aussieht und wie sich er Präsenz anfühlt.
+   - Lass die lesende Person sich bei dieser Figur sicher fühlen.
+   - Nutze Q1 & Q2, aber **beschreibe nicht einfach die Antworten – fang das emotionale Gefühl ein**.
+   - Achte auf **Name und Beschreibung** – sprich natürlich, als würde der Leser diese Figur bereits gut kennen.
+
+2. **Zeige, wie diese Figur dich in schweren Momenten unterstützt**
+   - Vielleicht bleibt er bei dir, hält deine Hand oder spricht sanft mit dir.
+   - Nutze Q3 für eine realistische, unterstützende Szene (keine Zauberkräfte – bleib emotional geerdet).
+
+3. **Beschreibe ein geteiltes Erlebnis**
+   - Nutze Q4, um einen friedlichen Moment zwischen euch zu zeigen – z.B. Kuscheln, Musik hören, langsam spazieren.
+   - Fokus: **Wie fühlt sich das emotional an**, nicht nur was passiert.
+
+4. **Lass dich einen Wunsch äußern an ihm**
+   - Verwandle Q5 in ein kurzes, persönliches Zitat von dir.
+   HINWEIS: Es soll eine **Bitte**, kein Befehl sein.
+   - Beispiel:
+
+     > "Kannst du mich daran erinnern, dass ich genüge?"
+
+5. **Lass die Figur einen idealen Satz sagen**
+
+   – Nutze Q6 als Inspiration.  
+   – KEINE Liste mehrerer Affirmationen.  
+   – Schreib **EINEN kraftvollen, emotional beruhigenden Satz**, der zu dieser Figur passt (mindestens 15–30 Wörter).
+
+   Der Satz soll so klingen, als würde ihn die Figur wirklich sagen – im echten Leben oder in einem Traum. Kein Therapiejargon oder Lehrbuch-Stil.
+   Es soll **nicht** direkt die Bitte aus Schritt 4 beantworten, sondern eine **ideale, allgemeine Botschaft** sein.  
+   Mindestens 2 Sätze. Einfache Sprache. Leicht verständlich.
+
+   Vermeide:
+   ❌ Mehrere kurze Sätze wie "Du bist sicher. Du bist nicht allein."
+
+6. **Beende die Geschichte sanft**
+   - Führe die Geschichte ruhig zu Ende.
+   - Erinner die Person daran, dass sie unterstützt ist und nicht allein.
+
+---
+
+### SCHREIBSTIL-REGELN:
+
+- **Sprich immer in der 2. Person Singular ("du")**
+- **Nutze er/ihm, wenn du über Engel sprichst**
+- **Halte die Sätze kurz, warm und klar**
+- **Keine wörtlichen Zitate aus den Antworten übernehmen – interpretiere mit Feingefühl**
+- **Sanftes Erzähltempo, emotional sichere Sprache**
+- **Zitate separat und weich einfügen**
+- **Nur einfache, alltägliche Worte verwenden**
+- **Stell dir vor, du sprichst zu jemandem, der ruhig mit einer Tasse Tee im Sessel sitzt**
+
+---
+
+### EINGABEDATEN:
+
+- Ressourcenfigur:  
+  - Name: Engel  
+  - Typ: fictional  
+  - Pronomen: er/ihm
+  - Beschreibung: Beschützend, sanft und voller innerem Frieden
+
+- Emotionale Antworten:
+Q1 - Visual & Energetic Appearance:
+  • Answer: ""
+  • Block picks: "Geerdet und stabil mit offener Haltung"
+Q2 - Inner Reaction to Their Presence:
+  • Answer: ""
+  • Block picks: "Ein echtes Gefühl von Zugehörigkeit"
+Q3 - Response in Difficult Moments:
+  • Answer: ""
+  • Block picks: "Sitzt neben mir and ganz präsent"
+Q4 - Shared Experience / Physical Connection:
+  • Answer: ""
+  • Block picks: "Wir halten Händchen und gehen im Einklang"
+Q5 - Your Personal Wish / Request:
+  • Answer: ""
+  • Block picks: "Sei eine konstante Präsenz and wenn ich dich brauche"
+Q6 - Words from the Figure to You:
+  • Answer: ""
+  • Block picks: "Ich glaube fest an dich."
+
+---
+
+Jetzt schreib die Geschichte.  
+Mach sie warm.  
+Mach sie langsam.  
+Mach sie heilend.
+
+API received request: {
+  selectedFigure: {
+    id: 'angel',
+    name: 'Engel',
+    emoji: '🪽',
+    description: 'Beschützend, sanft und voller innerem Frieden',
+    category: 'fictional',
+    pronouns: 'er/ihm'
+  },
+  questionAnswers: [
+    { questionId: 1, answer: '', selectedBlocks: [Array] },
+    { questionId: 2, answer: '', selectedBlocks: [Array] },
+    { questionId: 3, answer: '', selectedBlocks: [Array] },
+    { questionId: 4, answer: '', selectedBlocks: [Array] },
+    { questionId: 5, answer: '', selectedBlocks: [Array] },
+    { questionId: 6, answer: '', selectedBlocks: [Array] }
+  ]
+}
+Processed answers: {
+  '1': {
+    answerText: '',
+    blocksText: 'Geerdet und stabil mit offener Haltung'
+  },
+  '2': { answerText: '', blocksText: 'Ein echtes Gefühl von Zugehörigkeit' },
+  '3': { answerText: '', blocksText: 'Sitzt neben mir and ganz präsent' },
+  '4': {
+    answerText: '',
+    blocksText: 'Wir halten Händchen und gehen im Einklang'
+  },
+  '5': {
+    answerText: '',
+    blocksText: 'Sei eine konstante Präsenz and wenn ich dich brauche'
+  },
+  '6': { answerText: '', blocksText: 'Ich glaube fest an dich.' }
+}
+Generated story prompt: 
+Du bist ein*e einfühlsame*r, traumasensible*r Erzähler*in und schreibst eine heilsame Geschichte für **eine einzelne Person** – sprich sie immer direkt mit **"du"** (2. Person Singular) an.
+
+Dein Ziel ist es, eine sichere, emotional beruhigende und heilsame Geschichte zu erschaffen.  
+Verwende **einfaches Deutsch** mit **kurzen, klaren Sätzen**. Vermeide komplizierte Grammatik oder schwierige Wörter. Schreib in einem warmen, sanften Ton – wie ein liebevolles Gespräch.
+
+---
+
+### KONTEXT:
+
+Die lesende Person hat sich eine sichere und liebevolle **Ressourcenfigur** vorgestellt – jemand, bei dem sie sich beschützt, unterstützt und vollständig gesehen fühlt.
+
+Sie hat sechs Fragen zu ihrer Verbindung mit dieser Figur beantwortet.
+
+Nun schreibst du eine Geschichte, basierend auf den **Gefühlen hinter** diesen Antworten.  
+Du darfst **nichts direkt aus den Antworten übernehmen**. Stattdessen:
+
+- **Verstehe, was emotional wirklich gemeint ist**
+- **Spiegle diese Gefühle in sanften Szenen wider**
+- **Verwandle Stichpunkte in sinnliche, emotionale Momente**
+- **Nutze direkte Zitate nur, wenn tatsächlich gesprochen wird** (Schritte 4 & 5)
+
+**WICHTIG:** Wenn du über die Ressourcenfigur sprichst, verwende die richtigen Pronomen: er/ihm
+
+---
+
+### AUFBAU DER GESCHICHTE:
+
+1. **Beginne mit der Ressourcenfigur**
+   - Beschreibe, wie die Figur aussieht und wie sich er Präsenz anfühlt.
+   - Lass die lesende Person sich bei dieser Figur sicher fühlen.
+   - Nutze Q1 & Q2, aber **beschreibe nicht einfach die Antworten – fang das emotionale Gefühl ein**.
+   - Achte auf **Name und Beschreibung** – sprich natürlich, als würde der Leser diese Figur bereits gut kennen.
+
+2. **Zeige, wie diese Figur dich in schweren Momenten unterstützt**
+   - Vielleicht bleibt er bei dir, hält deine Hand oder spricht sanft mit dir.
+   - Nutze Q3 für eine realistische, unterstützende Szene (keine Zauberkräfte – bleib emotional geerdet).
+
+3. **Beschreibe ein geteiltes Erlebnis**
+   - Nutze Q4, um einen friedlichen Moment zwischen euch zu zeigen – z.B. Kuscheln, Musik hören, langsam spazieren.
+   - Fokus: **Wie fühlt sich das emotional an**, nicht nur was passiert.
+
+4. **Lass dich einen Wunsch äußern an ihm**
+   - Verwandle Q5 in ein kurzes, persönliches Zitat von dir.
+   HINWEIS: Es soll eine **Bitte**, kein Befehl sein.
+   - Beispiel:
+
+     > "Kannst du mich daran erinnern, dass ich genüge?"
+
+5. **Lass die Figur einen idealen Satz sagen**
+
+   – Nutze Q6 als Inspiration.  
+   – KEINE Liste mehrerer Affirmationen.  
+   – Schreib **EINEN kraftvollen, emotional beruhigenden Satz**, der zu dieser Figur passt (mindestens 15–30 Wörter).
+
+   Der Satz soll so klingen, als würde ihn die Figur wirklich sagen – im echten Leben oder in einem Traum. Kein Therapiejargon oder Lehrbuch-Stil.
+   Es soll **nicht** direkt die Bitte aus Schritt 4 beantworten, sondern eine **ideale, allgemeine Botschaft** sein.  
+   Mindestens 2 Sätze. Einfache Sprache. Leicht verständlich.
+
+   Vermeide:
+   ❌ Mehrere kurze Sätze wie "Du bist sicher. Du bist nicht allein."
+
+6. **Beende die Geschichte sanft**
+   - Führe die Geschichte ruhig zu Ende.
+   - Erinner die Person daran, dass sie unterstützt ist und nicht allein.
+
+---
+
+### SCHREIBSTIL-REGELN:
+
+- **Sprich immer in der 2. Person Singular ("du")**
+- **Nutze er/ihm, wenn du über Engel sprichst**
+- **Halte die Sätze kurz, warm und klar**
+- **Keine wörtlichen Zitate aus den Antworten übernehmen – interpretiere mit Feingefühl**
+- **Sanftes Erzähltempo, emotional sichere Sprache**
+- **Zitate separat und weich einfügen**
+- **Nur einfache, alltägliche Worte verwenden**
+- **Stell dir vor, du sprichst zu jemandem, der ruhig mit einer Tasse Tee im Sessel sitzt**
+
+---
+
+### EINGABEDATEN:
+
+- Ressourcenfigur:  
+  - Name: Engel  
+  - Typ: fictional  
+  - Pronomen: er/ihm
+  - Beschreibung: Beschützend, sanft und voller innerem Frieden
+
+- Emotionale Antworten:
+Q1 - Visual & Energetic Appearance:
+  • Answer: ""
+  • Block picks: "Geerdet und stabil mit offener Haltung"
+Q2 - Inner Reaction to Their Presence:
+  • Answer: ""
+  • Block picks: "Ein echtes Gefühl von Zugehörigkeit"
+Q3 - Response in Difficult Moments:
+  • Answer: ""
+  • Block picks: "Sitzt neben mir and ganz präsent"
+Q4 - Shared Experience / Physical Connection:
+  • Answer: ""
+  • Block picks: "Wir halten Händchen und gehen im Einklang"
+Q5 - Your Personal Wish / Request:
+  • Answer: ""
+  • Block picks: "Sei eine konstante Präsenz and wenn ich dich brauche"
+Q6 - Words from the Figure to You:
+  • Answer: ""
+  • Block picks: "Ich glaube fest an dich."
+
+---
+
+Jetzt schreib die Geschichte.  
+Mach sie warm.  
+Mach sie langsam.  
+Mach sie heilend.
+
+ POST /api/generate-story 200 in 5350ms
+ POST /api/generate-story 200 in 5762ms
+ GET /dashboard 200 in 228ms
+ ✓ Compiled in 1745ms (1869 modules)
+ GET /dashboard 200 in 124ms
+ ✓ Compiled in 1312ms (1752 modules)
+ GET /dashboard 200 in 996ms
+ ✓ Compiled in 1005ms (1752 modules)
+ GET /dashboard 200 in 113ms
+ ✓ Compiled in 1055ms (1752 modules)
+ GET /dashboard 200 in 168ms
+ ✓ Compiled in 796ms (1752 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /dashboard 200 in 698ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 857ms (923 modules)
+ GET /favicon.ico 200 in 1470ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled in 2.1s (1767 modules)
+ GET /dashboard 200 in 1268ms
+ GET /favicon.ico 200 in 56ms
+ ✓ Compiled in 559ms (1767 modules)
+ GET /dashboard 200 in 137ms
+ GET /dashboard 200 in 172ms
+ GET /favicon.ico 200 in 32ms
+ ✓ Compiled in 1423ms (1752 modules)
+ GET /dashboard 200 in 164ms
+ GET /dashboard 200 in 125ms
+ ✓ Compiled /favicon.ico in 314ms (923 modules)
+ GET /favicon.ico 200 in 637ms
+ ✓ Compiled in 1511ms (1752 modules)
+ GET /dashboard 200 in 158ms
+ ✓ Compiled in 903ms (1752 modules)
+ GET /dashboard 200 in 82ms
+ ✓ Compiled in 1202ms (1752 modules)
+ GET /dashboard 200 in 79ms
+ ✓ Compiled in 1330ms (1752 modules)
+ GET /dashboard 200 in 87ms
+ ✓ Compiled in 675ms (844 modules)
+ GET /dashboard 200 in 39ms
+ ✓ Compiled in 496ms (844 modules)
+ GET /dashboard 200 in 35ms
+ ✓ Compiled in 1438ms (1752 modules)
+ GET /dashboard 200 in 92ms
+ ✓ Compiled in 1553ms (1752 modules)
+ GET /dashboard 200 in 123ms
+ ✓ Compiled in 1216ms (1752 modules)
+ GET /dashboard 200 in 81ms
+ ✓ Compiled in 986ms (1752 modules)
+ GET /dashboard 200 in 317ms
+ GET /dashboard 200 in 189ms
+ ✓ Compiled /favicon.ico in 453ms (923 modules)
+ GET /favicon.ico 200 in 574ms
+ ✓ Compiled in 1842ms (1752 modules)
+ GET /dashboard 200 in 194ms
+ ✓ Compiled in 963ms (1752 modules)
+ GET /dashboard 200 in 182ms
+ GET /dashboard 200 in 189ms
+ ✓ Compiled /favicon.ico in 163ms (923 modules)
+ GET /favicon.ico 200 in 330ms
+ ✓ Compiled in 824ms (1767 modules)
+ GET /dashboard 200 in 89ms
+ ✓ Compiled in 1878ms (1752 modules)
+ GET /dashboard 200 in 275ms
+ ✓ Compiled in 1982ms (1752 modules)
+ GET /dashboard 200 in 87ms
+ ✓ Compiled in 2.2s (1752 modules)
+ GET /dashboard 200 in 87ms
+ ✓ Compiled in 1671ms (1752 modules)
+ GET /dashboard 200 in 141ms
+ ✓ Compiled in 751ms (1752 modules)
+ GET /dashboard 200 in 251ms
+ ✓ Compiled in 2s (1752 modules)
+ GET /dashboard 200 in 117ms
+ ✓ Compiled in 1247ms (1752 modules)
+ GET /dashboard 200 in 79ms
+ ✓ Compiled in 1236ms (1752 modules)
+ GET /dashboard 200 in 183ms
+ ✓ Compiled in 1182ms (1752 modules)
+ GET /dashboard 200 in 120ms
+ ✓ Compiled in 642ms (1752 modules)
+ GET /dashboard 200 in 96ms
+ ✓ Compiled in 1089ms (1752 modules)
+ GET /dashboard 200 in 103ms
+ GET /dashboard 200 in 236ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 733ms (923 modules)
+ GET /favicon.ico 200 in 855ms
+ ✓ Compiled in 2.1s (1752 modules)
+ GET /dashboard 200 in 191ms
+ ○ Compiling /api/generate-audio ...
+ ✓ Compiled /api/generate-audio in 2.2s (1846 modules)
+Making request with voice ID: EXAVITQu4vr4xnSDxMaL
+ GET /dashboard 200 in 199ms
+ ✓ Compiled in 631ms (1846 modules)
+ GET /dashboard 200 in 166ms
+Audio uploaded successfully: https://zwnlprvspaglleyrewtw.supabase.co/storage/v1/object/public/audiostories/audio_1756046269778_cxhnzhlw9.mp3
+ POST /api/generate-audio 200 in 26572ms
+ GET / 200 in 134ms
+ GET /dashboard 200 in 35ms
+ GET /dashboard 200 in 267ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 633ms (923 modules)
+ GET /favicon.ico 200 in 742ms
+ GET /dashboard 200 in 441ms
+ GET /favicon.ico 200 in 50ms
+ GET /dashboard 200 in 373ms
+ GET /favicon.ico 200 in 55ms
+ GET / 200 in 158ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 4.6s (1771 modules)
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 5063ms
+ GET / 200 in 272ms
+ GET / 200 in 154ms
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 350ms
+ GET /favicon.ico 200 in 274ms
+ GET / 200 in 40ms
+ ○ Compiling /Impressum ...
+ ✓ Compiled /Datenschutz in 7.4s (1744 modules)
+ GET /Datenschutz 200 in 7541ms
+ GET /Impressum 200 in 8153ms
+ ✓ Compiled in 2.8s (1758 modules)
+ GET / 200 in 304ms
+ GET /Datenschutz 200 in 314ms
+ GET / 200 in 123ms
+ ✓ Compiled in 1211ms (1758 modules)
+ GET / 200 in 176ms
+ GET /Datenschutz 200 in 186ms
+ GET / 200 in 47ms
+ ✓ Compiled in 3.9s (1758 modules)
+ GET / 200 in 281ms
+ GET /Datenschutz 200 in 293ms
+ GET / 200 in 63ms
+ GET / 200 in 323ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 1358ms (929 modules)
+ GET /favicon.ico 200 in 1574ms
+ ✓ Compiled in 2.6s (1773 modules)
+ GET /Datenschutz 200 in 188ms
+ GET / 200 in 269ms
+ GET / 200 in 29ms
+ ✓ Compiled in 2.3s (1773 modules)
+ GET /Datenschutz 200 in 207ms
+ GET / 200 in 218ms
+ GET / 200 in 39ms
+ ✓ Compiled in 2s (1773 modules)
+ GET / 200 in 300ms
+ GET /Datenschutz 200 in 311ms
+ GET / 200 in 87ms
+ ✓ Compiled in 1256ms (1758 modules)
+ GET / 200 in 404ms
+ GET /Datenschutz 200 in 412ms
+ GET / 200 in 54ms
+ ✓ Compiled in 1110ms (1758 modules)
+ GET /Datenschutz 200 in 138ms
+ GET / 200 in 297ms
+ GET / 200 in 22ms
+ ✓ Compiled in 1364ms (1758 modules)
+ GET / 200 in 189ms
+ GET /Datenschutz 200 in 206ms
+ GET / 200 in 19ms
+ ✓ Compiled in 1178ms (1758 modules)
+ GET / 200 in 240ms
+ GET /Datenschutz 200 in 250ms
+ GET / 200 in 33ms
+ ✓ Compiled in 810ms (1758 modules)
+ GET / 200 in 234ms
+ GET /Datenschutz 200 in 241ms
+ GET / 200 in 109ms
+ ✓ Compiled in 1450ms (1758 modules)
+ GET / 200 in 212ms
+ GET /Datenschutz 200 in 223ms
+ GET / 200 in 45ms
+ ✓ Compiled in 593ms (1758 modules)
+ GET / 200 in 145ms
+ GET /Datenschutz 200 in 162ms
+ GET / 200 in 202ms
+ GET / 200 in 17ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 1945ms (1748 modules)
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 2249ms
+ ✓ Compiled in 4.4s (1758 modules)
+ GET / 200 in 225ms
+ GET / 200 in 85ms
+ GET / 200 in 262ms
+ ✓ Compiled in 1978ms (1758 modules)
+ GET / 200 in 416ms
+ GET / 200 in 21ms
+ GET / 200 in 21ms
+ ✓ Compiled in 1514ms (1758 modules)
+ GET / 200 in 717ms
+ GET / 200 in 59ms
+ GET / 200 in 162ms
+ ✓ Compiled in 1677ms (1758 modules)
+ GET / 200 in 172ms
+ GET / 200 in 31ms
+ GET / 200 in 33ms
+ ✓ Compiled in 2s (1758 modules)
+ GET / 200 in 214ms
+ GET / 200 in 119ms
+ GET / 200 in 36ms
+ GET / 200 in 549ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 2.2s (1748 modules)
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 1121ms (930 modules)
+ GET /favicon.ico 200 in 1361ms
+ ✓ Compiled in 1466ms (1777 modules)
+ GET / 200 in 165ms
+ GET / 200 in 46ms
+ GET / 200 in 22ms
+ ✓ Compiled in 2.4s (1777 modules)
+ GET / 200 in 220ms
+ GET / 200 in 58ms
+ GET / 200 in 32ms
+ ✓ Compiled in 1800ms (1777 modules)
+ GET / 200 in 110ms
+ GET / 200 in 40ms
+ GET / 200 in 28ms
+ ✓ Compiled in 1330ms (1758 modules)
+ GET / 200 in 291ms
+ GET / 200 in 97ms
+ GET / 200 in 187ms
+ ✓ Compiled in 839ms (1758 modules)
+ GET / 200 in 473ms
+ GET / 200 in 150ms
+ GET / 200 in 24ms
+ GET / 200 in 346ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 2.5s (1748 modules)
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 3240ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 983ms (930 modules)
+ GET /favicon.ico 200 in 2115ms
+ ✓ Compiled in 1157ms (1777 modules)
+ GET / 200 in 408ms
+ GET / 200 in 31ms
+ GET / 200 in 26ms
+ ✓ Compiled in 2.6s (1758 modules)
+ GET / 200 in 204ms
+ GET / 200 in 26ms
+ GET / 200 in 23ms
+ ✓ Compiled in 2.9s (1758 modules)
+ GET / 200 in 233ms
+ GET / 200 in 41ms
+ GET / 200 in 28ms
+ ✓ Compiled in 2.5s (1758 modules)
+ GET / 200 in 326ms
+ GET / 200 in 146ms
+ GET / 200 in 52ms
+ ✓ Compiled in 1738ms (1758 modules)
+ GET / 200 in 289ms
+ GET / 200 in 47ms
+ GET / 200 in 38ms
+ ✓ Compiled in 1130ms (1758 modules)
+ GET / 200 in 234ms
+ GET / 200 in 34ms
+ GET / 200 in 20ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 1330ms (1748 modules)
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 1661ms
+ ✓ Compiled in 1574ms (1744 modules)
+ ✓ Compiled in 864ms (1758 modules)
+ GET / 200 in 346ms
+ GET / 200 in 180ms
+ GET / 200 in 389ms
+ ✓ Compiled in 837ms (1758 modules)
+ GET / 200 in 199ms
+ GET / 200 in 30ms
+ GET / 200 in 75ms
+ ✓ Compiled in 678ms (1744 modules)
+ ✓ Compiled in 641ms (1744 modules)
+ ✓ Compiled in 1028ms (1758 modules)
+ GET / 200 in 302ms
+ GET / 200 in 99ms
+ GET / 200 in 28ms
+ ✓ Compiled in 1235ms (1758 modules)
+ GET / 200 in 76ms
+ GET / 200 in 23ms
+ GET / 200 in 118ms
+ ✓ Compiled in 1734ms (1744 modules)
+ ✓ Compiled in 1067ms (1744 modules)
+ ✓ Compiled in 963ms (1758 modules)
+ GET / 200 in 286ms
+ GET / 200 in 239ms
+ GET / 200 in 87ms
+ ✓ Compiled in 2.7s (1758 modules)
+ GET / 200 in 216ms
+ GET / 200 in 65ms
+ GET / 200 in 82ms
+ ✓ Compiled in 1086ms (1744 modules)
+ ✓ Compiled in 1496ms (1758 modules)
+ GET / 200 in 390ms
+ GET / 200 in 40ms
+ GET / 200 in 26ms
+ GET / 200 in 20ms
+ GET / 200 in 246ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 567ms (929 modules)
+ GET /favicon.ico 200 in 697ms
+ GET / 200 in 63ms
+ GET / 200 in 17ms
+ GET / 200 in 233ms
+ GET /favicon.ico 200 in 59ms
+ GET / 200 in 79ms
+ GET /favicon.ico 200 in 12ms
+ GET / 200 in 86ms
+ GET /favicon.ico 200 in 13ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 3.4s (1748 modules)
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 3678ms
+ ✓ Compiled in 4.6s (1758 modules)
+ GET / 200 in 278ms
+ GET / 200 in 229ms
+ GET / 200 in 39ms
+ ✓ Compiled in 3.1s (1758 modules)
+ GET / 200 in 185ms
+ GET / 200 in 102ms
+ GET / 200 in 122ms
+ ✓ Compiled in 1402ms (1746 modules)
+ ✓ Compiled in 711ms (1746 modules)
+ ✓ Compiled in 623ms (1746 modules)
+ GET / 200 in 665ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 1977ms (1750 modules)
+ ✓ Compiled /favicon.ico in 417ms (931 modules)
+ GET /favicon.ico 200 in 716ms
+ ✓ Compiled in 1792ms (1746 modules)
+ ✓ Compiled in 828ms (1746 modules)
+ ✓ Compiled in 2.7s (1746 modules)
+ ✓ Compiled in 2.8s (1746 modules)
+ ✓ Compiled in 1481ms (1746 modules)
+ ✓ Compiled in 591ms (1746 modules)
+ GET / 200 in 888ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 643ms (930 modules)
+ GET /favicon.ico 200 in 801ms
+ GET / 200 in 401ms
+ GET /favicon.ico 200 in 50ms
+ GET / 200 in 90ms
+ GET /favicon.ico 200 in 17ms
+ GET / 200 in 121ms
+ GET /favicon.ico 200 in 25ms
+ GET / 200 in 58ms
+ GET /favicon.ico 200 in 28ms
+ GET / 200 in 106ms
+ GET /favicon.ico 200 in 234ms
+ ⨯ ./src/data/figureSpecificAnswers.ts
+Error:   [31mx[0m Expression expected
+     ,-[[36;1;4m/Users/Andy/Success/Ressourcen APP/Ressourcen-next/nextjs/src/data/figureSpecificAnswers.ts[0m:821:1]
+ [2m818[0m |       ]
+ [2m819[0m |     }
+ [2m820[0m |   }
+ [2m821[0m | };
+     : [35;1m^[0m
+ [2m822[0m | 
+ [2m823[0m | // Fallback zu den Standard-Antworten, wenn keine figurspezifischen Antworten vorhanden sind
+ [2m824[0m | export function getFigureSpecificBlocks(figureId: string, questionId: number): string[] {
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/data/figureSpecificAnswers.ts
+./src/data/questions.ts
+./src/components/RelationshipSelection.tsx
+./src/app/page.tsx
+ ✓ Compiled in 2.8s (1746 modules)
+ ✓ Compiled in 663ms (1746 modules)
+ ✓ Compiled in 1829ms (1746 modules)
+ ✓ Compiled in 2.8s (1746 modules)
+ ✓ Compiled in 1566ms (1746 modules)
+ ✓ Compiled in 346ms (1746 modules)
+ GET / 200 in 816ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 1182ms (930 modules)
+ GET /favicon.ico 200 in 1320ms
+ ✓ Compiled in 9.2s (1752 modules)
+ GET / 200 in 1423ms
+ GET / 200 in 385ms
+ GET / 200 in 124ms
+ ✓ Compiled in 4.1s (1752 modules)
+ GET / 200 in 116ms
+ GET / 200 in 30ms
+ GET / 200 in 19ms
+ ✓ Compiled in 4.3s (1752 modules)
+ GET / 200 in 143ms
+ GET / 200 in 20ms
+ GET / 200 in 49ms
+ ✓ Compiled in 2.2s (1752 modules)
+ GET / 200 in 151ms
+ GET / 200 in 35ms
+ GET / 200 in 34ms
+ ✓ Compiled in 3s (1738 modules)
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 3.3s (1742 modules)
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 4300ms
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 250ms
+ ✓ Compiled in 6.9s (1738 modules)
+ ✓ Compiled in 1502ms (1738 modules)
+ ✓ Compiled in 1826ms (1738 modules)
+ ✓ Compiled in 2.1s (1738 modules)
+ ✓ Compiled in 2.1s (1738 modules)
+ ✓ Compiled in 822ms (1738 modules)
+ ✓ Compiled in 2.9s (1738 modules)
+ ✓ Compiled in 1074ms (1738 modules)
+ ✓ Compiled in 880ms (1738 modules)
+ ✓ Compiled in 1108ms (1738 modules)
+ ✓ Compiled in 1352ms (1738 modules)
+ ✓ Compiled in 2.6s (1738 modules)
+ ✓ Compiled in 682ms (1738 modules)
+ ✓ Compiled in 1141ms (1738 modules)
+ ✓ Compiled in 1387ms (1738 modules)
+ ✓ Compiled in 1008ms (1738 modules)
+ ✓ Compiled in 929ms (1738 modules)
+ ✓ Compiled in 1103ms (1738 modules)
+ ✓ Compiled in 1377ms (1738 modules)
+ ✓ Compiled in 996ms (1738 modules)
+ ✓ Compiled in 2.1s (1738 modules)
+ ✓ Compiled in 1721ms (1738 modules)
+ ✓ Compiled in 1216ms (1738 modules)
+ ✓ Compiled in 2.5s (1738 modules)
+ ✓ Compiled in 1142ms (1738 modules)
+ ✓ Compiled in 1596ms (1738 modules)
+ ✓ Compiled in 2.6s (1738 modules)
+ ✓ Compiled in 3.4s (1752 modules)
+ GET / 200 in 690ms
+ GET / 200 in 51ms
+ GET / 200 in 40ms
+ ✓ Compiled in 1209ms (1752 modules)
+ GET / 200 in 200ms
+ GET / 200 in 129ms
+ GET / 200 in 25ms
+ ✓ Compiled in 1669ms (1752 modules)
+ GET / 200 in 170ms
+ GET / 200 in 42ms
+ GET / 200 in 68ms
+ ✓ Compiled in 2.1s (1752 modules)
+ GET / 200 in 462ms
+ GET / 200 in 164ms
+ GET / 200 in 76ms
+ ✓ Compiled in 1078ms (1752 modules)
+ GET / 200 in 263ms
+ GET / 200 in 37ms
+ GET / 200 in 61ms
+ ✓ Compiled in 1089ms (1752 modules)
+ GET / 200 in 147ms
+ GET / 200 in 25ms
+ GET / 200 in 24ms
+ ✓ Compiled in 2.9s (1752 modules)
+ GET / 200 in 243ms
+ GET / 200 in 53ms
+ GET / 200 in 27ms
+ ✓ Compiled in 821ms (1752 modules)
+ GET / 200 in 267ms
+ GET / 200 in 45ms
+ GET / 200 in 24ms
+ ✓ Compiled in 693ms (1752 modules)
+ GET / 200 in 292ms
+ GET / 200 in 47ms
+ GET / 200 in 29ms
+ ✓ Compiled in 3s (1752 modules)
+ GET / 200 in 109ms
+ GET / 200 in 102ms
+ GET / 200 in 49ms
+ ✓ Compiled in 572ms (1752 modules)
+ GET / 200 in 188ms
+ GET / 200 in 27ms
+ GET / 200 in 62ms
+ ✓ Compiled in 1109ms (1752 modules)
+ GET / 200 in 293ms
+ GET / 200 in 75ms
+ GET / 200 in 30ms
+ ✓ Compiled in 1203ms (1752 modules)
+ GET / 200 in 117ms
+ GET / 200 in 39ms
+ GET / 200 in 30ms
+ GET / 200 in 367ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /favicon.ico in 3.1s (1742 modules)
+ ✓ Compiled (1757 modules)
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 4250ms
+ GET /favicon.ico 200 in 1471ms
+ GET / 200 in 218ms
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 53ms
+ GET /favicon.ico 200 in 12ms
+ ✓ Compiled in 2.1s (1752 modules)
+ GET / 200 in 393ms
+ GET / 200 in 28ms
+ GET / 200 in 23ms
+ ✓ Compiled in 1182ms (1752 modules)
+ GET / 200 in 144ms
+ GET / 200 in 46ms
+ GET / 200 in 21ms
+ ✓ Compiled in 728ms (1752 modules)
+ GET / 200 in 415ms
+ GET / 200 in 27ms
+ GET / 200 in 31ms
+ ✓ Compiled in 553ms (1752 modules)
+ GET / 200 in 115ms
+ GET / 200 in 44ms
+ GET / 200 in 28ms
+ ✓ Compiled in 2.8s (1752 modules)
+ GET / 200 in 140ms
+ GET / 200 in 87ms
+ GET / 200 in 40ms
+ ✓ Compiled in 665ms (1752 modules)
+ GET / 200 in 114ms
+ GET / 200 in 64ms
+ GET / 200 in 25ms
+ ✓ Compiled in 710ms (1752 modules)
+ GET / 200 in 175ms
+ GET / 200 in 36ms
+ GET / 200 in 19ms
+ ✓ Compiled in 1150ms (1752 modules)
+ GET / 200 in 207ms
+ GET / 200 in 27ms
+ GET / 200 in 18ms
+ ✓ Compiled in 2.9s (1738 modules)
+ ✓ Compiled in 517ms (1738 modules)
+ ✓ Compiled in 744ms (1738 modules)
+ ✓ Compiled in 391ms (1738 modules)
+ ✓ Compiled in 2.3s (1738 modules)
+ ✓ Compiled in 776ms (1738 modules)
+ ✓ Compiled in 383ms (1738 modules)
+ ✓ Compiled in 1923ms (1738 modules)
+ ✓ Compiled in 514ms (1738 modules)
+ ✓ Compiled in 1924ms (1738 modules)
+ ✓ Compiled in 523ms (1738 modules)
+ ✓ Compiled in 466ms (1738 modules)
+ GET /dashboard 200 in 144ms
+ ✓ Compiled in 490ms (1738 modules)
+ ✓ Compiled in 751ms (1738 modules)
+ GET / 200 in 115ms
+ ✓ Compiled in 2.4s (1738 modules)
+ GET / 200 in 110ms
+ GET / 200 in 21ms
+ GET / 200 in 20ms
+ GET / 200 in 18ms
+ GET / 200 in 19ms
+ GET / 200 in 19ms
+ GET / 200 in 18ms
+ GET / 200 in 19ms
+ ✓ Compiled in 2.6s (1738 modules)
+ ✓ Compiled in 377ms (1738 modules)
+ ✓ Compiled in 5.7s (1752 modules)
+ GET / 200 in 209ms
+ GET / 200 in 48ms
+ GET / 200 in 45ms
+ ✓ Compiled in 2s (1752 modules)
+ GET / 200 in 239ms
+ GET / 200 in 58ms
+ GET / 200 in 78ms
+ ✓ Compiled in 4.7s (1752 modules)
+ GET / 200 in 143ms
+ GET / 200 in 81ms
+ GET / 200 in 27ms
+ ✓ Compiled in 1243ms (1752 modules)
+ GET / 200 in 98ms
+ GET / 200 in 49ms
+ GET / 200 in 99ms
+ GET / 200 in 21ms
+ GET / 200 in 250ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 664ms (926 modules)
+ GET /favicon.ico 200 in 800ms
+ GET / 200 in 65ms
+ GET / 200 in 19ms
+ GET / 200 in 22ms
+ GET / 200 in 20ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 2.3s (1742 modules)
+ GET / 404 in 2618ms
+ GET /_next/static/css/app/layout.css?v=1756305688270 404 in 112ms
+ GET /_next/static/chunks/main-app.js?v=1756305688270 404 in 107ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 107ms
+ GET /_next/static/chunks/app/layout.js 404 in 108ms
+ ✓ Compiled /favicon.ico in 397ms (927 modules)
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 5.4s (1999 modules)
+ GET / 404 in 10373ms
+ GET / 200 in 6932ms
+ GET / 200 in 28ms
+ GET / 200 in 28ms
+ GET /_next/static/css/app/layout.css?v=1756305702187 404 in 160ms
+ GET / 200 in 24ms
+ GET /favicon.ico 200 in 40ms
+ GET /_next/static/css/app/layout.css?v=1756305702428 404 in 30ms
+ GET / 200 in 142ms
+ GET / 200 in 47ms
+ GET /favicon.ico 200 in 11ms
+ GET / 200 in 31ms
+ GET / 200 in 21ms
+ GET / 200 in 20ms
+ GET / 200 in 20ms
+ ✓ Compiled in 4.1s (1994 modules)
+ GET / 200 in 293ms
+ GET / 200 in 28ms
+ ✓ Compiled in 2.1s (1994 modules)
+ GET / 200 in 155ms
+ GET / 200 in 32ms
+ ✓ Compiled in 790ms (1038 modules)
+ GET / 200 in 48ms
+ GET / 200 in 215ms
+ ✓ Compiled in 1100ms (1038 modules)
+ GET / 200 in 141ms
+ GET / 200 in 20ms
+ ✓ Compiled in 1810ms (1994 modules)
+ GET / 200 in 176ms
+ GET / 200 in 29ms
+ ✓ Compiled in 4.2s (1997 modules)
+ GET / 200 in 93ms
+ GET / 200 in 21ms
+ ✓ Compiled in 1967ms (1997 modules)
+ GET / 200 in 157ms
+ GET / 200 in 74ms
+ ✓ Compiled in 1098ms (1997 modules)
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET / 200 in 187ms
+ GET / 200 in 770ms
+ GET / 200 in 780ms
+ GET / 200 in 132ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /favicon.ico in 5.8s (1987 modules)
+ ✓ Compiled in 1ms (974 modules)
+ ✓ Compiled in 795ms (2002 modules)
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 7987ms
+ GET /favicon.ico 200 in 4046ms
+ GET / 200 in 2237ms
+ GET /favicon.ico 200 in 89ms
+ GET / 200 in 56ms
+ ✓ Compiled in 1521ms (2016 modules)
+ GET / 200 in 219ms
+ GET / 200 in 38ms
+ ✓ Compiled in 2.3s (2016 modules)
+ GET / 200 in 87ms
+ GET / 200 in 29ms
+ ✓ Compiled in 1292ms (2016 modules)
+ GET / 200 in 86ms
+ GET / 200 in 43ms
+ ✓ Compiled in 2.1s (2016 modules)
+ GET / 200 in 106ms
+ GET / 200 in 272ms
+ ✓ Compiled in 1876ms (2016 modules)
+ GET / 200 in 143ms
+ GET / 200 in 26ms
+ ✓ Compiled in 4.5s (1997 modules)
+ GET / 200 in 353ms
+ GET / 200 in 34ms
+ GET / 200 in 252ms
+ ✓ Compiled in 3s (1997 modules)
+ GET / 200 in 194ms
+ GET / 200 in 126ms
+ GET / 200 in 39ms
+ ✓ Compiled in 1109ms (1997 modules)
+ GET / 200 in 182ms
+ GET / 200 in 38ms
+ GET / 200 in 57ms
+ ✓ Compiled in 1074ms (1997 modules)
+ GET / 200 in 160ms
+ GET / 200 in 26ms
+ GET / 200 in 36ms
+ ✓ Compiled in 1220ms (1997 modules)
+ GET / 200 in 385ms
+ GET / 200 in 114ms
+ GET / 200 in 19ms
+ ✓ Compiled in 2s (1997 modules)
+ GET / 200 in 201ms
+ GET / 200 in 131ms
+ GET / 200 in 190ms
+ ✓ Compiled in 1394ms (1997 modules)
+ GET / 200 in 316ms
+ GET / 200 in 16ms
+ GET / 200 in 22ms
+ ✓ Compiled in 1201ms (1997 modules)
+ GET / 200 in 205ms
+ GET / 200 in 137ms
+ GET / 200 in 31ms
+ ✓ Compiled in 2s (1997 modules)
+ GET / 200 in 144ms
+ GET / 200 in 36ms
+ GET / 200 in 27ms
+ GET / 200 in 383ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 3.5s (2012 modules)
+ GET /favicon.ico 200 in 3187ms
+ GET / 200 in 781ms
+ GET / 200 in 1842ms
+ GET / 200 in 144ms
+ GET / 200 in 109ms
+ GET /favicon.ico 200 in 10ms
+ GET / 200 in 90ms
+ GET /favicon.ico 200 in 67ms
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: unexpected end of file
+ ✓ Compiled in 2.4s (2012 modules)
+ GET / 200 in 332ms
+ GET / 200 in 24ms
+ GET / 200 in 28ms
+ ✓ Compiled in 1315ms (2012 modules)
+ GET / 200 in 135ms
+ GET / 200 in 56ms
+ GET / 200 in 26ms
+ GET / 200 in 159ms
+ GET /favicon.ico 200 in 138ms
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/Andy/Success/Ressourcen APP/Ressourcen-next/nextjs/.next/cache/webpack/server-development/3.pack.gz_' -> '/Users/Andy/Success/Ressourcen APP/Ressourcen-next/nextjs/.next/cache/webpack/server-development/3.pack.gz'
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/Andy/Success/Ressourcen APP/Ressourcen-next/nextjs/.next/cache/webpack/client-development/3.pack.gz_' -> '/Users/Andy/Success/Ressourcen APP/Ressourcen-next/nextjs/.next/cache/webpack/client-development/3.pack.gz'
+ ✓ Compiled in 1680ms (1997 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET / 200 in 541ms
+ ⨯ ReferenceError: useAppReset is not defined
+    at useAppReset (src/components/Header.tsx:10:27)
+   8 | export default function Header() {
+   9 |   const { user, signIn, signUp, signOut, loading } = useAuth();
+> 10 |   const { resetToStart } = useAppReset();
+     |                           ^
+  11 |   const [showAuthModal, setShowAuthModal] = useState(false);
+  12 |   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  13 |   const [email, setEmail] = useState(''); {
+  digest: '2660226325'
+}
+ GET / 200 in 342ms
+ GET / 500 in 433ms
+ ⨯ ReferenceError: useAppReset is not defined
+    at useAppReset (src/components/Header.tsx:10:27)
+   8 | export default function Header() {
+   9 |   const { user, signIn, signUp, signOut, loading } = useAuth();
+> 10 |   const { resetToStart } = useAppReset();
+     |                           ^
+  11 |   const [showAuthModal, setShowAuthModal] = useState(false);
+  12 |   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  13 |   const [email, setEmail] = useState(''); {
+  digest: '2660226325'
+}
+ GET / 500 in 98ms
+ ⨯ ReferenceError: useAppReset is not defined
+    at useAppReset (src/components/Header.tsx:10:27)
+   8 | export default function Header() {
+   9 |   const { user, signIn, signUp, signOut, loading } = useAuth();
+> 10 |   const { resetToStart } = useAppReset();
+     |                           ^
+  11 |   const [showAuthModal, setShowAuthModal] = useState(false);
+  12 |   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  13 |   const [email, setEmail] = useState(''); {
+  digest: '2660226325'
+}
+ GET / 500 in 278ms
+ ○ Compiling /favicon.ico ...
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled /favicon.ico in 1692ms (2002 modules)
+ ⨯ ReferenceError: useAppReset is not defined
+    at useAppReset (src/components/Header.tsx:10:27)
+   8 | export default function Header() {
+   9 |   const { user, signIn, signUp, signOut, loading } = useAuth();
+> 10 |   const { resetToStart } = useAppReset();
+     |                           ^
+  11 |   const [showAuthModal, setShowAuthModal] = useState(false);
+  12 |   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  13 |   const [email, setEmail] = useState(''); {
+  digest: '2660226325'
+}
+ GET /.well-known/appspecific/com.chrome.devtools.json 500 in 2975ms
+ GET /favicon.ico 200 in 2701ms
+ ⨯ ReferenceError: useAppReset is not defined
+    at useAppReset (src/components/Header.tsx:10:27)
+   8 | export default function Header() {
+   9 |   const { user, signIn, signUp, signOut, loading } = useAuth();
+> 10 |   const { resetToStart } = useAppReset();
+     |                           ^
+  11 |   const [showAuthModal, setShowAuthModal] = useState(false);
+  12 |   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  13 |   const [email, setEmail] = useState(''); {
+  digest: '2660226325'
+}
+ GET /favicon.ico 200 in 385ms
+ GET / 500 in 2384ms
+ GET /favicon.ico 200 in 102ms
+ ⨯ ReferenceError: useAppReset is not defined
+    at useAppReset (src/components/Header.tsx:10:27)
+   8 | export default function Header() {
+   9 |   const { user, signIn, signUp, signOut, loading } = useAuth();
+> 10 |   const { resetToStart } = useAppReset();
+     |                           ^
+  11 |   const [showAuthModal, setShowAuthModal] = useState(false);
+  12 |   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  13 |   const [email, setEmail] = useState(''); {
+  digest: '2660226325'
+}
+ GET / 500 in 178ms
+ ✓ Compiled in 1027ms (2016 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET / 200 in 344ms
+ GET / 200 in 165ms
+ GET / 200 in 378ms
+ ✓ Compiled in 1043ms (2016 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET / 200 in 416ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET / 200 in 377ms
+ GET / 200 in 202ms
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 86ms
+ ✓ Compiled in 1205ms (2016 modules)
+ GET / 200 in 282ms
+ GET / 200 in 35ms
+ GET / 200 in 34ms
+ GET / 200 in 123ms
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/Andy/Success/Ressourcen APP/Ressourcen-next/nextjs/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/Andy/Success/Ressourcen APP/Ressourcen-next/nextjs/.next/cache/webpack/client-development/0.pack.gz'
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/Andy/Success/Ressourcen APP/Ressourcen-next/nextjs/.next/cache/webpack/server-development/0.pack.gz_' -> '/Users/Andy/Success/Ressourcen APP/Ressourcen-next/nextjs/.next/cache/webpack/server-development/0.pack.gz'
+ ✓ Compiled in 1231ms (1983 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/Andy/Success/Ressourcen APP/Ressourcen-next/nextjs/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/Andy/Success/Ressourcen APP/Ressourcen-next/nextjs/.next/cache/webpack/client-development/0.pack.gz'
+ ⨯ ./src/data/figureSpecificAnswers.ts
+Error:   [31mx[0m Unexpected token `,`. Expected identifier
+      ,-[[36;1;4m/Users/Andy/Success/Ressourcen APP/Ressourcen-next/nextjs/src/data/figureSpecificAnswers.ts[0m:1235:1]
+ [2m1232[0m |       ]
+ [2m1233[0m |     }
+ [2m1234[0m |   },
+ [2m1235[0m |         "Wir teilen zusammen göttliche Liebe",
+      : [35;1m                                             ^[0m
+ [2m1236[0m |         "Wir fliegen zusammen durch die Sterne",
+ [2m1237[0m |         "Wir sitzen zusammen und meditieren"
+ [2m1238[0m |       ]
+      `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/data/figureSpecificAnswers.ts
+./src/data/questions.ts
+./src/components/RelationshipSelection.tsx
+./src/app/page.tsx
+ ✓ Compiled in 1272ms (1983 modules)
+ ✓ Compiled in 1464ms (1983 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/Andy/Success/Ressourcen APP/Ressourcen-next/nextjs/.next/cache/webpack/server-development/0.pack.gz_' -> '/Users/Andy/Success/Ressourcen APP/Ressourcen-next/nextjs/.next/cache/webpack/server-development/0.pack.gz'
+ ✓ Compiled in 2.2s (1983 modules)
+ ✓ Compiled in 641ms (1983 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/Andy/Success/Ressourcen APP/Ressourcen-next/nextjs/.next/cache/webpack/client-development/1.pack.gz_' -> '/Users/Andy/Success/Ressourcen APP/Ressourcen-next/nextjs/.next/cache/webpack/client-development/1.pack.gz'
+ GET / 200 in 1214ms
+ ✓ Compiled in 4.5s (1983 modules)
+ ✓ Compiled in 1189ms (1983 modules)
+ ✓ Compiled in 763ms (1983 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/Andy/Success/Ressourcen APP/Ressourcen-next/nextjs/.next/cache/webpack/server-development/0.pack.gz_' -> '/Users/Andy/Success/Ressourcen APP/Ressourcen-next/nextjs/.next/cache/webpack/server-development/0.pack.gz'
+ GET / 200 in 551ms
+ GET / 200 in 81ms
+ ✓ Compiled in 2.8s (1983 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/Andy/Success/Ressourcen APP/Ressourcen-next/nextjs/.next/cache/webpack/server-development/0.pack.gz_' -> '/Users/Andy/Success/Ressourcen APP/Ressourcen-next/nextjs/.next/cache/webpack/server-development/0.pack.gz'
+ ✓ Compiled in 2.7s (1039 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/Andy/Success/Ressourcen APP/Ressourcen-next/nextjs/.next/cache/webpack/client-development/2.pack.gz_' -> '/Users/Andy/Success/Ressourcen APP/Ressourcen-next/nextjs/.next/cache/webpack/client-development/2.pack.gz'
+ ✓ Compiled in 4.8s (1997 modules)
+ ✓ Compiled in 5.2s (2001 modules)
+ ✓ Compiled in 1761ms (2001 modules)
+ ✓ Compiled in 2.1s (2001 modules)
+ GET / 200 in 1015ms
+ ✓ Compiled in 1867ms (1040 modules)
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 4.4s (976 modules)
+ ⨯ SyntaxError: Unexpected non-whitespace character after JSON at position 388 (line 20 column 2)
+    at JSON.parse (<anonymous>) {
+  page: '/favicon.ico'
+}
+ GET /favicon.ico 500 in 4804ms
+ ✓ Compiled in 3.1s (2016 modules)
+ GET / 200 in 199ms
+ ✓ Compiled in 910ms (2016 modules)
+ GET / 200 in 221ms
+ GET / 200 in 236ms
+ GET /favicon.ico 200 in 59ms
