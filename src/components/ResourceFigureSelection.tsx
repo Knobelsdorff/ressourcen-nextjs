@@ -606,12 +606,12 @@ export default function ResourceFigureSelection({
               animate={{ y: 0, opacity: 1, scale: 1 }}
               exit={{ y: -30, opacity: 0, scale: 0.9 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="fixed bottom-2 sm:bottom-4 left-2 right-2 sm:left-4 sm:right-4 lg:left-auto lg:right-auto lg:mx-auto z-30 w-auto max-w-2xl px-3 sm:px-6"
+            className="fixed bottom-2 sm:bottom-4 left-2 right-2 sm:left-4 sm:right-4 lg:left-0 lg:right-0 lg:mx-auto z-30 w-auto max-w-2xl px-3 sm:px-6"
             >
               <Card className="bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50 border-green-200 shadow-lg rounded-2xl lg:rounded-3xl overflow-hidden">
               <CardContent className="p-6 lg:p-8">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
                     <motion.div
                       animate={{ 
                         scale: [1, 1.1, 1],
@@ -638,8 +638,8 @@ export default function ResourceFigureSelection({
                         >
                           {selectedFigure.emoji}
                         </motion.span>
-                        <div className="min-w-0">
-                          <h3 className="text-lg lg:text-2xl font-semibold text-amber-900 truncate">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-lg lg:text-2xl font-semibold text-amber-900 leading-tight">
                             {selectedFigure.name}
                           </h3>
                         </div>
@@ -647,17 +647,17 @@ export default function ResourceFigureSelection({
                     </div>
                   </div>
                   
-                  {/* Weiter Button - integriert in das grüne Feld */}
+                  {/* Weiter Button - rechts positioniert */}
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={onNext}
-                    className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-medium hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-2"
+                    className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-medium hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-2 flex-shrink-0"
                   >
                     Weiter
                     <span className="text-white">→</span>
                   </motion.button>
-                  </div>
+                </div>
                 </CardContent>
               </Card>
             </motion.div>

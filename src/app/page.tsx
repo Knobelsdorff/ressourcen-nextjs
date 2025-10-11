@@ -434,8 +434,9 @@ export default function RessourcenApp() {
         </div>
       </div>
 
-        {/* Mobile Navigation - Weiter Button */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
+        {/* Mobile Navigation - Weiter Button (nur ab Schritt 2) */}
+        {appState.currentStep >= 2 && (
+          <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
           <motion.button
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: canProceed ? 1 : 0.5 }}
@@ -459,7 +460,8 @@ export default function RessourcenApp() {
             Weiter
             <ChevronRight className="w-5 h-5" />
           </motion.button>
-        </div>
+          </div>
+        )}
 
       {/* Desktop Layout - OHNE Sidebar */}
       <div className="min-h-screen relative">
