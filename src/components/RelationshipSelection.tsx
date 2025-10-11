@@ -137,7 +137,7 @@ export default function RelationshipSelection({
 
   const canProceedFromCurrentQuestion = () => {
     const currentAnswer = getCurrentAnswer();
-    return currentAnswer.answer.trim().length > 0 || currentAnswer.selectedBlocks.length > 0;
+    return currentAnswer.answer.trim().length > 0 || currentAnswer.selectedBlocks.length >= 2;
   };
 
   const handleNextQuestion = () => {
@@ -178,6 +178,13 @@ export default function RelationshipSelection({
               <div className="flex items-center justify-center gap-3 mb-8">
                 <div className="text-4xl">{selectedFigure.emoji}</div>
                 <div className="text-2xl text-amber-900 font-normal">{selectedFigure.name}</div>
+              </div>
+
+              {/* Mobile Question Counter */}
+              <div className="lg:hidden text-center mb-4">
+                <p className="text-amber-600 text-sm mb-1">
+                  Frage {currentQuestionIndex + 1} von {questionsToUse.length}
+                </p>
               </div>
 
               {/* Question */}
@@ -267,7 +274,7 @@ export default function RelationshipSelection({
 
               {/* Eigene Snippets hinzufügen */}
               <div className="mb-8">
-                <Label htmlFor="custom-snippet" className="text-sm text-amber-800 mb-2 block">Eigenen Text hinzufügen</Label>
+                <Label htmlFor="custom-snippet" className="text-sm text-amber-800 mb-2 block">Eigenen Text hinzufügen:</Label>
                 <div className="flex gap-2 mb-3">
                   <input
                     id="custom-snippet"
@@ -280,7 +287,7 @@ export default function RelationshipSelection({
                         addCustomSnippet();
                       }
                     }}
-                    placeholder="Eigene Formulierung eingeben..."
+                    placeholder="Deine Formulierung"
                     className="flex-1 h-11 px-4 rounded-[12px] border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-amber-300 text-sm text-amber-900"
                     maxLength={120}
                   />
@@ -297,8 +304,26 @@ export default function RelationshipSelection({
                 </div>
               </div>
 
-              {/* Navigation */}
-              <div className="flex justify-between items-center">
+              {/* Mobile Zurück Button */}
+              <div className="lg:hidden mt-4">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handlePreviousQuestion}
+                  disabled={currentQuestionIndex === 0}
+                  className={`w-full px-4 py-3 text-amber-700 border border-amber-300 rounded-lg transition-all text-base font-medium flex items-center justify-center gap-2 ${
+                    currentQuestionIndex === 0 
+                      ? 'opacity-50 cursor-not-allowed' 
+                      : 'hover:bg-amber-50 active:bg-amber-100'
+                  }`}
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                  Zurück
+                </motion.button>
+              </div>
+
+              {/* Navigation - Desktop only */}
+              <div className="hidden lg:flex justify-between items-center">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}

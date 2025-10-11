@@ -606,7 +606,7 @@ export default function ResourceFigureSelection({
               animate={{ y: 0, opacity: 1, scale: 1 }}
               exit={{ y: -30, opacity: 0, scale: 0.9 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="fixed bottom-4 right-0 left-0 mx-auto z-30 w-full max-w-2xl px-6"
+            className="fixed bottom-2 sm:bottom-4 left-2 right-2 sm:left-4 sm:right-4 lg:left-auto lg:right-auto lg:mx-auto z-30 w-auto max-w-2xl px-3 sm:px-6"
             >
               <Card className="bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50 border-green-200 shadow-lg rounded-2xl lg:rounded-3xl overflow-hidden">
               <CardContent className="p-6 lg:p-8">

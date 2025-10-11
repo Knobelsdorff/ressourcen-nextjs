@@ -167,7 +167,47 @@ export default function RessourcenApp() {
     setResetFunction(handleResetToStart);
   }, [setResetFunction, handleResetToStart]);
 
+  // Define canProceed before handleNextStep
+  const canProceed = 
+    (appState.currentStep === 1 && appState.resourceFigure) ||
+    (appState.currentStep === 2 && (() => {
+      // In Schritt 2: Prüfe, ob die aktuelle Frage mindestens 2 Antworten hat
+      const currentAnswer = appState.questionAnswers.find(a => {
+        const questionId = appState.currentQuestionIndex + 1; // Fragen sind 1-indexiert
+        return a.questionId === questionId;
+      });
+      
+      const selectedBlocksLength = currentAnswer?.selectedBlocks?.length || 0;
+      const hasEnoughAnswers = selectedBlocksLength >= 2;
+      
+      console.log('Step 2 canProceed check:', {
+        currentQuestionIndex: appState.currentQuestionIndex,
+        currentAnswer,
+        selectedBlocksLength,
+        hasEnoughAnswers
+      });
+      
+      return hasEnoughAnswers;
+    })()) ||
+    // Schritt 3 wird übersprungen
+    (appState.currentStep === 4 && appState.selectedVoice) ||
+    (appState.currentStep === 5 && appState.generatedStory.trim().length > 0 && appState.selectedVoice) ||
+    (appState.currentStep === 6 && appState.generatedStory.trim().length > 0 && appState.selectedVoice);
+
+  console.log('canProceed calculation:', {
+    currentStep: appState.currentStep,
+    resourceFigure: appState.resourceFigure,
+    canProceed,
+    step1Check: appState.currentStep === 1 && appState.resourceFigure
+  });
+
   const handleNextStep = useCallback(() => {
+    console.log('handleNextStep called', { 
+      currentStep: appState.currentStep, 
+      resourceFigure: appState.resourceFigure,
+      questionAnswers: appState.questionAnswers.length
+    });
+    
     const isStep1Complete = appState.currentStep === 1 && appState.resourceFigure;
     
     // Bestimme die erwartete Anzahl von Fragen basierend auf der Ressource
@@ -180,18 +220,57 @@ export default function RessourcenApp() {
     const isStep4Complete = appState.currentStep === 4 && appState.selectedVoice;
     const isStep5Complete = appState.currentStep === 5 && appState.selectedVoice;
     
+    console.log('Step completion checks:', { 
+      isStep1Complete, 
+      isStep2Complete, 
+      isStep3Complete, 
+      isStep4Complete, 
+      isStep5Complete 
+    });
+    
     if (isStep1Complete) {
+      console.log('Moving from step 1 to 2');
       setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
       return;
     }
 
     if (isStep2Complete) {
+      console.log('Moving from step 2 to 4 (skipping 3)');
       // Direkt zur Stimmauswahl springen und Story im Hintergrund starten
       setAppState(prev => ({ ...prev, currentStep: 4, currentQuestionIndex: 0 }));
       return;
     }
 
+    // In Schritt 2: Erlaube Navigation zwischen Fragen oder zum nächsten Schritt
+    if (appState.currentStep === 2) {
+      console.log('In step 2 - checking if we can proceed to next step');
+      
+      // Prüfe, ob die aktuelle Frage mindestens 2 Antworten hat
+      const currentAnswer = appState.questionAnswers[appState.currentQuestionIndex];
+      if (!currentAnswer || currentAnswer.selectedBlocks.length < 2) {
+        console.log('Current question needs at least 2 answers');
+        return;
+      }
+      
+      // Prüfe, ob alle Fragen beantwortet sind
+      const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6;
+      const allQuestionsAnswered = appState.questionAnswers.length === expectedQuestionCount && 
+        appState.questionAnswers.every(a => a.answer.trim().length > 0 || a.selectedBlocks.length >= 2);
+      
+      if (allQuestionsAnswered) {
+        console.log('All questions answered, moving to step 4');
+        setAppState(prev => ({ ...prev, currentStep: 4, currentQuestionIndex: 0 }));
+      } else {
+        console.log('Moving to next question');
+        // Navigiere zur nächsten Frage
+        const nextQuestionIndex = (appState.currentQuestionIndex + 1) % expectedQuestionCount;
+        setAppState(prev => ({ ...prev, currentQuestionIndex: nextQuestionIndex }));
+      }
+      return;
+    }
+
     if (isStep3Complete || isStep4Complete || isStep5Complete) {
+      console.log('Moving to next step');
       setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
     }
   }, [appState.currentStep, appState.resourceFigure, appState.questionAnswers, appState.generatedStory, appState.selectedVoice]);
@@ -237,20 +316,6 @@ export default function RessourcenApp() {
       }));
     }
   }, [appState.resourceFigure, appState.questionAnswers, appState.generatedStory, appState.selectedVoice]);
-
-  const canProceed = 
-    (appState.currentStep === 1 && appState.resourceFigure) ||
-    (appState.currentStep === 2 && (() => {
-      // Bestimme die erwartete Anzahl von Fragen basierend auf der Ressource
-      const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6;
-      
-      return appState.questionAnswers.length === expectedQuestionCount && 
-        appState.questionAnswers.every(a => a.answer.trim().length > 0 || a.selectedBlocks.length > 0);
-    })()) ||
-    // Schritt 3 wird übersprungen
-    (appState.currentStep === 4 && appState.selectedVoice) ||
-    (appState.currentStep === 5 && appState.generatedStory.trim().length > 0 && appState.selectedVoice) ||
-    (appState.currentStep === 6 && appState.generatedStory.trim().length > 0 && appState.selectedVoice);
 
   const showNavigation = appState.currentStep > 1 || (canProceed && appState.currentStep <= 6);
 
@@ -369,36 +434,32 @@ export default function RessourcenApp() {
         </div>
       </div>
 
-      {/* Mobile Navigation Buttons - OPTIMIZED SPACING */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
-        <div className="flex gap-2">
-          {appState.currentStep > 1 && appState.currentStep <= 6 && (
-            <motion.button
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handlePreviousStep}
-              className="flex-1 px-3 py-2.5 bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200 transition-colors text-sm font-medium flex items-center justify-center gap-1"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Zurück
-            </motion.button>
-          )}
-          
-          {canProceed && appState.currentStep <= 6 && (
-            <motion.button
-              initial={{ x: 20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleNextStep}
-              className="flex-1 px-3 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all text-sm font-medium flex items-center justify-center gap-1"
-            >
-              Weiter
-              <ChevronRight className="w-4 h-4" />
-            </motion.button>
-          )}
+        {/* Mobile Navigation - Weiter Button */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
+          <motion.button
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: canProceed ? 1 : 0.5 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              console.log('Mobile button clicked', { canProceed, currentStep: appState.currentStep });
+              handleNextStep();
+            }}
+            disabled={!canProceed}
+            className={`w-full px-4 py-3 text-white rounded-lg transition-all text-base font-semibold flex items-center justify-center gap-2 shadow-lg ${
+              canProceed 
+                ? 'cursor-pointer' 
+                : 'cursor-not-allowed'
+            }`}
+            style={{
+              backgroundColor: 'rgb(217, 119, 6)',
+              opacity: canProceed ? 1 : 0.5,
+              transition: 'opacity 0.3s ease'
+            }}
+          >
+            Weiter
+            <ChevronRight className="w-5 h-5" />
+          </motion.button>
         </div>
-      </div>
 
       {/* Desktop Layout - OHNE Sidebar */}
       <div className="min-h-screen relative">
