@@ -93,6 +93,14 @@ export const fictionalFigures: ResourceFigure[] = [
     pronouns: "er/ihm"
   },
   {
+    id: "archangel-michael",
+    name: "Erzengel Michael",
+    emoji: "⚔️",
+    description: "Mächtiger Beschützer, kämpft für das Gute und setzt sich für dich ein",
+    category: "fictional",
+    pronouns: "er/ihm"
+  },
+  {
     id: "ideal-mother",
     name: "Ideal-Mutter",
     emoji: "👩‍",

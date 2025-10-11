@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
           'xi-api-key': process.env.ELEVENLABS_API_KEY!,
         },
         body: JSON.stringify(requestPayload),
+        signal: AbortSignal.timeout(30000), // 30 Sekunden Timeout
       }
     );
 

@@ -1929,6 +1929,90 @@ export const figureSpecificData: FigureSpecificData = {
     }
   },
 
+  'archangel-michael': {
+    1: {
+      question: "Wie wirkt Erzengel Michael und was strahlt er aus?",
+      prompt: "Beschreibe das Aussehen und die Ausstrahlung von Erzengel Michael.",
+      example: "Er ist groß und mächtig mit einem flammenden Schwert in der Hand und einer goldenen Aura.",
+      blocks: [
+        "Große, mächtige Gestalt voller göttlicher Kraft",
+        "Flammendes Schwert, das für gesunde Grenzen und klare Verhältnisse sorgt",
+        "Goldene Aura, die alles umhüllt und Schutz ausstrahlt",
+        "Roter Umhang, der im Wind weht und Stärke symbolisiert",
+        "Mächtige Flügel, die Kraft und Mut ausstrahlen",
+        "Starke Augen, die Güte und Entschlossenheit ausstrahlen"
+      ]
+    },
+    2: {
+      question: "Wie fühlst du dich, wenn Erzengel Michael nah bei dir ist?",
+      prompt: "Beschreibe deine inneren Gefühle in der Nähe von Erzengel Michael.",
+      example: "Ich fühle mich vollständig beschützt und stark, als könnte mir nichts passieren.",
+      blocks: [
+        "Vollständig beschützt und unbesiegbar",
+        "Stark und mutig, als könnte ich alles schaffen",
+        "Gerecht und klar in meinen Entscheidungen",
+        "Göttlich beschützt und geliebt",
+        "Kraftvoll und entschlossen",
+        "Sicher vor allen Gefahren und Bedrohungen",
+        "Erhoben und gestärkt in meiner göttlichen Natur"
+      ]
+    },
+    3: {
+      question: "Was macht Erzengel Michael, wenn es dir mal nicht gut geht?",
+      prompt: "Beschreibe, wie Erzengel Michael dich in schwierigen Momenten unterstützt.",
+      example: "Er steht vor mir und kämpft gegen alle bösen Kräfte, die mich bedrohen.",
+      blocks: [
+        "Er stellt sich zwischen mich und alle Bedrohungen",
+        "Er umhüllt mich mit seinem goldenen Schutzschild",
+        "Er schneidet mit seinem Schwert alle negativen Energien von mir ab",
+        "Er flüstert mir göttliche Kraft und Mut zu",
+        "Er wacht über mich und lässt nichts Böses zu mir",
+        "Er hält mich fest und gibt mir göttlichen Trost",
+        "Er erweckt meine innere Stärke und göttliche Macht"
+      ]
+    },
+    4: {
+      question: "Durch was würdest du dich von ihm geliebt fühlen?",
+      prompt: "Beschreibe, was Erzengel Michael tut, um dir seine göttliche Liebe zu zeigen.",
+      example: "Er kämpft für mich und zeigt mir jeden Tag, dass ich wertvoll bin.",
+      blocks: [
+        "Er kämpft für mich und zeigt mir jeden Tag, dass ich wertvoll bin",
+        "Er lehrt mich seine göttlichen Geheimnisse der Stärke",
+        "Er stellt sich schützend vor alle Gefahren, die mir drohen",
+        "Er erweckt meine göttlichen Fähigkeiten und meine wahre Kraft",
+        "Er wacht über mich und kümmert sich um mein Wohlergehen",
+        "Er ist stolz auf mich und glaubt an meine göttliche Natur",
+        "Er sieht mich als sein geliebtes göttliches Kind"
+      ]
+    },
+    5: {
+      question: "Um was würdest du ihn bitten?",
+      prompt: "Formuliere, was du dir von Erzengel Michael wünschst.",
+      example: "Bitte bleib immer so beschützend und kämpfe für mich.",
+      blocks: [
+        "Beschütze mich, wann immer ich dich brauche",
+        "Stell dich bitte schützend zwischen mich und alle Gefahren",
+        "Kannst du mir bitte helfen, gesunde Grenzen zu setzen?",
+        "Erwecke weiterhin meine göttliche Kraft und Stärke",
+        "Schenk mir weiterhin deine göttliche Liebe und Führung",
+        "Lass mich immer als dein geliebtes Kind bei dir willkommen sein"
+      ]
+    },
+    6: {
+      question: "Was würde Erzengel Michael dir idealerweise sagen?",
+      prompt: "Teile die mächtigen Sätze, die Erzengel Michael dir sagen würde.",
+      example: "Du bist ein Kind Gottes und wirst von mir beschützt.",
+      blocks: [
+        "Du bist ein Kind Gottes und wirst von mir beschützt",
+        "Ich bin immer für dich da und kämpfe für dich",
+        "Du hast göttliche Kraft in dir, die ich erwecken kann",
+        "Du bist wertvoll und verdienst Schutz und Liebe",
+        "Ich glaube fest an deine Stärke und deine göttliche Natur",
+        "Du bist mein geliebtes Kind und ich werde mich immer einsetzen für dich"
+      ]
+    }
+  },
+
   // IDEAL FIGURES
   'ideal-mother': {
     1: {

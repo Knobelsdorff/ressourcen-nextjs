@@ -136,15 +136,15 @@ export default function Header() {
       <header className="bg-white border-b border-orange-100">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
-            <button 
-              onClick={() => window.location.reload()}
+            <Link 
+              href="/"
               className="flex items-center space-x-2 hover:opacity-80 transition-opacity cursor-pointer"
             >
               <div className="w-8 h-8 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg flex items-center justify-center">
                 <span className="text-white text-lg">🤗</span>
               </div>
               <span className="text-xl font-light text-amber-900">Ressourcen App</span>
-            </button>
+            </Link>
           </div>
           <div className="flex items-center space-x-4">
             {user ? (

@@ -38,6 +38,7 @@ export async function GET(request: Request) {
           headers: {
             'xi-api-key': apiKey,
           },
+          signal: AbortSignal.timeout(30000), // 30 Sekunden Timeout
         });
 
         if (voicesResponse.ok) {
@@ -58,8 +59,48 @@ export async function GET(request: Request) {
           voicesData = { voices: [] };
         }
       } catch (error) {
-        console.warn('Voices API failed, returning empty list:', error);
-        voicesData = { voices: [] };
+        console.warn('Voices API failed, using fallback voices:', error);
+        // Fallback: Verwende manuelle Liste mit Standard-Stimmen
+        voicesData = { 
+          voices: [
+            {
+              voice_id: 'oae6GCCzwoEbfc5FHdEu',
+              name: 'William',
+              description: 'Soothing and calm',
+              category: 'male'
+            },
+            {
+              voice_id: '8TMmdpPgqHKvDOGYP2lN',
+              name: 'Gregory Grumble',
+              description: 'Old lovable bedtime bear',
+              category: 'male'
+            },
+            {
+              voice_id: 'iMHt6G42evkXunaDU065',
+              name: 'Stefan Rank',
+              description: 'Radio-Moderator',
+              category: 'male'
+            },
+            {
+              voice_id: 'fNQuGwgi0iD0nacRyExh',
+              name: 'Timothy Twilight',
+              description: 'Reupload',
+              category: 'male'
+            },
+            {
+              voice_id: 'E0OS48T5F0KU7O2NInWS',
+              name: 'Weibliche Stimme 1',
+              description: 'Female voice 1',
+              category: 'female'
+            },
+            {
+              voice_id: 'SaqYcK3ZpDKBAImA8AdW',
+              name: 'Weibliche Stimme 2',
+              description: 'Female voice 2',
+              category: 'female'
+            }
+          ]
+        };
       }
       // Setze collectionVoiceIds auch im Fehlerfall
       collectionVoiceIds = new Set(manualCollectionVoiceIds);
@@ -69,6 +110,7 @@ export async function GET(request: Request) {
         headers: {
           'xi-api-key': apiKey,
         },
+        signal: AbortSignal.timeout(30000), // 30 Sekunden Timeout
       });
 
       if (!voicesResponse.ok) {
