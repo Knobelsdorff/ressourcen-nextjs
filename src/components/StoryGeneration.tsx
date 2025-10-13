@@ -110,13 +110,6 @@ export default function StoryGeneration({
     }
   }, [generatedStory, editedStory]);
 
-  // Auto-generate story when component mounts if no story exists
-  useEffect(() => {
-    if (!generatedStory.trim() && !isGenerating) {
-      generateStory();
-    }
-  }, [generatedStory, isGenerating, generateStory]);
-
   const generateStory = async () => {
     console.log('Starting story generation...', { selectedFigure, questionAnswers });
     setIsGenerating(true);
@@ -156,6 +149,13 @@ export default function StoryGeneration({
   const handleRegenerate = () => {
     generateStory();
   };
+
+  // Auto-generate story when component mounts if no story exists
+  useEffect(() => {
+    if (!generatedStory.trim() && !isGenerating) {
+      generateStory();
+    }
+  }, [generatedStory, isGenerating, generateStory]);
 
   const handleEditToggle = () => {
     if (isEditing) {
