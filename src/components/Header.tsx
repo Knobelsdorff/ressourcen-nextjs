@@ -35,7 +35,7 @@ export default function Header() {
           return;
         }
 
-        const { data, error } = await signUp(email, password);
+        const { error } = await signUp(email, password);
         
         if (error) {
           // Bessere Fehlermeldungen
@@ -50,16 +50,12 @@ export default function Header() {
             setError(`Fehler: ${error.message}`);
           }
         } else {
-          // Prüfe auch die Daten auf Fehler
-          if (data?.user && !data.user.email_confirmed_at) {
-            setSuccess('Registrierung erfolgreich! Bitte bestätige deine E-Mail-Adresse.');
-            setTimeout(() => {
-              setShowAuthModal(false);
-              setSuccess('');
-            }, 3000);
-          } else {
-            setError('Diese E-Mail-Adresse ist bereits registriert. Bitte melden Sie sich an.');
-          }
+          // Erfolgreiche Registrierung - zeige Erfolgsmeldung
+          setSuccess('Registrierung erfolgreich! Bitte bestätige deine E-Mail-Adresse.');
+          setTimeout(() => {
+            setShowAuthModal(false);
+            setSuccess('');
+          }, 3000);
         }
       } else {
         const { error } = await signIn(email, password);
