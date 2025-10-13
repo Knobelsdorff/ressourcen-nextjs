@@ -8,7 +8,6 @@ import { ResourceFigure, AudioState } from "@/app/page";
 import { QuestionAnswer } from "@/components/RelationshipSelection";
 import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
-import { AuthModal } from "@/components/modals/auth-modal";
 
 interface SavedStory {
   id: string;
@@ -431,10 +430,45 @@ export default function SaveAndReflect({
         </AnimatePresence>
 
         {/* Auth Modal */}
-        <AuthModal 
-          isOpen={showAuthModal} 
-          onClose={() => setShowAuthModal(false)} 
-        />
+        {showAuthModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">
+                  Account erstellen
+                </h2>
+                <button
+                  onClick={() => setShowAuthModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <p className="text-gray-600 mb-6">
+                Erstelle einen Account, um deine Ressource zu speichern und später darauf zuzugreifen.
+              </p>
+              
+              <div className="flex flex-col space-y-3">
+                <button
+                  onClick={() => {
+                    // Weiterleitung zur Hauptseite
+                    window.location.href = '/';
+                  }}
+                  className="w-full px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
+                >
+                  Zur Hauptseite (Anmeldung)
+                </button>
+                <button
+                  onClick={() => setShowAuthModal(false)}
+                  className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Abbrechen
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
