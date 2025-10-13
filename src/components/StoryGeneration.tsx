@@ -65,7 +65,6 @@ export default function StoryGeneration({
 
   // Debug-Ausgabe zur Admin-Erkennung
   useEffect(() => {
-    // eslint-disable-next-line no-console
     console.log('Admin check (StoryGeneration):', {
       userEmail: user?.email,
       envAdmins: process.env.NEXT_PUBLIC_ADMIN_EMAILS,
@@ -109,14 +108,14 @@ export default function StoryGeneration({
     if (generatedStory && generatedStory !== editedStory) {
       setEditedStory(generatedStory);
     }
-  }, [generatedStory]);
+  }, [generatedStory, editedStory]);
 
   // Auto-generate story when component mounts if no story exists
   useEffect(() => {
     if (!generatedStory.trim() && !isGenerating) {
       generateStory();
     }
-  }, []);
+  }, [generatedStory, isGenerating, generateStory]);
 
   const generateStory = async () => {
     console.log('Starting story generation...', { selectedFigure, questionAnswers });

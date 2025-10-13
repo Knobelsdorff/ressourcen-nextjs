@@ -208,7 +208,7 @@ export default function AudioPlayback({
           return;
         }
 
-        const { data, error } = await signUp(email, password);
+        const { error } = await signUp(email, password);
         
         if (error) {
           // Bessere Fehlermeldungen
