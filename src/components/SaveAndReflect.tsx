@@ -3,11 +3,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Save, Trash2, Heart, Clock, User, MessageSquare, Volume2, Sparkles, RefreshCw, X, AlertTriangle } from "lucide-react";
+import { Save, Trash2, Heart, Clock, User, MessageSquare, Volume2, Sparkles, RefreshCw, X, AlertTriangle, Lock } from "lucide-react";
 import { ResourceFigure, AudioState } from "@/app/page";
 import { QuestionAnswer } from "@/components/RelationshipSelection";
 import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
+import { AuthModal } from "@/components/modals/auth-modal";
 
 interface SavedStory {
   id: string;
@@ -43,6 +44,15 @@ export default function SaveAndReflect({
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [localAudioState, setLocalAudioState] = useState<AudioState | null>(audioState);
   const [error, setError] = useState<string | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Automatisches Speichern nach erfolgreicher Anmeldung
+  useEffect(() => {
+    if (user && showAuthModal) {
+      setShowAuthModal(false);
+      saveStoryToDatabase();
+    }
+  }, [user, showAuthModal]);
 
   const generateStoryId = () => {
     return `story_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -60,6 +70,13 @@ export default function SaveAndReflect({
 
   const saveStoryToDatabase = async () => {
     console.log('SaveAndReflect: saveStoryToDatabase called');
+    
+    // Prüfe, ob der Benutzer angemeldet ist
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    
     try {
       setIsSaving(true);
       setError(null);
@@ -343,17 +360,26 @@ export default function SaveAndReflect({
               }
             }}
             disabled={isSaving}
-            className="px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all text-lg font-medium flex items-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed justify-center"
+            className={`px-8 py-3 rounded-xl transition-all text-lg font-medium flex items-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed justify-center ${
+              user 
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600' 
+                : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600'
+            }`}
           >
             {isSaving ? (
               <>
                 <RefreshCw className="w-5 h-5 animate-spin" />
                 Speichern & Reflektieren...
               </>
-            ) : (
+            ) : user ? (
               <>
                 <Save className="w-5 h-5" />
                 Speichern & Reflektieren
+              </>
+            ) : (
+              <>
+                <Lock className="w-5 h-5" />
+                Anmelden & Speichern
               </>
             )}
           </motion.button>
@@ -403,6 +429,12 @@ export default function SaveAndReflect({
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Auth Modal */}
+        <AuthModal 
+          isOpen={showAuthModal} 
+          onClose={() => setShowAuthModal(false)} 
+        />
       </div>
     </div>
   );

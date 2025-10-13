@@ -24,8 +24,8 @@ export default function RootLayout({
   }
   const gaID = process.env.NEXT_PUBLIC_GOOGLE_TAG;
   return (
-    <html lang="de">
-    <body className={`${theme} min-h-screen flex flex-col`}>
+    <html lang="de" suppressHydrationWarning>
+    <body className={`${theme} min-h-screen flex flex-col`} suppressHydrationWarning>
       <AuthProvider>
         <AppResetProvider>
           <Header />

@@ -194,7 +194,7 @@ export default function RelationshipSelection({
                 </h2>
               </div>
 
-              {/* Admin Sparmodus Schalter bei Frage 6 */}
+              {/* Sparmodus Schalter bei Frage 6 - Admin oder Testmodus */}
               {(() => {
                 const list = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
                   .split(',')
@@ -202,22 +202,35 @@ export default function RelationshipSelection({
                   .filter(Boolean);
                 const email = (user?.email || '').toLowerCase();
                 const isAdmin = email && list.includes(email);
+                const isTestMode = process.env.NODE_ENV === 'development';
                 const isLastQuestion = ! (selectedFigure.category === 'place') && currentQuestionIndex === 5; // Q6 bei Personen
                 const isLastQuestionPlace = (selectedFigure.category === 'place') && currentQuestionIndex === 4; // Q5 bei Orten
-                if (!isAdmin) return null;
+                
+                if (!(isAdmin || isTestMode)) return null;
                 if (!(isLastQuestion || isLastQuestionPlace)) return null;
+                
                 const current = (typeof window !== 'undefined' ? localStorage.getItem('admin_sparmodus') === '1' : false);
+                const isTestModeActive = (typeof window !== 'undefined' ? localStorage.getItem('test_sparmodus') === '1' : false);
+                
                 return (
                   <div className="flex items-center justify-center mb-6">
                     <label className="inline-flex items-center gap-2 text-amber-800">
                       <input
                         type="checkbox"
-                        defaultChecked={current}
+                        defaultChecked={isAdmin ? current : isTestModeActive}
                         onChange={(e) => {
-                          try { localStorage.setItem('admin_sparmodus', e.target.checked ? '1' : '0'); } catch {}
+                          try { 
+                            if (isAdmin) {
+                              localStorage.setItem('admin_sparmodus', e.target.checked ? '1' : '0');
+                            } else {
+                              localStorage.setItem('test_sparmodus', e.target.checked ? '1' : '0');
+                            }
+                          } catch {}
                         }}
                       />
-                      <span className="text-sm">Sparmodus (nur erster Satz im Audio)</span>
+                      <span className="text-sm">
+                        {isAdmin ? 'Sparmodus (nur erster Satz im Audio)' : 'Testmodus (nur erster Satz im Audio)'}
+                      </span>
                     </label>
                   </div>
                 );

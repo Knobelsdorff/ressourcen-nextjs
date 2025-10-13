@@ -117,33 +117,33 @@ export default function ResourceFigureSelection({
       {/* Section Tabs - Exakt wie in Figma */}
       <div className="bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
         <div className="flex justify-center pt-8 pb-0">
-          <div className="w-72 h-11 relative">
-            <div className="w-72 h-11 left-0 top-0 absolute bg-amber-50 rounded-[35px]" />
-            <div className={`w-20 h-11 left-[6px] top-0 absolute bg-amber-500 rounded-tl-2xl rounded-tr-2xl transition-all duration-300 ${
+          <div className="w-96 h-16 relative">
+            <div className="w-96 h-16 left-0 top-0 absolute bg-amber-50 rounded-[45px]" />
+            <div className={`w-28 h-16 left-[8px] top-0 absolute bg-amber-500 rounded-tl-2xl rounded-tr-2xl transition-all duration-300 ${
               activeSection === 'real' ? 'opacity-100' : 'opacity-0'
             }`} style={{boxShadow: 'var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), 2px -3px 6px 0px rgba(0, 0, 0, 0.25)'}} />
-            <div className={`w-20 h-11 left-[95px] top-0 absolute bg-amber-500 rounded-tl-2xl rounded-tr-2xl transition-all duration-300 ${
+            <div className={`w-28 h-16 left-[128px] top-0 absolute bg-amber-500 rounded-tl-2xl rounded-tr-2xl transition-all duration-300 ${
               activeSection === 'fictional' ? 'opacity-100' : 'opacity-0'
             }`} style={{boxShadow: 'var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), 2px -3px 6px 0px rgba(0, 0, 0, 0.25)'}} />
-            <div className={`w-20 h-11 left-[184px] top-0 absolute bg-amber-500 rounded-tl-2xl rounded-tr-2xl transition-all duration-300 ${
+            <div className={`w-28 h-16 left-[248px] top-0 absolute bg-amber-500 rounded-tl-2xl rounded-tr-2xl transition-all duration-300 ${
               activeSection === 'custom' ? 'opacity-100' : 'opacity-0'
             }`} style={{boxShadow: 'var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), 2px -3px 6px 0px rgba(0, 0, 0, 0.25)'}} />
-            <div className={`w-20 h-11 left-[6px] top-0 absolute rounded-tl-2xl rounded-tr-2xl transition-all duration-300 cursor-pointer ${
+            <div className={`w-28 h-16 left-[8px] top-0 absolute rounded-tl-2xl rounded-tr-2xl transition-all duration-300 cursor-pointer ${
               activeSection === 'real' ? 'opacity-0' : 'opacity-100'
             }`} style={{backgroundColor: '#EEEEF0'}} onClick={() => handleSectionChange('real')} />
-            <div className={`w-20 h-11 left-[95px] top-0 absolute rounded-tl-2xl rounded-tr-2xl transition-all duration-300 cursor-pointer ${
+            <div className={`w-28 h-16 left-[128px] top-0 absolute rounded-tl-2xl rounded-tr-2xl transition-all duration-300 cursor-pointer ${
               activeSection === 'fictional' ? 'opacity-0' : 'opacity-100'
             }`} style={{backgroundColor: '#EEEEF0'}} onClick={() => handleSectionChange('fictional')} />
-            <div className={`w-20 h-11 left-[184px] top-0 absolute rounded-tl-2xl rounded-tr-2xl transition-all duration-300 cursor-pointer ${
+            <div className={`w-28 h-16 left-[248px] top-0 absolute rounded-tl-2xl rounded-tr-2xl transition-all duration-300 cursor-pointer ${
               activeSection === 'custom' ? 'opacity-0' : 'opacity-100'
             }`} style={{backgroundColor: '#EEEEF0'}} onClick={() => handleSectionChange('custom')} />
-            <div className={`w-7 h-4 left-[33px] top-[14.62px] absolute text-center justify-start text-xs font-normal font-['Inter'] cursor-pointer transition-all duration-300 ${
+            <div className={`w-28 h-16 left-[8px] top-0 absolute flex items-center justify-center text-lg font-bold cursor-pointer transition-all duration-300 ${
               activeSection === 'real' ? 'opacity-100' : 'opacity-100'
             }`} style={{color: activeSection === 'real' ? 'white' : '#B6B5B6'}} onClick={() => handleSectionChange('real')}>Real</div>
-            <div className={`w-14 h-5 left-[107px] top-[14px] absolute text-center justify-start text-xs font-normal font-['Inter'] cursor-pointer transition-all duration-300 ${
+            <div className={`w-28 h-16 left-[128px] top-0 absolute flex items-center justify-center text-lg font-bold cursor-pointer transition-all duration-300 ${
               activeSection === 'fictional' ? 'text-white opacity-100' : 'opacity-100'
             }`} style={{color: activeSection === 'fictional' ? 'white' : '#B6B5B6'}} onClick={() => handleSectionChange('fictional')}>Fiktiv</div>
-            <div className={`w-14 h-5 left-[196px] top-[14px] absolute text-center justify-start text-xs font-normal font-['Inter'] cursor-pointer transition-all duration-300 ${
+            <div className={`w-28 h-16 left-[248px] top-0 absolute flex items-center justify-center text-lg font-bold cursor-pointer transition-all duration-300 ${
               activeSection === 'custom' ? 'text-white opacity-100' : 'opacity-100'
             }`} style={{color: activeSection === 'custom' ? 'white' : '#B6B5B6'}} onClick={() => handleSectionChange('custom')}>Orte</div>
           </div>

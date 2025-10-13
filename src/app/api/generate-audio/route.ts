@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
           'xi-api-key': process.env.ELEVENLABS_API_KEY!,
         },
         body: JSON.stringify(requestPayload),
-        signal: AbortSignal.timeout(30000), // 30 Sekunden Timeout
+        signal: AbortSignal.timeout(60000), // 60 Sekunden Timeout
       }
     );
 
@@ -152,10 +152,26 @@ const supabaseAdmin = await import('@/lib/supabase/serverAdminClient').then(mod 
       size: audioBuffer.byteLength
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Audio generation error:', error);
+    
+    // Spezifische Fehlermeldungen
+    if (error.name === 'AbortError') {
+      return NextResponse.json(
+        { error: 'Audio generation timed out. Please try again.' },
+        { status: 408 }
+      );
+    }
+    
+    if (error.message?.includes('fetch')) {
+      return NextResponse.json(
+        { error: 'Network error. Please check your connection and try again.' },
+        { status: 503 }
+      );
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to generate audio' },
+      { error: 'Failed to generate audio. Please try again.' },
       { status: 500 }
     );
   }

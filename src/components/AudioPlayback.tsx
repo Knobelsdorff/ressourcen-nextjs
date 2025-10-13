@@ -3,9 +3,11 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, RotateCcw, Volume2, Download, Heart, ChevronRight, Loader2 } from "lucide-react";
+import { Play, Pause, RotateCcw, Volume2, Heart, ChevronRight, Loader2, Save } from "lucide-react";
 import { ResourceFigure, AudioState } from "@/app/page";
 import { useAuth } from "@/components/providers/auth-provider";
+import { createSPAClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase";
 
 interface Voice {
   id: string;
@@ -45,6 +47,207 @@ export default function AudioPlayback({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [testMode, setTestMode] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('register');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authSuccess, setAuthSuccess] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingStory, setPendingStory] = useState<any>(null); // Temporäre Speicherung
+  const { user, signIn, signUp } = useAuth();
+
+  // Lade Testmodus aus localStorage - nur nach Mount
+  useEffect(() => {
+    setMounted(true);
+    if (typeof window !== 'undefined') {
+      const savedTestMode = localStorage.getItem('test_sparmodus') === '1';
+      setTestMode(savedTestMode);
+    }
+  }, []);
+
+  // Automatisches Speichern nach erfolgreicher Anmeldung
+  useEffect(() => {
+    if (user && showAuthModal) {
+      setShowAuthModal(false);
+      // Speichere die temporäre Geschichte
+      if (pendingStory) {
+        savePendingStoryToDatabase();
+      } else {
+        saveStoryToDatabase();
+      }
+    }
+  }, [user, showAuthModal, pendingStory]);
+
+  // Prüfe beim Mount, ob eine temporäre Geschichte vorhanden ist
+  useEffect(() => {
+    if (user && !showAuthModal) {
+      const savedPendingStory = localStorage.getItem('pendingStory');
+      if (savedPendingStory) {
+        console.log('Found pending story, saving to database...');
+        const storyData = JSON.parse(savedPendingStory);
+        setPendingStory(storyData);
+        savePendingStoryToDatabase();
+      }
+    }
+  }, [user]);
+
+  const savePendingStory = () => {
+    console.log('Saving pending story to localStorage...');
+    const storyData = {
+      selectedFigure,
+      generatedStory,
+      audioState,
+      selectedVoiceId,
+      questionAnswers: [], // Leer für jetzt
+      timestamp: Date.now()
+    };
+    
+    // Speichere in localStorage
+    localStorage.setItem('pendingStory', JSON.stringify(storyData));
+    setPendingStory(storyData);
+    console.log('Pending story saved:', storyData);
+  };
+
+  const savePendingStoryToDatabase = async () => {
+    console.log('AudioPlayback: savePendingStoryToDatabase called');
+    
+    if (!user) {
+      console.log('No user logged in');
+      return;
+    }
+    
+    try {
+      console.log('Saving pending story to database...');
+      
+      const { data, error } = await supabase
+        .from('saved_stories')
+        .insert({
+          user_id: user.id,
+          title: `Reise mit ${pendingStory.selectedFigure.name}`,
+          content: pendingStory.generatedStory,
+          resource_figure: pendingStory.selectedFigure,
+          question_answers: pendingStory.questionAnswers,
+          audio_url: pendingStory.audioState?.audioUrl || null,
+          voice_id: pendingStory.selectedVoiceId || null
+        })
+        .select();
+
+      if (error) {
+        console.error('Error saving pending story:', error);
+        alert(`Fehler beim Speichern: ${error.message}`);
+      } else {
+        console.log('Pending story saved successfully:', data);
+        alert('Ressource erfolgreich gespeichert!');
+        // Lösche temporäre Daten
+        localStorage.removeItem('pendingStory');
+        setPendingStory(null);
+        onNext(); // Weiterleitung nach erfolgreichem Speichern
+      }
+    } catch (err) {
+      console.error('Error saving pending story:', err);
+      alert(`Fehler beim Speichern: ${err}`);
+    }
+  };
+
+  const saveStoryToDatabase = async () => {
+    console.log('AudioPlayback: saveStoryToDatabase called');
+    
+    if (!user) {
+      console.log('No user logged in');
+      return;
+    }
+    
+    try {
+      console.log('Saving story to database...');
+      
+      const { data, error } = await supabase
+        .from('saved_stories')
+        .insert({
+          user_id: user.id,
+          title: `Reise mit ${selectedFigure.name}`,
+          content: generatedStory,
+          resource_figure: selectedFigure,
+          question_answers: [], // Leer für jetzt
+          audio_url: audioState?.audioUrl || null,
+          voice_id: selectedVoiceId || null
+        })
+        .select();
+
+      if (error) {
+        console.error('Error saving story:', error);
+        alert(`Fehler beim Speichern: ${error.message}`);
+      } else {
+        console.log('Story saved successfully:', data);
+        alert('Ressource erfolgreich gespeichert!');
+        onNext(); // Weiterleitung nach erfolgreichem Speichern
+      }
+    } catch (err) {
+      console.error('Error saving story:', err);
+      alert(`Fehler beim Speichern: ${err}`);
+    }
+  };
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    setAuthSuccess('');
+    setIsSubmitting(true);
+
+    try {
+      if (authMode === 'register') {
+        if (password !== confirmPassword) {
+          setAuthError('Passwörter stimmen nicht überein');
+          return;
+        }
+        if (password.length < 6) {
+          setAuthError('Passwort muss mindestens 6 Zeichen lang sein');
+          return;
+        }
+
+        const { data, error } = await signUp(email, password);
+        
+        if (error) {
+          // Bessere Fehlermeldungen
+          if (error.message.includes('already registered') || 
+              error.message.includes('already been registered') ||
+              error.message.includes('User already registered') ||
+              error.message.includes('already exists')) {
+            setAuthError('Diese E-Mail-Adresse ist bereits registriert. Bitte melden Sie sich an oder verwenden Sie eine andere E-Mail.');
+          } else if (error.message.includes('Invalid email')) {
+            setAuthError('Bitte geben Sie eine gültige E-Mail-Adresse ein.');
+          } else {
+            setAuthError(`Fehler: ${error.message}`);
+          }
+        } else {
+          // Erfolgreiche Registrierung - zeige Erfolgsmeldung
+          setAuthSuccess('Registrierung erfolgreich! Bitte überprüfe deine E-Mails und klicke auf den Bestätigungslink.');
+          setTimeout(() => {
+            setShowAuthModal(false);
+            setAuthSuccess('');
+          }, 5000);
+        }
+      } else {
+        const { error } = await signIn(email, password);
+        if (error) {
+          setAuthError(error.message);
+        } else {
+          setAuthSuccess('Anmeldung erfolgreich!');
+          setTimeout(() => {
+            setShowAuthModal(false);
+            setAuthSuccess('');
+          }, 1000);
+        }
+      }
+    } catch (err: any) {
+      setAuthError(err.message || 'Ein Fehler ist aufgetreten');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Bestimme das Geschlecht der Ressourcenfigur: priorisiere Pronomen, fallback auf Namen
   const figureGender = (() => {
@@ -125,7 +328,6 @@ export default function AudioPlayback({
   const progressBarRef = useRef<HTMLDivElement>(null);
 
   // Admin-Sparmodus
-  const { user } = useAuth();
   const isAdmin = (() => {
     const list = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
     const email = (user?.email || '').toLowerCase();
@@ -158,12 +360,13 @@ export default function AudioPlayback({
         body: JSON.stringify({
           text: text,
           voiceId: voiceId,
-          adminPreview: isAdmin && adminPreview
+          adminPreview: (isAdmin && adminPreview) || testMode
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate audio');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}: Failed to generate audio`);
       }
 
       const result = await response.json();
@@ -179,9 +382,23 @@ export default function AudioPlayback({
       };
       
       onAudioStateChange(newAudioState);
-    } catch (err) {
-      setError('Failed to generate audio. Please try again.');
+    } catch (err: any) {
       console.error('Audio generation error:', err);
+      
+      // Spezifische Fehlermeldungen basierend auf dem Fehlertyp
+      let errorMessage = 'Failed to generate audio. Please try again.';
+      
+      if (err.message?.includes('timeout')) {
+        errorMessage = 'Audio generation timed out. Please try again.';
+      } else if (err.message?.includes('network') || err.message?.includes('fetch')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (err.message?.includes('HTTP')) {
+        errorMessage = `Server error: ${err.message}`;
+      } else if (err.message && err.message !== 'Failed to generate audio') {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsGenerating(false);
     }
@@ -306,17 +523,6 @@ export default function AudioPlayback({
     }
   };
 
-  const downloadAudio = () => {
-    if (!audioState?.audioUrl) return;
-    
-    const a = document.createElement('a');
-    a.href = audioState.audioUrl;
-    a.download = `${selectedFigure.name}-story.mp3`;
-    a.target = '_blank'; // Important for Supabase URLs
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
 
   const formatTime = (time: number) => {
     if (!isFinite(time)) return "0:00";
@@ -329,6 +535,19 @@ export default function AudioPlayback({
   const bufferedPercentage = duration > 0 && bufferedRanges && bufferedRanges.length > 0 
     ? (bufferedRanges.end(bufferedRanges.length - 1) / duration) * 100 
     : 0;
+
+  // Verhindere Hydration-Mismatch - zeige Loading bis Mount
+  if (!mounted) {
+    return (
+      <div className="min-h-screen p-4 lg:p-12">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-center p-8">
+            <div className="text-amber-600">Lade...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-4 lg:p-12">
@@ -483,14 +702,6 @@ export default function AudioPlayback({
                     )}
                   </motion.button>
 
-                  <motion.button
-                    whileHover={{ scale: 1.1, y: -2 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={downloadAudio}
-                    className="p-4 bg-gradient-to-br from-orange-100 to-amber-100 text-amber-700 rounded-full hover:from-orange-200 hover:to-amber-200 transition-all duration-300 shadow-lg hover:shadow-xl"
-                  >
-                    <Download className="w-5 h-5" />
-                  </motion.button>
                 </div>
 
                 {/* Hidden Audio Element */}
@@ -501,121 +712,128 @@ export default function AudioPlayback({
                   crossOrigin="anonymous"
                   onLoadedData={() => setIsLoading(false)}
                 />
+
+                {/* Speichern Button - innerhalb des Audio-Players */}
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                  className="mt-12"
+                >
+                  <div className="flex justify-center">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={async () => {
+                        if (user) {
+                          // Direkt speichern wenn angemeldet
+                          await saveStoryToDatabase();
+                        } else {
+                          // Temporäre Speicherung für unangemeldete User
+                          savePendingStory();
+                          setShowAuthModal(true); // Auth-Modal öffnen
+                        }
+                      }}
+                      className="px-10 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl shadow-lg hover:from-amber-600 hover:to-orange-600 transition-all flex items-center justify-center gap-3 text-lg font-semibold border border-amber-400/20"
+                    >
+                      <Save className="w-5 h-5" />
+                      Speichern
+                    </motion.button>
+                  </div>
+                </motion.div>
               </motion.div>
             )}
           </div>
         </motion.div>
-
-            {/* Voice Selection */}
-            {availableVoices.length > 0 && (
-              <motion.div
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.4 }}
-                className="bg-white rounded-3xl p-6 shadow-lg border border-orange-100 mb-6"
-              >
-                <h3 className="text-lg font-medium text-amber-900 flex items-center gap-2 mb-4">
-                  <Volume2 className="w-5 h-5" />
-                  Stimme wählen
-                </h3>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {availableVoices.slice(0, 4).map((voice) => {
-                const firstName = voice.name.split(' ')[0];
-                
-                // Erstelle einzigartige deutsche Beschreibung basierend auf Voice-ID
-                let description = '';
-                if (voice.id === '8N2ng9i2uiUWqstgmWlH') { // Beth
-                  description = 'sanft & mütterlich';
-                } else if (voice.id === 'E0OS48T5F0KU7O2NInWS') { // Lucy
-                  description = 'warm & erzählend';
-                } else if (voice.id === 'Z3R5wn05IrDiVCyEkUrK') { // Arabella
-                  description = 'elegant & geheimnisvoll';
-                } else if (voice.id === 'SaqYcK3ZpDKBAImA8AdW') { // Jane
-                  description = 'intim & vertraut';
-                } else if (voice.id === 'oae6GCCzwoEbfc5FHdEu') { // William
-                  description = 'ruhig & weise';
-                } else if (voice.id === '8TMmdpPgqHKvDOGYP2lN') { // Gregory
-                  description = 'warm & tief';
-                } else if (voice.id === 'iMHt6G42evkXunaDU065') { // Stefan
-                  description = 'professionell & klar';
-                } else if (voice.id === 'fNQuGwgi0iD0nacRyExh') { // Timothy
-                  description = 'sanft & träumerisch';
-                } else {
-                  // Fallback basierend auf voiceType
-                  if (voice.voiceType === 'maternal') {
-                    description = 'warm & fürsorglich';
-                  } else if (voice.voiceType === 'paternal') {
-                    description = 'stark & weise';
-                  } else if (voice.voiceType === 'elderly') {
-                    description = 'erfahren & liebevoll';
-                  } else if (voice.voiceType === 'friendly') {
-                    description = 'freundlich & unterstützend';
-                  } else {
-                    description = 'beruhigend & klar';
-                  }
-                }
-
-                const isSelected = selectedVoice?.id === voice.id;
-                
-                return (
-                  <motion.button
-                    key={voice.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => handleVoiceChange(voice)}
-                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${
-                      isSelected
-                        ? 'border-amber-500 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 shadow-md'
-                        : 'border-amber-200 bg-white hover:border-amber-300 hover:bg-amber-50'
-                    }`}
-                  >
-                    <div className="text-center">
-                      <div className="text-2xl mb-2">{voice.emoji}</div>
-                      <p className="font-medium text-amber-900 text-sm mb-1">
-                        {firstName}
-                      </p>
-                      <p className="text-xs text-amber-600">
-                        {description}
-                      </p>
-                      {isSelected && (
-                        <div className="mt-2 flex justify-center">
-                          <div className="w-2 h-2 bg-green-400 rounded-full" />
-                        </div>
-                      )}
-                    </div>
-                  </motion.button>
-                );
-              })}
-            </div>
-            
-          </motion.div>
-        )}
-
-        {/* Weiter Button - immer sichtbar */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="flex justify-center mt-8"
-        >
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={onNext}
-            disabled={!selectedVoice}
-            className={`px-8 py-3 rounded-xl text-white shadow-lg transition-all flex items-center gap-2 text-lg font-medium ${
-              selectedVoice
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600'
-                : 'bg-amber-300 cursor-not-allowed opacity-60'
-            }`}
-          >
-            Weiter zur Reflexion
-            <ChevronRight className="w-5 h-5" />
-          </motion.button>
-        </motion.div>
             {/* Hinweis: zusätzlicher Button unten entfernt für klare visuelle Hierarchie */}
       </motion.div>
+
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">
+                {authMode === 'register' ? 'Account erstellen' : 'Anmelden'}
+              </h2>
+              <button
+                onClick={() => setShowAuthModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <form onSubmit={handleAuth} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  E-Mail
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Passwort
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+              
+              {authMode === 'register' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Passwort bestätigen
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              )}
+              
+              {authError && (
+                <div className="text-red-600 text-sm">{authError}</div>
+              )}
+              
+              {authSuccess && (
+                <div className="text-green-600 text-sm">{authSuccess}</div>
+              )}
+              
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors disabled:opacity-50"
+              >
+                {isSubmitting ? 'Wird verarbeitet...' : (authMode === 'register' ? 'Registrieren' : 'Anmelden')}
+              </button>
+            </form>
+            
+            <div className="mt-4 text-center">
+              <button
+                onClick={() => setAuthMode(authMode === 'register' ? 'login' : 'register')}
+                className="text-amber-600 hover:text-amber-700 text-sm"
+              >
+                {authMode === 'register' ? 'Bereits ein Account? Anmelden' : 'Noch kein Account? Registrieren'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

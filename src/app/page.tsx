@@ -99,8 +99,13 @@ const initialAppState: AppState = {
 export default function RessourcenApp() {
   const [appState, setAppState] = useState<AppState>(initialAppState);
   const [showSavedStories, setShowSavedStories] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { user } = useAuth();
   const { setResetFunction } = useAppReset();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
 
   const handleResourceFigureSelect = useCallback((figure: ResourceFigure) => {
@@ -373,6 +378,15 @@ export default function RessourcenApp() {
       }
     };
   }, []);
+
+  // Verhindere Hydration-Mismatch
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
+        <div className="text-amber-600">Lade...</div>
+      </div>
+    );
+  }
 
   return (
    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">

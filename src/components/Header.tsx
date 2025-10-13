@@ -35,15 +35,31 @@ export default function Header() {
           return;
         }
 
-        const { error } = await signUp(email, password);
+        const { data, error } = await signUp(email, password);
+        
         if (error) {
-          setError(error.message);
+          // Bessere Fehlermeldungen
+          if (error.message.includes('already registered') || 
+              error.message.includes('already been registered') ||
+              error.message.includes('User already registered') ||
+              error.message.includes('already exists')) {
+            setError('Diese E-Mail-Adresse ist bereits registriert. Bitte melden Sie sich an oder verwenden Sie eine andere E-Mail.');
+          } else if (error.message.includes('Invalid email')) {
+            setError('Bitte geben Sie eine gültige E-Mail-Adresse ein.');
+          } else {
+            setError(`Fehler: ${error.message}`);
+          }
         } else {
-          setSuccess('Registrierung erfolgreich! Bitte bestätige deine E-Mail-Adresse.');
-          setTimeout(() => {
-            setShowAuthModal(false);
-            setSuccess('');
-          }, 3000);
+          // Prüfe auch die Daten auf Fehler
+          if (data?.user && !data.user.email_confirmed_at) {
+            setSuccess('Registrierung erfolgreich! Bitte bestätige deine E-Mail-Adresse.');
+            setTimeout(() => {
+              setShowAuthModal(false);
+              setSuccess('');
+            }, 3000);
+          } else {
+            setError('Diese E-Mail-Adresse ist bereits registriert. Bitte melden Sie sich an.');
+          }
         }
       } else {
         const { error } = await signIn(email, password);

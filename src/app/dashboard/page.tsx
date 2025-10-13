@@ -169,8 +169,45 @@ export default function Dashboard() {
   useEffect(() => {
     if (user) {
       loadStories();
+      // Prüfe auch nach temporären Geschichten
+      checkForPendingStories();
     }
   }, [user, loadStories]);
+
+  const checkForPendingStories = async () => {
+    const savedPendingStory = localStorage.getItem('pendingStory');
+    if (savedPendingStory && user) {
+      console.log('Dashboard: Found pending story, saving to database...');
+      try {
+        const storyData = JSON.parse(savedPendingStory);
+        
+        const { data, error } = await supabase
+          .from('saved_stories')
+          .insert({
+            user_id: user.id,
+            title: `Reise mit ${storyData.selectedFigure.name}`,
+            content: storyData.generatedStory,
+            resource_figure: storyData.selectedFigure,
+            question_answers: storyData.questionAnswers,
+            audio_url: storyData.audioState?.audioUrl || null,
+            voice_id: storyData.selectedVoiceId || null
+          })
+          .select();
+
+        if (error) {
+          console.error('Error saving pending story from dashboard:', error);
+        } else {
+          console.log('Pending story saved from dashboard:', data);
+          // Lösche temporäre Daten
+          localStorage.removeItem('pendingStory');
+          // Lade Geschichten neu
+          loadStories();
+        }
+      } catch (err) {
+        console.error('Error processing pending story:', err);
+      }
+    }
+  };
 
   // Cleanup Audio-Elemente beim Unmount
   useEffect(() => {
