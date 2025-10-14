@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
       output_format: 'mp3_44100_128'
     };
 
+    const startTime = Date.now();
     console.log('Making request with voice ID:', elevenlabsVoiceId);
     console.log('Text length:', text.length, '->', effectiveText.length);
     console.log('Text preview:', effectiveText.slice(0, 100) + '...');
@@ -122,6 +123,9 @@ export async function POST(request: NextRequest) {
 
     const audioBuffer = await response.arrayBuffer();
     
+    const elevenLabsTime = Date.now() - startTime;
+    console.log(`ElevenLabs API took: ${elevenLabsTime}ms (${(elevenLabsTime/1000).toFixed(1)}s)`);
+    
     // Generate unique filename
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substr(2, 9);
@@ -149,6 +153,8 @@ const supabaseAdmin = await import('@/lib/supabase/serverAdminClient').then(mod 
       .from('audio-files')
       .getPublicUrl(filename);
 
+    const totalTime = Date.now() - startTime;
+    console.log(`Total processing time: ${totalTime}ms (${(totalTime/1000).toFixed(1)}s)`);
     console.log('Audio uploaded successfully:', publicUrl);
 
     // Return the public URL and metadata
