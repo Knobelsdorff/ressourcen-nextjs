@@ -505,8 +505,6 @@ export default function RessourcenApp() {
                   selectedFigure={appState.resourceFigure}
                   onFigureSelect={handleResourceFigureSelect}
                   onNext={handleNextStep}
-                  userName={appState.userName}
-                  onUserNameChange={handleUserNameChange}
                 />
               )}
 
@@ -519,6 +517,7 @@ export default function RessourcenApp() {
                   currentQuestionIndex={appState.currentQuestionIndex}
                   onQuestionIndexChange={handleQuestionIndexChange}
                   userName={appState.userName}
+                  onUserNameChange={handleUserNameChange}
                 />
               )}
 
