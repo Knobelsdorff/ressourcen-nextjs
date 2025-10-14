@@ -56,11 +56,6 @@ export interface AppState {
 
 const steps = [
   {
-    number: 0,
-    title: "Name",
-    icon: "👤"
-  },
-  {
     number: 1,
     title: "Ressourcenfigur",
     icon: "🤗"
@@ -94,7 +89,7 @@ const steps = [
 
 
 const initialAppState: AppState = {
-  currentStep: 0, // Start with step 0 (name input)
+  currentStep: 1, // Start with step 1 (resource figure selection)
   userName: "", // Added for personalization
   resourceFigure: null,
   questionAnswers: [],
@@ -189,7 +184,6 @@ export default function RessourcenApp() {
 
   // Define canProceed before handleNextStep
   const canProceed = 
-    (appState.currentStep === 0 && appState.userName.trim().length > 0) ||
     (appState.currentStep === 1 && appState.resourceFigure) ||
     (appState.currentStep === 2 && (() => {
       // In Schritt 2: Prüfe, ob die aktuelle Frage mindestens 2 Antworten hat
@@ -229,7 +223,6 @@ export default function RessourcenApp() {
       questionAnswers: appState.questionAnswers.length
     });
     
-    const isStep0Complete = appState.currentStep === 0 && appState.userName.trim().length > 0;
     const isStep1Complete = appState.currentStep === 1 && appState.resourceFigure;
     
     // Bestimme die erwartete Anzahl von Fragen basierend auf der Ressource
@@ -250,7 +243,7 @@ export default function RessourcenApp() {
       isStep5Complete 
     });
     
-    if (isStep0Complete || isStep1Complete) {
+    if (isStep1Complete) {
       console.log('Moving from step', appState.currentStep, 'to', appState.currentStep + 1);
       setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
       return;
@@ -380,9 +373,9 @@ export default function RessourcenApp() {
       };
     }
     
-    const currentStepData = steps[appState.currentStep];
+    const currentStepData = steps[appState.currentStep - 1];
     return {
-      title: `Step ${appState.currentStep + 1} of ${steps.length}`,
+      title: `Step ${appState.currentStep} of ${steps.length}`,
       subtitle: currentStepData.title,
       icon: currentStepData.icon
     };
@@ -507,19 +500,13 @@ export default function RessourcenApp() {
               transition={{ duration: 0.15 }}
               className="h-full"
             >
-              {appState.currentStep === 0 && (
-                <UserNameInput
-                  userName={appState.userName}
-                  onUserNameChange={handleUserNameChange}
-                  onNext={handleNextStep}
-                />
-              )}
-
               {appState.currentStep === 1 && (
                 <ResourceFigureSelection
                   selectedFigure={appState.resourceFigure}
                   onFigureSelect={handleResourceFigureSelect}
                   onNext={handleNextStep}
+                  userName={appState.userName}
+                  onUserNameChange={handleUserNameChange}
                 />
               )}
 
