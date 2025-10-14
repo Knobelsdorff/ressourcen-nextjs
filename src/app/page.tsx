@@ -248,6 +248,18 @@ export default function RessourcenApp() {
     const isStep5Complete = appState.currentStep === 5 && appState.selectedVoice;
     const isStep6Complete = appState.currentStep === 6 && appState.generatedStory.trim().length > 0 && appState.selectedVoice;
     
+    // Prüfe Step 2 direkt hier, um Timing-Probleme zu vermeiden
+    const isStep2Complete = appState.currentStep === 2 && appState.userName && appState.userName.trim().length > 0;
+    
+    console.log('isStep2Complete calculation:', {
+      currentStep: appState.currentStep,
+      userName: appState.userName,
+      userNameLength: appState.userName?.length,
+      userNameTrimmed: appState.userName?.trim(),
+      userNameTrimmedLength: appState.userName?.trim().length,
+      isStep2Complete
+    });
+    
     console.log('Step completion checks:', { 
       isStep1Complete, 
       isStep2Complete, 
@@ -262,18 +274,6 @@ export default function RessourcenApp() {
       return;
     }
 
-    // Prüfe Step 2 direkt hier, um Timing-Probleme zu vermeiden
-    const isStep2Complete = appState.currentStep === 2 && appState.userName && appState.userName.trim().length > 0;
-    
-    console.log('isStep2Complete calculation:', {
-      currentStep: appState.currentStep,
-      userName: appState.userName,
-      userNameLength: appState.userName?.length,
-      userNameTrimmed: appState.userName?.trim(),
-      userNameTrimmedLength: appState.userName?.trim().length,
-      isStep2Complete
-    });
-    
     if (isStep2Complete) {
       console.log('Moving from step 2 to 3');
       setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
