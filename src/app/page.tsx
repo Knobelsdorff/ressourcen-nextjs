@@ -374,7 +374,7 @@ export default function RessourcenApp() {
 
   // Helper function to get current step display info
   const getCurrentStepInfo = () => {
-    if (appState.currentStep === 2) {
+    if (appState.currentStep === 3) {
       // Bestimme die Anzahl der Fragen basierend auf der Ressource
       const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6;
       
@@ -385,9 +385,9 @@ export default function RessourcenApp() {
       };
     }
     
-    const currentStepData = steps[appState.currentStep - 1];
+    const currentStepData = steps[appState.currentStep];
     return {
-      title: `Step ${appState.currentStep} of ${steps.length}`,
+      title: `Step ${appState.currentStep + 1} of ${steps.length}`,
       subtitle: currentStepData.title,
       icon: currentStepData.icon
     };
