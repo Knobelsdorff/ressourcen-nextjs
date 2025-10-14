@@ -524,46 +524,6 @@ export default function RessourcenApp() {
                     generatedStory={appState.generatedStory}
                     onStoryGenerated={handleStoryGenerated}
                     onNext={handleNextStep}
-                    onSave={async () => {
-                      // Geschichte direkt speichern und zum Dashboard weiterleiten
-                      console.log('=== DIRECT SAVE AND GO TO DASHBOARD ===');
-                      
-                      try {
-                        // Verwende die bestehende Supabase-Logik
-                        const { supabase } = await import('@/lib/supabase');
-                        
-                        if (!user) {
-                          throw new Error('Benutzer nicht angemeldet');
-                        }
-
-                        // Geschichte in Supabase speichern
-                        const { data, error } = await supabase
-                          .from('saved_stories')
-                          .insert({
-                            user_id: user.id,
-                            title: `Reise mit ${appState.resourceFigure?.name}`,
-                            content: appState.generatedStory,
-                            resource_figure: appState.resourceFigure,
-                            question_answers: appState.questionAnswers,
-                            audio_url: null,
-                            voice_id: null
-                          })
-                          .select();
-
-                        if (error) {
-                          throw new Error(`Fehler beim Speichern: ${error.message}`);
-                        }
-
-                        console.log('Story saved successfully, redirecting to dashboard...');
-                        
-                        // Zum Dashboard weiterleiten
-                        window.location.href = '/dashboard';
-                        
-                      } catch (error) {
-                        console.error('Error saving story:', error);
-                        alert(`Fehler beim Speichern der Geschichte: ${error}`);
-                      }
-                    }}
                   />
                 )}
 

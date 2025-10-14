@@ -28,7 +28,6 @@ interface StoryGenerationProps {
   generatedStory: string;
   onStoryGenerated: (story: string) => void;
   onNext: () => void;
-  onSave: () => void;
 }
 
 export default function StoryGeneration({
@@ -36,8 +35,7 @@ export default function StoryGeneration({
   questionAnswers,
   generatedStory,
   onStoryGenerated,
-  onNext,
-  onSave
+  onNext
 }: StoryGenerationProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -480,18 +478,10 @@ export default function StoryGeneration({
                       {/* Action Buttons */}
                       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center pt-2 sm:pt-4">
                         <Button
-                          onClick={onSave}
-                          className="bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white px-6 sm:px-8 py-3 rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl text-base sm:text-lg font-semibold flex items-center gap-2 min-h-[44px] touch-manipulation w-full sm:w-auto"
-                        >
-                          Geschichte speichern & zum Dashboard
-                          <Save className="w-4 h-4 sm:w-5 sm:h-5" />
-                        </Button>
-                        
-                        <Button
                           onClick={onNext}
                           className="bg-gradient-to-r from-amber-400 via-orange-400 to-red-400 hover:from-amber-500 hover:via-orange-500 hover:to-red-500 text-white px-6 sm:px-8 py-3 rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl text-base sm:text-lg font-semibold flex items-center gap-2 min-h-[44px] touch-manipulation w-full sm:w-auto"
                         >
-                          Weiter zu Audio
+                          Weiter zur Stimmenauswahl
                           <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
                         </Button>
                       </div>
