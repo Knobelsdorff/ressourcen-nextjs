@@ -79,6 +79,11 @@ export async function POST(request: NextRequest) {
     };
 
     console.log('Making request with voice ID:', elevenlabsVoiceId);
+    console.log('Request payload:', JSON.stringify(requestPayload, null, 2));
+    console.log('Environment check:', {
+      hasElevenLabsKey: !!process.env.ELEVENLABS_API_KEY,
+      hasSupabaseKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+    });
 
     // Generate audio with ElevenLabs
     const response = await fetch(
@@ -170,8 +175,13 @@ const supabaseAdmin = await import('@/lib/supabase/serverAdminClient').then(mod 
       );
     }
     
+    // Detaillierte Fehlermeldung für Debugging
     return NextResponse.json(
-      { error: 'Failed to generate audio. Please try again.' },
+      { 
+        error: 'Failed to generate audio. Please try again.',
+        details: error.message || 'Unknown error',
+        type: error.name || 'Error'
+      },
       { status: 500 }
     );
   }
