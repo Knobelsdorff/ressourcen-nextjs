@@ -554,9 +554,26 @@ export default function AudioPlayback({
     return (
       <div className="min-h-screen p-4 lg:p-12">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-center p-8">
-            <div className="text-amber-600">Lade...</div>
-          </div>
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white rounded-3xl p-6 lg:p-8 shadow-xl border border-orange-100 mb-6"
+          >
+            {/* Loading State */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-8"
+            >
+              <div className="flex justify-center mb-4">
+                <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+              </div>
+              <p className="text-amber-700">
+                Erstelle und lade deine Audiogeschichte hoch...
+              </p>
+            </motion.div>
+          </motion.div>
         </div>
       </div>
     );
