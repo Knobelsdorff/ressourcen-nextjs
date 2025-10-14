@@ -576,7 +576,7 @@ export default function RessourcenApp() {
                 />
               )}
 
-              {appState.currentStep === 5 && appState.resourceFigure && appState.generatedStory.trim().length > 0 && appState.selectedVoice && (
+              {appState.currentStep === 5 && appState.resourceFigure && appState.selectedVoice && (
                 <AudioPlayback
                   selectedFigure={appState.resourceFigure}
                   generatedStory={appState.generatedStory}
