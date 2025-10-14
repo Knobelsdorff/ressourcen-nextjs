@@ -89,7 +89,7 @@ const steps = [
 
 
 const initialAppState: AppState = {
-  currentStep: 1, // Start with step 1 (resource figure selection)
+  currentStep: 0, // Start with landing page
   userName: "", // Added for personalization
   resourceFigure: null,
   questionAnswers: [],
@@ -184,6 +184,7 @@ export default function RessourcenApp() {
 
   // Define canProceed before handleNextStep
   const canProceed = 
+    (appState.currentStep === 0) || // Landing page - always can proceed
     (appState.currentStep === 1 && appState.resourceFigure) ||
     (appState.currentStep === 2 && (() => {
       // In Schritt 2: Prüfe, ob die aktuelle Frage mindestens 2 Antworten hat
@@ -223,6 +224,7 @@ export default function RessourcenApp() {
       questionAnswers: appState.questionAnswers.length
     });
     
+    const isStep0Complete = appState.currentStep === 0; // Landing page - always complete
     const isStep1Complete = appState.currentStep === 1 && appState.resourceFigure;
     
     // Bestimme die erwartete Anzahl von Fragen basierend auf der Ressource
@@ -243,7 +245,7 @@ export default function RessourcenApp() {
       isStep5Complete 
     });
     
-    if (isStep1Complete) {
+    if (isStep0Complete || isStep1Complete) {
       console.log('Moving from step', appState.currentStep, 'to', appState.currentStep + 1);
       setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
       return;
@@ -362,6 +364,14 @@ export default function RessourcenApp() {
 
   // Helper function to get current step display info
   const getCurrentStepInfo = () => {
+    if (appState.currentStep === 0) {
+      return {
+        title: "Willkommen",
+        subtitle: "Erstelle deine persönliche Ressource",
+        icon: "🏠"
+      };
+    }
+    
     if (appState.currentStep === 2) {
       // Bestimme die Anzahl der Fragen basierend auf der Ressource
       const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6;
@@ -500,6 +510,32 @@ export default function RessourcenApp() {
               transition={{ duration: 0.15 }}
               className="h-full"
             >
+              {appState.currentStep === 0 && (
+                <div className="min-h-screen p-4 lg:p-12">
+                  <motion.div
+                    initial={{ y: 30, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    className="max-w-4xl mx-auto text-center"
+                  >
+                    <h1 className="text-4xl lg:text-6xl font-light text-amber-900 mb-6">
+                      Willkommen bei Ressourcen
+                    </h1>
+                    <p className="text-xl text-amber-700 mb-12 max-w-2xl mx-auto">
+                      Erstelle deine persönliche Ressource für Sicherheit, Geborgenheit und inneren Schutz.
+                    </p>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleNextStep}
+                      className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl shadow-lg hover:from-amber-600 hover:to-orange-600 transition-all text-lg font-medium"
+                    >
+                      Ressource erstellen
+                    </motion.button>
+                  </motion.div>
+                </div>
+              )}
+
               {appState.currentStep === 1 && (
                 <ResourceFigureSelection
                   selectedFigure={appState.resourceFigure}
