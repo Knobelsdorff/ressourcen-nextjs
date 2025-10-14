@@ -239,41 +239,8 @@ export default function RelationshipSelection({
                 );
               })()}
 
-              {/* Spezielle Behandlung für Frage 7 (Namensabfrage) */}
-              {currentQuestion.id === 7 ? (
-                <div className="max-w-2xl mx-auto">
-                  <div className="bg-white rounded-2xl p-8 shadow-lg border border-amber-100">
-                    <div className="space-y-6">
-                      <div>
-                        <label htmlFor="userName" className="block text-sm font-medium text-amber-800 mb-3">
-                          Dein Name
-                        </label>
-                        <input
-                          id="userName"
-                          type="text"
-                          value={userName || ''}
-                          onChange={(e) => {
-                            onUserNameChange?.(e.target.value);
-                          }}
-                          placeholder="Wie soll dich deine Ressource nennen?"
-                          className="w-full px-6 py-4 text-lg border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all placeholder-amber-400"
-                          autoFocus
-                        />
-                      </div>
-
-                      <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
-                        <p className="text-sm text-amber-800">
-                          <strong>Beispiel:</strong> Wenn du "Markus" eingibst, könnte deine Ressource sagen: 
-                          "Markus, ich bin immer gerne für dich da und werde dich immer beschützen."
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {/* Answer Blocks - 2 Column Layout (inkl. eigene Snippets) */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {/* Answer Blocks - 2 Column Layout (inkl. eigene Snippets) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 {[...currentQuestion.blocks, ...(currentAnswer.customBlocks || [])].map((block, index) => {
                   const personalizedBlock = personalizeAnswers([block], userName)[0];
                   return (
@@ -442,8 +409,6 @@ export default function RelationshipSelection({
           </div>
         </div>
       </div>
-                </>
-              )}
     </>
   );
 }
