@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, BookOpen, Heart } from "lucide-react";
+import UserNameInput from "@/components/UserNameInput";
 import ResourceFigureSelection from "@/components/ResourceFigureSelection";
 import RelationshipSelection, { QuestionAnswer } from "@/components/RelationshipSelection";
 import StoryGeneration from "@/components/StoryGeneration";
@@ -44,6 +45,7 @@ interface SavedStory {
 
 export interface AppState {
   currentStep: number;
+  userName: string; // Added for personalization
   resourceFigure: ResourceFigure | null;
   questionAnswers: QuestionAnswer[];
   generatedStory: string;
@@ -53,6 +55,11 @@ export interface AppState {
 }
 
 const steps = [
+  {
+    number: 0,
+    title: "Name",
+    icon: "👤"
+  },
   {
     number: 1,
     title: "Ressourcenfigur",
@@ -87,7 +94,8 @@ const steps = [
 
 
 const initialAppState: AppState = {
-  currentStep: 1,
+  currentStep: 0, // Start with step 0 (name input)
+  userName: "", // Added for personalization
   resourceFigure: null,
   questionAnswers: [],
   generatedStory: "",
@@ -107,6 +115,13 @@ export default function RessourcenApp() {
     setMounted(true);
   }, []);
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
+
+  const handleUserNameChange = useCallback((name: string) => {
+    setAppState(prev => ({
+      ...prev,
+      userName: name
+    }));
+  }, []);
 
   const handleResourceFigureSelect = useCallback((figure: ResourceFigure) => {
     setAppState(prev => ({
@@ -174,6 +189,7 @@ export default function RessourcenApp() {
 
   // Define canProceed before handleNextStep
   const canProceed = 
+    (appState.currentStep === 0 && appState.userName.trim().length > 0) ||
     (appState.currentStep === 1 && appState.resourceFigure) ||
     (appState.currentStep === 2 && (() => {
       // In Schritt 2: Prüfe, ob die aktuelle Frage mindestens 2 Antworten hat
@@ -213,6 +229,7 @@ export default function RessourcenApp() {
       questionAnswers: appState.questionAnswers.length
     });
     
+    const isStep0Complete = appState.currentStep === 0 && appState.userName.trim().length > 0;
     const isStep1Complete = appState.currentStep === 1 && appState.resourceFigure;
     
     // Bestimme die erwartete Anzahl von Fragen basierend auf der Ressource
@@ -233,8 +250,8 @@ export default function RessourcenApp() {
       isStep5Complete 
     });
     
-    if (isStep1Complete) {
-      console.log('Moving from step 1 to 2');
+    if (isStep0Complete || isStep1Complete) {
+      console.log('Moving from step', appState.currentStep, 'to', appState.currentStep + 1);
       setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
       return;
     }
@@ -490,6 +507,14 @@ export default function RessourcenApp() {
               transition={{ duration: 0.15 }}
               className="h-full"
             >
+              {appState.currentStep === 0 && (
+                <UserNameInput
+                  userName={appState.userName}
+                  onUserNameChange={handleUserNameChange}
+                  onNext={handleNextStep}
+                />
+              )}
+
               {appState.currentStep === 1 && (
                 <ResourceFigureSelection
                   selectedFigure={appState.resourceFigure}
@@ -506,6 +531,7 @@ export default function RessourcenApp() {
                   onNext={handleNextStep}
                   currentQuestionIndex={appState.currentQuestionIndex}
                   onQuestionIndexChange={handleQuestionIndexChange}
+                  userName={appState.userName}
                 />
               )}
 

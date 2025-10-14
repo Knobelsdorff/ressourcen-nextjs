@@ -11,6 +11,25 @@ export interface FigureSpecificData {
   };
 }
 
+// Funktion um Antworten mit Namen zu personalisieren
+export function personalizeAnswers(blocks: string[], userName: string): string[] {
+  if (!userName || userName.trim().length === 0) {
+    return blocks;
+  }
+  
+  return blocks.map(block => 
+    block.replace(/\bdu\b/g, userName)
+         .replace(/\bdir\b/g, `${userName}`)
+         .replace(/\bdich\b/g, `${userName}`)
+         .replace(/\bdein\b/g, `${userName}s`)
+         .replace(/\bdeine\b/g, `${userName}s`)
+         .replace(/\bdeiner\b/g, `${userName}s`)
+         .replace(/\bdeines\b/g, `${userName}s`)
+         .replace(/\bdeinem\b/g, `${userName}s`)
+         .replace(/\bdeinen\b/g, `${userName}s`)
+  );
+}
+
 // Figurspezifische Antworten und Fragen für jede Figur
 export const figureSpecificData: FigureSpecificData = {
   // REAL FIGURES

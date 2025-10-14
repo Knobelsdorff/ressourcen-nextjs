@@ -10,6 +10,7 @@ import { Check, ChevronLeft, ChevronRight, ArrowRight, Eye, Heart, Shield, Messa
 import { ResourceFigure } from "@/app/page";
 import { questions, getQuestionsWithPronouns } from "@/data/questions";
 import { placeQuestions } from "@/data/placeQuestions";
+import { personalizeAnswers } from "@/data/figureSpecificAnswers";
 
 export interface QuestionAnswer {
   questionId: number;
@@ -25,6 +26,7 @@ interface RelationshipSelectionProps {
   onNext: () => void;
   currentQuestionIndex: number; // Added prop
   onQuestionIndexChange: (index: number) => void; // Added prop
+  userName: string; // Added for personalization
 }
 
 export default function RelationshipSelection({
@@ -33,7 +35,8 @@ export default function RelationshipSelection({
   onAnswersChange,
   onNext,
   currentQuestionIndex, // New prop
-  onQuestionIndexChange // New prop
+  onQuestionIndexChange, // New prop
+  userName // Added for personalization
 }: RelationshipSelectionProps) {
   const { user } = useAuth();
   const hasInitialized = useRef(false);
@@ -238,7 +241,9 @@ export default function RelationshipSelection({
 
               {/* Answer Blocks - 2 Column Layout (inkl. eigene Snippets) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                {[...currentQuestion.blocks, ...(currentAnswer.customBlocks || [])].map((block, index) => (
+                {[...currentQuestion.blocks, ...(currentAnswer.customBlocks || [])].map((block, index) => {
+                  const personalizedBlock = personalizeAnswers([block], userName)[0];
+                  return (
                   <motion.button
                     key={index}
                     initial={{ opacity: 0, y: 20 }}
@@ -274,7 +279,7 @@ export default function RelationshipSelection({
                          ? 'text-gray-500'
                          : 'text-black'
                      }`}>
-                       {block}
+                       {personalizedBlock}
                      </span>
                      {(currentAnswer.customBlocks || []).includes(block) && (
                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
@@ -282,7 +287,8 @@ export default function RelationshipSelection({
                        </span>
                      )}
                   </motion.button>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Eigene Snippets hinzufügen */}
