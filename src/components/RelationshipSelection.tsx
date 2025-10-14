@@ -26,7 +26,6 @@ interface RelationshipSelectionProps {
   onNext: () => void;
   currentQuestionIndex: number; // Added prop
   onQuestionIndexChange: (index: number) => void; // Added prop
-  userName: string; // Added for personalization
 }
 
 export default function RelationshipSelection({
@@ -35,8 +34,7 @@ export default function RelationshipSelection({
   onAnswersChange,
   onNext,
   currentQuestionIndex, // New prop
-  onQuestionIndexChange, // New prop
-  userName // Added for personalization
+  onQuestionIndexChange // New prop
 }: RelationshipSelectionProps) {
   const { user } = useAuth();
   const hasInitialized = useRef(false);
@@ -242,7 +240,7 @@ export default function RelationshipSelection({
               {/* Answer Blocks - 2 Column Layout (inkl. eigene Snippets) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 {[...currentQuestion.blocks, ...(currentAnswer.customBlocks || [])].map((block, index) => {
-                  const personalizedBlock = personalizeAnswers([block], userName)[0];
+                  const personalizedBlock = block;
                   return (
                   <motion.button
                     key={index}
