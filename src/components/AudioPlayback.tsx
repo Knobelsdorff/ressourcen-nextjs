@@ -407,6 +407,8 @@ export default function AudioPlayback({
   // Load audio on component mount or when needed
   useEffect(() => {
     if (needsNewAudio() && selectedVoice) {
+      // Sofortiger Ladebildschirm für bessere UX
+      setIsGenerating(true);
       generateAudio(generatedStory, selectedVoice.id);
     }
   }, [needsNewAudio, selectedVoice, generatedStory]);
@@ -414,6 +416,8 @@ export default function AudioPlayback({
   // Regeneriere Audio, wenn der Admin-Sparmodus umgeschaltet wird
   useEffect(() => {
     if (selectedVoice) {
+      // Sofortiger Ladebildschirm für bessere UX
+      setIsGenerating(true);
       generateAudio(generatedStory, selectedVoice.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -427,6 +431,8 @@ export default function AudioPlayback({
     
     // Only generate new audio if voice actually changed
     if (audioState?.voiceId !== voice.id) {
+      // Sofortiger Ladebildschirm für bessere UX
+      setIsGenerating(true);
       generateAudio(generatedStory, voice.id);
     }
     
