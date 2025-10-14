@@ -45,63 +45,56 @@ interface SavedStory {
 
 export interface AppState {
   currentStep: number;
-  userName: string; // Added for personalization
   resourceFigure: ResourceFigure | null;
   questionAnswers: QuestionAnswer[];
   generatedStory: string;
   selectedVoice: string;
   audioState: AudioState | null;
-  currentQuestionIndex: number; // Added for step 2 question tracking
+  currentQuestionIndex: number;
 }
 
-const steps = [
-  {
-    number: 1,
-    title: "Ressourcenfigur",
-    icon: "🤗"
-  },
-  {
-    number: 2,
-    title: "Name",
-    icon: "👤"
-  },
-  {
-    number: 3,
-    title: "Beziehung",
-    icon: "💝"
-  },
-  {
-    number: 4,
-    title: "Geschichte erzeugen",
-    icon: "✨"
-  },
-      {
-        number: 5,
-        title: "Stimme wechseln",
-        icon: "🎤"
-      },
-  {
-    number: 6,
-    title: "Anhören",
-    icon: "🎧"
-  },
-  {
-    number: 7,
-    title: "Speichern & Reflektieren",
-    icon: "🌟"
-  }
-];
+  const steps = [
+    {
+      number: 1,
+      title: "Ressourcenfigur",
+      icon: "🤗"
+    },
+    {
+      number: 2,
+      title: "Beziehung",
+      icon: "💝"
+    },
+    {
+      number: 3,
+      title: "Geschichte erzeugen",
+      icon: "✨"
+    },
+    {
+      number: 4,
+      title: "Stimme wechseln",
+      icon: "🎤"
+    },
+    {
+      number: 5,
+      title: "Anhören",
+      icon: "🎧"
+    },
+    {
+      number: 6,
+      title: "Speichern & Reflektieren",
+      icon: "🌟"
+    }
+  ];
 
 
 const initialAppState: AppState = {
   currentStep: 1, // Start with resource figure selection (original landing page)
-  userName: "", // Added for personalization
   resourceFigure: null,
   questionAnswers: [],
   generatedStory: "",
   selectedVoice: "",
   audioState: null,
-  currentQuestionIndex: 0 // Added for step 2 question tracking
+  currentQuestionIndex: 0
 };
 
 export default function RessourcenApp() {
@@ -116,17 +109,6 @@ export default function RessourcenApp() {
   }, []);
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
 
-  const handleUserNameChange = useCallback((name: string) => {
-    console.log('handleUserNameChange called with:', name);
-    setAppState(prev => {
-      const newState = {
-        ...prev,
-        userName: name
-      };
-      console.log('New app state:', newState);
-      return newState;
-    });
-  }, []);
 
   const handleResourceFigureSelect = useCallback((figure: ResourceFigure) => {
     setAppState(prev => ({
@@ -195,9 +177,8 @@ export default function RessourcenApp() {
   // Define canProceed before handleNextStep
   const canProceed = 
     (appState.currentStep === 1 && appState.resourceFigure) ||
-    (appState.currentStep === 2 && appState.userName && appState.userName.trim().length > 0) ||
-    (appState.currentStep === 3 && (() => {
-      // In Schritt 3: Prüfe, ob die aktuelle Frage beantwortet ist
+    (appState.currentStep === 2 && (() => {
+      // In Schritt 2: Prüfe, ob die aktuelle Frage beantwortet ist
       const currentAnswer = appState.questionAnswers.find(a => {
         const questionId = appState.currentQuestionIndex + 1; // Fragen sind 1-indexiert
         return a.questionId === questionId;
@@ -209,18 +190,10 @@ export default function RessourcenApp() {
       
       return hasEnoughAnswers;
     })()) ||
-    (appState.currentStep === 4 && appState.generatedStory.trim().length > 0) ||
-    (appState.currentStep === 5 && appState.selectedVoice) ||
-    (appState.currentStep === 6 && appState.generatedStory.trim().length > 0 && appState.selectedVoice) ||
-    (appState.currentStep === 7 && appState.generatedStory.trim().length > 0 && appState.selectedVoice);
-
-  console.log('canProceed calculation:', {
-    currentStep: appState.currentStep,
-    userName: appState.userName,
-    userNameLength: appState.userName?.length,
-    canProceed,
-    step2Check: appState.currentStep === 2 && appState.userName && appState.userName.trim().length > 0
-  });
+    (appState.currentStep === 3 && appState.generatedStory.trim().length > 0) ||
+    (appState.currentStep === 4 && appState.selectedVoice) ||
+    (appState.currentStep === 5 && appState.generatedStory.trim().length > 0 && appState.selectedVoice) ||
+    (appState.currentStep === 6 && appState.generatedStory.trim().length > 0 && appState.selectedVoice);
 
   console.log('canProceed calculation:', {
     currentStep: appState.currentStep,
@@ -239,17 +212,18 @@ export default function RessourcenApp() {
     const isStep1Complete = appState.currentStep === 1 && appState.resourceFigure;
     
     // Bestimme die erwartete Anzahl von Fragen basierend auf der Ressource
-    const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6; // 6 Fragen für Personen (ohne Namensabfrage, da separater Step)
+    const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6;
     
-    const isStep3Complete = appState.currentStep === 3 && 
+    const isStep2Complete = appState.currentStep === 2 && 
       appState.questionAnswers.length === expectedQuestionCount && 
       appState.questionAnswers.every(a => a.answer.trim().length > 0 || a.selectedBlocks.length > 0);
-    const isStep4Complete = appState.currentStep === 4 && appState.generatedStory.trim().length > 0;
-    const isStep5Complete = appState.currentStep === 5 && appState.selectedVoice;
-    const isStep6Complete = appState.currentStep === 6 && appState.generatedStory.trim().length > 0 && appState.selectedVoice;
+    const isStep3Complete = appState.currentStep === 3 && appState.generatedStory.trim().length > 0;
+    const isStep4Complete = appState.currentStep === 4 && appState.selectedVoice;
+    const isStep5Complete = appState.currentStep === 5 && appState.generatedStory.trim().length > 0 && appState.selectedVoice;
     
     console.log('Step completion checks:', { 
       isStep1Complete, 
+      isStep2Complete, 
       isStep3Complete, 
       isStep4Complete, 
       isStep5Complete 
@@ -261,16 +235,15 @@ export default function RessourcenApp() {
       return;
     }
 
-    // Prüfe Step 2 direkt hier mit aktuellem State
-    if (appState.currentStep === 2 && appState.userName && appState.userName.trim().length > 0) {
+    if (isStep2Complete) {
       console.log('Moving from step 2 to 3');
       setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
       return;
     }
 
-    // In Schritt 3: Erlaube Navigation zwischen Fragen oder zum nächsten Schritt
-    if (appState.currentStep === 3) {
-      console.log('In step 3 - checking if we can proceed to next step');
+    // In Schritt 2: Erlaube Navigation zwischen Fragen oder zum nächsten Schritt
+    if (appState.currentStep === 2) {
+      console.log('In step 2 - checking if we can proceed to next step');
       
       // Prüfe, ob die aktuelle Frage mindestens 2 Antworten hat
       const currentAnswer = appState.questionAnswers[appState.currentQuestionIndex];
@@ -285,8 +258,8 @@ export default function RessourcenApp() {
         appState.questionAnswers.every(a => a.answer.trim().length > 0 || a.selectedBlocks.length >= 2);
       
       if (allQuestionsAnswered) {
-        console.log('All questions answered, moving to step 4');
-        setAppState(prev => ({ ...prev, currentStep: 4, currentQuestionIndex: 0 }));
+        console.log('All questions answered, moving to step 3');
+        setAppState(prev => ({ ...prev, currentStep: 3, currentQuestionIndex: 0 }));
       } else {
         console.log('Moving to next question');
         // Navigiere zur nächsten Frage
@@ -296,7 +269,7 @@ export default function RessourcenApp() {
       return;
     }
 
-    if (isStep3Complete || isStep4Complete || isStep5Complete || isStep6Complete) {
+    if (isStep3Complete || isStep4Complete || isStep5Complete) {
       console.log('Moving to next step');
       setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
     }
@@ -512,122 +485,112 @@ export default function RessourcenApp() {
               transition={{ duration: 0.15 }}
               className="h-full"
             >
-              {appState.currentStep === 1 && (
-                <ResourceFigureSelection
-                  selectedFigure={appState.resourceFigure}
-                  onFigureSelect={handleResourceFigureSelect}
-                  onNext={handleNextStep}
-                />
-              )}
+                {appState.currentStep === 1 && (
+                  <ResourceFigureSelection
+                    selectedFigure={appState.resourceFigure}
+                    onFigureSelect={handleResourceFigureSelect}
+                    onNext={handleNextStep}
+                  />
+                )}
 
-              {appState.currentStep === 2 && appState.resourceFigure && (
-                <UserNameInput
-                  userName={appState.userName}
-                  onUserNameChange={handleUserNameChange}
-                  onNext={handleNextStep}
-                />
-              )}
+                {appState.currentStep === 2 && appState.resourceFigure && (
+                  <RelationshipSelection
+                    selectedFigure={appState.resourceFigure}
+                    questionAnswers={appState.questionAnswers}
+                    onAnswersChange={handleQuestionAnswersChange}
+                    onNext={handleNextStep}
+                    currentQuestionIndex={appState.currentQuestionIndex}
+                    onQuestionIndexChange={handleQuestionIndexChange}
+                  />
+                )}
 
-              {appState.currentStep === 3 && appState.resourceFigure && (
-                <RelationshipSelection
-                  selectedFigure={appState.resourceFigure}
-                  questionAnswers={appState.questionAnswers}
-                  onAnswersChange={handleQuestionAnswersChange}
-                  onNext={handleNextStep}
-                  currentQuestionIndex={appState.currentQuestionIndex}
-                  onQuestionIndexChange={handleQuestionIndexChange}
-                  userName={appState.userName}
-                  onUserNameChange={handleUserNameChange}
-                />
-              )}
-
-              {appState.currentStep === 4 && appState.resourceFigure && (() => {
-                // Bestimme die erwartete Anzahl von Fragen basierend auf der Ressource
-                const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6;
-                
-                return appState.questionAnswers.length === expectedQuestionCount;
-              })() && (
-                <StoryGeneration
-                  selectedFigure={appState.resourceFigure}
-                  questionAnswers={appState.questionAnswers}
-                  generatedStory={appState.generatedStory}
-                  onStoryGenerated={handleStoryGenerated}
-                  onNext={handleNextStep}
-                  onSave={async () => {
-                    // Geschichte direkt speichern und zum Dashboard weiterleiten
-                    console.log('=== DIRECT SAVE AND GO TO DASHBOARD ===');
-                    
-                    try {
-                      // Verwende die bestehende Supabase-Logik
-                      const { supabase } = await import('@/lib/supabase');
+                {appState.currentStep === 3 && appState.resourceFigure && (() => {
+                  // Bestimme die erwartete Anzahl von Fragen basierend auf der Ressource
+                  const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6;
+                  
+                  return appState.questionAnswers.length === expectedQuestionCount;
+                })() && (
+                  <StoryGeneration
+                    selectedFigure={appState.resourceFigure}
+                    questionAnswers={appState.questionAnswers}
+                    generatedStory={appState.generatedStory}
+                    onStoryGenerated={handleStoryGenerated}
+                    onNext={handleNextStep}
+                    onSave={async () => {
+                      // Geschichte direkt speichern und zum Dashboard weiterleiten
+                      console.log('=== DIRECT SAVE AND GO TO DASHBOARD ===');
                       
-                      if (!user) {
-                        throw new Error('Benutzer nicht angemeldet');
+                      try {
+                        // Verwende die bestehende Supabase-Logik
+                        const { supabase } = await import('@/lib/supabase');
+                        
+                        if (!user) {
+                          throw new Error('Benutzer nicht angemeldet');
+                        }
+
+                        // Geschichte in Supabase speichern
+                        const { data, error } = await supabase
+                          .from('saved_stories')
+                          .insert({
+                            user_id: user.id,
+                            title: `Reise mit ${appState.resourceFigure?.name}`,
+                            content: appState.generatedStory,
+                            resource_figure: appState.resourceFigure,
+                            question_answers: appState.questionAnswers,
+                            audio_url: null,
+                            voice_id: null
+                          })
+                          .select();
+
+                        if (error) {
+                          throw new Error(`Fehler beim Speichern: ${error.message}`);
+                        }
+
+                        console.log('Story saved successfully, redirecting to dashboard...');
+                        
+                        // Zum Dashboard weiterleiten
+                        window.location.href = '/dashboard';
+                        
+                      } catch (error) {
+                        console.error('Error saving story:', error);
+                        alert(`Fehler beim Speichern der Geschichte: ${error}`);
                       }
+                    }}
+                  />
+                )}
 
-                      // Geschichte in Supabase speichern
-                      const { data, error } = await supabase
-                        .from('saved_stories')
-                        .insert({
-                          user_id: user.id,
-                          title: `Reise mit ${appState.resourceFigure?.name}`,
-                          content: appState.generatedStory,
-                          resource_figure: appState.resourceFigure,
-                          question_answers: appState.questionAnswers,
-                          audio_url: null,
-                          voice_id: null
-                        })
-                        .select();
+                {appState.currentStep === 4 && appState.resourceFigure && (
+                  <VoiceSelection
+                    onVoiceSelect={(voiceId) => {
+                      setAppState(prev => ({ ...prev, selectedVoice: voiceId }));
+                    }}
+                    onNext={handleNextStep}
+                    onPrevious={handlePreviousStep}
+                    selectedVoiceId={appState.selectedVoice}
+                    resourceFigure={appState.resourceFigure}
+                  />
+                )}
 
-                      if (error) {
-                        throw new Error(`Fehler beim Speichern: ${error.message}`);
-                      }
+                {appState.currentStep === 5 && appState.resourceFigure && appState.selectedVoice && (
+                  <AudioPlayback
+                    selectedFigure={appState.resourceFigure}
+                    generatedStory={appState.generatedStory}
+                    onNext={handleNextStep}
+                    audioState={appState.audioState}
+                    onAudioStateChange={handleAudioStateChange}
+                    selectedVoiceId={appState.selectedVoice}
+                  />
+                )}
 
-                      console.log('Story saved successfully, redirecting to dashboard...');
-                      
-                      // Zum Dashboard weiterleiten
-                      window.location.href = '/dashboard';
-                      
-                    } catch (error) {
-                      console.error('Error saving story:', error);
-                      alert(`Fehler beim Speichern der Geschichte: ${error}`);
-                    }
-                  }}
-                />
-              )}
-
-              {appState.currentStep === 5 && appState.resourceFigure && (
-                <VoiceSelection
-                  onVoiceSelect={(voiceId) => {
-                    setAppState(prev => ({ ...prev, selectedVoice: voiceId }));
-                  }}
-                  onNext={handleNextStep}
-                  onPrevious={handlePreviousStep}
-                  selectedVoiceId={appState.selectedVoice}
-                  resourceFigure={appState.resourceFigure}
-                />
-              )}
-
-              {appState.currentStep === 6 && appState.resourceFigure && appState.selectedVoice && (
-                <AudioPlayback
-                  selectedFigure={appState.resourceFigure}
-                  generatedStory={appState.generatedStory}
-                  onNext={handleNextStep}
-                  audioState={appState.audioState}
-                  onAudioStateChange={handleAudioStateChange}
-                  selectedVoiceId={appState.selectedVoice}
-                />
-              )}
-
-              {appState.currentStep === 7 && appState.resourceFigure && appState.generatedStory.trim().length > 0 && appState.selectedVoice && (
-                <SaveAndReflect
-                  resourceFigure={appState.resourceFigure}
-                  questionAnswers={appState.questionAnswers}
-                  generatedStory={appState.generatedStory}
-                  onDiscard={handleStoryDiscard}
-                  audioState={appState.audioState}
-                />
-              )}
+                {appState.currentStep === 6 && appState.resourceFigure && appState.generatedStory.trim().length > 0 && appState.selectedVoice && (
+                  <SaveAndReflect
+                    resourceFigure={appState.resourceFigure}
+                    questionAnswers={appState.questionAnswers}
+                    generatedStory={appState.generatedStory}
+                    onDiscard={handleStoryDiscard}
+                    audioState={appState.audioState}
+                  />
+                )}
             </motion.div>
           </AnimatePresence>
         </div>
