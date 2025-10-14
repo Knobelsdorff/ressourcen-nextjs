@@ -409,7 +409,7 @@ export default function AudioPlayback({
 
   // Load audio on component mount or when needed
   useEffect(() => {
-    if (needsNewAudio() && selectedVoice) {
+    if (needsNewAudio() && selectedVoice && generatedStory.trim().length > 0) {
       // Sofortiger Ladebildschirm für bessere UX
       setIsGenerating(true);
       generateAudio(generatedStory, selectedVoice.id);
@@ -418,7 +418,7 @@ export default function AudioPlayback({
 
   // Regeneriere Audio, wenn der Admin-Sparmodus umgeschaltet wird
   useEffect(() => {
-    if (selectedVoice) {
+    if (selectedVoice && generatedStory.trim().length > 0) {
       // Sofortiger Ladebildschirm für bessere UX
       setIsGenerating(true);
       generateAudio(generatedStory, selectedVoice.id);
