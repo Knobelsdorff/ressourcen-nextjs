@@ -42,7 +42,7 @@ export default function AudioPlayback({
 }: AudioPlaybackProps) {
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
   const [availableVoices, setAvailableVoices] = useState<Voice[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(true); // Sofortiger Ladebildschirm
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -382,6 +382,7 @@ export default function AudioPlayback({
       };
       
       onAudioStateChange(newAudioState);
+      setIsGenerating(false); // Audio erfolgreich geladen
     } catch (err: any) {
       console.error('Audio generation error:', err);
       
