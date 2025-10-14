@@ -56,42 +56,32 @@ export interface AppState {
 
 const steps = [
   {
-    number: 0,
-    title: "Start",
-    icon: "🏠"
-  },
-  {
     number: 1,
-    title: "Name",
-    icon: "👤"
-  },
-  {
-    number: 2,
     title: "Ressourcenfigur",
     icon: "🤗"
   },
   {
-    number: 3,
+    number: 2,
     title: "Beziehung",
     icon: "💝"
   },
   {
-    number: 4,
+    number: 3,
     title: "Geschichte erzeugen",
     icon: "✨"
   },
       {
-        number: 5,
+        number: 4,
         title: "Stimme wechseln",
         icon: "🎤"
       },
   {
-    number: 6,
+    number: 5,
     title: "Anhören",
     icon: "🎧"
   },
   {
-    number: 7,
+    number: 6,
     title: "Speichern & Reflektieren",
     icon: "🌟"
   }
@@ -99,7 +89,7 @@ const steps = [
 
 
 const initialAppState: AppState = {
-  currentStep: 0, // Start with landing page
+  currentStep: 1, // Start with step 1 (resource figure selection)
   userName: "", // Added for personalization
   resourceFigure: null,
   questionAnswers: [],
@@ -194,9 +184,7 @@ export default function RessourcenApp() {
 
   // Define canProceed before handleNextStep
   const canProceed = 
-    (appState.currentStep === 0) || // Landing page - always can proceed
-    (appState.currentStep === 1 && appState.userName.trim().length > 0) || // Name step
-    (appState.currentStep === 2 && appState.resourceFigure) || // Resource figure step
+    (appState.currentStep === 1 && appState.resourceFigure) ||
     (appState.currentStep === 2 && (() => {
       // In Schritt 2: Prüfe, ob die aktuelle Frage mindestens 2 Antworten hat
       const currentAnswer = appState.questionAnswers.find(a => {
@@ -374,7 +362,7 @@ export default function RessourcenApp() {
 
   // Helper function to get current step display info
   const getCurrentStepInfo = () => {
-    if (appState.currentStep === 3) {
+    if (appState.currentStep === 2) {
       // Bestimme die Anzahl der Fragen basierend auf der Ressource
       const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6;
       
@@ -385,9 +373,9 @@ export default function RessourcenApp() {
       };
     }
     
-    const currentStepData = steps[appState.currentStep];
+    const currentStepData = steps[appState.currentStep - 1];
     return {
-      title: `Step ${appState.currentStep + 1} of ${steps.length}`,
+      title: `Step ${appState.currentStep} of ${steps.length}`,
       subtitle: currentStepData.title,
       icon: currentStepData.icon
     };
@@ -512,49 +500,17 @@ export default function RessourcenApp() {
               transition={{ duration: 0.15 }}
               className="h-full"
             >
-              {appState.currentStep === 0 && (
-                <div className="min-h-screen p-4 lg:p-12">
-                  <motion.div
-                    initial={{ y: 30, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    className="max-w-4xl mx-auto text-center"
-                  >
-                    <h1 className="text-4xl lg:text-6xl font-light text-amber-900 mb-6">
-                      Willkommen bei Ressourcen
-                    </h1>
-                    <p className="text-xl text-amber-700 mb-12 max-w-2xl mx-auto">
-                      Erstelle deine persönliche Ressource für Sicherheit, Geborgenheit und inneren Schutz.
-                    </p>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={handleNextStep}
-                      className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl shadow-lg hover:from-amber-600 hover:to-orange-600 transition-all text-lg font-medium"
-                    >
-                      Ressource erstellen
-                    </motion.button>
-                  </motion.div>
-                </div>
-              )}
-
               {appState.currentStep === 1 && (
-                <UserNameInput
-                  userName={appState.userName}
-                  onUserNameChange={handleUserNameChange}
-                  onNext={handleNextStep}
-                />
-              )}
-
-              {appState.currentStep === 2 && (
                 <ResourceFigureSelection
                   selectedFigure={appState.resourceFigure}
                   onFigureSelect={handleResourceFigureSelect}
                   onNext={handleNextStep}
+                  userName={appState.userName}
+                  onUserNameChange={handleUserNameChange}
                 />
               )}
 
-              {appState.currentStep === 3 && appState.resourceFigure && (
+              {appState.currentStep === 2 && appState.resourceFigure && (
                 <RelationshipSelection
                   selectedFigure={appState.resourceFigure}
                   questionAnswers={appState.questionAnswers}
@@ -566,7 +522,7 @@ export default function RessourcenApp() {
                 />
               )}
 
-              {appState.currentStep === 4 && appState.resourceFigure && (() => {
+              {appState.currentStep === 3 && appState.resourceFigure && (() => {
                 // Bestimme die erwartete Anzahl von Fragen basierend auf der Ressource
                 const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6;
                 
@@ -621,7 +577,7 @@ export default function RessourcenApp() {
                 />
               )}
 
-              {appState.currentStep === 5 && appState.resourceFigure && (
+              {appState.currentStep === 4 && appState.resourceFigure && (
                 <VoiceSelection
                   onVoiceSelect={(voiceId) => {
                     setAppState(prev => ({ ...prev, selectedVoice: voiceId }));
@@ -633,7 +589,7 @@ export default function RessourcenApp() {
                 />
               )}
 
-              {appState.currentStep === 6 && appState.resourceFigure && appState.selectedVoice && (
+              {appState.currentStep === 5 && appState.resourceFigure && appState.selectedVoice && (
                 <AudioPlayback
                   selectedFigure={appState.resourceFigure}
                   generatedStory={appState.generatedStory}
@@ -644,7 +600,7 @@ export default function RessourcenApp() {
                 />
               )}
 
-              {appState.currentStep === 7 && appState.resourceFigure && appState.generatedStory.trim().length > 0 && appState.selectedVoice && (
+              {appState.currentStep === 6 && appState.resourceFigure && appState.generatedStory.trim().length > 0 && appState.selectedVoice && (
                 <SaveAndReflect
                   resourceFigure={appState.resourceFigure}
                   questionAnswers={appState.questionAnswers}
