@@ -248,12 +248,8 @@ export default function RessourcenApp() {
     const isStep5Complete = appState.currentStep === 5 && appState.selectedVoice;
     const isStep6Complete = appState.currentStep === 6 && appState.generatedStory.trim().length > 0 && appState.selectedVoice;
     
-    // Prüfe Step 2 direkt hier, um Timing-Probleme zu vermeiden
-    const isStep2Complete = appState.currentStep === 2 && appState.userName && appState.userName.trim().length > 0;
-    
     console.log('Step completion checks:', { 
       isStep1Complete, 
-      isStep2Complete, 
       isStep3Complete, 
       isStep4Complete, 
       isStep5Complete 
