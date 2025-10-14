@@ -211,6 +211,14 @@ export default function RessourcenApp() {
 
   console.log('canProceed calculation:', {
     currentStep: appState.currentStep,
+    userName: appState.userName,
+    userNameLength: appState.userName?.length,
+    canProceed,
+    step2Check: appState.currentStep === 2 && appState.userName && appState.userName.trim().length > 0
+  });
+
+  console.log('canProceed calculation:', {
+    currentStep: appState.currentStep,
     resourceFigure: appState.resourceFigure,
     canProceed,
     step1Check: appState.currentStep === 1 && appState.resourceFigure
