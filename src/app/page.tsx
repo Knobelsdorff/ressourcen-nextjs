@@ -199,7 +199,9 @@ export default function RessourcenApp() {
     currentStep: appState.currentStep,
     resourceFigure: appState.resourceFigure,
     canProceed,
-    step1Check: appState.currentStep === 1 && appState.resourceFigure
+    step1Check: appState.currentStep === 1 && appState.resourceFigure,
+    step3Check: appState.currentStep === 3 && appState.generatedStory.trim().length > 0,
+    generatedStoryLength: appState.generatedStory?.length || 0
   });
 
   const handleNextStep = useCallback(() => {
@@ -269,7 +271,13 @@ export default function RessourcenApp() {
       return;
     }
 
-    if (isStep3Complete || isStep4Complete || isStep5Complete) {
+    if (isStep3Complete) {
+      console.log('Moving from step 3 to 4');
+      setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
+      return;
+    }
+    
+    if (isStep4Complete || isStep5Complete) {
       console.log('Moving to next step');
       setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
     }
