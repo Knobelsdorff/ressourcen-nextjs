@@ -748,90 +748,183 @@ export default function AudioPlayback({
             {/* Hinweis: zusätzlicher Button unten entfernt für klare visuelle Hierarchie */}
       </motion.div>
 
-      {/* Auth Modal */}
+      {/* Auth Modal - MOTIVIEREND & ANSPRECHEND */}
       {showAuthModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">
-                {authMode === 'register' ? 'Account erstellen' : 'Anmelden'}
-              </h2>
-              <button
-                onClick={() => setShowAuthModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden"
+          >
+            {/* Header mit Benefits */}
+            <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-white text-center">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 300 }}
+                className="text-4xl mb-3"
               >
-                ✕
-              </button>
+                ✨
+              </motion.div>
+              <h2 className="text-2xl font-bold mb-2">
+                {authMode === 'register' ? 'Deine innere Sicherheit für immer!' : 'Willkommen zurück!'}
+              </h2>
+              <p className="text-amber-100 text-sm leading-relaxed">
+                {authMode === 'register' 
+                  ? 'Erstelle einen Account und habe jederzeit Zugang zu deiner persönlichen Quelle für Sicherheit, Geborgenheit und inneren Schutz'
+                  : 'Melde dich an, um auf deine gespeicherten Ressourcen zuzugreifen'
+                }
+              </p>
             </div>
-            
-            <form onSubmit={handleAuth} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  E-Mail
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
+
+            {/* Benefits Section */}
+            <div className="p-6 bg-gradient-to-br from-amber-50 to-orange-50">
+              <div className="grid grid-cols-1 gap-4 mb-6">
+                <motion.div
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="flex items-center gap-3"
+                >
+                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                    🛡️
+                  </div>
+                  <span className="text-gray-700 font-medium">Jederzeit stabilisieren & regulieren</span>
+                </motion.div>
+                
+                <motion.div
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className="flex items-center gap-3"
+                >
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                    💝
+                  </div>
+                  <span className="text-gray-700 font-medium">Sofortige Geborgenheit in schwierigen Momenten</span>
+                </motion.div>
+                
+                <motion.div
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="flex items-center gap-3"
+                >
+                  <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                    🌟
+                  </div>
+                  <span className="text-gray-700 font-medium">Persönliche Ressourcen-Sammlung aufbauen</span>
+                </motion.div>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Passwort
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
-              
-              {authMode === 'register' && (
+
+              {/* Form */}
+              <form onSubmit={handleAuth} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Passwort bestätigen
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    E-Mail-Adresse
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+                    placeholder="deine@email.de"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Passwort
                   </label>
                   <input
                     type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+                    placeholder="Mindestens 6 Zeichen"
                   />
                 </div>
-              )}
+                
+                {authMode === 'register' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Passwort bestätigen
+                    </label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+                      placeholder="Passwort wiederholen"
+                    />
+                  </div>
+                )}
+                
+                {authError && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 text-sm"
+                  >
+                    {authError}
+                  </motion.div>
+                )}
+                
+                {authSuccess && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-green-50 border border-green-200 rounded-xl p-3 text-green-700 text-sm"
+                  >
+                    {authSuccess}
+                  </motion.div>
+                )}
+                
+                <motion.button
+                  type="submit"
+                  disabled={isSubmitting}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full px-6 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Wird verarbeitet...
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-2">
+                      <span>{authMode === 'register' ? '✨ Account erstellen' : '🔑 Anmelden'}</span>
+                    </div>
+                  )}
+                </motion.button>
+              </form>
               
-              {authError && (
-                <div className="text-red-600 text-sm">{authError}</div>
-              )}
-              
-              {authSuccess && (
-                <div className="text-green-600 text-sm">{authSuccess}</div>
-              )}
-              
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors disabled:opacity-50"
-              >
-                {isSubmitting ? 'Wird verarbeitet...' : (authMode === 'register' ? 'Registrieren' : 'Anmelden')}
-              </button>
-            </form>
-            
-            <div className="mt-4 text-center">
-              <button
-                onClick={() => setAuthMode(authMode === 'register' ? 'login' : 'register')}
-                className="text-amber-600 hover:text-amber-700 text-sm"
-              >
-                {authMode === 'register' ? 'Bereits ein Account? Anmelden' : 'Noch kein Account? Registrieren'}
-              </button>
+              <div className="mt-6 text-center">
+                <button
+                  onClick={() => setAuthMode(authMode === 'register' ? 'login' : 'register')}
+                  className="text-amber-600 hover:text-amber-700 font-medium transition-colors"
+                >
+                  {authMode === 'register' ? 'Bereits ein Account? Hier anmelden' : 'Noch kein Account? Hier registrieren'}
+                </button>
+              </div>
             </div>
-          </div>
+
+            {/* Close Button */}
+            <button
+              onClick={() => setShowAuthModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors p-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </motion.div>
         </div>
       )}
     </div>
