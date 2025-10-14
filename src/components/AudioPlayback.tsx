@@ -67,6 +67,8 @@ export default function AudioPlayback({
       const savedTestMode = localStorage.getItem('test_sparmodus') === '1';
       setTestMode(savedTestMode);
     }
+    // Sofortiger Ladebildschirm für bessere UX
+    setIsGenerating(true);
   }, []);
 
   // Automatisches Speichern nach erfolgreicher Anmeldung
