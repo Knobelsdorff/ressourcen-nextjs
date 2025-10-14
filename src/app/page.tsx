@@ -117,10 +117,15 @@ export default function RessourcenApp() {
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
 
   const handleUserNameChange = useCallback((name: string) => {
-    setAppState(prev => ({
-      ...prev,
-      userName: name
-    }));
+    console.log('handleUserNameChange called with:', name);
+    setAppState(prev => {
+      const newState = {
+        ...prev,
+        userName: name
+      };
+      console.log('New app state:', newState);
+      return newState;
+    });
   }, []);
 
   const handleResourceFigureSelect = useCallback((figure: ResourceFigure) => {
