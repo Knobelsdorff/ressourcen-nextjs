@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
           'xi-api-key': process.env.ELEVENLABS_API_KEY!,
         },
         body: JSON.stringify(requestPayload),
-        signal: AbortSignal.timeout(60000), // 60 Sekunden Timeout
+        signal: AbortSignal.timeout(10000), // 10 Sekunden Timeout für Vercel Hobby
       }
     );
 
