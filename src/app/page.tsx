@@ -380,9 +380,9 @@ export default function RessourcenApp() {
       };
     }
     
-    const currentStepData = steps[appState.currentStep - 1];
+    const currentStepData = steps[appState.currentStep];
     return {
-      title: `Step ${appState.currentStep} of ${steps.length}`,
+      title: `Step ${appState.currentStep + 1} of ${steps.length}`,
       subtitle: currentStepData.title,
       icon: currentStepData.icon
     };
