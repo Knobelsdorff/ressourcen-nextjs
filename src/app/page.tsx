@@ -65,21 +65,16 @@ export interface AppState {
     },
     {
       number: 3,
-      title: "Geschichte erzeugen",
-      icon: "✨"
-    },
-    {
-      number: 4,
       title: "Stimme wechseln",
       icon: "🎤"
     },
     {
-      number: 5,
+      number: 4,
       title: "Anhören",
       icon: "🎧"
     },
     {
-      number: 6,
+      number: 5,
       title: "Speichern & Reflektieren",
       icon: "🌟"
     }
@@ -189,10 +184,9 @@ export default function RessourcenApp() {
       
       return hasEnoughAnswers;
     })()) ||
-    (appState.currentStep === 3 && appState.generatedStory.trim().length > 0) ||
+    (appState.currentStep === 3 && appState.selectedVoice) ||
     (appState.currentStep === 4 && appState.selectedVoice) ||
-    (appState.currentStep === 5 && appState.generatedStory.trim().length > 0 && appState.selectedVoice) ||
-    (appState.currentStep === 6 && appState.generatedStory.trim().length > 0 && appState.selectedVoice);
+    (appState.currentStep === 5 && appState.selectedVoice);
 
   console.log('canProceed calculation:', {
     currentStep: appState.currentStep,
@@ -218,9 +212,9 @@ export default function RessourcenApp() {
     const isStep2Complete = appState.currentStep === 2 && 
       appState.questionAnswers.length === expectedQuestionCount && 
       appState.questionAnswers.every(a => a.answer.trim().length > 0 || a.selectedBlocks.length > 0);
-    const isStep3Complete = appState.currentStep === 3 && appState.generatedStory && appState.generatedStory.trim().length > 0;
+    const isStep3Complete = appState.currentStep === 3 && appState.selectedVoice;
     const isStep4Complete = appState.currentStep === 4 && appState.selectedVoice;
-    const isStep5Complete = appState.currentStep === 5 && appState.generatedStory.trim().length > 0 && appState.selectedVoice;
+    const isStep5Complete = appState.currentStep === 5 && appState.selectedVoice;
     
     console.log('Step completion checks:', { 
       isStep1Complete, 
@@ -242,42 +236,35 @@ export default function RessourcenApp() {
       return;
     }
 
-    // In Schritt 2: Erlaube Navigation zwischen Fragen oder zum nächsten Schritt
-    if (appState.currentStep === 2) {
-      console.log('In step 2 - checking if we can proceed to next step');
-      
-      // Prüfe, ob die aktuelle Frage mindestens 2 Antworten hat
-      const currentAnswer = appState.questionAnswers[appState.currentQuestionIndex];
-      if (!currentAnswer || currentAnswer.selectedBlocks.length < 2) {
-        console.log('Current question needs at least 2 answers');
-        return;
-      }
-      
-      // Prüfe, ob alle Fragen beantwortet sind
-      const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6;
-      const allQuestionsAnswered = appState.questionAnswers.length === expectedQuestionCount && 
-        appState.questionAnswers.every(a => a.answer.trim().length > 0 || a.selectedBlocks.length >= 2);
-      
-      if (allQuestionsAnswered) {
-        console.log('All questions answered, moving to step 3');
-        setAppState(prev => ({ ...prev, currentStep: 3, currentQuestionIndex: 0 }));
-      } else {
-        console.log('Moving to next question');
-        // Navigiere zur nächsten Frage
-        const nextQuestionIndex = (appState.currentQuestionIndex + 1) % expectedQuestionCount;
-        setAppState(prev => ({ ...prev, currentQuestionIndex: nextQuestionIndex }));
-      }
-      return;
-    }
+        // In Schritt 2: Erlaube Navigation zwischen Fragen oder zum nächsten Schritt
+        if (appState.currentStep === 2) {
+          console.log('In step 2 - checking if we can proceed to next step');
+          
+          // Prüfe, ob die aktuelle Frage mindestens 2 Antworten hat
+          const currentAnswer = appState.questionAnswers[appState.currentQuestionIndex];
+          if (!currentAnswer || currentAnswer.selectedBlocks.length < 2) {
+            console.log('Current question needs at least 2 answers');
+            return;
+          }
+          
+          // Prüfe, ob alle Fragen beantwortet sind
+          const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6;
+          const allQuestionsAnswered = appState.questionAnswers.length === expectedQuestionCount && 
+            appState.questionAnswers.every(a => a.answer.trim().length > 0 || a.selectedBlocks.length >= 2);
+          
+          if (allQuestionsAnswered) {
+            console.log('All questions answered, moving directly to step 4 (voice selection)');
+            setAppState(prev => ({ ...prev, currentStep: 4, currentQuestionIndex: 0 }));
+          } else {
+            console.log('Moving to next question');
+            // Navigiere zur nächsten Frage
+            const nextQuestionIndex = (appState.currentQuestionIndex + 1) % expectedQuestionCount;
+            setAppState(prev => ({ ...prev, currentQuestionIndex: nextQuestionIndex }));
+          }
+          return;
+        }
 
-    // Prüfe Step 3 direkt hier mit aktuellem State
-    if (appState.currentStep === 3 && appState.generatedStory && appState.generatedStory.trim().length > 0) {
-      console.log('Moving from step 3 to 4 - currentStep:', appState.currentStep, 'generatedStory length:', appState.generatedStory.trim().length);
-      setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
-      return;
-    }
-    
-    if (isStep4Complete || isStep5Complete) {
+    if (isStep3Complete || isStep4Complete || isStep5Complete) {
       console.log('Moving to next step');
       setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
     }
@@ -310,10 +297,8 @@ export default function RessourcenApp() {
       stepNumber === 1 ||
       (stepNumber === 2 && appState.resourceFigure) ||
       (stepNumber === 3 && appState.resourceFigure && appState.questionAnswers.length === expectedQuestionCount) ||
-      // Schritt 4: erlauben ohne fertige Geschichte
-      (stepNumber === 4 && appState.resourceFigure && appState.questionAnswers.length === expectedQuestionCount) ||
-      (stepNumber === 5 && appState.resourceFigure && appState.questionAnswers.length === expectedQuestionCount && appState.selectedVoice) ||
-      (stepNumber === 6 && appState.resourceFigure && appState.questionAnswers.length === expectedQuestionCount && appState.selectedVoice);
+      (stepNumber === 4 && appState.resourceFigure && appState.questionAnswers.length === expectedQuestionCount && appState.selectedVoice) ||
+      (stepNumber === 5 && appState.resourceFigure && appState.questionAnswers.length === expectedQuestionCount && appState.selectedVoice);
     
     if (canNavigate) {
       setAppState(prev => ({
@@ -325,13 +310,13 @@ export default function RessourcenApp() {
     }
   }, [appState.resourceFigure, appState.questionAnswers, appState.generatedStory, appState.selectedVoice]);
 
-  const showNavigation = appState.currentStep > 1 || (canProceed && appState.currentStep <= 6);
+  const showNavigation = appState.currentStep > 1 || (canProceed && appState.currentStep <= 5);
 
-  // Starte Story-Erzeugung im Hintergrund ab Schritt 4, wenn noch leer
+  // Starte Story-Erzeugung im Hintergrund ab Schritt 3, wenn noch leer
   useEffect(() => {
     const run = async () => {
       if (!appState.resourceFigure) return;
-      if (appState.currentStep >= 4 && !isGeneratingStory && !appState.generatedStory.trim()) {
+      if (appState.currentStep >= 3 && !isGeneratingStory && !appState.generatedStory.trim()) {
         setIsGeneratingStory(true);
         try {
           const response = await fetch('/api/generate-story', {
@@ -512,22 +497,7 @@ export default function RessourcenApp() {
                   />
                 )}
 
-                {appState.currentStep === 3 && appState.resourceFigure && (() => {
-                  // Bestimme die erwartete Anzahl von Fragen basierend auf der Ressource
-                  const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6;
-                  
-                  return appState.questionAnswers.length === expectedQuestionCount;
-                })() && (
-                  <StoryGeneration
-                    selectedFigure={appState.resourceFigure}
-                    questionAnswers={appState.questionAnswers}
-                    generatedStory={appState.generatedStory}
-                    onStoryGenerated={handleStoryGenerated}
-                    onNext={handleNextStep}
-                  />
-                )}
-
-                {appState.currentStep === 4 && appState.resourceFigure && (
+                {appState.currentStep === 3 && appState.resourceFigure && (
                   <VoiceSelection
                     onVoiceSelect={(voiceId) => {
                       setAppState(prev => ({ ...prev, selectedVoice: voiceId }));
@@ -539,7 +509,7 @@ export default function RessourcenApp() {
                   />
                 )}
 
-                {appState.currentStep === 5 && appState.resourceFigure && appState.selectedVoice && (
+                {appState.currentStep === 4 && appState.resourceFigure && appState.selectedVoice && (
                   <AudioPlayback
                     selectedFigure={appState.resourceFigure}
                     generatedStory={appState.generatedStory}
@@ -550,7 +520,7 @@ export default function RessourcenApp() {
                   />
                 )}
 
-                {appState.currentStep === 6 && appState.resourceFigure && appState.generatedStory.trim().length > 0 && appState.selectedVoice && (
+                {appState.currentStep === 5 && appState.resourceFigure && appState.selectedVoice && (
                   <SaveAndReflect
                     resourceFigure={appState.resourceFigure}
                     questionAnswers={appState.questionAnswers}
