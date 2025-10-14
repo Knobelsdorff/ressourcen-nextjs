@@ -237,16 +237,6 @@ export default function RessourcenApp() {
     });
     
     const isStep1Complete = appState.currentStep === 1 && appState.resourceFigure;
-    const isStep2Complete = appState.currentStep === 2 && appState.userName && appState.userName.trim().length > 0;
-    
-    console.log('isStep2Complete calculation:', {
-      currentStep: appState.currentStep,
-      userName: appState.userName,
-      userNameLength: appState.userName?.length,
-      userNameTrimmed: appState.userName?.trim(),
-      userNameTrimmedLength: appState.userName?.trim().length,
-      isStep2Complete
-    });
     
     // Bestimme die erwartete Anzahl von Fragen basierend auf der Ressource
     const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6; // 6 Fragen für Personen (ohne Namensabfrage, da separater Step)
@@ -272,6 +262,18 @@ export default function RessourcenApp() {
       return;
     }
 
+    // Prüfe Step 2 direkt hier, um Timing-Probleme zu vermeiden
+    const isStep2Complete = appState.currentStep === 2 && appState.userName && appState.userName.trim().length > 0;
+    
+    console.log('isStep2Complete calculation:', {
+      currentStep: appState.currentStep,
+      userName: appState.userName,
+      userNameLength: appState.userName?.length,
+      userNameTrimmed: appState.userName?.trim(),
+      userNameTrimmedLength: appState.userName?.trim().length,
+      isStep2Complete
+    });
+    
     if (isStep2Complete) {
       console.log('Moving from step 2 to 3');
       setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
