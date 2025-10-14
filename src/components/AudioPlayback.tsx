@@ -431,19 +431,22 @@ export default function AudioPlayback({
     // SOFORTIGER Ladebildschirm - vor allem anderen!
     setIsGenerating(true);
     
+    // Sofortige UI Updates für bessere UX
     setSelectedVoice(voice);
     setIsPlaying(false);
     setCurrentTime(0);
-    
-    // Only generate new audio if voice actually changed
-    if (audioState?.voiceId !== voice.id) {
-      generateAudio(generatedStory, voice.id);
-    } else {
-      // Falls gleiche Stimme, trotzdem Ladebildschirm kurz anzeigen
-      setTimeout(() => setIsGenerating(false), 500);
-    }
-    
     setShowVoiceSelection(false);
+    
+    // Force immediate re-render with loading state
+    setTimeout(() => {
+      // Only generate new audio if voice actually changed
+      if (audioState?.voiceId !== voice.id) {
+        generateAudio(generatedStory, voice.id);
+      } else {
+        // Falls gleiche Stimme, trotzdem Ladebildschirm kurz anzeigen
+        setTimeout(() => setIsGenerating(false), 500);
+      }
+    }, 0);
   };
 
   // Enhanced progress bar click handler for seeking
