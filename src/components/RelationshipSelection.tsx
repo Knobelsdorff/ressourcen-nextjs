@@ -177,15 +177,15 @@ export default function RelationshipSelection({
 
   return (
     <div ref={containerRef} className="min-h-screen bg-amber-50">
-      <div className="flex items-start justify-center p-4 pt-8">
-        <div className="w-full max-w-[851px]">
-          {/* Main Card */}
-          <motion.div
-            initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="bg-white rounded-[20px] shadow-[0px_5px_10px_0px_rgba(0,0,0,0.25)] p-8"
-          >
+        <div className="flex items-start justify-center p-4 pt-8">
+          <div className="w-full max-w-[851px]">
+            {/* Main Card */}
+            <motion.div
+              initial={{ y: 30, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="bg-white rounded-[20px] shadow-[0px_5px_10px_0px_rgba(0,0,0,0.25)] p-8"
+            >
               {/* Header with Emoji and Figure Name */}
               <div className="flex items-center justify-center gap-3 mb-8">
                 <div className="text-4xl">{selectedFigure.emoji}</div>
