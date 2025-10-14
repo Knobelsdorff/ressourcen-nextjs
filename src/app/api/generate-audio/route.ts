@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
       return chosen.length > 0 ? chosen : clean.slice(0, 220);
     };
 
+    // Verwende den vollen Text, außer bei Admin-Preview
     const effectiveText = adminPreview ? shortenForPreview(text) : text;
 
     // Request payload
@@ -79,7 +80,8 @@ export async function POST(request: NextRequest) {
     };
 
     console.log('Making request with voice ID:', elevenlabsVoiceId);
-    console.log('Request payload:', JSON.stringify(requestPayload, null, 2));
+    console.log('Text length:', text.length, '->', effectiveText.length);
+    console.log('Text preview:', effectiveText.slice(0, 100) + '...');
     console.log('Environment check:', {
       hasElevenLabsKey: !!process.env.ELEVENLABS_API_KEY,
       hasSupabaseKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -96,7 +98,7 @@ export async function POST(request: NextRequest) {
           'xi-api-key': process.env.ELEVENLABS_API_KEY!,
         },
         body: JSON.stringify(requestPayload),
-        signal: AbortSignal.timeout(10000), // 10 Sekunden Timeout für Vercel Hobby
+        signal: AbortSignal.timeout(60000), // 60 Sekunden Timeout für längere Texte
       }
     );
 
