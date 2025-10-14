@@ -437,16 +437,13 @@ export default function AudioPlayback({
     setCurrentTime(0);
     setShowVoiceSelection(false);
     
-    // Force immediate re-render with loading state
-    setTimeout(() => {
-      // Only generate new audio if voice actually changed
-      if (audioState?.voiceId !== voice.id) {
-        generateAudio(generatedStory, voice.id);
-      } else {
-        // Falls gleiche Stimme, trotzdem Ladebildschirm kurz anzeigen
-        setTimeout(() => setIsGenerating(false), 500);
-      }
-    }, 0);
+    // Only generate new audio if voice actually changed
+    if (audioState?.voiceId !== voice.id) {
+      generateAudio(generatedStory, voice.id);
+    } else {
+      // Falls gleiche Stimme, trotzdem Ladebildschirm kurz anzeigen
+      setTimeout(() => setIsGenerating(false), 500);
+    }
   };
 
   // Enhanced progress bar click handler for seeking
