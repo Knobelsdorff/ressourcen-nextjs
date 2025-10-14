@@ -271,7 +271,7 @@ export default function RessourcenApp() {
     }
 
     if (isStep3Complete) {
-      console.log('Moving from step 3 to 4');
+      console.log('Moving from step 3 to 4 - isStep3Complete:', isStep3Complete, 'currentStep:', appState.currentStep, 'generatedStory length:', appState.generatedStory.trim().length);
       setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
       return;
     }
