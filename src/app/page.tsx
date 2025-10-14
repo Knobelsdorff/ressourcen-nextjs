@@ -218,7 +218,7 @@ export default function RessourcenApp() {
     const isStep2Complete = appState.currentStep === 2 && 
       appState.questionAnswers.length === expectedQuestionCount && 
       appState.questionAnswers.every(a => a.answer.trim().length > 0 || a.selectedBlocks.length > 0);
-    const isStep3Complete = appState.currentStep === 3 && appState.generatedStory.trim().length > 0;
+    const isStep3Complete = appState.currentStep === 3 && appState.generatedStory && appState.generatedStory.trim().length > 0;
     const isStep4Complete = appState.currentStep === 4 && appState.selectedVoice;
     const isStep5Complete = appState.currentStep === 5 && appState.generatedStory.trim().length > 0 && appState.selectedVoice;
     
@@ -270,8 +270,9 @@ export default function RessourcenApp() {
       return;
     }
 
-    if (isStep3Complete) {
-      console.log('Moving from step 3 to 4 - isStep3Complete:', isStep3Complete, 'currentStep:', appState.currentStep, 'generatedStory length:', appState.generatedStory.trim().length);
+    // Prüfe Step 3 direkt hier mit aktuellem State
+    if (appState.currentStep === 3 && appState.generatedStory && appState.generatedStory.trim().length > 0) {
+      console.log('Moving from step 3 to 4 - currentStep:', appState.currentStep, 'generatedStory length:', appState.generatedStory.trim().length);
       setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
       return;
     }
