@@ -428,12 +428,12 @@ export default function AudioPlayback({
 
   // Handle voice change
   const handleVoiceChange = (voice: Voice) => {
+    // SOFORTIGER Ladebildschirm - vor allem anderen!
+    setIsGenerating(true);
+    
     setSelectedVoice(voice);
     setIsPlaying(false);
     setCurrentTime(0);
-    
-    // Sofortiger Ladebildschirm für bessere UX - IMMER setzen
-    setIsGenerating(true);
     
     // Only generate new audio if voice actually changed
     if (audioState?.voiceId !== voice.id) {
