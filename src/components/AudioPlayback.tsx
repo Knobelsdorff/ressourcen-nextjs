@@ -429,11 +429,15 @@ export default function AudioPlayback({
     setIsPlaying(false);
     setCurrentTime(0);
     
+    // Sofortiger Ladebildschirm für bessere UX - IMMER setzen
+    setIsGenerating(true);
+    
     // Only generate new audio if voice actually changed
     if (audioState?.voiceId !== voice.id) {
-      // Sofortiger Ladebildschirm für bessere UX
-      setIsGenerating(true);
       generateAudio(generatedStory, voice.id);
+    } else {
+      // Falls gleiche Stimme, trotzdem Ladebildschirm kurz anzeigen
+      setTimeout(() => setIsGenerating(false), 500);
     }
     
     setShowVoiceSelection(false);
