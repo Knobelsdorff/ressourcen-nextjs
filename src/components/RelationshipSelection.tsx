@@ -176,8 +176,7 @@ export default function RelationshipSelection({
   const currentAnswer = getCurrentAnswer();
 
   return (
-    <>
-      <div ref={containerRef} className="min-h-screen bg-amber-50">
+    <div ref={containerRef} className="min-h-screen bg-amber-50">
         <div className="flex items-start justify-center p-4 pt-8">
           <div className="w-full max-w-[851px]">
             {/* Main Card */}
@@ -452,8 +451,7 @@ export default function RelationshipSelection({
           </div>
         </div>
       </div>
-                </>
               )}
-    </>
+    </div>
   );
 }
