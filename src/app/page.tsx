@@ -186,12 +186,18 @@ export default function RessourcenApp() {
   const canProceed = 
     (appState.currentStep === 1 && appState.resourceFigure) ||
     (appState.currentStep === 2 && (() => {
-      // In Schritt 2: Prüfe, ob die aktuelle Frage mindestens 2 Antworten hat
+      // In Schritt 2: Prüfe, ob die aktuelle Frage beantwortet ist
       const currentAnswer = appState.questionAnswers.find(a => {
         const questionId = appState.currentQuestionIndex + 1; // Fragen sind 1-indexiert
         return a.questionId === questionId;
       });
       
+      // Spezielle Behandlung für Frage 7 (Namensabfrage)
+      if (appState.currentQuestionIndex === 6) { // Frage 7 ist Index 6
+        return appState.userName && appState.userName.trim().length > 0;
+      }
+      
+      // Normale Behandlung für andere Fragen
       const selectedBlocksLength = currentAnswer?.selectedBlocks?.length || 0;
       const hasEnoughAnswers = selectedBlocksLength >= 2;
       
@@ -226,7 +232,7 @@ export default function RessourcenApp() {
     const isStep1Complete = appState.currentStep === 1 && appState.resourceFigure;
     
     // Bestimme die erwartete Anzahl von Fragen basierend auf der Ressource
-    const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6;
+    const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 7; // 7 Fragen für Personen (inkl. Namensabfrage)
     
     const isStep2Complete = appState.currentStep === 2 && 
       appState.questionAnswers.length === expectedQuestionCount && 

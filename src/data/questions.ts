@@ -110,6 +110,21 @@ export const questions = [
       "Es ist okay, alle deine Gefühle zu spüren.",
       "Ich bin stolz auf dich in jedem Moment."
     ]
+  },
+  {
+    id: 7,
+    title: "Persönlicher Name",
+    question: "Wie soll dich deine Ressource nennen?",
+    prompt: "Gib deinen Namen ein, damit deine Ressource dich persönlich ansprechen kann.",
+    example: "Markus, ich bin immer gerne für dich da und werde dich immer beschützen.",
+    icon: Users,
+    emoji: "👤",
+    blocks: [
+      "Dein Vorname",
+      "Dein Spitzname", 
+      "Ein besonderer Name",
+      "Wie du gerne genannt werden möchtest"
+    ]
   }
 ];
 
@@ -118,7 +133,16 @@ export function getQuestionsWithPronouns(selectedFigure: ResourceFigure) {
   const primaryPronoun = selectedFigure.pronouns.split('/')[0];
   const objectPronoun = selectedFigure.pronouns.split('/')[1];
   
-  return questions.map(question => {
+  // Filtere Fragen basierend auf der Ressourcen-Kategorie
+  const filteredQuestions = questions.filter(question => {
+    // Frage 7 (Namensabfrage) nur bei Personen, nicht bei Orten
+    if (question.id === 7) {
+      return selectedFigure.category !== 'place';
+    }
+    return true;
+  });
+  
+  return filteredQuestions.map(question => {
     const adjustedQuestion = { ...question };
     
     // Hole figurspezifische Daten für diese Frage
