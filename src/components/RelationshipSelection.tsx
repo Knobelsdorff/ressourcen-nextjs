@@ -41,6 +41,77 @@ export default function RelationshipSelection({
   onUserNameChange // Added for personalization
 }: RelationshipSelectionProps) {
   
+  // Zeige Namensabfrage wenn noch kein Name vorhanden ist
+  if (!userName || userName.trim().length === 0) {
+    return (
+      <div className="min-h-screen p-4 lg:p-12">
+        <motion.div
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          className="max-w-2xl mx-auto"
+        >
+          {/* Header */}
+          <div className="text-center mb-12">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, type: "spring", stiffness: 300 }}
+              className="w-16 h-16 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6"
+            >
+              <span className="text-2xl">👤</span>
+            </motion.div>
+            
+            <h1 className="text-3xl lg:text-4xl font-light text-amber-900 mb-4">
+              Wie heißt du?
+            </h1>
+            <p className="text-lg text-amber-700 max-w-md mx-auto leading-relaxed">
+              Dein Name macht deine Ressource noch persönlicher und wärmer.
+            </p>
+          </div>
+
+          {/* Input Card */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white rounded-3xl p-8 lg:p-12 shadow-xl border border-orange-100"
+          >
+            <div className="space-y-6">
+              <div>
+                <label htmlFor="userName" className="block text-sm font-medium text-amber-800 mb-3">
+                  Dein Name
+                </label>
+                <input
+                  id="userName"
+                  type="text"
+                  value={userName || ''}
+                  onChange={(e) => {
+                    onUserNameChange?.(e.target.value);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && userName && userName.trim().length > 0) {
+                      // Weiter zur ersten Frage
+                    }
+                  }}
+                  placeholder="Wie soll dich deine Ressource nennen?"
+                  className="w-full px-6 py-4 text-lg border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all placeholder-amber-400"
+                  autoFocus
+                />
+              </div>
+
+              <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                <p className="text-sm text-amber-800">
+                  <strong>Beispiel:</strong> Wenn du "Markus" eingibst, könnte deine Ressource sagen: 
+                  "Markus, ich bin immer gerne für dich da und werde dich immer beschützen."
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      </div>
+    );
+  }
   const { user } = useAuth();
   const hasInitialized = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -143,13 +214,6 @@ export default function RelationshipSelection({
 
   const canProceedFromCurrentQuestion = () => {
     const currentAnswer = getCurrentAnswer();
-    
-    // Spezielle Behandlung für Frage 7 (Namensabfrage)
-    if (currentQuestion.id === 7) {
-      return userName && userName.trim().length > 0;
-    }
-    
-    // Normale Behandlung für andere Fragen
     return currentAnswer.answer.trim().length > 0 || currentAnswer.selectedBlocks.length >= 2;
   };
 
@@ -207,6 +271,42 @@ export default function RelationshipSelection({
                 </h2>
               </div>
 
+              {/* Spezielle Behandlung für Frage 7 (Namensabfrage) */}
+              {currentQuestion.id === 7 ? (
+                <div className="max-w-2xl mx-auto">
+                  <div className="bg-white rounded-2xl p-8 shadow-lg border border-amber-100">
+                    <div className="space-y-6">
+                      <div>
+                        <label htmlFor="userName" className="block text-sm font-medium text-amber-800 mb-3">
+                          Dein Name
+                        </label>
+                        <input
+                          id="userName"
+                          type="text"
+                          value={userName || ''}
+                          onChange={(e) => {
+                            onUserNameChange?.(e.target.value);
+                          }}
+                          placeholder="Wie soll dich deine Ressource nennen?"
+                          className="w-full px-6 py-4 text-lg border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all placeholder-amber-400"
+                          autoFocus
+                        />
+                      </div>
+
+                      <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                        <p className="text-sm text-amber-800">
+                          <strong>Beispiel:</strong> Wenn du "Markus" eingibst, könnte deine Ressource sagen: 
+                          "Markus, ich bin immer gerne für dich da und werde dich immer beschützen."
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Answer Blocks - 2 Column Layout (inkl. eigene Snippets) */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+
               {/* Sparmodus Schalter bei Frage 6 - Admin oder Testmodus */}
               {(() => {
                 const list = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
@@ -249,41 +349,8 @@ export default function RelationshipSelection({
                 );
               })()}
 
-              {/* Spezielle Behandlung für Frage 7 (Namensabfrage) */}
-              {currentQuestion.id === 7 ? (
-                <div className="max-w-2xl mx-auto">
-                  <div className="bg-white rounded-2xl p-8 shadow-lg border border-amber-100">
-                    <div className="space-y-6">
-                      <div>
-                        <label htmlFor="userName" className="block text-sm font-medium text-amber-800 mb-3">
-                          Dein Name
-                        </label>
-                        <input
-                          id="userName"
-                          type="text"
-                          value={userName || ''}
-                          onChange={(e) => {
-                            onUserNameChange?.(e.target.value);
-                          }}
-                          placeholder="Wie soll dich deine Ressource nennen?"
-                          className="w-full px-6 py-4 text-lg border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all placeholder-amber-400"
-                          autoFocus
-                        />
-                      </div>
-
-                      <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
-                        <p className="text-sm text-amber-800">
-                          <strong>Beispiel:</strong> Wenn du "Markus" eingibst, könnte deine Ressource sagen: 
-                          "Markus, ich bin immer gerne für dich da und werde dich immer beschützen."
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {/* Answer Blocks - 2 Column Layout (inkl. eigene Snippets) */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {/* Answer Blocks - 2 Column Layout (inkl. eigene Snippets) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 {[...currentQuestion.blocks, ...(currentAnswer.customBlocks || [])].map((block, index) => {
                   const personalizedBlock = personalizeAnswers([block], userName)[0];
                   return (
@@ -452,6 +519,8 @@ export default function RelationshipSelection({
           </div>
         </div>
       </div>
-    </div>
+                </>
+              )}
+    </>
   );
 }
