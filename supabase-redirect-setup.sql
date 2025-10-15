@@ -19,3 +19,4 @@ SELECT
   value
 FROM auth.config 
 WHERE key LIKE '%EMAIL%' OR key LIKE '%TEMPLATE%';
+

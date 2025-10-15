@@ -14,13 +14,14 @@ interface GenerateStoryRequest {
   questionAnswers: AnswerEntry[];
   editingInstructions?: string;
   existingStory?: string;
+  userName?: string;
 }
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY as string });
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const { selectedFigure, questionAnswers, editingInstructions, existingStory } = (await request.json()) as GenerateStoryRequest;
+    const { selectedFigure, questionAnswers, editingInstructions, existingStory, userName } = (await request.json()) as GenerateStoryRequest;
     console.log('API received request:', { selectedFigure, questionAnswers, editingInstructions, existingStory });
 
     // Wenn es sich um eine Bearbeitung handelt
@@ -90,7 +91,7 @@ Bearbeitete Geschichte:`;
       return `Q${q.id} - ${q.label}:\n  • Answer: \"${answerText}\"\n  • Block picks: \"${blocksText}\"`;
     }).join('\n');
 
-    const storyPrompt = generateStoryPrompt({ selectedFigure, connectionDetails });
+    const storyPrompt = generateStoryPrompt({ selectedFigure, connectionDetails, userName });
 
     console.log('Generated story prompt:', storyPrompt);
     

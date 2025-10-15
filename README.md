@@ -34,4 +34,46 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# Test commit
+
+## Development: Checkpoints & Feature Flags
+
+### Checkpoints & Feature Branches
+
+To safely try new features and be able to quickly roll back:
+
+1) Create a checkpoint and start a feature branch:
+
+```bash
+npm run checkpoint "stable before <feature-name>"
+npm run start-feature <feature-name>
+```
+
+This will:
+- Commit any staged changes (and create a checkpoint commit if needed)
+- Create a tag `checkpoint-<feature-name>-<timestamp>`
+- Create and switch to `feature/<feature-name>`
+
+2) Roll back to a checkpoint if needed:
+
+```bash
+git switch main
+git reset --hard <tagname>
+```
+
+### Feature Flags
+
+Add flags in `.env.local`:
+
+```
+NEXT_PUBLIC_FEATURE_EXAMPLE=0
+```
+
+Check in code:
+
+```ts
+import { isEnabled } from "@/lib/featureFlags";
+
+if (isEnabled('FEATURE_EXAMPLE')) {
+  // gated feature
+}
+```

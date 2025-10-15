@@ -345,7 +345,10 @@ export default function AudioPlayback({
   // Check if we need to generate new audio
   const needsNewAudio = useCallback(() => {
     if (!audioState || !selectedVoice) return true;
-    return audioState.storyText !== generatedStory || audioState.voiceId !== selectedVoice.id;
+    // If we already have an audio URL and both voice and story match, no regeneration needed
+    const storyUnchanged = audioState.storyText === generatedStory;
+    const voiceUnchanged = audioState.voiceId === selectedVoice.id;
+    return !(audioState.audioUrl && storyUnchanged && voiceUnchanged);
   }, [audioState, generatedStory, selectedVoice]);
 
   // Generate audio with Supabase storage
@@ -409,19 +412,28 @@ export default function AudioPlayback({
 
   // Load audio on component mount or when needed
   useEffect(() => {
-    if (needsNewAudio() && selectedVoice && generatedStory.trim().length > 0) {
-      // Sofortiger Ladebildschirm für bessere UX
-      setIsGenerating(true);
-      generateAudio(generatedStory, selectedVoice.id);
+    if (selectedVoice && generatedStory.trim().length > 0) {
+      if (needsNewAudio()) {
+        // Sofortiger Ladebildschirm für bessere UX
+        setIsGenerating(true);
+        generateAudio(generatedStory, selectedVoice.id);
+      } else if (audioState?.audioUrl) {
+        // We already have matching audio; ensure we are not stuck in loading state
+        setIsGenerating(false);
+        setError(null);
+      }
     }
-  }, [needsNewAudio, selectedVoice, generatedStory]);
+  }, [needsNewAudio, selectedVoice, generatedStory, audioState?.audioUrl]);
 
-  // Regeneriere Audio, wenn der Admin-Sparmodus umgeschaltet wird
+  // Regeneriere Audio nur wenn nötig, wenn der Admin-Sparmodus umgeschaltet wird
   useEffect(() => {
     if (selectedVoice && generatedStory.trim().length > 0) {
-      // Sofortiger Ladebildschirm für bessere UX
-      setIsGenerating(true);
-      generateAudio(generatedStory, selectedVoice.id);
+      if (needsNewAudio()) {
+        setIsGenerating(true);
+        generateAudio(generatedStory, selectedVoice.id);
+      } else if (audioState?.audioUrl) {
+        setIsGenerating(false);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adminPreview]);
@@ -438,11 +450,11 @@ export default function AudioPlayback({
     setShowVoiceSelection(false);
     
     // Only generate new audio if voice actually changed
-    if (audioState?.voiceId !== voice.id) {
+    if (audioState?.voiceId !== voice.id || !audioState?.audioUrl || audioState.storyText !== generatedStory) {
       generateAudio(generatedStory, voice.id);
     } else {
-      // Falls gleiche Stimme, trotzdem Ladebildschirm kurz anzeigen
-      setTimeout(() => setIsGenerating(false), 500);
+      // Falls gleiche Stimme und Story sowie vorhandene URL, nicht regenerieren
+      setTimeout(() => setIsGenerating(false), 300);
     }
   };
 

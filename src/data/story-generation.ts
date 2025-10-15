@@ -3,9 +3,10 @@ import { ResourceFigure } from '@/app/page';
 interface StoryPromptParams {
   selectedFigure: ResourceFigure;
   connectionDetails: string;
+  userName?: string;
 }
 
-export function generateStoryPrompt({ selectedFigure, connectionDetails }: StoryPromptParams): string {
+export function generateStoryPrompt({ selectedFigure, connectionDetails, userName }: StoryPromptParams): string {
   const primaryPronoun = selectedFigure.pronouns.split('/')[0];
   const objectPronoun = selectedFigure.pronouns.split('/')[1];
 
@@ -13,13 +14,13 @@ export function generateStoryPrompt({ selectedFigure, connectionDetails }: Story
   const isPlace = selectedFigure.category === 'place';
 
   if (isPlace) {
-    return generatePlaceStoryPrompt({ selectedFigure, connectionDetails });
+    return generatePlaceStoryPrompt({ selectedFigure, connectionDetails, userName });
   }
 
-  return generateFigureStoryPrompt({ selectedFigure, connectionDetails, primaryPronoun, objectPronoun });
+  return generateFigureStoryPrompt({ selectedFigure, connectionDetails, primaryPronoun, objectPronoun, userName });
 }
 
-function generateFigureStoryPrompt({ selectedFigure, connectionDetails, primaryPronoun, objectPronoun }: StoryPromptParams & { primaryPronoun: string; objectPronoun: string }): string {
+function generateFigureStoryPrompt({ selectedFigure, connectionDetails, primaryPronoun, objectPronoun, userName }: StoryPromptParams & { primaryPronoun: string; objectPronoun: string }): string {
   return `
 Du bist ein*e einfühlsame*r, traumasensible*r Erzähler*in und schreibst eine heilsame Geschichte für **eine einzelne Person** – sprich sie immer direkt mit **"du"** (2. Person Singular) an.
 
@@ -43,6 +44,9 @@ Du darfst **nichts direkt aus den Antworten übernehmen**. Stattdessen:
 - **Nutze direkte Zitate nur, wenn tatsächlich gesprochen wird** (Schritte 4 & 5)
 
 **WICHTIG:** Wenn du über die Ressourcenfigur sprichst, verwende die richtigen Pronomen: ${selectedFigure.pronouns}
+
+${userName ? `
+Zusatz: Wenn es natürlich und sanft passt, verwende den Namen "${userName}" ein- bis zweimal im Verlauf der Geschichte (nicht mehr), z. B. in einer beruhigenden Ansprache.` : ''}
 
 ---
 
@@ -121,7 +125,7 @@ Mach sie heilend.
 `;
 }
 
-function generatePlaceStoryPrompt({ selectedFigure, connectionDetails }: StoryPromptParams): string {
+function generatePlaceStoryPrompt({ selectedFigure, connectionDetails, userName }: StoryPromptParams): string {
   return `
 Du bist ein*e einfühlsame*r, traumasensible*r Erzähler*in und schreibst eine heilsame Geschichte für **eine einzelne Person** – sprich sie immer direkt mit **"du"** (2. Person Singular) an.
 
@@ -187,6 +191,8 @@ Du darfst **nichts direkt aus den Antworten übernehmen**. Stattdessen:
   - Name: ${selectedFigure.name}  
   - Typ: ${selectedFigure.category ?? 'N/A'}  
   - Beschreibung: ${selectedFigure.description ?? 'N/A'}
+
+${userName ? `- Name der Person: ${userName}` : ''}
 
 - Deine Antworten zu diesem Ort:
 ${connectionDetails}

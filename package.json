@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "setup-types": "npx supabase gen types typescript --project-id xtjousyctgyoepxknsoj  --schema public > ./src/lib/types/database.types.ts"
+    "setup-types": "npx supabase gen types typescript --project-id xtjousyctgyoepxknsoj  --schema public > ./src/lib/types/database.types.ts",
+    "checkpoint": "bash scripts/checkpoint.sh",
+    "start-feature": "bash scripts/checkpoint.sh start-feature"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
