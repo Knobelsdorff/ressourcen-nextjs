@@ -7,6 +7,7 @@ interface AnswerEntry {
   questionId: number;
   answer?: string;
   selectedBlocks?: string[];
+  customBlocks?: string[];
 }
 
 interface GenerateStoryRequest {
