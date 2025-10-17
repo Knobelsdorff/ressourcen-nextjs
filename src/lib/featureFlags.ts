@@ -11,7 +11,8 @@ export function isEnabled(flag: string): boolean {
   
   // Method 2: window.__NEXT_DATA__ (client-side fallback)
   if (typeof window !== 'undefined' && window.__NEXT_DATA__) {
-    const env = window.__NEXT_DATA__.env || window.__NEXT_DATA__.runtimeConfig;
+    const nextData = window.__NEXT_DATA__ as any;
+    const env = nextData.env || nextData.runtimeConfig;
     if (env && env[key] !== undefined) {
       val = env[key];
     }
