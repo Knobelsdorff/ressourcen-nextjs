@@ -357,6 +357,9 @@ export default function AudioPlayback({
 
   // Generate audio with Supabase storage and progress tracking
   const generateAudio = async (text: string, voiceId: string) => {
+    let progressInterval: NodeJS.Timeout | null = null;
+    let statusInterval: NodeJS.Timeout | null = null;
+    
     try {
       setIsGenerating(true);
       setError(null);
@@ -367,7 +370,7 @@ export default function AudioPlayback({
       const textLength = text.length;
       const estimatedTime = Math.max(30, Math.min(120, textLength / 20)); // 30-120 seconds based on text length
       
-      const progressInterval = setInterval(() => {
+      progressInterval = setInterval(() => {
         setGenerationProgress(prev => {
           if (prev >= 90) return prev; // Stop at 90% until completion
           const increment = Math.random() * 3 + 1; // 1-4% per interval
@@ -376,7 +379,7 @@ export default function AudioPlayback({
       }, 1000);
 
       // Update status messages
-      const statusInterval = setInterval(() => {
+      statusInterval = setInterval(() => {
         setGenerationStatus(prev => {
           const statuses = [
             'Text wird analysiert...',
@@ -404,15 +407,15 @@ export default function AudioPlayback({
       });
 
       if (!response.ok) {
-        clearInterval(progressInterval);
-        clearInterval(statusInterval);
+        if (progressInterval) clearInterval(progressInterval);
+        if (statusInterval) clearInterval(statusInterval);
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
         throw new Error(errorData.error || `HTTP ${response.status}: Failed to generate audio`);
       }
 
       // Clear intervals and set final progress
-      clearInterval(progressInterval);
-      clearInterval(statusInterval);
+      if (progressInterval) clearInterval(progressInterval);
+      if (statusInterval) clearInterval(statusInterval);
       setGenerationProgress(100);
       setGenerationStatus('Fertig!');
 
@@ -434,8 +437,8 @@ export default function AudioPlayback({
       console.error('Audio generation error:', err);
       
       // Clear intervals on error
-      clearInterval(progressInterval);
-      clearInterval(statusInterval);
+      if (progressInterval) clearInterval(progressInterval);
+      if (statusInterval) clearInterval(statusInterval);
       
       // Spezifische Fehlermeldungen basierend auf dem Fehlertyp
       let errorMessage = 'Failed to generate audio. Please try again.';
