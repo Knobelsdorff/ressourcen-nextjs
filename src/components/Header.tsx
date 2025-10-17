@@ -41,7 +41,7 @@ export default function Header() {
           return;
         }
         
-        setUserFullName(data?.full_name || null);
+        setUserFullName((data as { full_name: string | null })?.full_name || null);
       } catch (e) {
         console.warn('Failed loading user full name');
         setUserFullName(null);
