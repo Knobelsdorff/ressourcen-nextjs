@@ -28,6 +28,7 @@ interface AudioPlaybackProps {
   audioState: AudioState | null;
   onAudioStateChange: (audioState: AudioState | null) => void;
   selectedVoiceId?: string;
+  sparModus?: boolean;
 }
 
 // Voices will be loaded dynamically from API
@@ -38,7 +39,8 @@ export default function AudioPlayback({
   onNext,
   audioState,
   onAudioStateChange,
-  selectedVoiceId
+  selectedVoiceId,
+  sparModus = false
 }: AudioPlaybackProps) {
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
   const [availableVoices, setAvailableVoices] = useState<Voice[]>([]);
@@ -48,6 +50,8 @@ export default function AudioPlayback({
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [testMode, setTestMode] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generationStatus, setGenerationStatus] = useState('Vorbereitung...');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('register');
@@ -351,11 +355,41 @@ export default function AudioPlayback({
     return !(audioState.audioUrl && storyUnchanged && voiceUnchanged);
   }, [audioState, generatedStory, selectedVoice]);
 
-  // Generate audio with Supabase storage
+  // Generate audio with Supabase storage and progress tracking
   const generateAudio = async (text: string, voiceId: string) => {
     try {
       setIsGenerating(true);
       setError(null);
+      setGenerationProgress(0);
+      setGenerationStatus('Vorbereitung...');
+
+      // Simulate realistic progress based on text length
+      const textLength = text.length;
+      const estimatedTime = Math.max(30, Math.min(120, textLength / 20)); // 30-120 seconds based on text length
+      
+      const progressInterval = setInterval(() => {
+        setGenerationProgress(prev => {
+          if (prev >= 90) return prev; // Stop at 90% until completion
+          const increment = Math.random() * 3 + 1; // 1-4% per interval
+          return Math.min(90, prev + increment);
+        });
+      }, 1000);
+
+      // Update status messages
+      const statusInterval = setInterval(() => {
+        setGenerationStatus(prev => {
+          const statuses = [
+            'Text wird analysiert...',
+            'Stimme wird vorbereitet...',
+            'Audio wird generiert...',
+            'Qualität wird optimiert...',
+            'Finalisierung läuft...'
+          ];
+          const currentIndex = statuses.indexOf(prev);
+          const nextIndex = (currentIndex + 1) % statuses.length;
+          return statuses[nextIndex];
+        });
+      }, 15000);
 
       const response = await fetch('/api/generate-audio', {
         method: 'POST',
@@ -365,14 +399,22 @@ export default function AudioPlayback({
         body: JSON.stringify({
           text: text,
           voiceId: voiceId,
-          adminPreview: (isAdmin && adminPreview) || testMode
+          adminPreview: sparModus // Use sparModus setting
         }),
       });
 
       if (!response.ok) {
+        clearInterval(progressInterval);
+        clearInterval(statusInterval);
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
         throw new Error(errorData.error || `HTTP ${response.status}: Failed to generate audio`);
       }
+
+      // Clear intervals and set final progress
+      clearInterval(progressInterval);
+      clearInterval(statusInterval);
+      setGenerationProgress(100);
+      setGenerationStatus('Fertig!');
 
       const result = await response.json();
       
@@ -390,6 +432,10 @@ export default function AudioPlayback({
       setIsGenerating(false); // Audio erfolgreich geladen
     } catch (err: any) {
       console.error('Audio generation error:', err);
+      
+      // Clear intervals on error
+      clearInterval(progressInterval);
+      clearInterval(statusInterval);
       
       // Spezifische Fehlermeldungen basierend auf dem Fehlertyp
       let errorMessage = 'Failed to generate audio. Please try again.';
@@ -578,11 +624,81 @@ export default function AudioPlayback({
               animate={{ opacity: 1 }}
               className="text-center py-8"
             >
-              <div className="flex justify-center mb-4">
+              <div className="flex justify-center mb-6">
                 <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
               </div>
-              <p className="text-amber-700">
-                Erstelle und lade deine Audiogeschichte hoch...
+              
+              {/* Progress Bar */}
+              <div className="max-w-md mx-auto mb-4">
+                <div className="bg-amber-100 rounded-full h-3 mb-3">
+                  <motion.div
+                    className="bg-gradient-to-r from-amber-500 to-orange-500 h-3 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${generationProgress}%` }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                  />
+                </div>
+                <div className="flex justify-between text-sm text-amber-600">
+                  <span>{generationProgress.toFixed(0)}%</span>
+                  <span>{generationStatus}</span>
+                </div>
+              </div>
+              
+              <p className="text-amber-700 text-sm">
+                {generationProgress < 100 
+                  ? 'Bitte warten, während deine Geschichte in Audio umgewandelt wird...'
+                  : 'Audio erfolgreich generiert!'
+                }
+              </p>
+            </motion.div>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state with progress bar during audio generation
+  if (isGenerating) {
+    return (
+      <div className="min-h-screen p-4 lg:p-12">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white rounded-3xl p-6 lg:p-8 shadow-xl border border-orange-100 mb-6"
+          >
+            {/* Loading State with Progress */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-8"
+            >
+              <div className="flex justify-center mb-6">
+                <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+              </div>
+              
+              {/* Progress Bar */}
+              <div className="max-w-md mx-auto mb-4">
+                <div className="bg-amber-100 rounded-full h-3 mb-3">
+                  <motion.div
+                    className="bg-gradient-to-r from-amber-500 to-orange-500 h-3 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${generationProgress}%` }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                  />
+                </div>
+                <div className="flex justify-between text-sm text-amber-600">
+                  <span>{generationProgress.toFixed(0)}%</span>
+                  <span>{generationStatus}</span>
+                </div>
+              </div>
+              
+              <p className="text-amber-700 text-sm">
+                {generationProgress < 100 
+                  ? 'Bitte warten, während deine Geschichte in Audio umgewandelt wird...'
+                  : 'Audio erfolgreich generiert!'
+                }
               </p>
             </motion.div>
           </motion.div>

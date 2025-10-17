@@ -28,6 +28,11 @@ export default function Dashboard() {
   const [audioElements, setAudioElements] = useState<{ [key: string]: HTMLAudioElement }>({});
   
   // Profil-spezifische States
+  const [fullName, setFullName] = useState('');
+  const [pronunciationHint, setPronunciationHint] = useState('');
+  const [fullNameLoading, setFullNameLoading] = useState(false);
+  const [fullNameError, setFullNameError] = useState('');
+  const [fullNameSuccess, setFullNameSuccess] = useState('');
   const [userStats, setUserStats] = useState({
     totalStories: 0,
     totalAudioTime: 0,
@@ -171,8 +176,57 @@ export default function Dashboard() {
       loadStories();
       // Prüfe auch nach temporären Geschichten
       checkForPendingStories();
+      // Lade den vollständigen Namen
+      loadFullName();
     }
   }, [user, loadStories]);
+
+  const loadFullName = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, pronunciation_hint')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error loading full name:', error);
+      } else if (data) {
+        setFullName(data.full_name || '');
+        setPronunciationHint((data as any).pronunciation_hint || '');
+      }
+    } catch (err) {
+      console.error('Error loading full name:', err);
+    }
+  };
+
+  const saveFullName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    setFullNameLoading(true);
+    setFullNameError('');
+    setFullNameSuccess('');
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: fullName, pronunciation_hint: pronunciationHint })
+        .eq('id', user.id);
+
+      if (error) {
+        setFullNameError(error.message);
+      } else {
+        setFullNameSuccess('Name erfolgreich gespeichert!');
+      }
+    } catch (err) {
+      setFullNameError('Fehler beim Speichern');
+    } finally {
+      setFullNameLoading(false);
+    }
+  };
 
   const checkForPendingStories = async () => {
     const savedPendingStory = localStorage.getItem('pendingStory');
@@ -437,31 +491,92 @@ ${story.content}
             <div className="space-y-6">
               {/* Basis-Informationen */}
               <div className="bg-white rounded-2xl shadow-lg p-6">
-                <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-3 mb-6">
                   <User className="w-6 h-6 text-amber-600" />
                   <h2 className="text-xl font-bold text-amber-900">Basis-Informationen</h2>
                 </div>
               {user ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-amber-50 p-4 rounded-lg">
+                  <div className="space-y-6">
+                    {/* E-Mail Info */}
+                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-lg border border-amber-200">
                       <div className="flex items-center gap-2 mb-2">
-                        <Mail className="w-4 h-4 text-amber-600" />
-                        <span className="font-medium text-amber-900">E-Mail</span>
+                        <Mail className="w-5 h-5 text-amber-600" />
+                        <span className="font-semibold text-amber-900">E-Mail-Adresse</span>
                       </div>
-                      <p className="text-amber-700 text-sm">{user.email}</p>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Calendar className="w-4 h-4 text-green-600" />
-                        <span className="font-medium text-green-900">Registriert seit</span>
+                      <p className="text-amber-800 text-sm font-medium">{user.email}</p>
+                    </div>
+                    
+                    {/* Personalisierungs-Einstellungen */}
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-5 rounded-lg border border-blue-200">
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <h3 className="font-semibold text-blue-900">Personalisierung für Geschichten</h3>
                       </div>
-                    <p className="text-green-700 text-sm">
-                        {new Date(user.created_at).toLocaleDateString('de-DE')}
-                    </p>
+                      
+                      <form onSubmit={saveFullName} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label htmlFor="fullName" className="block text-sm font-semibold text-blue-900 mb-2">
+                              Vorname/Spitzname
+                            </label>
+                            <input
+                              type="text"
+                              id="fullName"
+                              value={fullName}
+                              onChange={(e) => setFullName(e.target.value)}
+                              className="w-full px-3 py-2.5 border border-blue-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all"
+                              placeholder="z.B. Andy, Maria, Tom"
+                            />
+                            <p className="text-blue-600 text-xs mt-1.5">
+                              Wird in deinen Geschichten verwendet
+                            </p>
+                          </div>
+
+                          <div>
+                            <label htmlFor="pronunciationHint" className="block text-sm font-semibold text-blue-900 mb-2">
+                              Aussprache-Hinweis
+                              <span className="text-blue-500 text-xs font-normal ml-1">(optional)</span>
+                            </label>
+                            <input
+                              type="text"
+                              id="pronunciationHint"
+                              value={pronunciationHint}
+                              onChange={(e) => setPronunciationHint(e.target.value)}
+                              className="w-full px-3 py-2.5 border border-blue-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all"
+                              placeholder="z.B. An-ge-la, Mi-cha-el"
+                            />
+                            <p className="text-blue-600 text-xs mt-1.5">
+                              Für korrekte Audio-Aussprache
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {fullNameError && (
+                          <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">
+                            {fullNameError}
+                          </div>
+                        )}
+                        
+                        {fullNameSuccess && (
+                          <div className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-lg text-sm">
+                            {fullNameSuccess}
+                          </div>
+                        )}
+                        
+                        <div className="flex justify-end">
+                          <button
+                            type="submit"
+                            disabled={fullNameLoading}
+                            className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2.5 rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold transition-all shadow-sm hover:shadow-md"
+                          >
+                            {fullNameLoading ? 'Speichern...' : 'Einstellungen speichern'}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
                   </div>
-                </div>
               ) : (
-                <div className="bg-amber-50 p-4 rounded-lg">
+                <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
                   <p className="text-amber-700 text-sm">
                     Bitte melde dich an, um dein Profil zu sehen.
                   </p>
@@ -546,68 +661,6 @@ ${story.content}
                 )}
               </div>
 
-              {/* Fortschritt */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <Trophy className="w-6 h-6 text-amber-600" />
-                  <h2 className="text-xl font-bold text-amber-900">Fortschritt</h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-lg border border-orange-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Target className="w-5 h-5 text-orange-600" />
-                        <span className="font-medium text-orange-900">Streak</span>
-                      </div>
-                      <p className="text-orange-700 text-2xl font-bold">{userStats.streak} Tage</p>
-                      <p className="text-orange-600 text-sm">Tage in Folge aktiv</p>
-                    </div>
-                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Trophy className="w-5 h-5 text-green-600" />
-                        <span className="font-medium text-green-900">Badges</span>
-                      </div>
-                      <div className="space-y-2">
-                        {userStats.badges.length > 0 ? (
-                          userStats.badges.map((badge, index) => (
-                            <div key={index} className="flex items-center gap-2">
-                              <span className="text-green-600">🏆</span>
-                              <span className="text-green-700 text-sm">{badge}</span>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-green-600 text-sm">Sammle deine ersten Badges!</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Clock className="w-5 h-5 text-blue-600" />
-                        <span className="font-medium text-blue-900">Letzte Aktivität</span>
-                      </div>
-                      <p className="text-blue-700 text-sm">
-                        {userStats.lastActivity 
-                          ? new Date(userStats.lastActivity).toLocaleDateString('de-DE')
-                          : 'Noch keine Aktivität'
-                        }
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Star className="w-5 h-5 text-purple-600" />
-                        <span className="font-medium text-purple-900">Nächste Ziele</span>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-purple-700 text-sm">• 5 Geschichten erstellen</p>
-                        <p className="text-purple-700 text-sm">• 7-Tage Streak</p>
-                        <p className="text-purple-700 text-sm">• Pro-Version testen</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
               {/* Account-Management */}
               <div className="bg-white rounded-2xl shadow-lg p-6">

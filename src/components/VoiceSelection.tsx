@@ -31,15 +31,17 @@ interface VoiceSelectionProps {
     category?: string;
     pronouns: string;
   };
+  onSparModusChange?: (enabled: boolean) => void;
 }
 
-export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, selectedVoiceId, resourceFigure }: VoiceSelectionProps) {
+export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, selectedVoiceId, resourceFigure, onSparModusChange }: VoiceSelectionProps) {
   const [voices, setVoices] = useState<Voice[]>([]);
   const [filteredVoices, setFilteredVoices] = useState<Voice[]>([]);
   const [loading, setLoading] = useState(true);
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
   const [audioElements, setAudioElements] = useState<{ [key: string]: HTMLAudioElement }>({});
   const [mounted, setMounted] = useState(false);
+  const [sparModus, setSparModus] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -330,6 +332,27 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
         ))}
       </div>
 
+      {/* Sparmodus Option */}
+      <div className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="sparModus"
+            checked={sparModus}
+            onChange={(e) => {
+              setSparModus(e.target.checked);
+              onSparModusChange?.(e.target.checked);
+            }}
+            className="w-4 h-4 text-amber-600 bg-amber-100 border-amber-300 rounded focus:ring-amber-500 focus:ring-2"
+          />
+          <label htmlFor="sparModus" className="text-sm font-medium text-amber-800 cursor-pointer">
+            Sparmodus aktivieren (nur erster Satz wird als Audio generiert)
+          </label>
+        </div>
+        <p className="text-xs text-amber-600 mt-1 ml-7">
+          Günstiger und schneller - perfekt zum Testen
+        </p>
+      </div>
 
       {/* Navigation Buttons */}
       <div className="flex justify-center items-center mt-6 gap-4">

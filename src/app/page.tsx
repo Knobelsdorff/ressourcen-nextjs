@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
+import { supabase } from "@/lib/supabase";
+import { isEnabled } from "@/lib/featureFlags";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, BookOpen, Heart } from "lucide-react";
 import ResourceFigureSelection from "@/components/ResourceFigureSelection";
@@ -97,11 +99,71 @@ export default function RessourcenApp() {
   const [mounted, setMounted] = useState(false);
   const { user } = useAuth();
   const { setResetFunction } = useAppReset();
+  const [userFullName, setUserFullName] = useState<string | null>(null);
+  const [userPronunciationHint, setUserPronunciationHint] = useState<string | null>(null);
+  const [sparModus, setSparModus] = useState(false);
+  
+  // Debug: Log current state
+  console.log('Current user state:', { 
+    user: user?.email, 
+    userFullName: userFullName, 
+    userPronunciationHint: userPronunciationHint,
+    featureEnabled: isEnabled('FEATURE_USER_NAME'),
+    envVar: process.env.NEXT_PUBLIC_FEATURE_USER_NAME
+  });
+  
+  // Debug: Log the actual values
+  console.log('User details:', {
+    email: user?.email,
+    fullName: userFullName,
+    pronunciationHint: userPronunciationHint,
+    isLoggedIn: !!user,
+    featureEnabled: isEnabled('FEATURE_USER_NAME')
+  });
+  
+  // Debug: Log sparModus state
+  console.log('SparModus state:', {
+    sparModus: sparModus,
+    type: typeof sparModus
+  });
 
   useEffect(() => {
     setMounted(true);
   }, []);
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
+  // Fetch user's full name from profiles (optional)
+  useEffect(() => {
+    const loadFullName = async () => {
+      try {
+        if (!user) {
+          setUserFullName(null);
+          return;
+        }
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, pronunciation_hint')
+          .eq('id', user.id)
+          .single();
+        if (error) {
+          console.warn('Could not fetch full_name:', error.message);
+          setUserFullName(null);
+          setUserPronunciationHint(null);
+          return;
+        }
+        setUserFullName((data as any)?.full_name || null);
+        setUserPronunciationHint((data as any)?.pronunciation_hint || null);
+        console.log('Loaded user data:', { 
+          fullName: (data as any)?.full_name, 
+          pronunciationHint: (data as any)?.pronunciation_hint 
+        });
+      } catch (e) {
+        console.warn('Failed loading user full name');
+        setUserFullName(null);
+      }
+    };
+    loadFullName();
+  }, [user]);
+
 
 
   const handleResourceFigureSelect = useCallback((figure: ResourceFigure) => {
@@ -312,17 +374,62 @@ export default function RessourcenApp() {
 
   const showNavigation = appState.currentStep > 1 || (canProceed && appState.currentStep <= 5);
 
-  // Starte Story-Erzeugung im Hintergrund ab Schritt 3, wenn noch leer
+  // Starte Story-Erzeugung im Hintergrund ab Schritt 4 (Audio Playback), wenn noch leer UND eine Stimme ausgewählt wurde
   useEffect(() => {
     const run = async () => {
       if (!appState.resourceFigure) return;
-      if (appState.currentStep >= 3 && !isGeneratingStory && !appState.generatedStory.trim()) {
+      if (appState.currentStep >= 4 && appState.selectedVoice && !isGeneratingStory && !appState.generatedStory.trim()) {
         setIsGeneratingStory(true);
         try {
+          const requestBody = { 
+            selectedFigure: appState.resourceFigure, 
+            questionAnswers: appState.questionAnswers,
+            userName: isEnabled('FEATURE_USER_NAME') ? userFullName || undefined : undefined,
+            userPronunciationHint: isEnabled('FEATURE_USER_NAME') ? userPronunciationHint || undefined : undefined,
+            sparModus: sparModus
+          };
+          
+      console.log('Story generation request:', {
+        featureEnabled: isEnabled('FEATURE_USER_NAME'),
+        userFullName: userFullName,
+        userPronunciationHint: userPronunciationHint,
+        sparModus: sparModus,
+        requestBody: JSON.stringify(requestBody, null, 2)
+      });
+      
+      console.log('Detailed request body:', JSON.stringify(requestBody, null, 2));
+          
+      console.log('Story generation details:', {
+        userName: requestBody.userName,
+        userPronunciationHint: requestBody.userPronunciationHint,
+        sparModus: requestBody.sparModus,
+        willUseName: !!requestBody.userName,
+        willUseHint: !!requestBody.userPronunciationHint,
+        selectedFigure: requestBody.selectedFigure?.name,
+        questionAnswersCount: requestBody.questionAnswers?.length
+      });
+      
+      console.log('User state check:', {
+        isLoggedIn: !!user,
+        userEmail: user?.email,
+        userFullName: userFullName,
+        userPronunciationHint: userPronunciationHint,
+        featureEnabled: isEnabled('FEATURE_USER_NAME'),
+        willSendUserName: isEnabled('FEATURE_USER_NAME') ? userFullName || undefined : undefined,
+        willSendPronunciationHint: isEnabled('FEATURE_USER_NAME') ? userPronunciationHint || undefined : undefined
+      });
+          
+          console.log('SparModus check:', {
+            sparModus: sparModus,
+            requestBodySparModus: requestBody.sparModus,
+            isTrue: sparModus === true,
+            isFalse: sparModus === false
+          });
+          
           const response = await fetch('/api/generate-story', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ selectedFigure: appState.resourceFigure, questionAnswers: appState.questionAnswers })
+            body: JSON.stringify(requestBody)
           });
           if (response.ok) {
             const { story } = await response.json();
@@ -336,7 +443,7 @@ export default function RessourcenApp() {
       }
     };
     run();
-  }, [appState.currentStep, appState.resourceFigure, appState.questionAnswers, appState.generatedStory, isGeneratingStory, handleStoryGenerated]);
+  }, [appState.currentStep, appState.resourceFigure, appState.questionAnswers, appState.selectedVoice, appState.generatedStory, isGeneratingStory, handleStoryGenerated, userFullName, userPronunciationHint, sparModus]);
 
   // Helper function to get current step display info
   const getCurrentStepInfo = () => {
@@ -506,6 +613,7 @@ export default function RessourcenApp() {
                     onPrevious={handlePreviousStep}
                     selectedVoiceId={appState.selectedVoice}
                     resourceFigure={appState.resourceFigure}
+                    onSparModusChange={setSparModus}
                   />
                 )}
 
@@ -517,6 +625,7 @@ export default function RessourcenApp() {
                     audioState={appState.audioState}
                     onAudioStateChange={handleAudioStateChange}
                     selectedVoiceId={appState.selectedVoice}
+                    sparModus={sparModus}
                   />
                 )}
 

@@ -19,6 +19,7 @@ import {
   Bot
 } from "lucide-react";
 import { ResourceFigure } from "@/app/page";
+import { isEnabled } from "@/lib/featureFlags";
 import { useAuth } from "@/components/providers/auth-provider";
 import { QuestionAnswer } from "@/components/RelationshipSelection";
 
@@ -120,7 +121,10 @@ export default function StoryGeneration({
         },
         body: JSON.stringify({
           selectedFigure,
-          questionAnswers
+          questionAnswers,
+          // pass user name only when feature flag is on and a name exists in profile (best effort via auth context if available later)
+          // keep undefined here; page-level background generation already passes it
+          userName: undefined
         })
       });
 

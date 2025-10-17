@@ -1341,22 +1341,22 @@ export const figureSpecificData: FigureSpecificData = {
 
   'godmother': {
     1: {
-      question: "Wie sieht Mutter Erde aus? Was strahlt sie aus?",
-      prompt: "Beschreibe das Aussehen und die Ausstrahlung von Mutter Erde.",
-      example: "Sie hat warme, erdige Augen und strahlt eine mütterliche Weisheit aus.",
+      question: "Wie spürst du Mutter Erde? Was strahlt sie aus?",
+      prompt: "Beschreibe, wie du Mutter Erde wahrnimmst und was sie ausstrahlt.",
+      example: "Ich spüre ihre nährende Energie durch die Erde und ihre warme Ausstrahlung.",
       blocks: [
-        "Warme, erdige Augen voller Weisheit",
-        "Sanfte, mütterliche Ausstrahlung",
-        "Weiche, nährende Hände",
-        "Beruhigende, erdige Stimme",
-        "Mütterliche Weisheit und Wärme",
-        "Trägt einen tiefen inneren Frieden in sich",
-        "Schaut mich an, als würde ich wirklich zählen"
+        "Nährende Energie, die durch die Erde fließt",
+        "Warme, erdige Ausstrahlung, die alles umhüllt",
+        "Sanfte Vibrationen, die durch meinen Körper strömen",
+        "Beruhigende Erdenergie, die mich trägt",
+        "Mütterliche Weisheit, die in der Luft liegt",
+        "Tiefe Ruhe und Frieden, die von ihr ausgeht",
+        "Ein Gefühl, als würde ich wirklich zählen und dazugehören"
       ]
     },
     2: {
-      question: "Wie fühlst du dich innerlich, wenn Mutter Erde bei dir ist?",
-      prompt: "Beschreibe deine inneren Gefühle in der Nähe von Mutter Erde.",
+      question: "Wie fühlst du dich, wenn Mutter Erde für dich da ist?",
+      prompt: "Beschreibe deine inneren Gefühle, wenn Mutter Erde für dich da ist.",
       example: "Ich fühle mich vollständig genährt und geborgen, als wäre ich zu Hause.",
       blocks: [
         "Vollständig genährt und geborgen",
@@ -1369,8 +1369,8 @@ export const figureSpecificData: FigureSpecificData = {
       ]
     },
     3: {
-      question: "Wie nährt dich Mutter Erde, wenn du Schmerz oder Angst spürst?",
-      prompt: "Beschreibe, wie Mutter Erde dich in schwierigen Momenten nährt.",
+      question: "Wie macht Mutter Erde, wenn du Schmerz oder Angst verspürst?",
+      prompt: "Beschreibe, wie Mutter Erde auf deine Schmerzen oder Ängste reagiert.",
       example: "Sie umhüllt mich mit ihrer erdigen Wärme und gibt mir Kraft.",
       blocks: [
         "Sie umhüllt mich mit ihrer erdigen Wärme",
@@ -1383,45 +1383,44 @@ export const figureSpecificData: FigureSpecificData = {
       ]
     },
     4: {
-      question: "Welche erdige Aktivität teilt ihr miteinander?",
-      prompt: "Beschreibe erdige, gemeinsame Momente mit Mutter Erde.",
-      example: "Wir sitzen zusammen in der Natur und genießen die Stille.",
+      question: "Wie verbindest du dich mit Mutter Erde?",
+      prompt: "Beschreibe, wie du dich mit der Erde und der Natur verbindest.",
+      example: "Ich spüre ihre Energie durch meine Füße und fühle mich geerdet.",
       blocks: [
-        "Wir sitzen zusammen in der Natur",
-        "Wir genießen zusammen die erdige Stille",
-        "Sie zeigt mir wunderschöne Orte",
-        "Wir meditieren zusammen",
-        "Wir teilen zusammen erdige Liebe",
-        "Wir wandern zusammen durch den Wald",
-        "Wir liegen zusammen im Gras"
+        "Ich spüre ihre Energie durch meine Füße und fühle mich geerdet",
+        "Ich atme tief ein und verbinde mich mit der Natur",
+        "Ich lege mich auf den Boden und spüre ihre Wärme",
+        "Ich umarme einen Baum und fühle seine Kraft",
+        "Ich gehe barfuß über die Erde und spüre ihre Lebendigkeit",
+        "Ich sitze still in der Natur und lausche ihren Geräuschen",
+        "Ich pflanze etwas und nähre das Leben"
       ]
     },
     5: {
       question: "Welche Unterstützung wünschst du dir von Mutter Erde?",
       prompt: "Formuliere, was du dir von Mutter Erde wünschst.",
-      example: "Bitte bleib immer so nährend und liebevoll.",
+      example: "Hilf mir, geerdet und stabil zu sein sowie Halt im Leben zu finden.",
       blocks: [
-        "Bleib immer so nährend und liebevoll",
-        "Sei immer da, wenn ich dich brauche",
-        "Nähre mich weiterhin",
-        "Erinnere mich an meine Verbindung zur Erde",
-        "Schenk mir weiterhin deine erdige Liebe",
-        "Bleib gesund und stark",
-        "Lass mich immer bei dir willkommen sein"
+        "Hilf mir, geerdet und stabil zu sein sowie Halt im Leben zu finden",
+        "Hilf mir, meine Wurzeln zu spüren und mich verbunden mit dir zu fühlen",
+        "Schenk mir deine bedingungslose Liebe und sei immer da, wenn ich dich brauche",
+        "Erinnere mich an meine Verbindung zu dir und zeig mir, dass ich ein Teil von dir bin",
+        "Lass mich immer bei dir willkommen sein und zeige mir wie sehr du mich liebst",
+        "Sei immer für mich da, wenn ich dich brauche und schenk mir deine bedingungslose Akzeptanz"
       ]
     },
     6: {
-      question: "Welche erdigen Worte sagt dir Mutter Erde?",
-      prompt: "Teile die nährenden Sätze, die Mutter Erde dir sagt.",
-      example: "Du bist mein Kind und wirst bedingungslos geliebt.",
+      question: "Was verspricht dir Mutter Erde?",
+      prompt: "Teile die Versprechen, die Mutter Erde dir gibt.",
+      example: "Ich werde dich immer halten und tragen.",
       blocks: [
-        "Du bist mein Kind",
-        "Du wirst bedingungslos geliebt",
-        "Ich bin immer für dich da",
-        "Du bist mein größtes Glück",
-        "Du bist wunderschön, innen und außen",
-        "Ich glaube fest an dich",
-        "Du bist mein erdiges Kind"
+        "Ich werde dich immer halten und tragen",
+        "Du bist ein Teil von mir und wirst immer willkommen sein",
+        "Ich nähre dich mit meiner bedingungslosen Liebe",
+        "Du gehörst zu mir und bist hier zu Hause",
+        "Ich werde dich immer beschützen und umhüllen",
+        "Du bist mein geliebtes Kind und wirst immer bei mir sein",
+        "Ich schenke dir meine Kraft und Stärke"
       ]
     }
   },

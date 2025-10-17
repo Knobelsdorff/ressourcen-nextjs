@@ -15,14 +15,52 @@ interface GenerateStoryRequest {
   editingInstructions?: string;
   existingStory?: string;
   userName?: string;
+  userPronunciationHint?: string;
+  sparModus?: boolean;
 }
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY as string });
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const { selectedFigure, questionAnswers, editingInstructions, existingStory, userName } = (await request.json()) as GenerateStoryRequest;
-    console.log('API received request:', { selectedFigure, questionAnswers, editingInstructions, existingStory });
+    const { selectedFigure, questionAnswers, editingInstructions, existingStory, userName, userPronunciationHint, sparModus } = (await request.json()) as GenerateStoryRequest;
+    console.log('API received request:', { 
+      selectedFigure: selectedFigure?.name, 
+      questionAnswers: questionAnswers?.length, 
+      editingInstructions, 
+      existingStory: existingStory?.length,
+      userName,
+      userPronunciationHint,
+      sparModus,
+      selectedFigureDetails: selectedFigure ? {
+        id: selectedFigure.id,
+        name: selectedFigure.name,
+        category: selectedFigure.category,
+        pronouns: selectedFigure.pronouns
+      } : null,
+      questionAnswersDetails: questionAnswers ? questionAnswers.map(qa => ({
+        questionId: qa.questionId,
+        answer: qa.answer,
+        selectedBlocksCount: qa.selectedBlocks?.length || 0,
+        customBlocksCount: qa.customBlocks?.length || 0
+      })) : null
+    });
+    
+    console.log('Full API request details:', JSON.stringify({
+      selectedFigure,
+      questionAnswers,
+      userName,
+      userPronunciationHint,
+      sparModus
+    }, null, 2));
+    
+    console.log('SparModus API check:', {
+      sparModus: sparModus,
+      type: typeof sparModus,
+      isTrue: sparModus === true,
+      isFalse: sparModus === false,
+      isUndefined: sparModus === undefined
+    });
 
     // Wenn es sich um eine Bearbeitung handelt
     if (editingInstructions && existingStory) {
@@ -91,23 +129,54 @@ Bearbeitete Geschichte:`;
       return `Q${q.id} - ${q.label}:\n  • Answer: \"${answerText}\"\n  • Block picks: \"${blocksText}\"`;
     }).join('\n');
 
-    const storyPrompt = generateStoryPrompt({ selectedFigure, connectionDetails, userName });
+    const storyPrompt = generateStoryPrompt({ selectedFigure, connectionDetails, userName, userPronunciationHint });
 
     console.log('Generated story prompt:', storyPrompt);
+    
+    // Sparmodus: Nur den ersten Satz generieren
+    console.log('Sparmodus processing:', {
+      sparModus: sparModus,
+      isTrue: sparModus === true,
+      willUseSparmodus: !!sparModus
+    });
+    
+    const systemPrompt = sparModus 
+      ? 'You are a therapist specializing in somatic and narrative therapy. Generate ONLY the first sentence of a healing story. Make it warm, safe, and emotionally supportive.'
+      : 'You are a therapist specializing in somatic and narrative therapy.';
+    
+    const maxTokens = sparModus ? 100 : 800; // Viel weniger Tokens im Sparmodus
+    
+    console.log('OpenAI settings:', {
+      systemPrompt: systemPrompt.substring(0, 100) + '...',
+      maxTokens: maxTokens,
+      sparModus: sparModus
+    });
     
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
-        { role: 'system', content: 'You are a therapist specializing in somatic and narrative therapy.' },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: storyPrompt }
       ],
-      max_tokens: 800,
+      max_tokens: maxTokens,
       temperature: 0.7,
     });
 
-    const story = completion.choices[0]?.message?.content;
+    let story = completion.choices[0]?.message?.content;
     if (!story) throw new Error('No story returned');
 
+    // Im Sparmodus: Stelle sicher, dass nur der erste Satz zurückgegeben wird
+    if (sparModus) {
+      const firstSentence = story.match(/^[^.!?]*[.!?]/);
+      story = firstSentence ? firstSentence[0] : story.split('.')[0] + '.';
+      console.log('Sparmodus applied - original length:', completion.choices[0]?.message?.content?.length, 'final length:', story.length);
+    }
+
+    console.log('Final story result:', {
+      sparModus: sparModus,
+      storyLength: story.length,
+      storyPreview: story.substring(0, 100) + '...'
+    });
     return NextResponse.json({ story });
   } catch (error) {
     console.error('Error in generate-story POST:', error);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/auth-provider";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,6 +17,39 @@ export default function Header() {
   const [success, setSuccess] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
+  const [userFullName, setUserFullName] = useState<string | null>(null);
+
+  // Lade den Profilnamen des Users
+  useEffect(() => {
+    const loadUserFullName = async () => {
+      if (!user) {
+        setUserFullName(null);
+        return;
+      }
+      
+      try {
+        const supabase = createSPAClient();
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.warn('Could not fetch full_name:', error.message);
+          setUserFullName(null);
+          return;
+        }
+        
+        setUserFullName(data?.full_name || null);
+      } catch (e) {
+        console.warn('Failed loading user full name');
+        setUserFullName(null);
+      }
+    };
+    
+    loadUserFullName();
+  }, [user]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,7 +207,7 @@ export default function Header() {
             {user ? (
               <div className="flex items-center space-x-3">
                 <span className="text-amber-700 text-sm">
-                  Hallo, {user.email?.split('@')[0]}!
+                  Hallo, {userFullName || user.email?.split('@')[0]}!
                 </span>
                 <Link
                   href="/dashboard"

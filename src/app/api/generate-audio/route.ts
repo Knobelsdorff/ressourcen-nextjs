@@ -69,7 +69,15 @@ export async function POST(request: NextRequest) {
     };
 
     // Verwende den vollen Text, außer bei Admin-Preview
-    const effectiveText = adminPreview ? shortenForPreview(text) : text;
+    const effectiveText = (adminPreview === true) ? shortenForPreview(text) : text;
+    
+    // Debug: Log the decision
+    console.log('Audio generation debug:', {
+      adminPreview,
+      originalLength: text.length,
+      effectiveLength: effectiveText.length,
+      isShortened: effectiveText.length < text.length
+    });
 
     // Request payload
     const requestPayload: TextToSpeechRequest = {
