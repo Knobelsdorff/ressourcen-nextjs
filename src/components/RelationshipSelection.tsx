@@ -11,6 +11,11 @@ import { ResourceFigure } from "@/app/page";
 import { questions, getQuestionsWithPronouns } from "@/data/questions";
 import { placeQuestions } from "@/data/placeQuestions";
 import { personalizeAnswers } from "@/data/figureSpecificAnswers";
+import IdealFamilyIconFinal from './IdealFamilyIconFinal';
+import JesusIconFinal from './JesusIconFinal';
+import ArchangelMichaelIconFinal from './ArchangelMichaelIconFinal';
+import AngelIconFinal from './AngelIconFinal';
+import SuperheroIconFinal from './SuperheroIconFinal';
 
 export interface QuestionAnswer {
   questionId: number;
@@ -177,7 +182,21 @@ export default function RelationshipSelection({
             >
               {/* Header with Emoji and Figure Name */}
               <div className="flex items-center justify-center gap-3 mb-8">
-                <div className="text-4xl">{selectedFigure.emoji}</div>
+                <div className="text-4xl">
+                  {selectedFigure.id === 'ideal-family' ? (
+                    <IdealFamilyIconFinal size={48} className="w-12 h-12" />
+                  ) : selectedFigure.id === 'jesus' ? (
+                    <JesusIconFinal size={48} className="w-12 h-12" />
+                  ) : selectedFigure.id === 'archangel-michael' ? (
+                    <ArchangelMichaelIconFinal size={48} className="w-12 h-12" />
+                  ) : selectedFigure.id === 'angel' ? (
+                    <AngelIconFinal size={48} className="w-12 h-12" />
+                  ) : selectedFigure.id === 'superhero' ? (
+                    <SuperheroIconFinal size={48} className="w-12 h-12" />
+                  ) : (
+                    <span className="text-4xl">{selectedFigure.emoji}</span>
+                  )}
+                </div>
                 <div className="text-2xl text-amber-900 font-normal">{selectedFigure.name}</div>
               </div>
 

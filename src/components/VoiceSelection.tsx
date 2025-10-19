@@ -267,16 +267,44 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
                       description = 'warm & erzählend';
                     } else if (voice.id === 'Z3R5wn05IrDiVCyEkUrK') { // Arabella
                       description = 'elegant & geheimnisvoll';
+                    } else if (voice.id === 'SHTtk5n3RQvLx4dcvfGR') { // Warm and easy-to-listen-to voice
+                      description = 'warm & verständlich';
+                    } else if (voice.id === 'Y5JXXvUD3rmjDInkLVA2') { // Kerstin - Calm, gentle, and sensual
+                      description = 'ruhig & sanft';
+                    } else if (voice.id === 'WHaUUVTDq47Yqc9aDbkH') { // Friendly and mature female voice
+                      description = 'freundlich & motivierend';
+                    } else if (voice.id === 'cpy7GcpDa9iah3sbx3uA') { // Tanja B. - Empathetic and warm-hearted
+                      description = 'einfühlsam & warmherzig';
+                    } else if (voice.id === 'E0OS48T5F0KU7O2NInWS') { // Professional Young German Female
+                      description = 'professionell & fesselnd';
+                    } else if (voice.id === 'rwMvgbQxwV0LJTium7sd') { // Lucy Fennek - Studio-Quality German Audiobooks
+                      description = 'ausdrucksstark & fesselnd';
+                    } else if (voice.id === 'rAmra0SCIYOxYmRNDSm3') { // Female meditation voice
+                      description = 'meditativ & neugierig';
+                    } else if (voice.id === 'dCnu06FiOZma2KVNUoPZ') { // Female, 20s-30s, opinionated and confident
+                      description = 'selbstbewusst & einfühlsam';
+                    } else if (voice.id === 'uvysWDLbKpA4XvpD3GI6') { // Leonie - Captivating German studio-quality voice
+                      description = 'vielseitig & klar';
                     } else if (voice.id === 'SaqYcK3ZpDKBAImA8AdW') { // Jane
                       description = 'intim & vertraut';
-                    } else if (voice.id === 'oae6GCCzwoEbfc5FHdEu') { // William
-                      description = 'ruhig & weise';
-                    } else if (voice.id === '8TMmdpPgqHKvDOGYP2lN') { // Gregory
-                      description = 'warm & tief';
-                    } else if (voice.id === 'iMHt6G42evkXunaDU065') { // Stefan
-                      description = 'professionell & klar';
-                    } else if (voice.id === 'fNQuGwgi0iD0nacRyExh') { // Timothy
-                      description = 'sanft & träumerisch';
+                    } else if (voice.id === 'oae6GCCzwoEbfc5FHdEu') { // William - gentle bedtime narrator
+                      description = 'sanft & beruhigend';
+                    } else if (voice.id === '8TMmdpPgqHKvDOGYP2lN') { // Gregory Grumble - gruff but lovable
+                      description = 'gemütlich & warmherzig';
+                    } else if (voice.id === 'iMHt6G42evkXunaDU065') { // Stefan - middle-aged German - UPDATED
+                      description = 'beruhigend & erfahren';
+                    } else if (voice.id === 'fNQuGwgi0iD0nacRyExh') { // Timothy Twilight - calm and soothing
+                      description = 'ruhig & anmutig';
+                    } else if (voice.id === 'oYuK6X6xL9cwJKfgStee') { // German resonant male voice
+                      description = 'resonant & vertrauensvoll';
+                    } else if (voice.id === 'dWlo9A8YyLspmlvHk1dB') { // Sawyer - deep soothing rhythm
+                      description = 'tief & klar';
+                    } else if (voice.id === 'e0K1gavG8dJdPZiwQ7Np') { // Marcus
+                      description = 'warm & ausgewogen';
+                    } else if (voice.id === 'g298lY8JIucgBDyOpRLj') { // German meditation voice
+                      description = 'meditativ & sanft';
+                    } else if (voice.id === 'oziFLKtaxVDHQAh7o45V') { // Alexander
+                      description = 'charismatisch & klar';
                     } else {
                       // Fallback basierend auf voiceType - mit einzigartigen Beschreibungen
                       if (voice.voiceType === 'maternal') {

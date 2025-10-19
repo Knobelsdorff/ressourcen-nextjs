@@ -18,18 +18,29 @@ export async function GET(request: Request) {
     let collectionVoiceIds = new Set();
     
     if (collectionsOnly) {
-      // Manuelle Liste der Collection-Stimmen (basierend auf deinem Screenshot)
+      // Alle 9 weiblichen Stimmen aus dem ElevenLabs Account
       const manualCollectionVoiceIds = [
-        // Männliche Stimmen
+        // Alle 9 weiblichen Stimmen mit differenzierten Beschreibungen
+        'SHTtk5n3RQvLx4dcvfGR', // Sanft und beruhigend, perfekt für entspannende Geschichten
+        'Y5JXXvUD3rmjDInkLVA2', // Klar und professionell, ideal für strukturierte Erzählungen
+        'WHaUUVTDq47Yqc9aDbkH', // Warm und mütterlich, schenkt Geborgenheit und Trost
+        'cpy7GcpDa9iah3sbx3uA', // Tanja B. - Einfühlsam und therapeutisch, perfekt für heilende Geschichten
+        'E0OS48T5F0KU7O2NInWS', // Lebendig und energiegeladen, bringt Freude und Motivation
+        'rwMvgbQxwV0LJTium7sd', // Ruhig und meditativ, ideal für spirituelle und kontemplative Inhalte
+        'rAmra0SCIYOxYmRNDSm3', // Vertrauensvoll und reif, schenkt Weisheit und Stabilität
+        'dCnu06FiOZma2KVNUoPZ', // Zärtlich und fürsorglich, wie eine liebevolle Begleiterin
+        'uvysWDLbKpA4XvpD3GI6', // Frisch und jugendlich, bringt Leichtigkeit und Optimismus
+        // Männliche therapeutische Stimmen
         'oae6GCCzwoEbfc5FHdEu', // William - soothing and calm
         '8TMmdpPgqHKvDOGYP2lN', // Gregory Grumble - Old lovable bedtime bear
         'iMHt6G42evkXunaDU065', // Stefan Rank der Erzähler (Radio-Moderator)
         'fNQuGwgi0iD0nacRyExh', // Timothy Twilight - Reupload
-        // Weibliche Stimmen
-        'E0OS48T5F0KU7O2NInWS', // Weibliche Stimme 1
-        'SaqYcK3ZpDKBAImA8AdW', // Weibliche Stimme 2
-        'Z3R5wn05IrDiVCyEkUrK', // Weibliche Stimme 3
-        '8N2ng9i2uiUWqstgmWlH'  // Weibliche Stimme 4
+        // Neue männliche Stimmen aus "Ressourcen APP männlich" Collection
+        'oYuK6X6xL9cwJKfgStee', // German resonant male voice - gravitas and warmth
+        'dWlo9A8YyLspmlvHk1dB', // Matthew Schmitz - deep soothing rhythm, audiobook narrator
+        'e0K1gavG8dJdPZiwQ7Np', // Matthew - warm and balanced tone, professional audiobook narrator
+        'g298lY8JIucgBDyOpRLj', // German meditation voice - calm and soothing
+        'oziFLKtaxVDHQAh7o45V'  // Charismatic and articulate male voice
       ];
       
       try {
@@ -131,19 +142,30 @@ export async function GET(request: Request) {
       let isFemale = false;
       let isMale = false;
       
-      // Collection-Stimmen mit manueller Geschlechtszuordnung
-      const femaleCollectionIds = [
-        'E0OS48T5F0KU7O2NInWS', // Lucy Fennek - Audiobook & Calm Narration
-        'SaqYcK3ZpDKBAImA8AdW', // Jane Doe - Intimate
-        'Z3R5wn05IrDiVCyEkUrK', // Arabella
-        '8N2ng9i2uiUWqstgmWlH'  // Beth - gentle and nurturing
-      ];
+      // Beste therapeutische Stimmen mit Geschlechtszuordnung
+    const femaleCollectionIds = [
+      'SHTtk5n3RQvLx4dcvfGR', // Sanft und beruhigend, perfekt für entspannende Geschichten
+      'Y5JXXvUD3rmjDInkLVA2', // Klar und professionell, ideal für strukturierte Erzählungen
+      'WHaUUVTDq47Yqc9aDbkH', // Warm und mütterlich, schenkt Geborgenheit und Trost
+      'cpy7GcpDa9iah3sbx3uA', // Tanja B. - Einfühlsam und therapeutisch, perfekt für heilende Geschichten
+      'E0OS48T5F0KU7O2NInWS', // Lebendig und energiegeladen, bringt Freude und Motivation
+      'rwMvgbQxwV0LJTium7sd', // Ruhig und meditativ, ideal für spirituelle und kontemplative Inhalte
+      'rAmra0SCIYOxYmRNDSm3', // Vertrauensvoll und reif, schenkt Weisheit und Stabilität
+      'dCnu06FiOZma2KVNUoPZ', // Zärtlich und fürsorglich, wie eine liebevolle Begleiterin
+      'uvysWDLbKpA4XvpD3GI6'  // Frisch und jugendlich, bringt Leichtigkeit und Optimismus
+    ];
       
       const maleCollectionIds = [
         'oae6GCCzwoEbfc5FHdEu', // William - soothing and calm
         '8TMmdpPgqHKvDOGYP2lN', // Gregory Grumble - Old lovable bedtime bear
         'iMHt6G42evkXunaDU065', // Stefan Rank der Erzähler (Radio-Moderator)
-        'fNQuGwgi0iD0nacRyExh'  // Timothy Twilight - Reupload
+        'fNQuGwgi0iD0nacRyExh', // Timothy Twilight - Reupload
+        // Neue männliche Stimmen aus "Ressourcen APP männlich" Collection
+        'oYuK6X6xL9cwJKfgStee', // German resonant male voice - gravitas and warmth
+        'dWlo9A8YyLspmlvHk1dB', // Matthew Schmitz - deep soothing rhythm, audiobook narrator
+        'e0K1gavG8dJdPZiwQ7Np', // Matthew - warm and balanced tone, professional audiobook narrator
+        'g298lY8JIucgBDyOpRLj', // German meditation voice - calm and soothing
+        'oziFLKtaxVDHQAh7o45V'  // Charismatic and articulate male voice
       ];
       
       if (femaleCollectionIds.includes(voice.voice_id)) {
@@ -314,9 +336,22 @@ export async function GET(request: Request) {
     const voicesWithPreview = highQualityVoices.map((voice: any) => {
       const category = categorizeVoice(voice);
       const isFromCollection = collectionVoiceIds.has(voice.voice_id);
+      
+      // Überschreibe Namen für bestimmte Voice-IDs
+      let displayName = voice.name;
+      if (voice.voice_id === 'dWlo9A8YyLspmlvHk1dB') {
+        displayName = 'Peter';
+      } else if (voice.voice_id === 'e0K1gavG8dJdPZiwQ7Np') {
+        displayName = 'Mark';
+      } else if (voice.voice_id === 'oYuK6X6xL9cwJKfgStee') {
+        displayName = 'Marcus';
+      } else if (voice.voice_id === 'oziFLKtaxVDHQAh7o45V') {
+        displayName = 'Alexander';
+      }
+      
       return {
         id: voice.voice_id,
-        name: voice.name,
+        name: displayName,
         description: voice.description,
         category: voice.category,
         voiceType: category.type,
@@ -335,3 +370,4 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Failed to fetch voices' }, { status: 500 });
   }
 }
+

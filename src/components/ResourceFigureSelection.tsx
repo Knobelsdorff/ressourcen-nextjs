@@ -23,7 +23,9 @@ const ambivalentFigures = [
   'partner',
   'teacher', 
   'sibling',
-  'best-friend'
+  'best-friend',
+  'pet-dog',
+  'pet-cat'
 ];
 
 export default function ResourceFigureSelection({
@@ -717,7 +719,7 @@ export default function ResourceFigureSelection({
                   {pendingFigure.name}
                 </h3>
                 <p className="text-amber-700">
-                  Wähle die Pronomen für deine {pendingFigure.name}:
+                  Wähle die Pronomen für {pendingFigure.id === 'pet-dog' ? 'deinen' : pendingFigure.id === 'pet-cat' ? 'deine' : 'deine'} {pendingFigure.name}:
                 </p>
               </div>
 
@@ -727,7 +729,7 @@ export default function ResourceFigureSelection({
                   className="w-full p-4 border-2 border-amber-200 rounded-xl hover:border-amber-400 hover:bg-amber-50 transition-all duration-200 text-left"
                 >
                   <div className="font-semibold text-amber-900">sie/ihr (weiblich)</div>
-                  <div className="text-sm text-amber-700">Für eine weibliche {pendingFigure.name}</div>
+                  <div className="text-sm text-amber-700">Für {pendingFigure.id === 'pet-dog' ? 'einen weiblichen' : pendingFigure.id === 'pet-cat' ? 'eine weibliche' : 'eine weibliche'} {pendingFigure.name}</div>
                 </button>
                 
                 <button
@@ -735,7 +737,7 @@ export default function ResourceFigureSelection({
                   className="w-full p-4 border-2 border-amber-200 rounded-xl hover:border-amber-400 hover:bg-amber-50 transition-all duration-200 text-left"
                 >
                   <div className="font-semibold text-amber-900">er/ihm (männlich)</div>
-                  <div className="text-sm text-amber-700">Für eine männliche {pendingFigure.name}</div>
+                  <div className="text-sm text-amber-700">Für {pendingFigure.id === 'pet-dog' ? 'einen männlichen' : pendingFigure.id === 'pet-cat' ? 'einen männlichen' : 'einen männlichen'} {pendingFigure.name}</div>
                 </button>
               </div>
               

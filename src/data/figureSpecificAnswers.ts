@@ -1167,9 +1167,9 @@ export const figureSpecificData: FigureSpecificData = {
 
   'angel': {
     1: {
-      question: "Wie wirkt er und was strahlt er aus?",
+      question: "Wie wirkt sie und was strahlt sie aus?",
       prompt: "Beschreibe das Aussehen und die Ausstrahlung deines Engels.",
-      example: "Er hat sanfte, himmlische Augen und strahlt eine tiefe Ruhe und Liebe aus.",
+      example: "Sie hat sanfte, himmlische Augen und strahlt eine tiefe Ruhe und Liebe aus.",
       blocks: [
         "Sanfte, himmlische Augen voller Liebe",
         "Leuchtende, engelhafte Ausstrahlung",
@@ -1181,7 +1181,7 @@ export const figureSpecificData: FigureSpecificData = {
       ]
     },
     2: {
-      question: "Wie fühlst du dich, wenn er nah bei dir ist?",
+      question: "Wie fühlst du dich, wenn sie nah bei dir ist?",
       prompt: "Beschreibe deine inneren Gefühle in der Nähe deines Engels.",
       example: "Ich fühle mich himmlisch geborgen und voller Frieden.",
       blocks: [
@@ -1195,35 +1195,35 @@ export const figureSpecificData: FigureSpecificData = {
       ]
     },
     3: {
-      question: "Was macht er, wenn es dir mal nicht gut geht?",
+      question: "Was macht sie, wenn es dir mal nicht gut geht?",
       prompt: "Beschreibe, wie dein Engel dich in schwierigen Momenten unterstützt.",
-      example: "Er umhüllt mich mit seinen schützenden Flügeln.",
+      example: "Sie umhüllt mich mit ihren schützenden Flügeln.",
       blocks: [
-        "Er umhüllt mich mit seinen schützenden Flügeln",
-        "Er flüstert mir tröstende Worte zu",
-        "Er hält mich fest und gibt mir Sicherheit",
-        "Er schützt mich vor negativen Energien",
-        "Er ist einfach da und gibt mir Kraft",
-        "Er umarmt mich und lässt mich weinen",
-        "Er erinnert mich an meine göttliche Natur"
+        "Sie umhüllt mich mit ihren schützenden Flügeln",
+        "Sie flüstert mir tröstende Worte zu",
+        "Sie hält mich fest und gibt mir Sicherheit",
+        "Sie schützt mich vor negativen Energien",
+        "Sie ist einfach da und gibt mir Kraft",
+        "Sie umarmt mich und lässt mich weinen",
+        "Sie erinnert mich an meine göttliche Natur"
       ]
     },
     4: {
-      question: "Durch was würdest du dich von ihm geliebt fühlen?",
-      prompt: "Beschreibe, was dein Engel tut, um dir seine himmlische Liebe zu zeigen.",
-      example: "Er glaubt an meine göttliche Natur und zeigt es mir jeden Tag.",
+      question: "Durch was würdest du dich von ihr geliebt fühlen?",
+      prompt: "Beschreibe, was dein Engel tut, um dir ihre himmlische Liebe zu zeigen.",
+      example: "Sie glaubt an meine göttliche Natur und zeigt es mir jeden Tag.",
       blocks: [
-        "Er glaubt an meine göttliche Natur und zeigt es mir jeden Tag",
-        "Er lehrt mich seine himmlischen Geheimnisse",
-        "Er beschützt mich vor allen Gefahren",
-        "Er erinnert mich an meine göttlichen Fähigkeiten",
-        "Er macht sich Sorgen um mich und kümmert sich",
-        "Er ist stolz auf mich, egal was ich tue",
-        "Er akzeptiert mich so, wie ich bin"
+        "Sie glaubt an meine göttliche Natur und zeigt es mir jeden Tag",
+        "Sie lehrt mich ihre himmlischen Geheimnisse",
+        "Sie beschützt mich vor allen Gefahren",
+        "Sie erinnert mich an meine göttlichen Fähigkeiten",
+        "Sie macht sich Sorgen um mich und kümmert sich",
+        "Sie ist stolz auf mich, egal was ich tue",
+        "Sie akzeptiert mich so, wie ich bin"
       ]
     },
     5: {
-      question: "Um was würdest du ihn bitten?",
+      question: "Um was würdest du sie bitten?",
       prompt: "Formuliere, was du dir von deinem Engel wünschst.",
       example: "Bitte bleib immer so beschützend und liebevoll.",
       blocks: [
@@ -1237,7 +1237,7 @@ export const figureSpecificData: FigureSpecificData = {
       ]
     },
     6: {
-      question: "Was würde er dir idealerweise sagen?",
+      question: "Was würde sie dir idealerweise sagen?",
       prompt: "Teile die göttlichen Sätze, die dein Engel dir sagen würde.",
       example: "Du bist ein Kind Gottes und wirst bedingungslos geliebt.",
       blocks: [

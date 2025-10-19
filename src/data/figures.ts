@@ -90,7 +90,7 @@ export const fictionalFigures: ResourceFigure[] = [
     emoji: "🪽",
     description: "Sanft, voller Mitgefühl und innerem Frieden",
     category: "fictional",
-    pronouns: "er/ihm"
+    pronouns: "sie/ihr"
   },
   {
     id: "archangel-michael",
