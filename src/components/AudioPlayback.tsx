@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, Volume2, Heart, ChevronRight, Loader2, Save } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { ResourceFigure, AudioState } from "@/app/page";
 import { useAuth } from "@/components/providers/auth-provider";
 import { createSPAClient } from "@/lib/supabase/client";
@@ -63,6 +64,7 @@ export default function AudioPlayback({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingStory, setPendingStory] = useState<any>(null); // Temporäre Speicherung
   const { user, signIn, signUp } = useAuth();
+  const router = useRouter();
 
   // Lade Testmodus aus localStorage - nur nach Mount
   useEffect(() => {
@@ -185,17 +187,17 @@ export default function AudioPlayback({
 
       if (error) {
         console.error('Error saving story:', error);
-        alert(`Fehler beim Speichern: ${error.message}`);
+        // Kein Popup - nur Console-Log
       } else {
         console.log('Story saved successfully:', data);
-        alert('Ressource erfolgreich gespeichert!');
-        onNext(); // Weiterleitung nach erfolgreichem Speichern
+        // Kein Popup - nur Console-Log
       }
     } catch (err) {
       console.error('Error saving story:', err);
-      alert(`Fehler beim Speichern: ${err}`);
+      // Kein Popup - nur Console-Log
     }
   };
+
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -252,6 +254,25 @@ export default function AudioPlayback({
       setAuthError(err.message || 'Ein Fehler ist aufgetreten');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSaveStory = async () => {
+    if (user) {
+      // Direkt speichern wenn angemeldet
+      try {
+        await saveStoryToDatabase();
+        // Direkt zum Dashboard navigieren nach erfolgreichem Speichern
+        router.push('/dashboard');
+      } catch (error) {
+        console.error('Fehler beim Speichern:', error);
+        // Trotzdem zum Dashboard navigieren
+        router.push('/dashboard');
+      }
+    } else {
+      // Temporäre Speicherung für unangemeldete User
+      savePendingStory();
+      setShowAuthModal(true); // Auth-Modal öffnen
     }
   };
 
@@ -874,34 +895,65 @@ export default function AudioPlayback({
                   onLoadedData={() => setIsLoading(false)}
                 />
 
-                {/* Speichern Button - innerhalb des Audio-Players */}
+                {/* Zum Dashboard Button - direkt unter dem Play-Button */}
                 <motion.div
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.6 }}
-                  className="mt-12"
+                  transition={{ delay: 0.3 }}
+                  className="mt-6 flex justify-center"
                 >
-                  <div className="flex justify-center">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={async () => {
-                        if (user) {
-                          // Direkt speichern wenn angemeldet
-                          await saveStoryToDatabase();
-                        } else {
-                          // Temporäre Speicherung für unangemeldete User
-                          savePendingStory();
-                          setShowAuthModal(true); // Auth-Modal öffnen
-                        }
-                      }}
-                      className="px-10 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl shadow-lg hover:from-amber-600 hover:to-orange-600 transition-all flex items-center justify-center gap-3 text-lg font-semibold border border-amber-400/20"
-                    >
-                      <Save className="w-5 h-5" />
-                      Speichern
-                    </motion.button>
+                  <button
+                    onClick={handleSaveStory}
+                    className="px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl shadow-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-200 flex items-center gap-2"
+                  >
+                <span className="text-lg">💾</span>
+                    Ressource speichern
+                  </button>
+                </motion.div>
+
+                {/* Bilaterale Stimulation Anleitung */}
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="mt-8 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100"
+                >
+                  <div className="text-center mb-6">
+                    <h3 className="text-xl font-semibold text-blue-900 mb-2">
+                      Bilaterale Stimulation
+                    </h3>
+                    <p className="text-blue-700 text-sm">
+                      Klopfe abwechselnd auf deine Oberarme, während du der Geschichte zuhörst
+                    </p>
+                  </div>
+                  
+              {/* Video Anleitung */}
+              <div className="flex justify-center mb-6">
+                <video
+                  className="w-full max-w-md rounded-xl shadow-lg bg-gray-100"
+                  controls
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  autoPlay
+                >
+                  <source src="/videos/Bilaterale Stimulation.mp4" type="video/mp4" />
+                  <div className="flex items-center justify-center h-48 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl">
+                    <div className="text-center">
+                      <p className="text-gray-600 text-sm">Video wird geladen...</p>
+                    </div>
+                  </div>
+                </video>
+              </div>
+                  
+                  <div className="text-center">
+                    <p className="text-blue-600 text-base">
+                      <span className="text-xl">💡</span> Dies hilft deinem Gehirn, die Geschichte besser zu verarbeiten und zu integrieren
+                    </p>
                   </div>
                 </motion.div>
+
               </motion.div>
             )}
           </div>
