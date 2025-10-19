@@ -88,7 +88,7 @@ export const fictionalFigures: ResourceFigure[] = [
     id: "angel",
     name: "Engel",
     emoji: "🪽",
-    description: "Beschützend, sanft und voller innerem Frieden",
+    description: "Sanft, voller Mitgefühl und innerem Frieden",
     category: "fictional",
     pronouns: "er/ihm"
   },
@@ -101,6 +101,54 @@ export const fictionalFigures: ResourceFigure[] = [
     pronouns: "er/ihm"
   },
   {
+    id: "godmother",
+    name: "Mutter Erde",
+    emoji: "🌎",
+    description: "Warm, weise und fürsorglich. Liebt bedingungslos.",
+    category: "fictional",
+    pronouns: "sie/ihr"
+  },
+  {
+    id: "animal-spirit",
+    name: "Krafttier",
+    emoji: "🦅",
+    description: "Magisch, übersinnlich und weise",
+    category: "fictional",
+    pronouns: "es/sein"
+  },
+  {
+    id: "superhero",
+    name: "Superheld",
+    emoji: "🦸",
+    description: "Stark, mutig und rettet dich, wenn du in Not bist",
+    category: "fictional",
+    pronouns: "er/ihm"
+  },
+  {
+    id: "divine-mother",
+    name: "Göttliche Mutter",
+    emoji: "✨",
+    description: "Allumfassende Liebe, Weisheit und bedingungslose Akzeptanz",
+    category: "fictional",
+    pronouns: "sie/ihr"
+  },
+  {
+    id: "divine-father",
+    name: "Göttlicher Vater",
+    emoji: "🌟",
+    description: "Stärke, Führung und unerschütterliche Unterstützung",
+    category: "fictional",
+    pronouns: "er/ihm"
+  },
+  {
+    id: "ideal-father",
+    name: "Ideal-Vater",
+    emoji: "👨",
+    description: "Eine Art Zweitvater für dich, der sich immer für dich einsetzt",
+    category: "fictional",
+    pronouns: "er/ihm"
+  },
+  {
     id: "ideal-mother",
     name: "Ideal-Mutter",
     emoji: "👩‍",
@@ -108,11 +156,19 @@ export const fictionalFigures: ResourceFigure[] = [
     category: "fictional",
     pronouns: "sie/ihr"
   },
-     {
-    id: "ideal-father",
-    name: "Ideal-Vater",
-    emoji: "👨",
-    description: "Eine Art Zweitvater für dich, der sich immer für dich einsetzt",
+  {
+    id: "ideal-family",
+    name: "Ideal-Großfamilie",
+    emoji: "👨‍👩‍👧‍👦",
+    description: "Eine große, liebevolle Familie, die dich vollständig annimmt",
+    category: "fictional",
+    pronouns: "sie/ihr"
+  },
+  {
+    id: "jesus",
+    name: "Jesus",
+    emoji: "✝️",
+    description: "Barmherzig, liebevoll und voller Verständnis für deine Nöte",
     category: "fictional",
     pronouns: "er/ihm"
   },
@@ -125,14 +181,6 @@ export const fictionalFigures: ResourceFigure[] = [
     pronouns: "er/ihm"
   },
   {
-    id: "superhero",
-    name: "Superheld",
-    emoji: "🦸",
-    description: "Stark, mutig und rettet immer den Tag",
-    category: "fictional",
-    pronouns: "er/ihm"
-  },
-  {
     id: "fairy",
     name: "Fee",
     emoji: "🧚‍♀️",
@@ -141,59 +189,11 @@ export const fictionalFigures: ResourceFigure[] = [
     pronouns: "sie/ihr"
   },
   {
-    id: "godmother",
-    name: "Mutter Erde",
-    emoji: "🌎",
-    description: "Warm, weise und fürsorglich. Liebt bedingungslos.",
-    category: "fictional",
-    pronouns: "sie/ihr"
-  },
-  {
-    id: "wise-owl",
-    name: "Weise Eule",
-    emoji: "🦉",
-    description: "Klug, ruhig und erkennt alles mit Klarheit",
-    category: "fictional",
-    pronouns: "sie/ihr"
-  },
-  {
-    id: "gentle-giant",
-    name: "Sanfter Riese",
-    emoji: "🗿",
-    description: "Stark und doch zärtlich, beschützend und verlässlich",
-    category: "fictional",
-    pronouns: "er/ihm"
-  },
-  {
-    id: "healing-light",
-    name: "Heilendes Licht",
-    emoji: "✨",
-    description: "Reine Energie, Wärme und unendliche Liebe",
-    category: "fictional",
-    pronouns: "es/sein"
-  },
-  {
     id: "dragon-protector",
     name: "Drache",
     emoji: "🐉",
     description: "Furchtloser Beschützer, loyal und mächtig",
     category: "fictional",
     pronouns: "er/ihm"
-  },
-  {
-    id: "ocean-spirit",
-    name: "Ozeangeist",
-    emoji: "🌊",
-    description: "Fließend, reinigend und ewig beruhigend",
-    category: "fictional",
-    pronouns: "es/sein"
-  },
-  {
-    id: "animal-spirit",
-    name: "Krafttier",
-    emoji: "🐬",
-    description: "Magisch, übersinnlich und weise",
-    category: "fictional",
-    pronouns: "es/sein"
   }
 ];

@@ -2031,6 +2031,358 @@ export const figureSpecificData: FigureSpecificData = {
     }
   },
 
+  // JESUS
+  'jesus': {
+    1: {
+      question: "Wie sieht Jesus aus? Was strahlt er aus?",
+      prompt: "Beschreibe das Aussehen und die Ausstrahlung von Jesus.",
+      example: "Er hat warme, barmherzige Augen und strahlt eine tiefe Liebe aus.",
+      blocks: [
+        "Warme, barmherzige Augen voller Verständnis",
+        "Sanfte, liebevolle Ausstrahlung",
+        "Ruhige, friedliche Präsenz",
+        "Trägt einen tiefen inneren Frieden in sich",
+        "Schaut mich an, als würde ich wirklich zählen",
+        "Strahlende, göttliche Liebe",
+        "Demütige, aber starke Präsenz"
+      ]
+    },
+    2: {
+      question: "Wie fühlst du dich innerlich, wenn Jesus bei dir ist?",
+      prompt: "Beschreibe deine inneren Gefühle in der Nähe von Jesus.",
+      example: "Ich fühle mich vollständig geliebt und verstanden.",
+      blocks: [
+        "Vollständig geliebt und verstanden",
+        "Tief entspannt und sicher",
+        "Vergeben und angenommen so wie ich bin",
+        "Wärme und Geborgenheit in mir",
+        "Ein echtes Gefühl von Zugehörigkeit",
+        "Stabil und in jedem Moment unterstützt",
+        "Vollständigkeit und Harmonie in mir"
+      ]
+    },
+    3: {
+      question: "Wie tröstet dich Jesus, wenn du Schmerz oder Angst spürst?",
+      prompt: "Beschreibe, wie Jesus dich in schwierigen Momenten tröstet.",
+      example: "Er nimmt mich in den Arm und flüstert tröstende Worte.",
+      blocks: [
+        "Er nimmt mich in den Arm und flüstert tröstende Worte",
+        "Er streichelt sanft mein Haar",
+        "Er hält mich fest und gibt mir Sicherheit",
+        "Er hört mir geduldig zu",
+        "Er umarmt mich und lässt mich weinen",
+        "Er ist einfach da und gibt mir Kraft",
+        "Er erinnert mich an seine bedingungslose Liebe"
+      ]
+    },
+    4: {
+      question: "Welche freudige Aktivität teilt ihr miteinander?",
+      prompt: "Beschreibe schöne, gemeinsame Momente mit Jesus.",
+      example: "Wir sitzen zusammen und reden über alles.",
+      blocks: [
+        "Wir sitzen zusammen und reden über alles",
+        "Wir machen zusammen einen Spaziergang",
+        "Wir beten zusammen",
+        "Wir schauen zusammen in die Natur",
+        "Wir machen zusammen eine Massage",
+        "Wir liegen zusammen und kuscheln",
+        "Wir teilen ein einfaches Mahl"
+      ]
+    },
+    5: {
+      question: "Welche Unterstützung wünschst du dir von Jesus?",
+      prompt: "Formuliere, was du dir von Jesus wünschst.",
+      example: "Bitte bleib immer so liebevoll und verständnisvoll.",
+      blocks: [
+        "Bleib immer so liebevoll und verständnisvoll",
+        "Sei immer da, wenn ich dich brauche",
+        "Verstehe mich weiterhin so gut",
+        "Vergebe mir weiterhin meine Fehler",
+        "Führe mich weiterhin auf dem rechten Weg",
+        "Lass mich immer bei dir willkommen sein",
+        "Schenk mir weiterhin deine bedingungslose Liebe"
+      ]
+    },
+    6: {
+      question: "Was würde Jesus dir idealerweise sagen?",
+      prompt: "Teile die tröstenden Sätze, die Jesus dir sagen würde.",
+      example: "Du bist geliebt und wertvoll, genau so wie du bist.",
+      blocks: [
+        "Du bist geliebt und wertvoll, genau so wie du bist",
+        "Ich bin immer für dich da, egal was passiert",
+        "Du bist vergeben und angenommen",
+        "Du hast einen besonderen Platz in meinem Herzen",
+        "Ich werde dich nie verlassen",
+        "Du bist mein geliebtes Kind",
+        "Du bist wertvoll und verdienst Liebe und Frieden"
+      ]
+    }
+  },
+
+  // GÖTTLICHE MUTTER
+  'divine-mother': {
+    1: {
+      question: "Wie sieht die Göttliche Mutter aus? Was strahlt sie aus?",
+      prompt: "Beschreibe das Aussehen und die Ausstrahlung der Göttlichen Mutter.",
+      example: "Sie hat allumfassende, liebevolle Augen und strahlt eine mütterliche Geborgenheit aus.",
+      blocks: [
+        "Allumfassende, liebevolle Augen voller Weisheit",
+        "Sanfte, mütterliche Ausstrahlung",
+        "Weiche, tröstende Hände",
+        "Beruhigende, melodische Stimme",
+        "Mütterliche Geborgenheit und Wärme",
+        "Trägt einen tiefen inneren Frieden in sich",
+        "Schaut mich an, als würde ich wirklich zählen"
+      ]
+    },
+    2: {
+      question: "Wie fühlst du dich innerlich, wenn die Göttliche Mutter bei dir ist?",
+      prompt: "Beschreibe deine inneren Gefühle in der Nähe der Göttlichen Mutter.",
+      example: "Ich fühle mich vollständig geliebt und geborgen, als wäre alles gut.",
+      blocks: [
+        "Vollständig geliebt und geborgen",
+        "Tief entspannt und sicher",
+        "Verstanden und akzeptiert so wie ich bin",
+        "Wärme und Geborgenheit in mir",
+        "Ein echtes Gefühl von Zugehörigkeit",
+        "Stabil und in jedem Moment unterstützt",
+        "Vollständigkeit und Harmonie in mir"
+      ]
+    },
+    3: {
+      question: "Wie tröstet dich die Göttliche Mutter, wenn du Schmerz oder Angst spürst?",
+      prompt: "Beschreibe, wie die Göttliche Mutter dich in schwierigen Momenten tröstet.",
+      example: "Sie nimmt mich in den Arm und flüstert tröstende Worte.",
+      blocks: [
+        "Sie nimmt mich in den Arm und flüstert tröstende Worte",
+        "Sie streichelt sanft mein Haar",
+        "Sie hält mich fest und gibt mir Sicherheit",
+        "Sie hört mir geduldig zu",
+        "Sie umarmt mich und lässt mich weinen",
+        "Sie ist einfach da und gibt mir Kraft",
+        "Sie erinnert mich an ihre bedingungslose Liebe"
+      ]
+    },
+    4: {
+      question: "Welche freudige Aktivität teilt ihr miteinander?",
+      prompt: "Beschreibe schöne, gemeinsame Momente mit der Göttlichen Mutter.",
+      example: "Wir sitzen zusammen und reden über alles.",
+      blocks: [
+        "Wir sitzen zusammen und reden über alles",
+        "Wir machen zusammen einen Spaziergang",
+        "Wir beten zusammen",
+        "Wir schauen zusammen in die Natur",
+        "Wir machen zusammen eine Massage",
+        "Wir liegen zusammen und kuscheln",
+        "Wir teilen ein einfaches Mahl"
+      ]
+    },
+    5: {
+      question: "Welche Unterstützung wünschst du dir von der Göttlichen Mutter?",
+      prompt: "Formuliere, was du dir von der Göttlichen Mutter wünschst.",
+      example: "Bitte bleib immer so liebevoll und verständnisvoll.",
+      blocks: [
+        "Bleib immer so liebevoll und verständnisvoll",
+        "Sei immer da, wenn ich dich brauche",
+        "Verstehe mich weiterhin so gut",
+        "Führe mich weiterhin auf dem rechten Weg",
+        "Lass mich immer bei dir willkommen sein",
+        "Schenk mir weiterhin deine bedingungslose Liebe",
+        "Erinnere mich an meine göttliche Natur"
+      ]
+    },
+    6: {
+      question: "Was würde die Göttliche Mutter dir idealerweise sagen?",
+      prompt: "Teile die tröstenden Sätze, die die Göttliche Mutter dir sagen würde.",
+      example: "Du bist geliebt und wertvoll, genau so wie du bist.",
+      blocks: [
+        "Du bist geliebt und wertvoll, genau so wie du bist",
+        "Ich bin immer für dich da, egal was passiert",
+        "Du bist vergeben und angenommen",
+        "Du hast einen besonderen Platz in meinem Herzen",
+        "Ich werde dich nie verlassen",
+        "Du bist mein geliebtes Kind",
+        "Du bist wertvoll und verdienst Liebe und Frieden"
+      ]
+    }
+  },
+
+  // GÖTTLICHER VATER
+  'divine-father': {
+    1: {
+      question: "Wie sieht der Göttliche Vater aus? Was strahlt er aus?",
+      prompt: "Beschreibe das Aussehen und die Ausstrahlung des Göttlichen Vaters.",
+      example: "Er hat starke, weise Augen und strahlt eine väterliche Stärke aus.",
+      blocks: [
+        "Starke, weise Augen voller Führung",
+        "Väterliche, beschützende Ausstrahlung",
+        "Ruhige, stabile Präsenz",
+        "Trägt einen tiefen inneren Frieden in sich",
+        "Schaut mich an, als würde ich wirklich zählen",
+        "Strahlende, göttliche Stärke",
+        "Demütige, aber mächtige Präsenz"
+      ]
+    },
+    2: {
+      question: "Wie fühlst du dich innerlich, wenn der Göttliche Vater bei dir ist?",
+      prompt: "Beschreibe deine inneren Gefühle in der Nähe des Göttlichen Vaters.",
+      example: "Ich fühle mich vollständig beschützt und geführt.",
+      blocks: [
+        "Vollständig beschützt und geführt",
+        "Tief entspannt und sicher",
+        "Verstanden und akzeptiert so wie ich bin",
+        "Wärme und Geborgenheit in mir",
+        "Ein echtes Gefühl von Zugehörigkeit",
+        "Stabil und in jedem Moment unterstützt",
+        "Vollständigkeit und Harmonie in mir"
+      ]
+    },
+    3: {
+      question: "Wie tröstet dich der Göttliche Vater, wenn du Schmerz oder Angst spürst?",
+      prompt: "Beschreibe, wie der Göttliche Vater dich in schwierigen Momenten tröstet.",
+      example: "Er nimmt mich in den Arm und flüstert tröstende Worte.",
+      blocks: [
+        "Er nimmt mich in den Arm und flüstert tröstende Worte",
+        "Er streichelt sanft mein Haar",
+        "Er hält mich fest und gibt mir Sicherheit",
+        "Er hört mir geduldig zu",
+        "Er umarmt mich und lässt mich weinen",
+        "Er ist einfach da und gibt mir Kraft",
+        "Er erinnert mich an seine bedingungslose Liebe"
+      ]
+    },
+    4: {
+      question: "Welche freudige Aktivität teilt ihr miteinander?",
+      prompt: "Beschreibe schöne, gemeinsame Momente mit dem Göttlichen Vater.",
+      example: "Wir sitzen zusammen und reden über alles.",
+      blocks: [
+        "Wir sitzen zusammen und reden über alles",
+        "Wir machen zusammen einen Spaziergang",
+        "Wir beten zusammen",
+        "Wir schauen zusammen in die Natur",
+        "Wir machen zusammen eine Massage",
+        "Wir liegen zusammen und kuscheln",
+        "Wir teilen ein einfaches Mahl"
+      ]
+    },
+    5: {
+      question: "Welche Unterstützung wünschst du dir vom Göttlichen Vater?",
+      prompt: "Formuliere, was du dir vom Göttlichen Vater wünschst.",
+      example: "Bitte bleib immer so beschützend und führungsreich.",
+      blocks: [
+        "Bleib immer so beschützend und führungsreich",
+        "Sei immer da, wenn ich dich brauche",
+        "Verstehe mich weiterhin so gut",
+        "Führe mich weiterhin auf dem rechten Weg",
+        "Lass mich immer bei dir willkommen sein",
+        "Schenk mir weiterhin deine bedingungslose Liebe",
+        "Erinnere mich an meine göttliche Natur"
+      ]
+    },
+    6: {
+      question: "Was würde der Göttliche Vater dir idealerweise sagen?",
+      prompt: "Teile die tröstenden Sätze, die der Göttliche Vater dir sagen würde.",
+      example: "Du bist geliebt und wertvoll, genau so wie du bist.",
+      blocks: [
+        "Du bist geliebt und wertvoll, genau so wie du bist",
+        "Ich bin immer für dich da, egal was passiert",
+        "Du bist vergeben und angenommen",
+        "Du hast einen besonderen Platz in meinem Herzen",
+        "Ich werde dich nie verlassen",
+        "Du bist mein geliebtes Kind",
+        "Du bist wertvoll und verdienst Liebe und Frieden"
+      ]
+    }
+  },
+
+  // IDEAL-GROßFAMILIE
+  'ideal-family': {
+    1: {
+      question: "Wie sieht deine Ideal-Großfamilie aus? Was strahlt sie aus?",
+      prompt: "Beschreibe das Aussehen und die Ausstrahlung deiner perfekten Großfamilie.",
+      example: "Sie strahlt eine warme, familiäre Geborgenheit aus.",
+      blocks: [
+        "Warme, familiäre Ausstrahlung",
+        "Viele liebevolle Gesichter",
+        "Beruhigende, melodische Stimmen",
+        "Familiäre Geborgenheit und Wärme",
+        "Trägt einen tiefen inneren Frieden in sich",
+        "Schaut mich an, als würde ich wirklich zählen",
+        "Strahlende, bedingungslose Liebe"
+      ]
+    },
+    2: {
+      question: "Wie fühlst du dich innerlich, wenn deine Ideal-Großfamilie bei dir ist?",
+      prompt: "Beschreibe deine inneren Gefühle in der Nähe deiner Ideal-Großfamilie.",
+      example: "Ich fühle mich vollständig geliebt und geborgen, als wäre alles gut.",
+      blocks: [
+        "Vollständig geliebt und geborgen",
+        "Tief entspannt und sicher",
+        "Verstanden und akzeptiert so wie ich bin",
+        "Wärme und Geborgenheit in mir",
+        "Ein echtes Gefühl von Zugehörigkeit",
+        "Stabil und in jedem Moment unterstützt",
+        "Vollständigkeit und Harmonie in mir"
+      ]
+    },
+    3: {
+      question: "Wie tröstet dich deine Ideal-Großfamilie, wenn du Schmerz oder Angst spürst?",
+      prompt: "Beschreibe, wie deine Ideal-Großfamilie dich in schwierigen Momenten tröstet.",
+      example: "Sie nehmen mich in den Arm und flüstern tröstende Worte.",
+      blocks: [
+        "Sie nehmen mich in den Arm und flüstern tröstende Worte",
+        "Sie streicheln sanft mein Haar",
+        "Sie halten mich fest und geben mir Sicherheit",
+        "Sie hören mir geduldig zu",
+        "Sie umarmen mich und lassen mich weinen",
+        "Sie sind einfach da und geben mir Kraft",
+        "Sie erinnern mich an ihre bedingungslose Liebe"
+      ]
+    },
+    4: {
+      question: "Welche freudige Aktivität teilt ihr miteinander?",
+      prompt: "Beschreibe schöne, gemeinsame Momente mit deiner Ideal-Großfamilie.",
+      example: "Wir sitzen zusammen und reden über alles.",
+      blocks: [
+        "Wir sitzen zusammen und reden über alles",
+        "Wir machen zusammen einen Spaziergang",
+        "Wir beten zusammen",
+        "Wir schauen zusammen in die Natur",
+        "Wir machen zusammen eine Massage",
+        "Wir liegen zusammen und kuscheln",
+        "Wir teilen ein einfaches Mahl"
+      ]
+    },
+    5: {
+      question: "Welche Unterstützung wünschst du dir von deiner Ideal-Großfamilie?",
+      prompt: "Formuliere, was du dir von deiner Ideal-Großfamilie wünschst.",
+      example: "Bitte bleibt immer so liebevoll und verständnisvoll.",
+      blocks: [
+        "Bleibt immer so liebevoll und verständnisvoll",
+        "Seid immer da, wenn ich euch brauche",
+        "Versteht mich weiterhin so gut",
+        "Führt mich weiterhin auf dem rechten Weg",
+        "Lasst mich immer bei euch willkommen sein",
+        "Schenkt mir weiterhin eure bedingungslose Liebe",
+        "Erinnert mich an meine göttliche Natur"
+      ]
+    },
+    6: {
+      question: "Was würde deine Ideal-Großfamilie dir idealerweise sagen?",
+      prompt: "Teile die tröstenden Sätze, die deine Ideal-Großfamilie dir sagen würde.",
+      example: "Du bist geliebt und wertvoll, genau so wie du bist.",
+      blocks: [
+        "Du bist geliebt und wertvoll, genau so wie du bist",
+        "Wir sind immer für dich da, egal was passiert",
+        "Du bist vergeben und angenommen",
+        "Du hast einen besonderen Platz in unserem Herzen",
+        "Wir werden dich nie verlassen",
+        "Du bist unser geliebtes Kind",
+        "Du bist wertvoll und verdienst Liebe und Frieden"
+      ]
+    }
+  },
+
   // IDEAL FIGURES
   'ideal-mother': {
     1: {

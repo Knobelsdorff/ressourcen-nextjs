@@ -6,6 +6,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Check } from 'lucide-react';
 import { realFigures, fictionalFigures } from '@/data/figures';
 import { ResourceFigure } from '@/app/page';
+import IdealFamilyIconFinal from './IdealFamilyIconFinal';
+import JesusIconFinal from './JesusIconFinal';
+import ArchangelMichaelIconFinal from './ArchangelMichaelIconFinal';
+import AngelIconFinal from './AngelIconFinal';
+import SuperheroIconFinal from './SuperheroIconFinal';
 
 interface ResourceFigureSelectionProps {
   selectedFigure: ResourceFigure | null;
@@ -282,7 +287,19 @@ export default function ResourceFigureSelection({
                       >
                         <div className="w-full h-full left-0 top-0 absolute rounded-2xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50">
                           <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-2 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
-                            <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">{figure.emoji}</span>
+                  {figure.id === 'ideal-family' ? (
+                    <IdealFamilyIconFinal size={60} className="w-full h-full" />
+                  ) : figure.id === 'jesus' ? (
+                    <JesusIconFinal size={60} className="w-full h-full" />
+                  ) : figure.id === 'archangel-michael' ? (
+                    <ArchangelMichaelIconFinal size={60} className="w-full h-full" />
+                  ) : figure.id === 'angel' ? (
+                    <AngelIconFinal size={60} className="w-full h-full" />
+                  ) : figure.id === 'superhero' ? (
+                    <SuperheroIconFinal size={60} className="w-full h-full" />
+                  ) : (
+                    <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">{figure.emoji}</span>
+                  )}
                           </div>
                           <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-xs sm:text-base md:text-sm lg:text-base font-bold">
                             {figure.name}
@@ -338,7 +355,19 @@ export default function ResourceFigureSelection({
                       >
                         <div className="w-full h-full left-0 top-0 absolute rounded-2xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50">
                           <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-2 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
-                            <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">{figure.emoji}</span>
+                  {figure.id === 'ideal-family' ? (
+                    <IdealFamilyIconFinal size={60} className="w-full h-full" />
+                  ) : figure.id === 'jesus' ? (
+                    <JesusIconFinal size={60} className="w-full h-full" />
+                  ) : figure.id === 'archangel-michael' ? (
+                    <ArchangelMichaelIconFinal size={60} className="w-full h-full" />
+                  ) : figure.id === 'angel' ? (
+                    <AngelIconFinal size={60} className="w-full h-full" />
+                  ) : figure.id === 'superhero' ? (
+                    <SuperheroIconFinal size={60} className="w-full h-full" />
+                  ) : (
+                    <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">{figure.emoji}</span>
+                  )}
                           </div>
                           <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-xs sm:text-base md:text-sm lg:text-base font-bold">
                             {figure.name}
