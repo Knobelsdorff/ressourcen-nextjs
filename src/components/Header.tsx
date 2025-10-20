@@ -17,39 +17,24 @@ export default function Header() {
   const [success, setSuccess] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
-  const [userFullName, setUserFullName] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Lade den Profilnamen des Users
+  // Close mobile menu when clicking outside
   useEffect(() => {
-    const loadUserFullName = async () => {
-      if (!user) {
-        setUserFullName(null);
-        return;
-      }
-      
-      try {
-        const supabase = createSPAClient();
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('id', user.id)
-          .single();
-
-        if (error) {
-          console.warn('Could not fetch full_name:', error.message);
-          setUserFullName(null);
-          return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isMobileMenuOpen) {
+        const target = event.target as Element;
+        if (!target.closest('.mobile-menu-container')) {
+          setIsMobileMenuOpen(false);
         }
-        
-        setUserFullName((data as { full_name: string | null })?.full_name || null);
-      } catch (e) {
-        console.warn('Failed loading user full name');
-        setUserFullName(null);
       }
     };
-    
-    loadUserFullName();
-  }, [user]);
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMobileMenuOpen]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,22 +190,82 @@ export default function Header() {
           </div>
           <div className="flex items-center space-x-4">
             {user ? (
-              <div className="flex items-center space-x-3">
-                <span className="text-amber-700 text-sm">
-                  Hallo, {userFullName || user.email?.split('@')[0]}!
-                </span>
-                <Link
-                  href="/dashboard"
-                  className="text-amber-900 font-medium hover:text-amber-700 transition-colors px-4 py-2 rounded-lg hover:bg-amber-50"
-                >
-                  Dashboard
-                </Link>
-                <button 
-                  onClick={handleLogout}
-                  className="text-amber-900 font-medium hover:text-amber-700 transition-colors px-4 py-2 rounded-lg hover:bg-amber-50"
-                >
-                  Abmelden
-                </button>
+              <div className="flex items-center">
+                {/* Desktop Menu */}
+                <div className="hidden lg:flex items-center space-x-3">
+                  <Link
+                    href="/dashboard"
+                    className="text-amber-900 font-medium hover:text-amber-700 transition-colors px-4 py-2 rounded-lg hover:bg-amber-50"
+                  >
+                    Dashboard
+                  </Link>
+                  <button 
+                    onClick={handleLogout}
+                    className="text-amber-900 font-medium hover:text-amber-700 transition-colors px-4 py-2 rounded-lg hover:bg-amber-50"
+                  >
+                    Abmelden
+                  </button>
+                </div>
+
+                {/* Mobile Hamburger Menu */}
+                <div className="lg:hidden mobile-menu-container relative">
+                  <button
+                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    className="p-2 rounded-lg text-amber-900 hover:bg-amber-50 transition-colors"
+                    aria-label="Menü öffnen"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d={isMobileMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
+                      />
+                    </svg>
+                  </button>
+
+                  {/* Mobile Dropdown Menu */}
+                  <AnimatePresence>
+                    {isMobileMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute right-4 top-16 bg-white rounded-lg shadow-lg border border-amber-100 py-2 z-50 min-w-[160px]"
+                      >
+                        <Link
+                          href="/dashboard"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="block px-4 py-3 text-amber-900 hover:bg-amber-50 transition-colors flex items-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z" />
+                          </svg>
+                          Dashboard
+                        </Link>
+                        <button
+                          onClick={() => {
+                            handleLogout();
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className="block w-full text-left px-4 py-3 text-amber-900 hover:bg-amber-50 transition-colors flex items-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          </svg>
+                          Abmelden
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             ) : (
               <button 

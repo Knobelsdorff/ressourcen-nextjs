@@ -485,63 +485,6 @@ export default function RessourcenApp() {
 
   return (
    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
-      {/* Mobile Header Progress - OPTIMIZED */}
-      <div className="lg:hidden bg-white/80 backdrop-blur-sm border-b border-orange-100 sticky top-0 z-10">
-        <div className="px-4 py-3">
-          {/* Compact Header */}
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h1 className="text-lg font-light text-amber-900">Ressourcen</h1>
-              <p className="text-amber-700 text-xs">{getCurrentStepInfo().subtitle}</p>
-            </div>
-            
-            {/* Compact Saved Stories Button */}
-            <motion.button
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              onClick={() => setShowSavedStories(true)}
-              className="p-2 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
-            >
-              <Heart className="w-4 h-4" />
-            </motion.button>
-          </div>
-
-          {/* Horizontal Compact Progress */}
-          <div className="flex justify-center">
-            <div className="flex items-center space-x-1">
-              {steps.map((step, index) => (
-                <motion.div
-                  key={step.number}
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="flex items-center"
-                >
-                  <button
-                    onClick={() => handleStepClick(step.number)}
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-all duration-300 hover:scale-110 ${
-                      step.number === appState.currentStep
-                        ? 'bg-amber-500 text-white'
-                        : step.number < appState.currentStep
-                        ? 'bg-green-500 text-white hover:bg-green-600'
-                        : 'bg-orange-100 text-amber-600 hover:bg-orange-200'
-                    }`}
-                  >
-                    {step.number < appState.currentStep ? '✓' : step.number}
-                  </button>
-                  {index < 4 && (
-                    <div 
-                      className={`w-3 h-0.5 mx-0.5 rounded-full transition-all duration-300 ${
-                        step.number < appState.currentStep ? 'bg-green-300' : 'bg-orange-200'
-                      }`}
-                    />
-                  )}
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
 
         {/* Mobile Navigation - Weiter Button (nur ab Schritt 2) */}
         {appState.currentStep >= 2 && (

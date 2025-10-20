@@ -167,7 +167,7 @@ export const fictionalFigures: ResourceFigure[] = [
   {
     id: "jesus",
     name: "Jesus",
-    emoji: "✝️",
+    emoji: "custom-jesus",
     description: "Barmherzig, liebevoll und voller Verständnis für deine Nöte",
     category: "fictional",
     pronouns: "er/ihm"

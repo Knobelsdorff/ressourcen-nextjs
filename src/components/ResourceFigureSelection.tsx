@@ -95,7 +95,7 @@ export default function ResourceFigureSelection({
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
       {/* Hero Section */}
-      <div className="text-center py-16 px-4">
+      <div className="text-center py-0 lg:py-16 px-0 lg:px-4">
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -453,16 +453,16 @@ export default function ResourceFigureSelection({
                         pronouns: 'es/sein',
                         isCustom: false
                       })}
-                      className="w-full h-72 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
+                      className="w-full h-56 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
                     >
                       <div className="w-full h-full left-0 top-0 absolute rounded-2xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50">
-                        <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-3 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
-                          <span className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl">✨</span>
+                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-2 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
+                          <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">✨</span>
                         </div>
-                        <div className="w-full px-3 sm:px-4 md:px-5 lg:px-6 pt-7 sm:pt-8 md:pt-9 lg:pt-10 pb-4 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-sm sm:text-base md:text-sm lg:text-base font-bold">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-xs sm:text-base md:text-sm lg:text-base font-bold">
                           Heilungsraum
                         </div>
-                        <div className="w-full px-3 sm:px-4 md:px-5 lg:px-6 left-0 top-32 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-xs leading-tight">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-xs leading-tight">
                           Ein Raum für Heilung und Regeneration
                         </div>
                       </div>
@@ -480,16 +480,16 @@ export default function ResourceFigureSelection({
                         pronouns: 'es/sein',
                         isCustom: false
                       })}
-                      className="w-full h-72 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
+                      className="w-full h-56 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
                     >
                       <div className="w-full h-full left-0 top-0 absolute rounded-2xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50">
-                        <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-3 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
-                          <span className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl">🌱</span>
+                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-2 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
+                          <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">🌱</span>
                         </div>
-                        <div className="w-full px-3 sm:px-4 md:px-5 lg:px-6 pt-7 sm:pt-8 md:pt-9 lg:pt-10 pb-4 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-sm sm:text-base md:text-sm lg:text-base font-bold">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-xs sm:text-base md:text-sm lg:text-base font-bold">
                           Innerer Garten
                         </div>
-                        <div className="w-full px-3 sm:px-4 md:px-5 lg:px-6 left-0 top-32 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-xs leading-tight">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-xs leading-tight">
                           Ein Garten voller Wachstum und Leben
                         </div>
                       </div>
@@ -507,16 +507,16 @@ export default function ResourceFigureSelection({
                         pronouns: 'es/sein',
                         isCustom: false
                       })}
-                      className="w-full h-72 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
+                      className="w-full h-56 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
                     >
                       <div className="w-full h-full left-0 top-0 absolute rounded-2xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50">
-                        <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-3 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
-                          <span className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl">⚡</span>
+                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-2 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
+                          <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">⚡</span>
                         </div>
-                        <div className="w-full px-3 sm:px-4 md:px-5 lg:px-6 pt-7 sm:pt-8 md:pt-9 lg:pt-10 pb-4 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-sm sm:text-base md:text-sm lg:text-base font-bold">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-xs sm:text-base md:text-sm lg:text-base font-bold">
                           Kraftplatz
                         </div>
-                        <div className="w-full px-3 sm:px-4 md:px-5 lg:px-6 left-0 top-32 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-xs leading-tight">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-xs leading-tight">
                           Ein Ort voller Energie und Stärke
                         </div>
                       </div>
@@ -534,16 +534,16 @@ export default function ResourceFigureSelection({
                         pronouns: 'es/sein',
                         isCustom: false
                       })}
-                      className="w-40 h-64 sm:w-44 sm:h-64 md:w-48 md:h-64 lg:w-52 lg:h-64 relative cursor-pointer"
+                      className="w-full h-56 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
                     >
                       <div className="w-full h-full left-0 top-0 absolute rounded-2xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50">
-                        <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-3 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
-                          <span className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl">🕍</span>
+                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-2 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
+                          <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">🕍</span>
                         </div>
-                        <div className="w-full px-3 sm:px-4 md:px-5 lg:px-6 pt-7 sm:pt-8 md:pt-9 lg:pt-10 pb-4 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-sm sm:text-base md:text-sm lg:text-base font-bold">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-xs sm:text-base md:text-sm lg:text-base font-bold">
                           Innerer Tempel
                         </div>
-                        <div className="w-full px-3 sm:px-4 md:px-5 lg:px-6 left-0 top-32 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-xs leading-tight">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-xs leading-tight">
                           Ein heiliger Raum der Stille
                         </div>
                       </div>
@@ -561,19 +561,19 @@ export default function ResourceFigureSelection({
                         pronouns: 'es/sein',
                         isCustom: false
                       })}
-                      className="w-40 h-64 sm:w-44 sm:h-64 md:w-48 md:h-64 lg:w-52 lg:h-64 relative cursor-pointer"
+                      className="w-full h-56 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
                     >
                       <div className="w-full h-full left-0 top-0 absolute rounded-2xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50">
-                        <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-3 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
-                          <span className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl">⚓</span>
+                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-2 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
+                          <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">⚓</span>
                         </div>
-                        <div className="w-full px-3 sm:px-4 md:px-5 lg:px-6 pt-7 sm:pt-8 md:pt-9 lg:pt-10 pb-4 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-sm sm:text-base md:text-sm lg:text-base font-bold">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-xs sm:text-base md:text-sm lg:text-base font-bold">
                           Mein sicherer Hafen
                         </div>
-                        <div className="w-full px-3 sm:px-4 md:px-5 lg:px-6 left-0 top-32 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-xs leading-tight">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-xs leading-tight">
                           Ein sicherer Ankerplatz für deine Seele
-    </div>
-  </div>
+                        </div>
+                      </div>
                     </motion.div>
                     
                     <motion.div
@@ -588,36 +588,36 @@ export default function ResourceFigureSelection({
                         pronouns: 'es/sein',
                         isCustom: false
                       })}
-                      className="w-40 h-64 sm:w-44 sm:h-64 md:w-48 md:h-64 lg:w-52 lg:h-64 relative cursor-pointer"
+                      className="w-full h-56 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
                     >
                       <div className="w-full h-full left-0 top-0 absolute rounded-2xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50">
-                        <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-3 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
-                          <span className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl">💫</span>
+                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-2 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
+                          <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">💫</span>
                         </div>
-                        <div className="w-full px-3 sm:px-4 md:px-5 lg:px-6 pt-7 sm:pt-8 md:pt-9 lg:pt-10 pb-4 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-sm sm:text-base md:text-sm lg:text-base font-bold">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-xs sm:text-base md:text-sm lg:text-base font-bold">
                           Mein Seelenplatz
                         </div>
-                        <div className="w-full px-3 sm:px-4 md:px-5 lg:px-6 left-0 top-32 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-xs leading-tight">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-xs leading-tight">
                           Ein Ort der tiefen Verbindung
                         </div>
-</div>
-        </motion.div>
+                      </div>
+                    </motion.div>
 
                     {/* Custom Resource Card für Orte */}
                     <motion.div
                       whileHover={{ scale: 1.02, y: -2 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setShowCustomForm(true)}
-                      className="w-full h-72 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
+                      className="w-full h-56 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
                     >
                       <div className="w-full h-full left-0 top-0 absolute rounded-2xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] border-2 border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50">
-                        <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-3 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
-                          <span className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl">➕</span>
+                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-2 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
+                          <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">➕</span>
                         </div>
-                        <div className="w-full px-3 sm:px-4 md:px-5 lg:px-6 pt-7 sm:pt-8 md:pt-9 lg:pt-10 pb-4 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-blue-900 text-sm sm:text-base md:text-sm lg:text-base font-bold">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-blue-900 text-xs sm:text-base md:text-sm lg:text-base font-bold">
                           Custom
                         </div>
-                        <div className="w-full px-3 sm:px-4 md:px-5 lg:px-6 left-0 top-32 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-blue-800 text-xs leading-tight">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-blue-800 text-xs leading-tight">
                           Erstelle deinen eigenen sicheren Ort
                         </div>
                       </div>
@@ -668,7 +668,19 @@ export default function ResourceFigureSelection({
                           transition={{ duration: 2, repeat: Infinity, repeatDelay: 4 }}
                           className="text-2xl lg:text-4xl flex-shrink-0"
                         >
-                          {selectedFigure.emoji}
+                          {selectedFigure.id === 'ideal-family' ? (
+                            <IdealFamilyIconFinal size={48} className="w-8 h-8 lg:w-12 lg:h-12" />
+                          ) : selectedFigure.id === 'jesus' ? (
+                            <JesusIconFinal size={48} className="w-8 h-8 lg:w-12 lg:h-12" />
+                          ) : selectedFigure.id === 'archangel-michael' ? (
+                            <ArchangelMichaelIconFinal size={48} className="w-8 h-8 lg:w-12 lg:h-12" />
+                          ) : selectedFigure.id === 'angel' ? (
+                            <AngelIconFinal size={48} className="w-8 h-8 lg:w-12 lg:h-12" />
+                          ) : selectedFigure.id === 'superhero' ? (
+                            <SuperheroIconFinal size={48} className="w-8 h-8 lg:w-12 lg:h-12" />
+                          ) : (
+                            selectedFigure.emoji
+                          )}
                         </motion.span>
                         <div className="min-w-0 flex-1">
                           <h3 className="text-lg lg:text-2xl font-semibold text-amber-900 leading-tight">
