@@ -172,51 +172,6 @@ export default function Dashboard() {
     }
   }, [user, calculateUserStats]);
 
-  useEffect(() => {
-    if (user) {
-      loadStories();
-      // Prüfe auch nach temporären Geschichten
-      checkForPendingStories();
-      // Lade den vollständigen Namen
-      loadFullName();
-    }
-  }, [user, loadStories, checkForPendingStories, loadFullName]);
-
-  // Zusätzlicher useEffect für E-Mail-Bestätigung
-  useEffect(() => {
-    if (user) {
-      // Kurze Verzögerung, um sicherzustellen, dass der User vollständig authentifiziert ist
-      const timer = setTimeout(() => {
-        checkForPendingStories();
-      }, 1000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [user, checkForPendingStories]);
-
-  // Zusätzlicher useEffect für URL-Parameter (E-Mail-Bestätigung)
-  useEffect(() => {
-    if (user && typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const confirmed = urlParams.get('confirmed');
-      
-      console.log('Dashboard: URL params check', { confirmed, user: !!user });
-      
-      if (confirmed === 'true') {
-        // E-Mail wurde bestätigt, prüfe nach temporären Geschichten
-        console.log('Dashboard: E-Mail confirmed, checking for pending stories...');
-        setTimeout(() => {
-          checkForPendingStories();
-        }, 500);
-        
-        // Entferne den confirmed Parameter aus der URL
-        const newUrl = new URL(window.location.href);
-        newUrl.searchParams.delete('confirmed');
-        window.history.replaceState({}, '', newUrl.toString());
-      }
-    }
-  }, [user, checkForPendingStories]);
-
   const loadFullName = useCallback(async () => {
     if (!user) return;
     
@@ -237,32 +192,6 @@ export default function Dashboard() {
       console.error('Error loading full name:', err);
     }
   }, [user]);
-
-  const saveFullName = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    setFullNameLoading(true);
-    setFullNameError('');
-    setFullNameSuccess('');
-
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ full_name: fullName, pronunciation_hint: pronunciationHint })
-        .eq('id', user.id);
-
-      if (error) {
-        setFullNameError(error.message);
-      } else {
-        setFullNameSuccess('Name erfolgreich gespeichert!');
-      }
-    } catch (err) {
-      setFullNameError('Fehler beim Speichern');
-    } finally {
-      setFullNameLoading(false);
-    }
-  };
 
   const checkForPendingStories = useCallback(async () => {
     console.log('Dashboard: Checking for pending stories...');
@@ -319,6 +248,77 @@ export default function Dashboard() {
       console.error('Error processing pending story:', err);
     }
   }, [user, loadStories]);
+
+  const saveFullName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    setFullNameLoading(true);
+    setFullNameError('');
+    setFullNameSuccess('');
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: fullName, pronunciation_hint: pronunciationHint })
+        .eq('id', user.id);
+
+      if (error) {
+        setFullNameError(error.message);
+      } else {
+        setFullNameSuccess('Name erfolgreich gespeichert!');
+      }
+    } catch (err) {
+      setFullNameError('Fehler beim Speichern');
+    } finally {
+      setFullNameLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      loadStories();
+      // Prüfe auch nach temporären Geschichten
+      checkForPendingStories();
+      // Lade den vollständigen Namen
+      loadFullName();
+    }
+  }, [user, loadStories, checkForPendingStories, loadFullName]);
+
+  // Zusätzlicher useEffect für E-Mail-Bestätigung
+  useEffect(() => {
+    if (user) {
+      // Kurze Verzögerung, um sicherzustellen, dass der User vollständig authentifiziert ist
+      const timer = setTimeout(() => {
+        checkForPendingStories();
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [user, checkForPendingStories]);
+
+  // Zusätzlicher useEffect für URL-Parameter (E-Mail-Bestätigung)
+  useEffect(() => {
+    if (user && typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const confirmed = urlParams.get('confirmed');
+      
+      console.log('Dashboard: URL params check', { confirmed, user: !!user });
+      
+      if (confirmed === 'true') {
+        // E-Mail wurde bestätigt, prüfe nach temporären Geschichten
+        console.log('Dashboard: E-Mail confirmed, checking for pending stories...');
+        setTimeout(() => {
+          checkForPendingStories();
+        }, 500);
+        
+        // Entferne den confirmed Parameter aus der URL
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('confirmed');
+        window.history.replaceState({}, '', newUrl.toString());
+      }
+    }
+  }, [user, checkForPendingStories]);
 
   // Cleanup Audio-Elemente beim Unmount
   useEffect(() => {
