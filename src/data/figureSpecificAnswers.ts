@@ -2034,8 +2034,8 @@ export const figureSpecificData: FigureSpecificData = {
   // JESUS
   'jesus': {
     1: {
-      question: "Wie sieht Jesus aus? Was strahlt er aus?",
-      prompt: "Beschreibe das Aussehen und die Ausstrahlung von Jesus.",
+      question: "Was strahlt Jesus aus?",
+      prompt: "Beschreibe die Ausstrahlung von Jesus.",
       example: "Er hat warme, barmherzige Augen und strahlt eine tiefe Liebe aus.",
       blocks: [
         "Warme, barmherzige Augen voller Verständnis",
@@ -2058,15 +2058,15 @@ export const figureSpecificData: FigureSpecificData = {
         "Wärme und Geborgenheit in mir",
         "Ein echtes Gefühl von Zugehörigkeit",
         "Stabil und in jedem Moment unterstützt",
-        "Vollständigkeit und Harmonie in mir"
+        "Ich fühle sein Mitgefühl für mich"
       ]
     },
     3: {
       question: "Wie tröstet dich Jesus, wenn du Schmerz oder Angst spürst?",
       prompt: "Beschreibe, wie Jesus dich in schwierigen Momenten tröstet.",
-      example: "Er nimmt mich in den Arm und flüstert tröstende Worte.",
+      example: "Er nimmt mich in den Arm und flüstert mitfühlende Worte.",
       blocks: [
-        "Er nimmt mich in den Arm und flüstert tröstende Worte",
+        "Er nimmt mich in den Arm und flüstert mitfühlende Worte",
         "Er streichelt sanft mein Haar",
         "Er hält mich fest und gibt mir Sicherheit",
         "Er hört mir geduldig zu",
@@ -2076,7 +2076,7 @@ export const figureSpecificData: FigureSpecificData = {
       ]
     },
     4: {
-      question: "Welche freudige Aktivität teilt ihr miteinander?",
+      question: "Welche positive Aktivität teilt ihr miteinander?",
       prompt: "Beschreibe schöne, gemeinsame Momente mit Jesus.",
       example: "Wir sitzen zusammen und reden über alles.",
       blocks: [
@@ -2084,8 +2084,8 @@ export const figureSpecificData: FigureSpecificData = {
         "Wir machen zusammen einen Spaziergang",
         "Wir beten zusammen",
         "Wir schauen zusammen in die Natur",
-        "Wir machen zusammen eine Massage",
-        "Wir liegen zusammen und kuscheln",
+        "Er berührt mich sanft und voller Wärme",
+        "Er hält meine Hand und ich spüre seine Liebe",
         "Wir teilen ein einfaches Mahl"
       ]
     },
@@ -2095,8 +2095,8 @@ export const figureSpecificData: FigureSpecificData = {
       example: "Bitte bleib immer so liebevoll und verständnisvoll.",
       blocks: [
         "Bleib immer so liebevoll und verständnisvoll",
-        "Sei immer da, wenn ich dich brauche",
-        "Verstehe mich weiterhin so gut",
+        "Gib mir Halt, wenn ich dich brauche",
+        "Sei voller Mitgefühl und Liebe für mich",
         "Vergebe mir weiterhin meine Fehler",
         "Führe mich weiterhin auf dem rechten Weg",
         "Lass mich immer bei dir willkommen sein",
@@ -2112,7 +2112,7 @@ export const figureSpecificData: FigureSpecificData = {
         "Ich bin immer für dich da, egal was passiert",
         "Du bist vergeben und angenommen",
         "Du hast einen besonderen Platz in meinem Herzen",
-        "Ich werde dich nie verlassen",
+        "Egal was ist, ich werde immer bei dir sein",
         "Du bist mein geliebtes Kind",
         "Du bist wertvoll und verdienst Liebe und Frieden"
       ]

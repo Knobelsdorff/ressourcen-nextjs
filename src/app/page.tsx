@@ -569,6 +569,7 @@ export default function RessourcenApp() {
                     onAudioStateChange={handleAudioStateChange}
                     selectedVoiceId={appState.selectedVoice}
                     sparModus={sparModus}
+                    questionAnswers={appState.questionAnswers}
                   />
                 )}
 

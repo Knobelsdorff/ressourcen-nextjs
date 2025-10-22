@@ -26,6 +26,7 @@ export default function Dashboard() {
   const [generatingAudioFor, setGeneratingAudioFor] = useState<string | null>(null);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [audioElements, setAudioElements] = useState<{ [key: string]: HTMLAudioElement }>({});
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   
   // Profil-spezifische States
   const [fullName, setFullName] = useState('');
@@ -179,9 +180,44 @@ export default function Dashboard() {
       // Lade den vollständigen Namen
       loadFullName();
     }
-  }, [user, loadStories]);
+  }, [user, loadStories, checkForPendingStories, loadFullName]);
 
-  const loadFullName = async () => {
+  // Zusätzlicher useEffect für E-Mail-Bestätigung
+  useEffect(() => {
+    if (user) {
+      // Kurze Verzögerung, um sicherzustellen, dass der User vollständig authentifiziert ist
+      const timer = setTimeout(() => {
+        checkForPendingStories();
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [user, checkForPendingStories]);
+
+  // Zusätzlicher useEffect für URL-Parameter (E-Mail-Bestätigung)
+  useEffect(() => {
+    if (user && typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const confirmed = urlParams.get('confirmed');
+      
+      console.log('Dashboard: URL params check', { confirmed, user: !!user });
+      
+      if (confirmed === 'true') {
+        // E-Mail wurde bestätigt, prüfe nach temporären Geschichten
+        console.log('Dashboard: E-Mail confirmed, checking for pending stories...');
+        setTimeout(() => {
+          checkForPendingStories();
+        }, 500);
+        
+        // Entferne den confirmed Parameter aus der URL
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('confirmed');
+        window.history.replaceState({}, '', newUrl.toString());
+      }
+    }
+  }, [user, checkForPendingStories]);
+
+  const loadFullName = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -200,7 +236,7 @@ export default function Dashboard() {
     } catch (err) {
       console.error('Error loading full name:', err);
     }
-  };
+  }, [user]);
 
   const saveFullName = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -228,40 +264,61 @@ export default function Dashboard() {
     }
   };
 
-  const checkForPendingStories = async () => {
-    const savedPendingStory = localStorage.getItem('pendingStory');
-    if (savedPendingStory && user) {
-      console.log('Dashboard: Found pending story, saving to database...');
-      try {
-        const storyData = JSON.parse(savedPendingStory);
-        
-        const { data, error } = await supabase
-          .from('saved_stories')
-          .insert({
-            user_id: user.id,
-            title: `Reise mit ${storyData.selectedFigure.name}`,
-            content: storyData.generatedStory,
-            resource_figure: storyData.selectedFigure,
-            question_answers: storyData.questionAnswers,
-            audio_url: storyData.audioState?.audioUrl || null,
-            voice_id: storyData.selectedVoiceId || null
-          })
-          .select();
-
-        if (error) {
-          console.error('Error saving pending story from dashboard:', error);
-        } else {
-          console.log('Pending story saved from dashboard:', data);
-          // Lösche temporäre Daten
-          localStorage.removeItem('pendingStory');
-          // Lade Geschichten neu
-          loadStories();
-        }
-      } catch (err) {
-        console.error('Error processing pending story:', err);
-      }
+  const checkForPendingStories = useCallback(async () => {
+    console.log('Dashboard: Checking for pending stories...');
+    
+    if (!user) {
+      console.log('Dashboard: No user found, skipping pending story check');
+      return;
     }
-  };
+    
+    const savedPendingStory = localStorage.getItem('pendingStory');
+    console.log('Dashboard: Pending story exists:', !!savedPendingStory);
+    
+    if (!savedPendingStory) {
+      console.log('Dashboard: No pending story found');
+      return;
+    }
+    
+    try {
+      const storyData = JSON.parse(savedPendingStory);
+      console.log('Dashboard: Story data:', {
+        generatedStory: storyData.generatedStory?.substring(0, 50) + '...',
+        selectedFigure: storyData.selectedFigure?.name,
+        questionAnswers: storyData.questionAnswers?.length || 0
+      });
+      
+      const { data, error } = await supabase
+        .from('saved_stories')
+        .insert({
+          user_id: user.id,
+          story_text: storyData.generatedStory,
+          figure_name: storyData.selectedFigure.name,
+          figure_emoji: storyData.selectedFigure.emoji,
+          voice_name: null, // Wird später gesetzt
+          audio_url: storyData.audioState?.audioUrl || null,
+          voice_id: storyData.selectedVoiceId || null,
+          question_answers: storyData.questionAnswers || []
+        })
+        .select();
+
+      if (error) {
+        console.error('Error saving pending story from dashboard:', error);
+        // Versuche es erneut nach einer kurzen Pause
+        setTimeout(() => {
+          checkForPendingStories();
+        }, 2000);
+      } else {
+        console.log('Pending story saved from dashboard:', data);
+        // Lösche temporäre Daten
+        localStorage.removeItem('pendingStory');
+        // Lade Geschichten neu
+        loadStories();
+      }
+    } catch (err) {
+      console.error('Error processing pending story:', err);
+    }
+  }, [user, loadStories]);
 
   // Cleanup Audio-Elemente beim Unmount
   useEffect(() => {
@@ -288,11 +345,20 @@ export default function Dashboard() {
       } else {
         // Aktualisiere die lokale Liste
         setStories(stories.filter(story => story.id !== storyId));
+        setDeleteConfirmId(null); // Bestätigung schließen
       }
     } catch (err) {
       console.error('Error:', err);
       alert('Ein unerwarteter Fehler ist aufgetreten');
     }
+  };
+
+  const handleDeleteClick = (storyId: string) => {
+    setDeleteConfirmId(storyId);
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirmId(null);
   };
 
   const downloadStory = (story: SavedStory) => {
@@ -788,13 +854,30 @@ ${story.content}
                           </p>
                         </div>
                         <div className="flex space-x-2">
-                          <button
-                            onClick={() => deleteStory(story.id)}
-                            className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                            title="Geschichte löschen"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {deleteConfirmId === story.id ? (
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => deleteStory(story.id)}
+                                className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                              >
+                                Bestätigen
+                              </button>
+                              <button
+                                onClick={handleDeleteCancel}
+                                className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm"
+                              >
+                                Abbrechen
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleDeleteClick(story.id)}
+                              className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                              title="Geschichte löschen"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
                       

@@ -9,6 +9,11 @@ import { ResourceFigure, AudioState } from "@/app/page";
 import { useAuth } from "@/components/providers/auth-provider";
 import { createSPAClient } from "@/lib/supabase/client";
 import { supabase } from "@/lib/supabase";
+import IdealFamilyIconFinal from "./IdealFamilyIconFinal";
+import JesusIconFinal from "./JesusIconFinal";
+import ArchangelMichaelIconFinal from "./ArchangelMichaelIconFinal";
+import AngelIconFinal from "./AngelIconFinal";
+import SuperheroIconFinal from "./SuperheroIconFinal";
 
 interface Voice {
   id: string;
@@ -30,6 +35,7 @@ interface AudioPlaybackProps {
   onAudioStateChange: (audioState: AudioState | null) => void;
   selectedVoiceId?: string;
   sparModus?: boolean;
+  questionAnswers?: any[];
 }
 
 // Voices will be loaded dynamically from API
@@ -41,7 +47,8 @@ export default function AudioPlayback({
   audioState,
   onAudioStateChange,
   selectedVoiceId,
-  sparModus = false
+  sparModus = false,
+  questionAnswers = []
 }: AudioPlaybackProps) {
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
   const [availableVoices, setAvailableVoices] = useState<Voice[]>([]);
@@ -110,7 +117,7 @@ export default function AudioPlayback({
       generatedStory,
       audioState,
       selectedVoiceId,
-      questionAnswers: [], // Leer für jetzt
+      questionAnswers: questionAnswers || [],
       timestamp: Date.now()
     };
     
@@ -135,10 +142,10 @@ export default function AudioPlayback({
         .from('saved_stories')
         .insert({
           user_id: user.id,
-          title: `Reise mit ${pendingStory.selectedFigure.name}`,
-          content: pendingStory.generatedStory,
-          resource_figure: pendingStory.selectedFigure,
-          question_answers: pendingStory.questionAnswers,
+          story_text: pendingStory.generatedStory,
+          figure_name: pendingStory.selectedFigure.name,
+          figure_emoji: pendingStory.selectedFigure.emoji,
+          voice_name: null, // Wird später gesetzt
           audio_url: pendingStory.audioState?.audioUrl || null,
           voice_id: pendingStory.selectedVoiceId || null
         })
@@ -146,10 +153,10 @@ export default function AudioPlayback({
 
       if (error) {
         console.error('Error saving pending story:', error);
-        alert(`Fehler beim Speichern: ${error.message}`);
+        // Kein Popup - nur Console-Log
       } else {
         console.log('Pending story saved successfully:', data);
-        alert('Ressource erfolgreich gespeichert!');
+        // Kein Popup - nur Console-Log
         // Lösche temporäre Daten
         localStorage.removeItem('pendingStory');
         setPendingStory(null);
@@ -244,6 +251,10 @@ export default function AudioPlayback({
           setAuthError(error.message);
         } else {
           setAuthSuccess('Anmeldung erfolgreich!');
+          // Speichere temporäre Ressource sofort nach Login
+          setTimeout(() => {
+            savePendingStoryToDatabase();
+          }, 500);
           setTimeout(() => {
             setShowAuthModal(false);
             setAuthSuccess('');
@@ -744,9 +755,9 @@ export default function AudioPlayback({
           animate={{ y: 0, opacity: 1 }}
           className="text-center mb-8"
         >
-          <div className="text-5xl mb-4">🎧</div>
+          <div className="text-5xl mb-4">💎</div>
           <h2 className="text-2xl lg:text-3xl font-light text-amber-900 mb-2">
-            Höre deine Geschichte
+            Deine Ressource
           </h2>
           <p className="text-amber-700">
             Lass <span className="font-medium">{selectedFigure.name}</span> dich zu innerer Sicherheit führen
@@ -762,11 +773,22 @@ export default function AudioPlayback({
         >
           {/* Resource Figure Display */}
           <div className="text-center mb-8">
-            <div className="text-4xl mb-3">{selectedFigure.emoji}</div>
+            <div className="text-4xl mb-3 flex justify-center">
+              {selectedFigure.id === 'ideal-family' ? (
+                <IdealFamilyIconFinal size={60} className="w-12 h-12" />
+              ) : selectedFigure.id === 'jesus' ? (
+                <JesusIconFinal size={60} className="w-12 h-12" />
+              ) : selectedFigure.id === 'archangel-michael' ? (
+                <ArchangelMichaelIconFinal size={60} className="w-12 h-12" />
+              ) : selectedFigure.id === 'angel' ? (
+                <AngelIconFinal size={60} className="w-12 h-12" />
+              ) : selectedFigure.id === 'superhero' ? (
+                <SuperheroIconFinal size={60} className="w-12 h-12" />
+              ) : (
+                selectedFigure.emoji
+              )}
+            </div>
             <h3 className="text-xl font-medium text-amber-900">{selectedFigure.name}</h3>
-            {selectedFigure.description && (
-              <p className="text-amber-600 text-sm mt-1">{selectedFigure.description}</p>
-            )}
           </div>
 
           {/* Audio Controls */}
