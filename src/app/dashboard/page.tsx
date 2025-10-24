@@ -524,12 +524,12 @@ export default function Dashboard() {
         }
         acc[key].push(story);
         return acc;
-      }, {} as Record<string, any[]>);
+      }, {} as Record<string, SavedStory[]>);
 
       // Für jede Gruppe: behalte nur die erste, lösche den Rest
       let deletedCount = 0;
       for (const [title, stories] of Object.entries(groupedStories)) {
-        if (stories.length > 1) {
+        if (Array.isArray(stories) && stories.length > 1) {
           // Sortiere nach created_at (älteste zuerst)
           const sortedStories = stories.sort((a, b) => 
             new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
