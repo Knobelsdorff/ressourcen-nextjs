@@ -36,6 +36,7 @@ interface AudioPlaybackProps {
   selectedVoiceId?: string;
   sparModus?: boolean;
   questionAnswers?: any[];
+  onShowAccountCreated?: () => void;
 }
 
 // Voices will be loaded dynamically from API
@@ -48,7 +49,8 @@ export default function AudioPlayback({
   onAudioStateChange,
   selectedVoiceId,
   sparModus = false,
-  questionAnswers = []
+  questionAnswers = [],
+  onShowAccountCreated
 }: AudioPlaybackProps) {
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
   const [availableVoices, setAvailableVoices] = useState<Voice[]>([]);
@@ -135,6 +137,11 @@ export default function AudioPlayback({
       return;
     }
     
+    if (!pendingStory) {
+      console.log('No pending story found');
+      return;
+    }
+    
     try {
       console.log('Saving pending story to database...');
       
@@ -142,10 +149,10 @@ export default function AudioPlayback({
         .from('saved_stories')
         .insert({
           user_id: user.id,
-          story_text: pendingStory.generatedStory,
-          figure_name: pendingStory.selectedFigure.name,
-          figure_emoji: pendingStory.selectedFigure.emoji,
-          voice_name: null, // Wird später gesetzt
+          title: pendingStory.selectedFigure.name,
+          content: pendingStory.generatedStory,
+          resource_figure: pendingStory.selectedFigure.name,
+          question_answers: Array.isArray(pendingStory.questionAnswers) ? pendingStory.questionAnswers : [],
           audio_url: pendingStory.audioState?.audioUrl || null,
           voice_id: pendingStory.selectedVoiceId || null
         })
@@ -164,7 +171,7 @@ export default function AudioPlayback({
       }
     } catch (err) {
       console.error('Error saving pending story:', err);
-      alert(`Fehler beim Speichern: ${err}`);
+      // Kein Popup - nur Console-Log
     }
   };
 
@@ -177,16 +184,51 @@ export default function AudioPlayback({
     }
     
     try {
-      console.log('Saving story to database...');
+      console.log('Checking for existing duplicate story...');
+      
+      let shouldSkipSave = false;
+      
+      try {
+        // Robuste Duplikat-Prüfung - prüfe nach title, content und user_id
+        console.log('AudioPlayback: Checking for duplicates with title:', selectedFigure.name, 'and content:', generatedStory.substring(0, 50) + '...');
+        
+        const { data: existingStories, error: checkError } = await supabase
+          .from('saved_stories')
+          .select('id, title, content, created_at')
+          .eq('user_id', user.id)
+          .eq('title', selectedFigure.name)
+          .eq('content', generatedStory)
+          .order('created_at', { ascending: false });
+
+        if (checkError) {
+          console.error('Error checking for duplicates:', checkError);
+          console.log('Continuing with save despite duplicate check error...');
+        } else if (existingStories && existingStories.length > 0) {
+          console.log('AudioPlayback: Duplicate story found, skipping save to prevent duplicates');
+          console.log('AudioPlayback: Found', existingStories.length, 'existing stories with same title');
+          shouldSkipSave = true;
+        } else {
+          console.log('AudioPlayback: No duplicates found, proceeding with save');
+        }
+      } catch (duplicateCheckError) {
+        console.error('Error during duplicate check:', duplicateCheckError);
+        console.log('Continuing with save despite duplicate check error...');
+      }
+
+      if (shouldSkipSave) {
+        return;
+      }
+
+      console.log('No duplicates found, saving story to database...');
       
       const { data, error } = await supabase
         .from('saved_stories')
         .insert({
           user_id: user.id,
-          title: `Reise mit ${selectedFigure.name}`,
+          title: selectedFigure.name,
           content: generatedStory,
-          resource_figure: selectedFigure,
-          question_answers: [], // Leer für jetzt
+          resource_figure: selectedFigure.name,
+          question_answers: Array.isArray(questionAnswers) ? questionAnswers : [],
           audio_url: audioState?.audioUrl || null,
           voice_id: selectedVoiceId || null
         })
@@ -238,12 +280,11 @@ export default function AudioPlayback({
             setAuthError(`Fehler: ${error.message}`);
           }
         } else {
-          // Erfolgreiche Registrierung - zeige Erfolgsmeldung
-          setAuthSuccess('Registrierung erfolgreich! Bitte überprüfe deine E-Mails und klicke auf den Bestätigungslink.');
-          setTimeout(() => {
-            setShowAuthModal(false);
-            setAuthSuccess('');
-          }, 5000);
+          // Erfolgreiche Registrierung - zeige AccountCreated Seite
+          setShowAuthModal(false);
+          if (onShowAccountCreated) {
+            onShowAccountCreated();
+          }
         }
       } else {
         const { error } = await signIn(email, password);
@@ -253,7 +294,9 @@ export default function AudioPlayback({
           setAuthSuccess('Anmeldung erfolgreich!');
           // Speichere temporäre Ressource sofort nach Login
           setTimeout(() => {
-            savePendingStoryToDatabase();
+            if (pendingStory) {
+              savePendingStoryToDatabase();
+            }
           }, 500);
           setTimeout(() => {
             setShowAuthModal(false);
@@ -269,21 +312,26 @@ export default function AudioPlayback({
   };
 
   const handleSaveStory = async () => {
+    // Speichere IMMER zuerst als temporäre Geschichte
+    savePendingStory();
+    
     if (user) {
-      // Direkt speichern wenn angemeldet
+      // Wenn angemeldet, versuche sofort in der Datenbank zu speichern
       try {
         await saveStoryToDatabase();
+        // Lösche temporäre Daten nach erfolgreichem Speichern
+        localStorage.removeItem('pendingStory');
+        setPendingStory(null);
         // Direkt zum Dashboard navigieren nach erfolgreichem Speichern
         router.push('/dashboard');
       } catch (error) {
         console.error('Fehler beim Speichern:', error);
-        // Trotzdem zum Dashboard navigieren
+        // Trotzdem zum Dashboard navigieren (temporäre Geschichte bleibt erhalten)
         router.push('/dashboard');
       }
     } else {
-      // Temporäre Speicherung für unangemeldete User
-      savePendingStory();
-      setShowAuthModal(true); // Auth-Modal öffnen
+      // Für unangemeldete User: Auth-Modal öffnen
+      setShowAuthModal(true);
     }
   };
 

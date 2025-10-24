@@ -11,7 +11,7 @@ import RelationshipSelection, { QuestionAnswer } from "@/components/Relationship
 import StoryGeneration from "@/components/StoryGeneration";
 import VoiceSelection from "@/components/VoiceSelection";
 import AudioPlayback from "@/components/AudioPlayback";
-import SaveAndReflect from "@/components/SaveAndReflect";
+import AccountCreated from "@/components/AccountCreated";
 import SavedStoriesModal from "@/components/SavedStoriesModal";
 import { useAppReset } from "@/components/providers/app-reset-provider";
 
@@ -74,11 +74,6 @@ export interface AppState {
       number: 4,
       title: "Anhören",
       icon: "🎧"
-    },
-    {
-      number: 5,
-      title: "Speichern & Reflektieren",
-      icon: "🌟"
     }
   ];
 
@@ -96,6 +91,7 @@ const initialAppState: AppState = {
 export default function RessourcenApp() {
   const [appState, setAppState] = useState<AppState>(initialAppState);
   const [showSavedStories, setShowSavedStories] = useState(false);
+  const [showAccountCreated, setShowAccountCreated] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { user } = useAuth();
   const { setResetFunction } = useAppReset();
@@ -570,18 +566,10 @@ export default function RessourcenApp() {
                     selectedVoiceId={appState.selectedVoice}
                     sparModus={sparModus}
                     questionAnswers={appState.questionAnswers}
+                    onShowAccountCreated={() => setShowAccountCreated(true)}
                   />
                 )}
 
-                {appState.currentStep === 5 && appState.resourceFigure && appState.selectedVoice && (
-                  <SaveAndReflect
-                    resourceFigure={appState.resourceFigure}
-                    questionAnswers={appState.questionAnswers}
-                    generatedStory={appState.generatedStory}
-                    onDiscard={handleStoryDiscard}
-                    audioState={appState.audioState}
-                  />
-                )}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -593,6 +581,17 @@ export default function RessourcenApp() {
         isOpen={showSavedStories} 
         onClose={() => setShowSavedStories(false)} 
       />
+
+      {/* Account Created Modal */}
+      {showAccountCreated && (
+        <AccountCreated 
+          onClose={() => {
+            setShowAccountCreated(false);
+            // Weiterleitung zum Dashboard
+            window.location.href = '/dashboard';
+          }} 
+        />
+      )}
     </div>
   );
 }

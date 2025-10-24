@@ -5,8 +5,9 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/dashboard?confirmed=true'
+  const isLocal = searchParams.get('local') === 'true'
 
-  console.log('Auth callback:', { code: !!code, next, origin })
+  console.log('Auth callback:', { code: !!code, next, origin, isLocal })
 
   if (code) {
     try {
@@ -15,25 +16,43 @@ export async function GET(request: Request) {
       console.log('Auth exchange result:', { error: error?.message })
       
       if (!error) {
-        const forwardedHost = request.headers.get('x-forwarded-host')
-        const isLocalEnv = process.env.NODE_ENV === 'development'
-        
         let redirectUrl: string
-        if (isLocalEnv) {
-          redirectUrl = `${origin}${next}`
-        } else if (forwardedHost) {
-          redirectUrl = `https://${forwardedHost}${next}`
+        
+        if (isLocal) {
+          // Wenn local=true, leite zu localhost weiter
+          redirectUrl = `http://localhost:3000${next}`
+          console.log('Local redirect to:', redirectUrl)
         } else {
-          redirectUrl = `${origin}${next}`
+          // Normale Produktions-Logik
+          const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1')
+          const forwardedHost = request.headers.get('x-forwarded-host')
+          
+          if (isLocalhost) {
+            // Für localhost, verwende immer Port 3000
+            redirectUrl = `http://localhost:3000${next}`
+            console.log('Localhost redirect to:', redirectUrl)
+          } else if (forwardedHost) {
+            redirectUrl = `https://${forwardedHost}${next}`
+          } else {
+            redirectUrl = `${origin}${next}`
+          }
         }
         
-        console.log('Redirecting to:', redirectUrl)
+        console.log('Final redirect to:', redirectUrl)
         return NextResponse.redirect(redirectUrl)
       } else {
         console.error('Auth exchange error:', error)
       }
     } catch (err) {
       console.error('Auth callback error:', err)
+    }
+  } else {
+    // Wenn kein Code vorhanden ist, aber wir auf localhost sind, leite trotzdem weiter
+    const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1')
+    if (isLocalhost) {
+      console.log('No code but localhost detected, redirecting anyway')
+      // Für localhost ohne Code, leite direkt zum Dashboard weiter
+      return NextResponse.redirect(`${origin}/dashboard?confirmed=true`)
     }
   }
 

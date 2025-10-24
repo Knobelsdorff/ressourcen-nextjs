@@ -46,9 +46,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string) => {
+    // Erkenne die aktuelle Domain zur Laufzeit
+    const currentOrigin = window.location.origin;
+    
+    console.log('SignUp - Current origin:', currentOrigin);
+    
+    // Speichere die aktuelle Domain in localStorage für späteren Gebrauch
+    localStorage.setItem('signupOrigin', currentOrigin);
+    
+    // Verwende die aktuelle Domain als emailRedirectTo
+    const redirectUrl = `${currentOrigin}/api/auth/callback?next=/dashboard?confirmed=true`;
+    
+    console.log('SignUp redirect URL:', redirectUrl);
+    
     const { error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        // Zusätzliche Optionen für bessere Kompatibilität
+        data: {
+          signup_origin: currentOrigin
+        }
+      }
     });
     return { error };
   };
@@ -66,8 +86,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const resetPassword = async (email: string) => {
+    const currentOrigin = window.location.origin;
+    const redirectUrl = `${currentOrigin}/api/auth/callback?next=/reset-password`;
+    
+    console.log('Reset password redirect URL:', redirectUrl);
+    
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: redirectUrl,
     });
     return { error };
   };

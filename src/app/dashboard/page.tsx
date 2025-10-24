@@ -27,6 +27,8 @@ export default function Dashboard() {
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [audioElements, setAudioElements] = useState<{ [key: string]: HTMLAudioElement }>({});
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [pendingStory, setPendingStory] = useState<any>(null);
+  const [isSavingPendingStory, setIsSavingPendingStory] = useState(false);
   
   // Profil-spezifische States
   const [fullName, setFullName] = useState('');
@@ -139,11 +141,11 @@ export default function Dashboard() {
   // Lade Geschichten aus Supabase
   const loadStories = useCallback(async () => {
     if (!user) {
-      console.log('No user logged in');
+      console.log('Dashboard: No user logged in, skipping loadStories');
       return;
     }
     
-    console.log('Loading stories for user:', user.id, user.email);
+    console.log('Dashboard: Loading stories for user:', user.id, user.email);
     setLoading(true);
     setError('');
     
@@ -196,8 +198,9 @@ export default function Dashboard() {
   const checkForPendingStories = useCallback(async () => {
     console.log('Dashboard: Checking for pending stories...');
     
-    if (!user) {
-      console.log('Dashboard: No user found, skipping pending story check');
+    // Verhindere mehrfache Aufrufe während der Ausführung
+    if (isSavingPendingStory) {
+      console.log('Dashboard: Already processing pending story, skipping...');
       return;
     }
     
@@ -209,6 +212,33 @@ export default function Dashboard() {
       return;
     }
     
+    if (pendingStory) {
+      console.log('Dashboard: Pending story already in state, skipping...');
+      return;
+    }
+    
+    // Prüfe, ob der User wirklich authentifiziert ist
+    console.log('Dashboard: User check:', { user: !!user, userId: user?.id, userEmail: user?.email });
+    
+    if (!user || !user.id) {
+      console.log('Dashboard: No valid user found, cannot save pending story');
+      // Setze die temporäre Ressource trotzdem an, damit sie angezeigt wird
+      try {
+        const storyData = JSON.parse(savedPendingStory);
+        setPendingStory(storyData);
+        console.log('Dashboard: Pending story set in state for display (user not authenticated)');
+      } catch (err) {
+        console.error('Dashboard: Error parsing pending story:', err);
+      }
+      return;
+    }
+    
+    // Verhindere mehrfache Speicherung
+    if (isSavingPendingStory) {
+      console.log('Dashboard: Already saving pending story, skipping...');
+      return;
+    }
+    
     try {
       const storyData = JSON.parse(savedPendingStory);
       console.log('Dashboard: Story data:', {
@@ -217,37 +247,151 @@ export default function Dashboard() {
         questionAnswers: storyData.questionAnswers?.length || 0
       });
       
-      const { data, error } = await supabase
-        .from('saved_stories')
-        .insert({
-          user_id: user.id,
-          story_text: storyData.generatedStory,
-          figure_name: storyData.selectedFigure.name,
-          figure_emoji: storyData.selectedFigure.emoji,
-          voice_name: null, // Wird später gesetzt
-          audio_url: storyData.audioState?.audioUrl || null,
-          voice_id: storyData.selectedVoiceId || null,
-          question_answers: storyData.questionAnswers || []
-        })
-        .select();
+      // Setze die temporäre Ressource IMMER im State, damit sie angezeigt wird
+      setPendingStory(storyData);
+      console.log('Dashboard: Pending story set in state for display');
+      
+    // Prüfe User-Status erneut, da er sich während der Ausführung ändern kann
+    const currentUser = user;
+    console.log('Dashboard: Current user status:', !!currentUser, currentUser?.id);
+    
+    // Warte kurz, falls der User-Status noch nicht vollständig geladen ist
+    if (!currentUser) {
+      console.log('Dashboard: User not ready yet, waiting...');
+      setTimeout(() => {
+        checkForPendingStories();
+      }, 2000);
+      return;
+    }
+    
+    console.log('Dashboard: User is authenticated, proceeding with save...');
+    
+    // Flag FRÜH setzen um mehrfache Aufrufe zu verhindern
+    setIsSavingPendingStory(true);
+    
+    if (currentUser) {
+        // Wenn User authentifiziert ist, versuche in der Datenbank zu speichern
+        console.log('Dashboard: User authenticated, attempting to save to database...');
+        
+        try {
+          // Prüfe zuerst, ob bereits eine identische Ressource existiert
+          console.log('Dashboard: Checking for existing duplicate story...');
+          
+          let shouldSkipSave = false;
+          
+          try {
+            // Robuste Duplikat-Prüfung - prüfe nach title, content und user_id
+            console.log('Dashboard: Checking for duplicates with title:', storyData.selectedFigure.name, 'and content:', storyData.generatedStory.substring(0, 50) + '...');
+            
+            const { data: existingStories, error: checkError } = await supabase
+              .from('saved_stories')
+              .select('id, title, content, created_at')
+              .eq('user_id', user.id)
+              .eq('title', storyData.selectedFigure.name)
+              .eq('content', storyData.generatedStory)
+              .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error saving pending story from dashboard:', error);
-        // Versuche es erneut nach einer kurzen Pause
-        setTimeout(() => {
-          checkForPendingStories();
-        }, 2000);
+            if (checkError) {
+              console.error('Error checking for duplicates:', checkError);
+              console.log('Continuing with save despite duplicate check error...');
+            } else if (existingStories && existingStories.length > 0) {
+              console.log('Dashboard: Duplicate story found, skipping save to prevent duplicates');
+              console.log('Dashboard: Found', existingStories.length, 'existing stories with same title');
+              shouldSkipSave = true;
+            } else {
+              console.log('Dashboard: No duplicates found, proceeding with save');
+            }
+          } catch (duplicateCheckError) {
+            console.error('Error during duplicate check:', duplicateCheckError);
+            console.log('Continuing with save despite duplicate check error...');
+          }
+
+          if (shouldSkipSave) {
+            // Lösche temporäre Daten trotzdem
+            localStorage.removeItem('pendingStory');
+            setPendingStory(null);
+            loadStories();
+            return;
+          }
+
+          // Debug: Logge die Daten vor dem Speichern
+          console.log('Dashboard: No duplicates found, attempting to save with data:', {
+            user_id: user.id,
+            story_text: storyData.generatedStory?.substring(0, 50) + '...',
+            figure_name: storyData.selectedFigure?.name,
+            figure_emoji: storyData.selectedFigure?.emoji,
+            audio_url: storyData.audioState?.audioUrl ? 'has audio' : 'no audio',
+            voice_id: storyData.selectedVoiceId,
+            question_answers_count: storyData.questionAnswers?.length || 0
+          });
+
+          // Verwende nur die user_id Spalte, die wir wissen, dass sie existiert
+          // Verwende die Spalten, die definitiv existieren: user_id, title, content, resource_figure und question_answers
+          console.log('Dashboard: Using confirmed columns: user_id, title, content, resource_figure and question_answers');
+          
+          const correctData = {
+            user_id: user.id,
+            title: storyData.selectedFigure.name,
+            content: storyData.generatedStory,
+            resource_figure: storyData.selectedFigure.name,
+            question_answers: Array.isArray(storyData.questionAnswers) ? storyData.questionAnswers : []
+          };
+          
+          console.log('Dashboard: Inserting with correct data:', correctData);
+          
+          const { data, error } = await supabase
+            .from('saved_stories')
+            .insert(correctData)
+            .select();
+
+          if (error) {
+            console.error('Error saving pending story from dashboard:', error);
+            console.log('Dashboard: Database save failed, but showing temporary resource anyway');
+            console.log('Dashboard: Error details:', {
+              message: error.message,
+              details: error.details,
+              hint: error.hint,
+              code: error.code
+            });
+            console.log('Dashboard: Full error object:', error);
+            console.log('Dashboard: Error message:', error.message);
+            console.log('Dashboard: Error code:', error.code);
+            console.log('Dashboard: Insert data that failed:', correctData);
+            // Versuche es erneut nach einer kurzen Pause
+            setTimeout(() => {
+              checkForPendingStories();
+            }, 3000);
+          } else {
+            console.log('Pending story saved from dashboard:', data);
+            // Lösche temporäre Daten nur wenn erfolgreich gespeichert
+            localStorage.removeItem('pendingStory');
+            setPendingStory(null);
+            // Lade Geschichten neu
+            loadStories();
+            // Verhindere weitere Speicherversuche
+            return;
+          }
+        } catch (dbError) {
+          console.error('Database error:', dbError);
+          console.log('Dashboard: Database error, but showing temporary resource anyway');
+          // Versuche es erneut nach einer kurzen Pause
+          setTimeout(() => {
+            checkForPendingStories();
+          }, 3000);
+        } finally {
+          setIsSavingPendingStory(false); // Flag zurücksetzen
+        }
       } else {
-        console.log('Pending story saved from dashboard:', data);
-        // Lösche temporäre Daten
-        localStorage.removeItem('pendingStory');
-        // Lade Geschichten neu
-        loadStories();
+        // Wenn User nicht authentifiziert ist, zeige temporäre Ressource an
+        console.log('Dashboard: User not authenticated, showing temporary resource');
+        console.log('Dashboard: Please log in to save your resource permanently');
+        setIsSavingPendingStory(false); // Flag auch hier zurücksetzen
       }
     } catch (err) {
       console.error('Error processing pending story:', err);
+      setIsSavingPendingStory(false); // Flag auch bei Fehlern zurücksetzen
     }
-  }, [user, loadStories]);
+  }, [user, loadStories, pendingStory, isSavingPendingStory]);
 
   const saveFullName = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -278,47 +422,41 @@ export default function Dashboard() {
   useEffect(() => {
     if (user) {
       loadStories();
-      // Prüfe auch nach temporären Geschichten
-      checkForPendingStories();
       // Lade den vollständigen Namen
       loadFullName();
     }
-  }, [user, loadStories, checkForPendingStories, loadFullName]);
+  }, [user]);
 
-  // Zusätzlicher useEffect für E-Mail-Bestätigung
+  // Einziger useEffect für pending stories und URL-Parameter
   useEffect(() => {
     if (user) {
-      // Kurze Verzögerung, um sicherzustellen, dass der User vollständig authentifiziert ist
-      const timer = setTimeout(() => {
-        checkForPendingStories();
-      }, 1000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [user, checkForPendingStories]);
-
-  // Zusätzlicher useEffect für URL-Parameter (E-Mail-Bestätigung)
-  useEffect(() => {
-    if (user && typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const confirmed = urlParams.get('confirmed');
-      
-      console.log('Dashboard: URL params check', { confirmed, user: !!user });
-      
-      if (confirmed === 'true') {
-        // E-Mail wurde bestätigt, prüfe nach temporären Geschichten
-        console.log('Dashboard: E-Mail confirmed, checking for pending stories...');
-        setTimeout(() => {
-          checkForPendingStories();
-        }, 500);
+      // Prüfe URL-Parameter für E-Mail-Bestätigung
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const confirmed = urlParams.get('confirmed');
         
-        // Entferne den confirmed Parameter aus der URL
-        const newUrl = new URL(window.location.href);
-        newUrl.searchParams.delete('confirmed');
-        window.history.replaceState({}, '', newUrl.toString());
+        console.log('Dashboard: URL params check', { confirmed, user: !!user });
+        
+        if (confirmed === 'true') {
+          // E-Mail wurde bestätigt, prüfe nach temporären Geschichten
+          console.log('Dashboard: E-Mail confirmed, checking for pending stories...');
+          setTimeout(() => {
+            checkForPendingStories();
+          }, 500);
+          
+          // Entferne den confirmed Parameter aus der URL
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete('confirmed');
+          window.history.replaceState({}, '', newUrl.toString());
+        } else {
+          // Normale Prüfung nach pending stories
+          checkForPendingStories();
+        }
       }
     }
-  }, [user, checkForPendingStories]);
+  }, [user]);
+
+  // Entfernt - redundanter useEffect
 
   // Cleanup Audio-Elemente beim Unmount
   useEffect(() => {
@@ -353,12 +491,77 @@ export default function Dashboard() {
     }
   };
 
+
   const handleDeleteClick = (storyId: string) => {
     setDeleteConfirmId(storyId);
   };
 
   const handleDeleteCancel = () => {
     setDeleteConfirmId(null);
+  };
+
+  // Temporäre Funktion zum Löschen aller Duplikate für einen User
+  const deleteAllDuplicates = async () => {
+    if (!user) return;
+    
+    try {
+      // Hole alle Stories für den User
+      const { data: allStories, error: fetchError } = await supabase
+        .from('saved_stories')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (fetchError) {
+        console.error('Error fetching stories:', fetchError);
+        return;
+      }
+
+      // Gruppiere nach title (Figure-Name)
+      const groupedStories = allStories.reduce((acc, story) => {
+        const key = story.title;
+        if (!acc[key]) {
+          acc[key] = [];
+        }
+        acc[key].push(story);
+        return acc;
+      }, {} as Record<string, any[]>);
+
+      // Für jede Gruppe: behalte nur die erste, lösche den Rest
+      let deletedCount = 0;
+      for (const [title, stories] of Object.entries(groupedStories)) {
+        if (stories.length > 1) {
+          // Sortiere nach created_at (älteste zuerst)
+          const sortedStories = stories.sort((a, b) => 
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          );
+          
+          // Behalte die erste (älteste), lösche den Rest
+          const toDelete = sortedStories.slice(1);
+          const idsToDelete = toDelete.map(story => story.id);
+          
+          if (idsToDelete.length > 0) {
+            const { error: deleteError } = await supabase
+              .from('saved_stories')
+              .delete()
+              .in('id', idsToDelete);
+              
+            if (deleteError) {
+              console.error(`Error deleting duplicates for ${title}:`, deleteError);
+            } else {
+              deletedCount += idsToDelete.length;
+              console.log(`Deleted ${idsToDelete.length} duplicates for ${title}`);
+            }
+          }
+        }
+      }
+
+      console.log(`Total duplicates deleted: ${deletedCount}`);
+      if (deletedCount > 0) {
+        loadStories(); // Lade Stories neu
+      }
+    } catch (error) {
+      console.error('Error deleting duplicates:', error);
+    }
   };
 
   const downloadStory = (story: SavedStory) => {
@@ -414,8 +617,8 @@ ${story.content}
         throw new Error('Fehler beim Generieren des Audios');
       }
 
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
+      const data = await response.json();
+      const audioUrl = data.audioUrl; // Verwende die permanente Supabase-URL direkt
       
       // Aktualisiere die Geschichte in der lokalen Liste
       const updatedStory = {
@@ -820,7 +1023,7 @@ ${story.content}
                   <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
                   <p className="text-red-600">{error}</p>
                 </div>
-              ) : stories.length === 0 ? (
+              ) : stories.length === 0 && !pendingStory ? (
                 <div className="text-center py-8">
                   <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600">Noch keine Geschichten gespeichert.</p>
@@ -830,6 +1033,62 @@ ${story.content}
                 </div>
               ) : (
                 <div className="space-y-4">
+                  {/* Temporäre Ressource anzeigen */}
+                  {pendingStory && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6"
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="text-3xl">{pendingStory.selectedFigure?.emoji}</div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-blue-900">
+                              {pendingStory.selectedFigure?.name}
+                            </h3>
+                            <p className="text-blue-700 text-sm">
+                              Temporäre Ressource - Bitte melde dich an, um sie zu speichern
+                            </p>
+                          </div>
+                        </div>
+                        <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                          Temporär
+                        </div>
+                      </div>
+                      
+                      <div className="bg-white rounded-lg p-4 mb-4">
+                        <p className="text-gray-800 leading-relaxed">
+                          {pendingStory.generatedStory}
+                        </p>
+                      </div>
+                      
+                      {pendingStory.audioState?.audioUrl && (
+                        <div className="flex items-center space-x-3">
+                          <button
+                            onClick={() => {
+                              const audio = new Audio(pendingStory.audioState.audioUrl);
+                              audio.play();
+                            }}
+                            className="flex items-center space-x-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                            </svg>
+                            <span>Audio abspielen</span>
+                          </button>
+                        </div>
+                      )}
+                      
+                      <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p className="text-yellow-800 text-sm">
+                          ⚠️ Diese Ressource ist nur temporär gespeichert. Bitte melde dich an, um sie dauerhaft zu speichern.
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                  
+                  
                   {stories.map((story) => (
                     <motion.div
                       key={story.id}
