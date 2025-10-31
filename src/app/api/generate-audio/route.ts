@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
     const ssmlCount = ssmlMatches ? ssmlMatches.length : 0;
     
     // Extrahiere alle SSML-Tags mit ihren Zeitwerten
-    const ssmlDetails = ssmlMatches ? ssmlMatches.map(tag => {
+    const ssmlDetails = ssmlMatches ? ssmlMatches.map((tag: string) => {
       const timeMatch = tag.match(/time="([\d.]+)s"/);
       return timeMatch ? `${timeMatch[1]}s` : 'unknown';
     }) : [];

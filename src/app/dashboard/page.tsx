@@ -1033,8 +1033,8 @@ ${story.content}
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Temporäre Ressource anzeigen */}
-                  {pendingStory && (
+                  {/* Temporäre Ressource anzeigen - nur wenn Benutzer nicht eingeloggt ist */}
+                  {pendingStory && !user && (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -1171,27 +1171,8 @@ ${story.content}
                               </div>
                             ) : (
                               <div className="space-y-3">
-                                <div className="flex justify-center">
-                                  <button
-                                    onClick={() => generateAudio(story.id)}
-                                    disabled={generatingAudioFor === story.id}
-                                    className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 text-lg font-medium"
-                                  >
-                                    {generatingAudioFor === story.id ? (
-                                      <>
-                                        <span className="animate-spin">⏳</span>
-                                        Audio wird generiert...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <span>🎵</span>
-                                        Audio generieren
-                                      </>
-                                    )}
-                                  </button>
-                                </div>
-                                <p className="text-amber-600 text-sm">
-                                  Erstelle eine Audio-Version deiner Geschichte
+                                <p className="text-amber-600 text-sm text-center">
+                                  Für diese Geschichte ist noch kein Audio verfügbar.
                                 </p>
                               </div>
                             )}
