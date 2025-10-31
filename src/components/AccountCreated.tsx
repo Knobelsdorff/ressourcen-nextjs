@@ -87,8 +87,11 @@ export default function AccountCreated({ onClose }: AccountCreatedProps) {
               </h2>
               
               <p className="text-amber-700 mb-6">
-                Wir haben dir eine E-Mail mit einem Bestätigungslink gesendet. 
-                Bitte klicke auf den Link, um deinen Account zu aktivieren.
+                {user?.email ? (
+                  <>Wir haben dir an deine E-Mail <span className="font-semibold">{user.email}</span> einen Bestätigungslink gesendet. Bitte klicke auf den Link, um deinen Account zu aktivieren.</>
+                ) : (
+                  <>Wir haben dir eine E-Mail mit einem Bestätigungslink gesendet. Bitte klicke auf den Link, um deinen Account zu aktivieren.</>
+                )}
               </p>
               
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">

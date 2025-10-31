@@ -2348,7 +2348,7 @@ export const figureSpecificData: FigureSpecificData = {
         "Wir machen zusammen einen Spaziergang",
         "Wir beten zusammen",
         "Wir schauen zusammen in die Natur",
-        "Wir machen zusammen eine Massage",
+        "Wir spielen alle gemeinsam",
         "Wir liegen zusammen und kuscheln",
         "Wir teilen ein einfaches Mahl"
       ]

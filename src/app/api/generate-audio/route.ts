@@ -68,16 +68,123 @@ export async function POST(request: NextRequest) {
       return chosen.length > 0 ? chosen : clean.slice(0, 220);
     };
 
+    // Funktion: Ersetze Leerzeilen durch ElevenLabs SSML Pausen-Tags
+    // Sucht nach Mustern wie "Du bittest [Figur]:" oder "Und [Figur] sagt zu dir:" gefolgt von Leerzeilen
+    const addSSMLPauses = (t: string) => {
+      let processed = t;
+      
+      // Ersetze Leerzeilen nach "Du bittest [irgendwas]:" durch SSML Pause
+      // Muster: "Du bittest ...:\n\n" -> "Du bittest ...:\n<break time="1.0s" />\n"
+      // Unterstützt: "Du bittest Oma:", "Du bittest deinen Engel:", "Du bittest Mutter Erde:", etc.
+      // Format gemäß ElevenLabs-Dokumentation: <break time="1.0s" /> (mit Leerzeichen vor /)
+      processed = processed.replace(
+        /(Du bittest [^\n]+:)\s*\n\s*\n/g,
+        '$1\n<break time="1.0s" />\n'
+      );
+      
+      // Ersetze Leerzeilen nach "Und [irgendwas] sagt zu dir:" oder "versichert dir:" durch SSML Pause
+      // Muster: "Und ... sagt zu dir: ...\n\n" -> "Und ... sagt zu dir: ...\n<break time="1.0s" />\n"
+      // Unterstützt: "Und Oma sagt zu dir:", "Und dein Engel sagt zu dir: 'Liebe Angela',", "Und Mutter Erde versichert dir:", etc.
+      // Das Pattern erfasst alles nach "sagt zu dir:" oder "versichert dir:" bis zur nächsten Zeile, dann die Leerzeile
+      processed = processed.replace(
+        /(Und [^\n]+ (?:sagt zu dir|versichert dir):[^\n]*)\s*\n\s*\n/g,
+        '$1\n<break time="1.0s" />\n'
+      );
+      
+      // Ersetze Leerzeilen NACH der Bitte (vor der Antwort) durch SSML Pause
+      // Muster: "[Bitte mit Fragezeichen]?\n\nUnd ... sagt zu dir:" -> "[Bitte]?\n<break time="1.0s" />\nUnd ... sagt zu dir:"
+      // Das Pattern erkennt das Ende einer Bitte (mit Fragezeichen) gefolgt von Leerzeilen und dann "Und [Figur] sagt"
+      // Unterstützt auch mehrzeilige Bitten (die nach "Du bittest ...:" auf einer neuen Zeile stehen können)
+      // Pattern: Sucht nach einem Fragezeichen, dann Leerzeilen, dann "Und ... sagt zu dir:"
+      processed = processed.replace(
+        /(\?[^\n]*)\s*\n\s*\n(Und [^\n]+ (?:sagt zu dir|versichert dir):)/g,
+        '$1\n<break time="1.0s" />\n$2'
+      );
+      
+      // Ersetze Leerzeilen NACH der Antwort (Idealsatz) durch SSML Pause
+      // Muster: "[Antwort mit Punkt/!]\.\n\n[Nächster Absatz]" -> "[Antwort].\n<break time="1.5s" />\n[Nächster Absatz]"
+      // Das Pattern erkennt das Ende einer Antwort (die nach "sagt zu dir:" oder "versichert dir:" kommt)
+      // Die Antwort endet mit Punkt, Ausrufezeichen oder Fragezeichen
+      // Dann kommt eine Leerzeile und dann beginnt der nächste Absatz der Geschichte (Schritt 6: "Beende die Geschichte sanft")
+      // WICHTIG: Diese Pause sollte nur NACH der vollständigen Antwort kommen, nicht nach Zwischensätzen
+      // Pattern: Sucht nach einer Zeile, die mit Satzzeichen endet, gefolgt von Leerzeilen, dann Text der NICHT mit "Du bittest" oder "Und ... sagt" beginnt
+      // Wir müssen vorsichtig sein, um nicht Pausen in der Mitte der Antwort einzufügen
+      processed = processed.replace(
+        /([\.!?][^\n]*)\s*\n\s*\n(?=\S)(?![^\n]*(?:Du bittest|Und [^\n]+ (?:sagt zu dir|versichert dir)))/g,
+        '$1\n<break time="1.5s" />\n'
+      );
+      
+      // Falls noch andere Doppel-Leerzeilen vorhanden sind (z.B. am Ende von Absätzen),
+      // können wir diese optional auch durch kürzere Pausen ersetzen
+      // Aber nur wenn nicht bereits ein break-Tag vorhanden ist
+      processed = processed.replace(
+        /([^>])\n\s*\n(?!<break)/g,
+        '$1\n<break time="0.8s" />\n'
+      );
+      
+      return processed;
+    };
+
     // Verwende den vollen Text, außer bei Admin-Preview
-    const effectiveText = (adminPreview === true) ? shortenForPreview(text) : text;
+    let effectiveText = (adminPreview === true) ? shortenForPreview(text) : text;
+    
+    // Füge SSML Pausen-Tags hinzu
+    const beforeSSML = effectiveText;
+    effectiveText = addSSMLPauses(effectiveText);
+    
+    // Debug: Log SSML-Pausen-Erkennung
+    // Pattern unterstützt sowohl altes Format (<break time="1.0s"/>) als auch neues Format (<break time="1.0s" />)
+    const ssmlMatches = effectiveText.match(/<break time="[\d.]+s"\s*\/>/g);
+    const ssmlCount = ssmlMatches ? ssmlMatches.length : 0;
+    
+    // Extrahiere alle SSML-Tags mit ihren Zeitwerten
+    const ssmlDetails = ssmlMatches ? ssmlMatches.map(tag => {
+      const timeMatch = tag.match(/time="([\d.]+)s"/);
+      return timeMatch ? `${timeMatch[1]}s` : 'unknown';
+    }) : [];
     
     // Debug: Log the decision
+    console.log('\n=== Audio Generation Debug ===');
     console.log('Audio generation debug:', {
       adminPreview,
       originalLength: text.length,
       effectiveLength: effectiveText.length,
-      isShortened: effectiveText.length < text.length
+      isShortened: effectiveText.length < text.length,
+      ssmlPausesDetected: ssmlCount,
+      hasSSMLChanges: beforeSSML !== effectiveText,
+      ssmlPauseDurations: ssmlDetails
     });
+    
+    // Debug: Zeige Beispiel mit SSML-Tags (nur wenn vorhanden)
+    if (ssmlCount > 0) {
+      console.log(`\n✓ ${ssmlCount} SSML-Pausen gefunden (${ssmlDetails.join(', ')})`);
+      
+      // Zeige die ersten 3 SSML-Tags im Kontext
+      let foundCount = 0;
+      const breakPattern = /<break time="[\d.]+s"\s*\/>/g;
+      let match;
+      
+      while ((match = breakPattern.exec(effectiveText)) !== null && foundCount < 3) {
+        const start = Math.max(0, match.index - 80);
+        const end = Math.min(effectiveText.length, match.index + 120);
+        const snippet = effectiveText.substring(start, end)
+          .replace(/\n/g, ' ')
+          .replace(/<break time="[\d.]+s"\s*\/>/g, '\n▶ [PAUSE $&]\n');
+        console.log(`\nSSML-Pause #${foundCount + 1} (${match[0]}):`);
+        console.log(`  ...${snippet}...`);
+        foundCount++;
+      }
+      
+      // Zeige auch, ob der Text an ElevenLabs gesendet wird (erste 300 Zeichen)
+      if (effectiveText.length > 0) {
+        const preview = effectiveText.substring(0, 300).replace(/\n/g, ' ');
+        console.log('\n📤 Text-Vorschau (erste 300 Zeichen, der an ElevenLabs gesendet wird):');
+        console.log(`  ${preview}${effectiveText.length > 300 ? '...' : ''}`);
+      }
+    } else {
+      console.log('\n⚠ Keine SSML-Pausen erkannt - Text wurde möglicherweise nicht verarbeitet');
+    }
+    console.log('================================\n');
 
     // Request payload
     const requestPayload: TextToSpeechRequest = {

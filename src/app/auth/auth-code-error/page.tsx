@@ -7,9 +7,20 @@ import { useAuth } from "@/components/providers/auth-provider";
 export default function AuthCodeError() {
   const router = useRouter();
   const { user } = useAuth();
-  const [countdown, setCountdown] = useState(5);
+  const [countdown, setCountdown] = useState(2);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
 
   useEffect(() => {
+    // Lese Error-Code aus URL-Parametern
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const error = params.get('error');
+      if (error) {
+        setErrorCode(error);
+        console.error('Auth error code:', error);
+      }
+    }
+
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {

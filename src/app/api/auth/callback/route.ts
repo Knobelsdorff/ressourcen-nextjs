@@ -2,20 +2,43 @@ import { createSSRClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
+  const url = new URL(request.url)
+  const { searchParams, origin, hash } = url
   const code = searchParams.get('code')
+  const error = searchParams.get('error')
+  const errorDescription = searchParams.get('error_description')
   const next = searchParams.get('next') ?? '/dashboard?confirmed=true'
   const isLocal = searchParams.get('local') === 'true'
 
-  console.log('Auth callback:', { code: !!code, next, origin, isLocal })
+  console.log('Auth callback:', { 
+    code: !!code, 
+    codeLength: code?.length,
+    error,
+    errorDescription,
+    next, 
+    origin, 
+    isLocal,
+    fullUrl: request.url.substring(0, 200) // Erste 200 Zeichen der URL für Debugging
+  })
+
+  // Prüfe auf Fehler in URL-Parametern
+  if (error) {
+    console.error('Auth error in URL:', { error, errorDescription })
+    return NextResponse.redirect(`${origin}/auth/auth-code-error?error=${encodeURIComponent(error)}`)
+  }
 
   if (code) {
     try {
       const supabase = await createSSRClient()
-      const { error } = await supabase.auth.exchangeCodeForSession(code)
-      console.log('Auth exchange result:', { error: error?.message })
+      const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+      console.log('Auth exchange result:', { 
+        error: exchangeError?.message, 
+        errorCode: exchangeError?.status,
+        hasSession: !!data?.session,
+        hasUser: !!data?.user
+      })
       
-      if (!error) {
+      if (!exchangeError && data?.session) {
         let redirectUrl: string
         
         if (isLocal) {
@@ -33,18 +56,22 @@ export async function GET(request: Request) {
             console.log('Localhost redirect to:', redirectUrl)
           } else if (forwardedHost) {
             redirectUrl = `https://${forwardedHost}${next}`
+            console.log('Forwarded host redirect to:', redirectUrl)
           } else {
             redirectUrl = `${origin}${next}`
+            console.log('Origin redirect to:', redirectUrl)
           }
         }
         
         console.log('Final redirect to:', redirectUrl)
         return NextResponse.redirect(redirectUrl)
       } else {
-        console.error('Auth exchange error:', error)
+        console.error('Auth exchange error:', exchangeError)
+        return NextResponse.redirect(`${origin}/auth/auth-code-error?error=${encodeURIComponent(exchangeError?.message || 'exchange_failed')}`)
       }
     } catch (err) {
       console.error('Auth callback error:', err)
+      return NextResponse.redirect(`${origin}/auth/auth-code-error?error=${encodeURIComponent('unexpected_error')}`)
     }
   } else {
     // Wenn kein Code vorhanden ist, aber wir auf localhost sind, leite trotzdem weiter
@@ -57,6 +84,6 @@ export async function GET(request: Request) {
   }
 
   // return the user to an error page with instructions
-  console.log('Auth failed, redirecting to error page')
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`)
+  console.log('Auth failed, redirecting to error page - no code found')
+  return NextResponse.redirect(`${origin}/auth/auth-code-error?error=${encodeURIComponent('no_code')}`)
 }
