@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { Play, Pause, Volume2, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Play, Pause, Volume2, ChevronRight, ChevronLeft, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface Voice {
@@ -42,6 +42,7 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
   const [audioElements, setAudioElements] = useState<{ [key: string]: HTMLAudioElement }>({});
   const [mounted, setMounted] = useState(false);
   const [sparModus, setSparModus] = useState(false);
+  const [showAllVoices, setShowAllVoices] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -87,58 +88,110 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
       figureName.includes('brother') || figureName.includes('lehrer') || figureName.includes('partner')
     );
     
-    // Bestimme den gewünschten Stimmentyp basierend auf der Figur
-    let preferredVoiceTypes: string[] = [];
-    
-    if (isAnimal) {
-      // Für Tiere: freundliche und neutrale Stimmen bevorzugen
-      preferredVoiceTypes = ['friendly', 'neutral', 'maternal', 'paternal'];
-    } else if (figureName.includes('oma') || figureName.includes('grandma') || figureName.includes('großmutter')) {
-      preferredVoiceTypes = ['elderly', 'maternal', 'neutral', 'friendly'];
-    } else if (figureName.includes('opa') || figureName.includes('grandpa') || figureName.includes('großvater')) {
-      preferredVoiceTypes = ['elderly', 'paternal', 'neutral', 'friendly'];
-    } else if (figureName.includes('mutter') || figureName.includes('mama') || figureName.includes('mother')) {
-      preferredVoiceTypes = ['maternal', 'elderly', 'neutral', 'friendly'];
-    } else if (figureName.includes('vater') || figureName.includes('papa') || figureName.includes('father')) {
-      preferredVoiceTypes = ['paternal', 'elderly', 'neutral', 'friendly'];
-    } else if (figureName.includes('freund') || figureName.includes('friend')) {
-      preferredVoiceTypes = ['friendly', 'neutral'];
-    } else {
-      // Fallback für unbekannte Figuren
-      preferredVoiceTypes = ['maternal', 'paternal', 'elderly', 'friendly', 'neutral'];
-    }
+    // Scoring-basierte Sortierung: berücksichtigt Typ, Geschlecht und Figur-Spezifika
+    const preferredVoiceTypes: string[] = (() => {
+      if (isAnimal) return ['friendly', 'neutral', 'maternal', 'paternal'];
+      if (figureName.includes('oma') || figureName.includes('grandma') || figureName.includes('großmutter')) return ['elderly', 'maternal', 'neutral', 'friendly'];
+      if (figureName.includes('opa') || figureName.includes('grandpa') || figureName.includes('großvater')) return ['elderly', 'paternal', 'neutral', 'friendly'];
+      if (figureName.includes('mutter') || figureName.includes('mama') || figureName.includes('mother')) return ['maternal', 'elderly', 'neutral', 'friendly'];
+      if (figureName.includes('vater') || figureName.includes('papa') || figureName.includes('father')) return ['paternal', 'elderly', 'neutral', 'friendly'];
+      if (figureName.includes('freund') || figureName.includes('friend')) return ['friendly', 'neutral'];
+      return ['maternal', 'paternal', 'elderly', 'friendly', 'neutral'];
+    })();
 
-    // Filtere und sortiere Stimmen basierend auf Typ und Geschlecht
-    const filtered = voices
+    const computeVoiceScore = (voice: Voice): number => {
+      let score = 0;
+      const vg = (voice.gender || '').toLowerCase();
+      const vt = (voice.voiceType || '').toLowerCase();
+      const vn = (voice.name || '').toLowerCase();
+
+      // 1) Typ-Priorität (höhere Priorität = mehr Punkte)
+      const typeIndex = preferredVoiceTypes.indexOf(vt);
+      if (typeIndex >= 0) {
+        score += (preferredVoiceTypes.length - typeIndex) * 10; // 10, 9, 8 ...
+      }
+
+      // 2) Geschlecht passend zur Figur (Tiere: beide okay)
+      if (!isAnimal) {
+        if (isFemaleFigure && vg === 'female') score += 8;
+        if (isMaleFigure && vg === 'male') score += 8;
+      } else {
+        // leichte Bevorzugung freundlicher/neutraler Tiere
+        if (vt === 'friendly' || vt === 'neutral') score += 3;
+      }
+
+      // 3) Figur-spezifische Boosts
+      if (figureName.includes('oma') || figureName.includes('grandma') || figureName.includes('großmutter')) {
+        if (vt === 'elderly') score += 6;
+        if (vt === 'maternal') score += 4;
+      }
+      if (figureName.includes('opa') || figureName.includes('grandpa') || figureName.includes('großvater')) {
+        if (vt === 'elderly') score += 6;
+        if (vt === 'paternal') score += 4;
+      }
+      if (figureName.includes('mutter') || figureName.includes('mama') || figureName.includes('mother')) {
+        if (vt === 'maternal') score += 6;
+        if (vt === 'elderly') score += 2;
+        // Feintuning: Stimmen wie "Nicole" sind oft klar/hart → für Mama-Figur leicht abwerten
+        if (vn.includes('nicole')) score -= 10;
+      }
+      // Engel: weich, sanft, liebevoll bevorzugen; klare/harte Stimmen leicht abwerten
+      if (figureName.includes('engel') || figureName.includes('angel')) {
+        if (vt === 'maternal') score += 6;
+        if (vt === 'friendly') score += 4;
+        if (vt === 'neutral') score += 2;
+        const vdesc = (voice.description || '').toLowerCase();
+        if (vdesc.includes('klar')) score -= 6; // klare/kühle Tönung für Engel weniger passend
+        if (vn.includes('nicole')) score -= 8;  // spezifisch: Nicole etwas abwerten für Engel
+        const chars = JSON.stringify(voice.characteristics || []).toLowerCase();
+        if (chars.includes('soft') || chars.includes('gentle') || chars.includes('warm') || chars.includes('airy')) {
+          score += 3;
+        }
+      }
+      if (figureName.includes('vater') || figureName.includes('papa') || figureName.includes('father')) {
+        if (vt === 'paternal') score += 6;
+        if (vt === 'elderly') score += 2;
+      }
+      if (figureName.includes('freund') || figureName.includes('friend')) {
+        if (vt === 'friendly' || vt === 'neutral') score += 5;
+      }
+
+      // 4) Sammlung/Qualitäts-Heuristik: Collections bevorzugen
+      if (voice.isFromCollection) score += 2;
+
+      return score;
+    };
+
+    const ranked = voices
       .filter(voice => {
-        // Filtere nach Stimmentyp
-        if (!preferredVoiceTypes.includes(voice.voiceType)) {
-          return false;
+        // Lasse grundsätzlich alle zu, aber mit starker Gewichtung – optional harte Filter bei Nulltreffern
+        // Optionaler harter Geschlechterfilter nur wenn Figur-Geschlecht klar ist
+        if (!isAnimal) {
+          const vg = (voice.gender || '').toLowerCase();
+          if (isFemaleFigure && vg !== 'female') return false;
+          if (isMaleFigure && vg !== 'male') return false;
         }
-        
-        // Gender-Filter: für Tiere zeige sowohl männliche als auch weibliche Stimmen
-        const vg = (voice.gender || '').toLowerCase();
-        if (isAnimal) {
-          return vg === 'female' || vg === 'male'; // Zeige beide Geschlechter für Tiere
-        }
-        if (isFemaleFigure) {
-          return vg === 'female';
-        }
-        if (isMaleFigure) {
-          return vg === 'male';
-        }
-        return true; // falls unbestimmt, zeige alle
+        return true;
       })
+      .map(v => ({ voice: v, score: computeVoiceScore(v) }))
       .sort((a, b) => {
-        const aIndex = preferredVoiceTypes.indexOf(a.voiceType);
-        const bIndex = preferredVoiceTypes.indexOf(b.voiceType);
-        return aIndex - bIndex;
-      });
+        if (b.score !== a.score) return b.score - a.score;
+        // Tie-break: Typ-Priorität
+        const aIdx = preferredVoiceTypes.indexOf(a.voice.voiceType);
+        const bIdx = preferredVoiceTypes.indexOf(b.voice.voiceType);
+        return (aIdx - bIdx);
+      })
+      .map(x => x.voice);
 
-    // Kein automatischer Fallback auf neutral/alle mehr – harte Vorgabe
-
-    setFilteredVoices(filtered);
+    setFilteredVoices(ranked);
   }, [voices, resourceFigure]);
+
+  // Empfohlene Vorauswahl: wenn keine Stimme gewählt ist, setze die erste gefilterte als Standard
+  useEffect(() => {
+    if (filteredVoices.length > 0 && !selectedVoiceId) {
+      onVoiceSelect(filteredVoices[0].id);
+    }
+  }, [filteredVoices, selectedVoiceId, onVoiceSelect]);
 
   const fetchVoices = async () => {
     try {
@@ -172,7 +225,20 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
 
       setPlayingVoiceId(voice.id);
 
+      // 1) Wenn eine fertige Preview-URL vorhanden ist, nutze diese (verbraucht keine Credits)
+      if (voice.previewUrl && voice.previewUrl.trim().length > 0) {
+        const audio = new Audio(voice.previewUrl);
+        audio.onended = () => setPlayingVoiceId(null);
+        audio.onerror = () => setPlayingVoiceId(null);
+        setAudioElements(prev => ({ ...prev, [voice.id]: audio }));
+        await audio.play();
+        return;
+      }
+
       // Generiere Demo-Audio
+      const demoText = voice.demoText && voice.demoText.trim().length > 0
+        ? voice.demoText
+        : 'Das ist ein kurzer Test. Hörst du meine Stimme klar und angenehm?';
       const response = await fetch('/api/voice-preview', {
         method: 'POST',
         headers: {
@@ -180,12 +246,14 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
         },
         body: JSON.stringify({
           voiceId: voice.id,
-          text: voice.demoText,
+          text: demoText,
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate preview');
+        const errText = await response.text().catch(() => '');
+        console.error('Voice preview request failed', { status: response.status, statusText: response.statusText, body: errText });
+        throw new Error(`Failed to generate preview (${response.status})`);
       }
 
       const { audioData, mimeType } = await response.json();
@@ -199,6 +267,12 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
       await audio.play();
     } catch (error) {
       console.error('Error playing voice preview:', error);
+      const msg = (error as Error)?.message || '';
+      if (msg.includes('(401)')) {
+        try { alert('Vorschau fehlgeschlagen: Keine gültigen ElevenLabs‑Credits/API‑Zugriff. Wenn möglich, nutze eine Stimme mit eingebauter Vorschau oder lade Credits nach.'); } catch {}
+      } else {
+        try { alert('Vorschau konnte nicht erzeugt werden. Bitte später erneut versuchen.'); } catch {}
+      }
       setPlayingVoiceId(null);
     }
   };
@@ -239,16 +313,30 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredVoices.map((voice) => (
-          <Card 
-            key={voice.id} 
-            className={`cursor-pointer transition-all duration-200 ${
-              selectedVoiceId === voice.id 
-                ? 'ring-2 ring-amber-500 bg-amber-50' 
+        {(showAllVoices ? filteredVoices : filteredVoices.slice(0, 3)).map((voice, idx) => (
+          <Card
+            key={voice.id}
+            className={`relative cursor-pointer transition-all duration-200 ${
+              selectedVoiceId === voice.id
+                ? 'ring-2 ring-green-500 bg-[#f0fdf4]'
                 : 'hover:shadow-md hover:bg-amber-50'
             }`}
             onClick={() => onVoiceSelect(voice.id)}
           >
+            {/* Ausgewählt-Badge oben rechts */}
+            {selectedVoiceId === voice.id && (
+              <div className="absolute top-2 right-2 h-6 w-6 rounded-full bg-green-600 text-white flex items-center justify-center shadow">
+                <Check className="w-4 h-4" />
+              </div>
+            )}
+
+            {/* Empfohlen-Label auf der ersten Karte, wenn nicht showAll */}
+            {!showAllVoices && idx === 0 && (
+              <div className="absolute -top-2 left-2 text-[11px] bg-green-100 text-green-800 border border-green-200 rounded px-2 py-0.5">
+                Empfohlen
+              </div>
+            )}
+
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg text-amber-900">
@@ -268,7 +356,7 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
                     } else if (voice.id === 'Z3R5wn05IrDiVCyEkUrK') { // Arabella
                       description = 'elegant & geheimnisvoll';
                     } else if (voice.id === 'SHTtk5n3RQvLx4dcvfGR') { // Warm and easy-to-listen-to voice
-                      description = 'warm & verständlich';
+                      description = 'klar & verständlich';
                     } else if (voice.id === 'Y5JXXvUD3rmjDInkLVA2') { // Kerstin - Calm, gentle, and sensual
                       description = 'ruhig & sanft';
                     } else if (voice.id === 'WHaUUVTDq47Yqc9aDbkH') { // Friendly and mature female voice
@@ -346,19 +434,39 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
                   ) : (
                     <Play className="h-4 w-4" />
                   )}
-                  {playingVoiceId === voice.id ? 'Stoppen' : 'Anhören'}
+                  {playingVoiceId === voice.id ? 'Stoppen' : 'Testen'}
                 </Button>
-                
-                {selectedVoiceId === voice.id && (
-                  <Badge className="bg-amber-500 text-white">
-                    Ausgewählt
-                  </Badge>
-                )}
+
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {/* Toggle unterhalb der Liste */}
+      {filteredVoices.length > 3 && (
+        <div className="flex justify-center">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            type="button"
+            aria-expanded={showAllVoices}
+            onClick={() => setShowAllVoices(!showAllVoices)}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border transition-colors text-sm ${
+              showAllVoices
+                ? 'bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200'
+                : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+            }`}
+          >
+            {showAllVoices ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
+            {showAllVoices ? 'Weniger anzeigen' : `Weitere ${filteredVoices.length - 3} Stimmen anzeigen`}
+          </motion.button>
+        </div>
+      )}
 
       {/* Sparmodus Option */}
       <div className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">

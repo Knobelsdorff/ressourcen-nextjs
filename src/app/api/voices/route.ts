@@ -332,6 +332,28 @@ export async function GET(request: Request) {
     // Filtere nach Qualität
     const highQualityVoices = filterHighQualityVoices(data.voices);
     
+    // Hole pro Stimme (parallel) eine öffentliche Sample-Preview-URL (benötigt keine Credits)
+    const fetchSampleUrl = async (voiceId: string): Promise<string | undefined> => {
+      try {
+        const vRes = await fetch(`https://api.elevenlabs.io/v1/voices/${voiceId}`, {
+          headers: { 'xi-api-key': apiKey },
+          signal: AbortSignal.timeout(20000)
+        });
+        if (!vRes.ok) return undefined;
+        const vData = await vRes.json();
+        const samples = Array.isArray(vData?.samples) ? vData.samples : [];
+        const preview = samples[0]?.preview_url as string | undefined;
+        return preview;
+      } catch {
+        return undefined;
+      }
+    };
+
+    const sampleUrlMapEntries = await Promise.all(
+      highQualityVoices.map(async (v: any) => [v.voice_id, await fetchSampleUrl(v.voice_id)] as const)
+    );
+    const sampleUrlMap = new Map<string, string | undefined>(sampleUrlMapEntries);
+
     // Erstelle Vorschau-URLs für jede Stimme mit Kategorisierung
     const voicesWithPreview = highQualityVoices.map((voice: any) => {
       const category = categorizeVoice(voice);
@@ -349,6 +371,13 @@ export async function GET(request: Request) {
         displayName = 'Alexander';
       }
       
+      const sampleUrl = sampleUrlMap.get(voice.voice_id);
+      // Optionale per-Voice Override via ENV: NEXT_PUBLIC_PREVIEW_URL_<VOICEID>
+      const envKey = `NEXT_PUBLIC_PREVIEW_URL_${voice.voice_id}`;
+      const envOverride = process.env[envKey as keyof NodeJS.ProcessEnv] as string | undefined;
+      // Globaler Fallback via ENV: NEXT_PUBLIC_PREVIEW_FALLBACK_URL
+      const globalFallback = process.env.NEXT_PUBLIC_PREVIEW_FALLBACK_URL as string | undefined;
+      const finalPreviewUrl = envOverride || sampleUrl || globalFallback;
       return {
         id: voice.voice_id,
         name: displayName,
@@ -357,7 +386,8 @@ export async function GET(request: Request) {
         voiceType: category.type,
         gender: category.gender,
         characteristics: category.characteristics,
-        previewUrl: `https://api.elevenlabs.io/v1/text-to-speech/${voice.voice_id}/stream`,
+        // Vorschau-Quelle: ENV-Override > öffentliches ElevenLabs-Sample > globaler Fallback
+        previewUrl: finalPreviewUrl,
         demoText: category.demoText,
         isPremium: voice.category === 'premade' || voice.category === 'professional',
         isFromCollection: isFromCollection

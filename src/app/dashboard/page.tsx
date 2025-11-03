@@ -761,7 +761,7 @@ ${story.content}
               }`}
             >
               <BookOpen className="w-5 h-5" />
-              <span>Geschichten ({stories.length})</span>
+              <span>Meine Ressourcen ({stories.length})</span>
             </button>
           </div>
         </motion.div>
@@ -1028,7 +1028,7 @@ ${story.content}
           ) : (
             <div className="bg-white rounded-2xl shadow-lg p-8">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-amber-900">Geschichten</h2>
+                <h2 className="text-2xl font-bold text-amber-900">Meine Ressourcen</h2>
               </div>
               
               {loading ? (
