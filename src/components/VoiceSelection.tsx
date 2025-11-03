@@ -382,8 +382,8 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
         </p>
       </div>
 
-      {/* Navigation Buttons */}
-      <div className="flex justify-center items-center mt-6 gap-4">
+      {/* Navigation Buttons (nur Desktop) */}
+      <div className="hidden lg:flex justify-center items-center mt-6 gap-4">
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
