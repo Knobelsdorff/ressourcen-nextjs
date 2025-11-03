@@ -218,9 +218,11 @@ export default function RelationshipSelection({
                   <div className="mt-3">
                     <span
                       className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-medium ${
-                        currentAnswer.selectedBlocks.length === 2
-                          ? 'bg-green-100 text-green-800 border-green-200'
-                          : 'bg-amber-50 text-amber-800 border-amber-200'
+                        currentAnswer.selectedBlocks.length === 0
+                          ? 'bg-gray-100 text-gray-800 border-gray-200'
+                          : currentAnswer.selectedBlocks.length === 2
+                            ? 'bg-green-100 text-green-800 border-green-200'
+                            : 'bg-amber-50 text-amber-800 border-amber-200'
                       }`}
                     >
                       {currentAnswer.selectedBlocks.length === 2 && (
@@ -296,16 +298,18 @@ export default function RelationshipSelection({
                     onClick={() => handleBlockToggle(block)}
                     className={`w-full h-11 rounded-[30px] border flex items-center gap-3 px-4 transition-all ${
                       currentAnswer.selectedBlocks.includes(block)
-                        ? 'border-amber-400 bg-amber-50'
+                        ? (currentAnswer.selectedBlocks.length === 2
+                            ? 'border-green-500 bg-green-50'
+                            : 'border-amber-400 bg-amber-50')
                         : currentAnswer.selectedBlocks.length >= 2 && !currentAnswer.selectedBlocks.includes(block)
-                        ? 'border-gray-300 bg-gray-100 opacity-40 cursor-not-allowed'
-                        : 'border-zinc-200 bg-gray-50 hover:border-zinc-300'
+                          ? 'border-gray-300 bg-gray-100 opacity-40 cursor-not-allowed'
+                          : 'border-zinc-200 bg-gray-50 hover:border-zinc-300'
                     }`}
                   >
                                          {/* Checkbox */}
                      <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${
                        currentAnswer.selectedBlocks.includes(block)
-                         ? 'border-amber-500 bg-amber-500'
+                        ? (currentAnswer.selectedBlocks.length === 2 ? 'border-green-600 bg-green-600' : 'border-amber-500 bg-amber-500')
                          : currentAnswer.selectedBlocks.length >= 2 && !currentAnswer.selectedBlocks.includes(block)
                          ? 'border-gray-400 bg-gray-200'
                          : 'border-stone-300'
