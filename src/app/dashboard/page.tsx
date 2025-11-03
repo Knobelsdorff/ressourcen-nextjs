@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, Volume2, User, Mail, Calendar, Clock, Star, Trophy, Target, Shield, HelpCircle, MessageCircle, Bug, Key, Trash, Crown, Zap, TrendingUp, Play, Pause } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
@@ -29,6 +29,7 @@ export default function Dashboard() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [pendingStory, setPendingStory] = useState<any>(null);
   const [isSavingPendingStory, setIsSavingPendingStory] = useState(false);
+  const hasCheckedPendingRef = useRef(false);
   
   // Profil-spezifische States
   const [fullName, setFullName] = useState('');
@@ -203,6 +204,15 @@ export default function Dashboard() {
       console.log('Dashboard: Already processing pending story, skipping...');
       return;
     }
+
+    // Einfacher Mutex über localStorage, um Mehrfach-Saves zu verhindern (z.B. nach Redirects/StrictMode)
+    try {
+      const mutex = typeof window !== 'undefined' ? localStorage.getItem('pendingStory_saving') : null;
+      if (mutex === '1') {
+        console.log('Dashboard: Mutex active (pendingStory_saving=1), skipping save');
+        return;
+      }
+    } catch {}
     
     const savedPendingStory = localStorage.getItem('pendingStory');
     console.log('Dashboard: Pending story exists:', !!savedPendingStory);
@@ -268,12 +278,18 @@ export default function Dashboard() {
     
     // Flag FRÜH setzen um mehrfache Aufrufe zu verhindern
     setIsSavingPendingStory(true);
+    try { localStorage.setItem('pendingStory_saving', '1'); } catch {}
     
     if (currentUser) {
         // Wenn User authentifiziert ist, versuche in der Datenbank zu speichern
         console.log('Dashboard: User authenticated, attempting to save to database...');
         
         try {
+          // Normalisierung/Signatur zur robusteren Duplikaterkennung
+          const normalizeText = (s: string) => (s || '').replace(/\s+/g, ' ').trim();
+          const figureName: string = storyData.selectedFigure?.name || '';
+          const normalizedContent = normalizeText(storyData.generatedStory || '');
+          const signatureHead = normalizedContent.slice(0, 200);
           // Prüfe zuerst, ob bereits eine identische Ressource existiert
           console.log('Dashboard: Checking for existing duplicate story...');
           
@@ -281,23 +297,28 @@ export default function Dashboard() {
           
           try {
             // Robuste Duplikat-Prüfung - prüfe nach title, content und user_id
-            console.log('Dashboard: Checking for duplicates with title:', storyData.selectedFigure.name, 'and content:', storyData.generatedStory.substring(0, 50) + '...');
+            console.log('Dashboard: Checking for duplicates with title:', figureName, 'and head:', signatureHead.substring(0, 50) + '...');
             
             const { data: existingStories, error: checkError } = await supabase
               .from('saved_stories')
               .select('id, title, content, created_at')
               .eq('user_id', user.id)
-              .eq('title', storyData.selectedFigure.name)
-              .eq('content', storyData.generatedStory)
-              .order('created_at', { ascending: false });
+              .eq('title', figureName)
+              .order('created_at', { ascending: false })
+              .limit(10);
 
             if (checkError) {
               console.error('Error checking for duplicates:', checkError);
               console.log('Continuing with save despite duplicate check error...');
             } else if (existingStories && existingStories.length > 0) {
-              console.log('Dashboard: Duplicate story found, skipping save to prevent duplicates');
-              console.log('Dashboard: Found', existingStories.length, 'existing stories with same title');
-              shouldSkipSave = true;
+              const foundSimilar = existingStories.some((es: any) => {
+                const norm = normalizeText(es.content || '');
+                return norm.slice(0, 200) === signatureHead;
+              });
+              if (foundSimilar) {
+                console.log('Dashboard: Duplicate story (by normalized head) found, skipping save');
+                shouldSkipSave = true;
+              }
             } else {
               console.log('Dashboard: No duplicates found, proceeding with save');
             }
@@ -309,6 +330,7 @@ export default function Dashboard() {
           if (shouldSkipSave) {
             // Lösche temporäre Daten trotzdem
             localStorage.removeItem('pendingStory');
+            try { localStorage.removeItem('pendingStory_saving'); } catch {}
             setPendingStory(null);
             loadStories();
             return;
@@ -365,6 +387,7 @@ export default function Dashboard() {
             console.log('Pending story saved from dashboard:', data);
             // Lösche temporäre Daten nur wenn erfolgreich gespeichert
             localStorage.removeItem('pendingStory');
+            try { localStorage.removeItem('pendingStory_saving'); } catch {}
             setPendingStory(null);
             // Lade Geschichten neu
             loadStories();
@@ -429,32 +452,27 @@ export default function Dashboard() {
 
   // Einziger useEffect für pending stories und URL-Parameter
   useEffect(() => {
-    if (user) {
-      // Prüfe URL-Parameter für E-Mail-Bestätigung
-      if (typeof window !== 'undefined') {
-        const urlParams = new URLSearchParams(window.location.search);
-        const confirmed = urlParams.get('confirmed');
-        
-        console.log('Dashboard: URL params check', { confirmed, user: !!user });
-        
-        if (confirmed === 'true') {
-          // E-Mail wurde bestätigt, prüfe nach temporären Geschichten
-          console.log('Dashboard: E-Mail confirmed, checking for pending stories...');
-          setTimeout(() => {
-            checkForPendingStories();
-          }, 500);
-          
-          // Entferne den confirmed Parameter aus der URL
-          const newUrl = new URL(window.location.href);
-          newUrl.searchParams.delete('confirmed');
-          window.history.replaceState({}, '', newUrl.toString());
-        } else {
-          // Normale Prüfung nach pending stories
-          checkForPendingStories();
-        }
+    if (!user) return;
+    if (hasCheckedPendingRef.current) return;
+    hasCheckedPendingRef.current = true;
+
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const confirmed = urlParams.get('confirmed');
+
+      console.log('Dashboard: URL params check', { confirmed, user: !!user });
+
+      // Direkt prüfen, ohne zusätzliche Verzögerung; Guard verhindert Doppelausführung
+      checkForPendingStories();
+
+      // confirmed Parameter aufräumen
+      if (confirmed === 'true') {
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('confirmed');
+        window.history.replaceState({}, '', newUrl.toString());
       }
     }
-  }, [user]);
+  }, [user, checkForPendingStories]);
 
   // Entfernt - redundanter useEffect
 

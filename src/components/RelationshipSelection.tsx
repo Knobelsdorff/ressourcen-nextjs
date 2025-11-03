@@ -46,6 +46,8 @@ export default function RelationshipSelection({
   const containerRef = useRef<HTMLDivElement>(null);
   // UI-Schalter: Einfach auf false setzen, um zum alten Hinweis zurückzukehren
   const useCounterChip = true;
+  // Design-Schalter: Neutral + grüner Akzent (true) vs. bisherige Amber-Zwischenzustände (false)
+  const useNeutralAccentTheme = true;
   
   // Bestimme, welche Fragen verwendet werden sollen
   const isPlace = selectedFigure.category === 'place';
@@ -199,19 +201,19 @@ export default function RelationshipSelection({
                     <span className="text-4xl">{selectedFigure.emoji}</span>
                   )}
                 </div>
-                <div className="text-2xl text-amber-900 font-normal">{selectedFigure.name}</div>
+                <div className="text-2xl text-gray-900 font-normal">{selectedFigure.name}</div>
               </div>
 
               {/* Mobile Question Counter */}
               <div className="lg:hidden text-center mb-4">
-                <p className="text-amber-600 text-sm mb-1">
+                <p className="text-gray-600 text-sm mb-1">
                   Frage {currentQuestionIndex + 1} von {questionsToUse.length}
                 </p>
               </div>
 
               {/* Question */}
               <div className="text-center mb-8">
-                <h2 className="text-2xl text-amber-700 font-normal">
+                <h2 className="text-2xl text-gray-800 font-normal">
                   {currentQuestion.question}
                 </h2>
                 {useCounterChip && (
@@ -221,8 +223,10 @@ export default function RelationshipSelection({
                         currentAnswer.selectedBlocks.length === 0
                           ? 'bg-gray-100 text-gray-800 border-gray-200'
                           : currentAnswer.selectedBlocks.length === 2
-                            ? 'bg-green-100 text-green-800 border-green-200'
-                            : 'bg-amber-50 text-amber-800 border-amber-200'
+                            ? 'bg-green-100 text-green-800 border-[#22c55e]'
+                            : (useNeutralAccentTheme
+                                ? 'bg-gray-50 text-gray-800 border-gray-200'
+                                : 'bg-amber-50 text-amber-800 border-amber-200')
                       }`}
                     >
                       {currentAnswer.selectedBlocks.length === 2 && (
@@ -236,8 +240,8 @@ export default function RelationshipSelection({
 
               {/* Alternative Hinweis-Leiste (nur wenn Counter-Chip aus) */}
               {!useCounterChip && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6">
-                  <p className="text-xs text-amber-700 text-center">Wähle 2 Antworten aus</p>
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-6">
+                  <p className="text-xs text-gray-700 text-center">Wähle 2 Antworten aus</p>
                 </div>
               )}
 
@@ -261,7 +265,7 @@ export default function RelationshipSelection({
                 
                 return (
                   <div className="flex items-center justify-center mb-6">
-                    <label className="inline-flex items-center gap-2 text-amber-800">
+                    <label className="inline-flex items-center gap-2 text-gray-800">
                       <input
                         type="checkbox"
                         defaultChecked={isAdmin ? current : isTestModeActive}
@@ -300,23 +304,27 @@ export default function RelationshipSelection({
                       currentAnswer.selectedBlocks.includes(block)
                         ? (currentAnswer.selectedBlocks.length === 2
                             ? 'border-green-500 bg-green-50'
-                            : 'border-amber-400 bg-amber-50')
+                            : (useNeutralAccentTheme
+                                ? 'border-zinc-300 bg-gray-50'
+                                : 'border-amber-400 bg-amber-50'))
                         : currentAnswer.selectedBlocks.length >= 2 && !currentAnswer.selectedBlocks.includes(block)
                           ? 'border-gray-300 bg-gray-100 opacity-40 cursor-not-allowed'
                           : 'border-zinc-200 bg-gray-50 hover:border-zinc-300'
                     }`}
                   >
                                          {/* Checkbox */}
-                     <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${
-                       currentAnswer.selectedBlocks.includes(block)
-                        ? (currentAnswer.selectedBlocks.length === 2 ? 'border-green-600 bg-green-600' : 'border-amber-500 bg-amber-500')
-                         : currentAnswer.selectedBlocks.length >= 2 && !currentAnswer.selectedBlocks.includes(block)
-                         ? 'border-gray-400 bg-gray-200'
-                         : 'border-stone-300'
-                     }`}>
-                       {currentAnswer.selectedBlocks.includes(block) && (
-                         <Check className="w-3 h-3 text-white" />
-                       )}
+                    <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${
+                      currentAnswer.selectedBlocks.includes(block)
+                       ? (currentAnswer.selectedBlocks.length === 2
+                            ? 'border-green-600 bg-green-600'
+                            : (useNeutralAccentTheme ? 'border-zinc-400 bg-gray-200' : 'border-amber-500 bg-amber-500'))
+                        : currentAnswer.selectedBlocks.length >= 2 && !currentAnswer.selectedBlocks.includes(block)
+                        ? 'border-gray-400 bg-gray-200'
+                        : 'border-stone-300'
+                    }`}>
+                      {currentAnswer.selectedBlocks.includes(block) && (
+                        <Check className={`w-3 h-3 ${currentAnswer.selectedBlocks.length === 2 ? 'text-white' : 'text-gray-700'}`} />
+                      )}
                      </div>
                      
                      {/* Text */}
@@ -339,7 +347,7 @@ export default function RelationshipSelection({
 
               {/* Eigene Snippets hinzufügen */}
               <div className="mb-8">
-                <Label htmlFor="custom-snippet" className="text-sm text-amber-800 mb-2 block">Eigenen Text hinzufügen:</Label>
+                <Label htmlFor="custom-snippet" className="text-sm text-gray-800 mb-2 block">Eigenen Text hinzufügen:</Label>
                 <div className="flex gap-2 mb-3">
                   <input
                     id="custom-snippet"
@@ -359,7 +367,7 @@ export default function RelationshipSelection({
                   <Button
                     type="button"
                     onClick={addCustomSnippet}
-                    className="h-11 px-4 bg-white text-amber-700 border border-amber-300 rounded-[12px] hover:bg-amber-50"
+                    className="h-11 px-4 bg-white text-gray-700 border border-gray-300 rounded-[12px] hover:bg-gray-50"
                   >
                     Hinzufügen
                   </Button>
@@ -373,10 +381,10 @@ export default function RelationshipSelection({
                   whileTap={{ scale: 0.98 }}
                   onClick={handlePreviousQuestion}
                   disabled={currentQuestionIndex === 0}
-                  className={`w-full px-4 py-3 text-amber-700 border border-amber-300 rounded-lg transition-all text-base font-medium flex items-center justify-center gap-2 ${
+                  className={`w-full px-4 py-3 text-gray-700 border border-gray-300 rounded-lg transition-all text-base font-medium flex items-center justify-center gap-2 ${
                     currentQuestionIndex === 0 
                       ? 'opacity-50 cursor-not-allowed' 
-                      : 'hover:bg-amber-50 active:bg-amber-100'
+                      : 'hover:bg-gray-50 active:bg-gray-100'
                   }`}
                 >
                   <ChevronLeft className="w-5 h-5" />
@@ -391,14 +399,14 @@ export default function RelationshipSelection({
                   whileTap={{ scale: 0.95 }}
                   onClick={handlePreviousQuestion}
                   disabled={currentQuestionIndex === 0}
-                  className="px-6 py-2 text-amber-700 border border-amber-300 rounded-lg hover:bg-amber-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm font-medium"
+                  className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm font-medium"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   Zurück
                 </motion.button>
 
                 <div className="text-center">
-                  <p className="text-amber-600 text-sm mb-1">
+                  <p className="text-gray-600 text-sm mb-1">
                     Frage {currentQuestionIndex + 1} von {questionsToUse.length}
                   </p>
                 </div>
@@ -408,7 +416,7 @@ export default function RelationshipSelection({
                   whileTap={{ scale: 0.95 }}
                   onClick={handleNextQuestion}
                   disabled={!canProceedFromCurrentQuestion()}
-                  className="px-7 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-base font-semibold shadow-sm"
+                  className="px-7 py-3 bg-[#f0fdf4] text-black border border-[#22c55e] rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-base font-normal shadow-sm"
                 >
                   {currentQuestionIndex === questionsToUse.length - 1 ? (
                     <>
@@ -428,16 +436,16 @@ export default function RelationshipSelection({
             {/* Progress Bar */}
             <div className="mt-6">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-amber-700 font-medium">
+                <span className="text-sm text-gray-700 font-medium">
                   Fortschritt: {currentQuestionIndex + 1} von {questionsToUse.length}
                 </span>
-                <span className="text-sm text-amber-600">
+                <span className="text-sm text-gray-600">
                   {Math.round(((currentQuestionIndex + 1) / questionsToUse.length) * 100)}%
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <motion.div
-                  className="bg-amber-500 h-2 rounded-full"
+                  className="bg-gray-400 h-2 rounded-full"
                   initial={{ width: 0 }}
                   animate={{ width: `${((currentQuestionIndex + 1) / questionsToUse.length) * 100}%` }}
                   transition={{ duration: 0.5, ease: "easeOut" }}

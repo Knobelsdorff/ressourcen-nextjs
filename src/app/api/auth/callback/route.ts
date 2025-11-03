@@ -74,16 +74,10 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/auth/auth-code-error?error=${encodeURIComponent('unexpected_error')}`)
     }
   } else {
-    // Wenn kein Code vorhanden ist, aber wir auf localhost sind, leite trotzdem weiter
-    const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1')
-    if (isLocalhost) {
-      console.log('No code but localhost detected, redirecting anyway')
-      // Für localhost ohne Code, leite direkt zum Dashboard weiter
-      return NextResponse.redirect(`${origin}/dashboard?confirmed=true`)
-    }
+    // Wenn kein Code vorhanden ist: nicht fälschlich Fehler anzeigen.
+    // Einige Provider/Supabase-Flows liefern Tokens im Hash (#) und sind serverseitig nicht sichtbar.
+    // Leite in diesem Fall neutral zum Dashboard mit Marker weiter.
+    console.log('No code present in callback; redirecting to dashboard as confirmed=true')
+    return NextResponse.redirect(`${origin}/dashboard?confirmed=true`)
   }
-
-  // return the user to an error page with instructions
-  console.log('Auth failed, redirecting to error page - no code found')
-  return NextResponse.redirect(`${origin}/auth/auth-code-error?error=${encodeURIComponent('no_code')}`)
 }
