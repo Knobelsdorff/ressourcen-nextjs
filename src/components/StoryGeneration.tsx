@@ -219,8 +219,15 @@ export default function StoryGeneration({
       handleAIEdit();
     }
   };
-
-
+  // Beim Öffnen (und sobald Generierung startet) zum Seitenanfang scrollen – wichtig für Mobile
+  useEffect(() => {
+    try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch {}
+  }, []);
+  useEffect(() => {
+    if (isGenerating) {
+      try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch {}
+    }
+  }, [isGenerating]);
 
  return (
     <div className="p-3 sm:p-4 lg:p-8 min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">

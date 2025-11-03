@@ -44,6 +44,8 @@ export default function RelationshipSelection({
   const { user } = useAuth();
   const hasInitialized = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  // UI-Schalter: Einfach auf false setzen, um zum alten Hinweis zurückzukehren
+  const useCounterChip = true;
   
   // Bestimme, welche Fragen verwendet werden sollen
   const isPlace = selectedFigure.category === 'place';
@@ -212,7 +214,30 @@ export default function RelationshipSelection({
                 <h2 className="text-2xl text-amber-700 font-normal">
                   {currentQuestion.question}
                 </h2>
+                {useCounterChip && (
+                  <div className="mt-3">
+                    <span
+                      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-medium ${
+                        currentAnswer.selectedBlocks.length === 2
+                          ? 'bg-green-100 text-green-800 border-green-200'
+                          : 'bg-amber-50 text-amber-800 border-amber-200'
+                      }`}
+                    >
+                      {currentAnswer.selectedBlocks.length === 2 && (
+                        <Check className="w-3.5 h-3.5" />
+                      )}
+                      {currentAnswer.selectedBlocks.length}/2 ausgewählt
+                    </span>
+                  </div>
+                )}
               </div>
+
+              {/* Alternative Hinweis-Leiste (nur wenn Counter-Chip aus) */}
+              {!useCounterChip && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6">
+                  <p className="text-xs text-amber-700 text-center">Wähle 2 Antworten aus</p>
+                </div>
+              )}
 
               {/* Sparmodus Schalter bei Frage 6 - Admin oder Testmodus */}
               {(() => {
@@ -335,9 +360,6 @@ export default function RelationshipSelection({
                     Hinzufügen
                   </Button>
                 </div>
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                  <p className="text-xs text-amber-700 text-center">Tipp: Du kannst bis zu 2 Optionen pro Frage auswählen.</p>
-                </div>
               </div>
 
               {/* Mobile Zurück Button */}
@@ -375,11 +397,6 @@ export default function RelationshipSelection({
                   <p className="text-amber-600 text-sm mb-1">
                     Frage {currentQuestionIndex + 1} von {questionsToUse.length}
                   </p>
-                  {currentAnswer.selectedBlocks.length > 0 && (
-                    <p className="text-green-700 text-xs">
-                      {currentAnswer.selectedBlocks.length} von 2 Option{currentAnswer.selectedBlocks.length !== 1 ? 'en' : ''} ausgewählt
-                    </p>
-                  )}
                 </div>
 
                 <motion.button
