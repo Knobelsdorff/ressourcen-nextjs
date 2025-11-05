@@ -502,7 +502,7 @@ export async function GET(request: NextRequest) {
       totalEventsFromDB: events?.length || 0,
       totalEventsAfterClientFilter: eventsToUse?.length || 0,
       hasError: !!error,
-      errorMessage: error?.message,
+      errorMessage: (error as Error | null)?.message,
       eventTypes: rawEventTypes,
       eventTypeCounts: eventsToUse ? rawEventTypes.map(type => ({
         type,
@@ -546,8 +546,8 @@ export async function GET(request: NextRequest) {
       uniqueUserCount: uniqueUserIds.length,
       uniqueUserIds: uniqueUserIds.slice(0, 5), // Erste 5 User-IDs
       hasError: !!error,
-      errorMessage: error?.message,
-      errorCode: error?.code,
+      errorMessage: (error as Error | null)?.message,
+      errorCode: (error as any)?.code,
       errorDetails: error?.details,
       errorHint: error?.hint,
     });
