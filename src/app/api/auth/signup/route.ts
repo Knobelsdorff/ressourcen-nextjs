@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
     
     // 4. Erstelle User in Supabase Auth
     // Verwende normalen signUp für Email-Bestätigung (admin.createUser sendet keine Email)
-    const headersList = headers();
+    const headersList = await headers();
     const origin = headersList.get('origin') || headersList.get('referer') || 'http://localhost:3000';
     const redirectUrl = `${origin}/api/auth/callback?next=/dashboard?confirmed=true`;
     
