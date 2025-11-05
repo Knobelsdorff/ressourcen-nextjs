@@ -794,11 +794,11 @@ export async function GET(request: NextRequest) {
     return successResponse;
   } catch (error: any) {
     console.error('Error in admin analytics:', error);
-    console.error('Error stack:', error.stack);
+    console.error('Error stack:', (error as Error)?.stack);
     console.error('Error details:', {
       message: (error as Error)?.message,
       name: (error as Error)?.name,
-      cause: error.cause,
+      cause: (error as any)?.cause,
     });
     return NextResponse.json(
       { 
