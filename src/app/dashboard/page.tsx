@@ -455,8 +455,9 @@ export default function Dashboard() {
       if (error) {
         console.error('Error loading full name:', error);
       } else if (data) {
-        setFullName(data.full_name || '');
-        setPronunciationHint((data as any).pronunciation_hint || '');
+        const profileData = data as { full_name?: string | null; pronunciation_hint?: string | null };
+        setFullName(profileData.full_name || '');
+        setPronunciationHint(profileData.pronunciation_hint || '');
       }
     } catch (err) {
       console.error('Error loading full name:', err);
