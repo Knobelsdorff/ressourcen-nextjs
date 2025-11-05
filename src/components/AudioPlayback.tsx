@@ -180,7 +180,7 @@ export default function AudioPlayback({
       
       console.log('Saving pending story to database...');
       
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('saved_stories')
         .insert({
           user_id: user.id,
