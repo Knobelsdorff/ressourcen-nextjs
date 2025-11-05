@@ -146,7 +146,8 @@ export async function POST(request: NextRequest) {
       );
       
       console.log('Analytics Track API: Inserting event with service role client (bypassing RLS)...');
-      const { data, error } = await adminSupabase
+      // user_analytics ist nicht in den generierten Typen, existiert aber in der DB
+      const { data, error } = await (adminSupabase as any)
           .from('user_analytics')
           .insert({
             user_id: user.id,
