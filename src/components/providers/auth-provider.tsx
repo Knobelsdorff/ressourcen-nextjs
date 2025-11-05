@@ -168,7 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: user.id,
         ...updates,
         updated_at: new Date().toISOString(),
-      });
+      } as any);
     
     return { error };
   };
