@@ -316,11 +316,14 @@ export async function GET(request: NextRequest) {
       console.log(`Admin Analytics API: Loading page ${page + 1}, range ${from} to ${to}...`);
       
       // user_analytics ist nicht in den generierten Typen, existiert aber in der DB
-      const { data: pageEvents, error: pageError } = await (adminSupabase as any)
+      const result = await (adminSupabase as any)
         .from('user_analytics')
         .select('*')
         .order('created_at', { ascending: false })
-        .range(from, to);
+        .range(from, to) as { data: Array<{ created_at: string; [key: string]: any }> | null; error: any };
+      
+      const pageEvents: Array<{ created_at: string; [key: string]: any }> = result.data || [];
+      const pageError = result.error;
       
       if (pageError) {
         console.error('Admin Analytics API: Error loading events page', page + 1, ':', pageError);
@@ -339,7 +342,7 @@ export async function GET(request: NextRequest) {
         
         // Zeige Datumsbereich der aktuellen Seite
         if (pageEvents.length > 0) {
-          const pageDates = pageEvents.map(e => new Date(e.created_at).toISOString().split('T')[0]);
+          const pageDates = pageEvents.map((e: { created_at: string }) => new Date(e.created_at).toISOString().split('T')[0]);
           const uniquePageDates = Array.from(new Set(pageDates));
           console.log(`Admin Analytics API: Page ${page + 1} date range:`, {
             oldest: pageDates[pageDates.length - 1],
