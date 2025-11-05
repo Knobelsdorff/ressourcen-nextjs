@@ -311,23 +311,24 @@ export default function Dashboard() {
         console.log('Stories loaded successfully:', data);
         
         // Entferne Duplikate BEVOR wir sie setzen
-        const uniqueStories = removeDuplicates(data || []);
-        const duplicateCount = (data || []).length - uniqueStories.length;
-        console.log(`Dashboard: After deduplication: ${uniqueStories.length} unique stories (was ${(data || []).length})`);
+        const storiesData = (data || []) as SavedStory[];
+        const uniqueStories = removeDuplicates(storiesData);
+        const duplicateCount = storiesData.length - uniqueStories.length;
+        console.log(`Dashboard: After deduplication: ${uniqueStories.length} unique stories (was ${storiesData.length})`);
         
         // Wenn Duplikate gefunden wurden, lösche sie automatisch aus der Datenbank
         if (duplicateCount > 0) {
           console.log(`Dashboard: Found ${duplicateCount} duplicate(s), cleaning up...`);
           // Finde die IDs der Duplikate
           const uniqueIds = new Set(uniqueStories.map(s => s.id));
-          const duplicateIds = (data || [])
+          const duplicateIds = storiesData
             .filter(s => !uniqueIds.has(s.id))
             .map(s => s.id);
           
           // Logge welche Duplikate gelöscht werden und welche behalten werden
           const keptStories = uniqueStories.filter(s => 
-            (data || []).some(d => d.id === s.id && 
-              (data || []).filter(d2 => {
+            storiesData.some(d => d.id === s.id && 
+              storiesData.filter(d2 => {
                 const norm1 = (s.content || '').replace(/\s+/g, ' ').trim().slice(0, 500);
                 const norm2 = (d2.content || '').replace(/\s+/g, ' ').trim().slice(0, 500);
                 return d2.title === s.title && norm1 === norm2 && d2.id !== s.id;
@@ -336,7 +337,7 @@ export default function Dashboard() {
           );
           
           keptStories.forEach(kept => {
-            const duplicates = (data || []).filter(d => {
+            const duplicates = storiesData.filter(d => {
               const norm1 = (kept.content || '').replace(/\s+/g, ' ').trim().slice(0, 500);
               const norm2 = (d.content || '').replace(/\s+/g, ' ').trim().slice(0, 500);
               return d.title === kept.title && norm1 === norm2 && d.id !== kept.id;
@@ -1324,8 +1325,6 @@ ${story.content}
           audio.addEventListener('loadstart', onLoadStart, { once: true });
           
           // Timeout nach 15 Sekunden (länger für langsamere Verbindungen)
-          // timeoutId muss const sein, da es nur einmal zugewiesen wird
-          // eslint-disable-next-line prefer-const
           const timeoutId: NodeJS.Timeout = setTimeout(() => {
             if (resolved) return;
             resolved = true;
