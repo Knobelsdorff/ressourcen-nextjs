@@ -170,7 +170,7 @@ export async function GET(request: NextRequest) {
       
       // Debug: Teste ob Admin Client funktioniert (immer loggen)
       // Teste eine einfache Query um zu sehen ob die Tabelle existiert
-      // @ts-ignore - user_analytics ist nicht in den generierten Typen, existiert aber in der DB
+      // @ts-expect-error - user_analytics ist nicht in den generierten Typen, existiert aber in der DB
       const { count, error: countError } = await adminSupabase
         .from('user_analytics')
         .select('*', { count: 'exact', head: true });
@@ -315,7 +315,7 @@ export async function GET(request: NextRequest) {
       
       console.log(`Admin Analytics API: Loading page ${page + 1}, range ${from} to ${to}...`);
       
-      // @ts-ignore - user_analytics ist nicht in den generierten Typen, existiert aber in der DB
+      // @ts-expect-error - user_analytics ist nicht in den generierten Typen, existiert aber in der DB
       const { data: pageEvents, error: pageError } = await adminSupabase
         .from('user_analytics')
         .select('*')
