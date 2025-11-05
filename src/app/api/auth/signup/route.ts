@@ -121,7 +121,8 @@ export async function POST(request: NextRequest) {
     
     if (!testMode) {
       // Prüfe ob IP zu viele Registrierungen hat
-      const { data: canRegister, error: ipCheckError } = await adminSupabase.rpc(
+      // can_register_from_ip ist nicht in den generierten Typen, existiert aber in der DB
+      const { data: canRegister, error: ipCheckError } = await (adminSupabase as any).rpc(
         'can_register_from_ip',
         { ip_address_text: clientIP }
       );
@@ -147,7 +148,8 @@ export async function POST(request: NextRequest) {
     }
     
     // 3. Prüfe Email-Domain in Datenbank (zusätzliche Sicherheit)
-    const { data: isBlocked, error: domainCheckError } = await adminSupabase.rpc(
+    // is_email_domain_blocked ist nicht in den generierten Typen, existiert aber in der DB
+    const { data: isBlocked, error: domainCheckError } = await (adminSupabase as any).rpc(
       'is_email_domain_blocked',
       { email_text: email }
     );
