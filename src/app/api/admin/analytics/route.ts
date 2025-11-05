@@ -525,7 +525,7 @@ export async function GET(request: NextRequest) {
     const dashboardVisitCount = eventsToUse?.filter(e => e.event_type === 'dashboard_visit').length || 0;
     
     // Filtere dashboard_visit Events heraus (Admin-Filterung erfolgt später nach dem Laden der Email-Adressen)
-    let relevantEvents = eventsToUse?.filter(e => e.event_type !== 'dashboard_visit') || [];
+    const relevantEvents = eventsToUse?.filter(e => e.event_type !== 'dashboard_visit') || [];
     
     if (dashboardVisitCount > 0) {
       console.log(`Admin Analytics API: Filtered out ${dashboardVisitCount} dashboard_visit events (not relevant)`);
