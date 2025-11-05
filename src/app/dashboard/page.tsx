@@ -644,7 +644,7 @@ export default function Dashboard() {
           
           const { data, error } = await supabase
             .from('saved_stories')
-            .insert(correctData)
+            .insert(correctData as any)
             .select();
 
           if (error) {
