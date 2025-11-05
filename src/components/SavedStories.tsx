@@ -25,10 +25,14 @@ export default function SavedStories() {
       
       // Versuche zuerst Supabase
       try {
+        if (!user?.id) {
+          throw new Error('User ID is required');
+        }
+        
         const { data, error } = await supabase
           .from('saved_stories')
           .select('*')
-          .eq('user_id', user?.id)
+          .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
