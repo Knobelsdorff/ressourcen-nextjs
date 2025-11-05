@@ -861,7 +861,7 @@ export default function Dashboard() {
       }
 
       // Gruppiere nach title (Figure-Name)
-      const groupedStories = allStories.reduce((acc, story) => {
+      const groupedStories = (allStories as SavedStory[]).reduce((acc, story) => {
         const key = story.title;
         if (!acc[key]) {
           acc[key] = [];
