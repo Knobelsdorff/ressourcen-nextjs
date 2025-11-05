@@ -985,7 +985,7 @@ ${story.content}
       setStories(stories.map(s => s.id === storyId ? updatedStory : s));
       
       // Speichere das Audio in der Datenbank
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('saved_stories')
         .update({
           audio_url: audioUrl,
