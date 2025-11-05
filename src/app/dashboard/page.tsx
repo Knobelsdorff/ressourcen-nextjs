@@ -711,7 +711,7 @@ export default function Dashboard() {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ full_name: fullName, pronunciation_hint: pronunciationHint })
+        .update({ full_name: fullName, pronunciation_hint: pronunciationHint } as any)
         .eq('id', user.id);
 
       if (error) {
