@@ -286,7 +286,6 @@ export default function Dashboard() {
 
   // Lade Geschichten aus Supabase
   const loadStories = useCallback(async () => {
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     if (!user) {
       console.log('Dashboard: No user logged in, skipping loadStories');
       return;
@@ -1262,11 +1261,13 @@ ${story.content}
       // Warte auf Load, bevor wir abspielen
       try {
         await new Promise<void>((resolve, reject) => {
-          let timeoutId: NodeJS.Timeout;
           let resolved = false;
+          let timeoutId: NodeJS.Timeout | undefined;
           
           const cleanup = () => {
-            if (timeoutId) clearTimeout(timeoutId);
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+            }
             audio.removeEventListener('canplay', onCanPlay);
             audio.removeEventListener('canplaythrough', onCanPlay);
             audio.removeEventListener('error', onError);
@@ -1334,7 +1335,7 @@ ${story.content}
               audioUrl: audioUrl
             });
             reject(new Error('Audio-Laden hat zu lange gedauert'));
-          }, 15000);
+          }, 15000) as NodeJS.Timeout;
         });
         console.log(`[playAudio] Audio loaded successfully for story ${storyId}`);
       } catch (error) {
