@@ -1,4 +1,4 @@
-import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import {Database} from "@/lib/types/database.types";
 
 export async function createServerAdminClient() {
@@ -10,20 +10,14 @@ export async function createServerAdminClient() {
         throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured');
     }
 
-    return createServerClient<Database>(
+    // Verwende createClient für Service Role Key (umgeht RLS)
+    return createClient<Database>(
         supabaseUrl,
         serviceRoleKey,
         {
-            cookies: {
-                getAll: () => [],
-                setAll: () => {},
-            },
             auth: {
                 persistSession: false,
                 autoRefreshToken: false,
-            },
-            db: {
-                schema: 'public'
             },
         }
     )

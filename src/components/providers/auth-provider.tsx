@@ -39,6 +39,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        
+        // Track login event
+        if (event === 'SIGNED_IN' && session?.user) {
+          try {
+            const { trackEvent } = await import('@/lib/analytics');
+            trackEvent({
+              eventType: 'user_login',
+            }, { accessToken: session.access_token });
+          } catch (error) {
+            console.error('Error tracking login event:', error);
+          }
+        }
       }
     );
 
@@ -51,26 +63,76 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     console.log('SignUp - Current origin:', currentOrigin);
     
-    // Speichere die aktuelle Domain in localStorage für späteren Gebrauch
-    localStorage.setItem('signupOrigin', currentOrigin);
-    
-    // Verwende die aktuelle Domain als emailRedirectTo
-    const redirectUrl = `${currentOrigin}/api/auth/callback?next=/dashboard?confirmed=true`;
-    
-    console.log('SignUp redirect URL:', redirectUrl);
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        // Zusätzliche Optionen für bessere Kompatibilität
-        data: {
-          signup_origin: currentOrigin
-        }
+    // Verwende API-Endpunkt für Multi-Account-Prävention
+    try {
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        // Wenn Response kein JSON ist, versuche Text zu lesen
+        const text = await response.text();
+        console.error('SignUp API: Invalid JSON response:', text);
+        return {
+          error: new Error(`Server-Fehler (${response.status}): ${text || 'Unbekannter Fehler'}`),
+          data: null
+        };
       }
-    });
-    return { error };
+      
+      if (!response.ok) {
+        // Konvertiere API-Fehler in Supabase-Format
+        const errorMessage = data.error || `Fehler bei der Registrierung (${response.status})`;
+        console.error('SignUp API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: data.error,
+          data: data,
+        });
+        return { 
+          error: new Error(errorMessage),
+          data: null 
+        };
+      }
+      
+      // Wenn erfolgreich, hole User-Daten von Supabase
+      // Die Email-Bestätigung wird separat gehandhabt
+      // User muss sich nach Bestätigung einloggen
+      return { 
+        error: null, 
+        data: {
+          user: data.user,
+          session: null, // Session wird erst nach Email-Bestätigung erstellt
+        }
+      };
+    } catch (fetchError: any) {
+      console.error('SignUp API error:', fetchError);
+      console.error('SignUp API error details:', {
+        message: fetchError.message,
+        name: fetchError.name,
+        stack: fetchError.stack,
+      });
+      
+      // Spezifische Fehlermeldungen
+      let errorMessage = 'Netzwerkfehler bei der Registrierung';
+      
+      if (fetchError.message) {
+        errorMessage = fetchError.message;
+      } else if (fetchError.name === 'TypeError' && fetchError.message?.includes('fetch')) {
+        errorMessage = 'Verbindungsfehler. Bitte überprüfe deine Internetverbindung.';
+      }
+      
+      return { 
+        error: new Error(errorMessage),
+        data: null 
+      };
+    }
   };
 
   const signIn = async (email: string, password: string) => {

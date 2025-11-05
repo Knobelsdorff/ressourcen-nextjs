@@ -14,11 +14,8 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(redirectUrl, 301) // 301 = Permanent Redirect
     }
     
-    // Dashboard ohne Authentifizierung erlauben
-    if (request.nextUrl.pathname === '/dashboard') {
-        return
-    }
-    
+    // Stelle sicher, dass die Supabase-Session für alle Routen aktualisiert wird,
+    // damit Auth-Cookies korrekt gesetzt werden und API-Routen den User erkennen.
     return await updateSession(request)
 }
 

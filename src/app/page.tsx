@@ -14,6 +14,9 @@ import AudioPlayback from "@/components/AudioPlayback";
 import AccountCreated from "@/components/AccountCreated";
 import SavedStoriesModal from "@/components/SavedStoriesModal";
 import { useAppReset } from "@/components/providers/app-reset-provider";
+import Paywall from "@/components/Paywall";
+import { canCreateResource } from "@/lib/access";
+import { isEnabled } from "@/lib/featureFlags";
 
 export interface ResourceFigure {
   id: string;
@@ -98,6 +101,7 @@ export default function RessourcenApp() {
   const [userFullName, setUserFullName] = useState<string | null>(null);
   const [userPronunciationHint, setUserPronunciationHint] = useState<string | null>(null);
   const [sparModus, setSparModus] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
   
   // Debug: Log current state
   console.log('Current user state:', { 
@@ -283,9 +287,57 @@ export default function RessourcenApp() {
     });
     
     if (isStep1Complete) {
-      console.log('Moving from step', appState.currentStep, 'to', appState.currentStep + 1);
-      setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
-      return;
+      // Paywall-Prüfung: Wenn User bereits 1 Ressource hat, prüfe Zugang BEVOR Step 2 startet
+      // Nur wenn Paywall-Feature aktiviert ist
+      const paywallEnabled = isEnabled('PAYWALL_ENABLED');
+      
+      if (user && paywallEnabled) {
+        console.log('[handleNextStep] Step 1 complete, checking if user can create resource...');
+        
+        const checkPaywall = async () => {
+          try {
+            const { data: existingStories } = await supabase
+              .from('saved_stories')
+              .select('id')
+              .eq('user_id', user.id);
+            
+            const resourceCount = existingStories?.length || 0;
+            console.log(`[handleNextStep] User has ${resourceCount} resource(s) in database`);
+            
+            // 1. Ressource ist gratis (immer erlaubt)
+            if (resourceCount === 0) {
+              console.log('[handleNextStep] First resource - allowing progression to step 2');
+              setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
+            } else {
+              // Ab der 2. Ressource: Prüfe Zugang
+              console.log(`[handleNextStep] User has ${resourceCount} resource(s), checking access...`);
+              const canCreate = await canCreateResource(user.id);
+              
+              if (!canCreate) {
+                console.log('[handleNextStep] User cannot create more resources - showing paywall');
+                setShowPaywall(true);
+                // Nicht weiterleiten - Paywall blockiert
+                return;
+              } else {
+                console.log('[handleNextStep] User has access - allowing progression to step 2');
+                setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
+              }
+            }
+          } catch (error) {
+            console.error('[handleNextStep] Error checking paywall:', error);
+            // Bei Fehler: Erlaube Weiterleitung (Fail-Open für bessere UX)
+            setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
+          }
+        };
+        
+        checkPaywall();
+        return;
+      } else {
+        // Paywall deaktiviert oder nicht eingeloggt: Erlaube Weiterleitung
+        console.log('Moving from step', appState.currentStep, 'to', appState.currentStep + 1);
+        setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
+        return;
+      }
     }
 
     if (isStep2Complete) {
@@ -590,6 +642,14 @@ export default function RessourcenApp() {
             // Weiterleitung zum Dashboard
             window.location.href = '/dashboard';
           }} 
+        />
+      )}
+
+      {/* Paywall Modal */}
+      {showPaywall && (
+        <Paywall
+          onClose={() => setShowPaywall(false)}
+          message="Deine kostenlose erste Ressource ist bereits erstellt. Aktiviere das 3-Monats-Paket für 179€, um 2 weitere Ressourcen zu erstellen (insgesamt 3 Ressourcen für 3 Monate)."
         />
       )}
     </div>

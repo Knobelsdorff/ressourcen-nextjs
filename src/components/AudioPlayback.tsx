@@ -9,6 +9,10 @@ import { ResourceFigure, AudioState } from "@/app/page";
 import { useAuth } from "@/components/providers/auth-provider";
 import { createSPAClient } from "@/lib/supabase/client";
 import { supabase } from "@/lib/supabase";
+import { canCreateResource, incrementResourceCount, canAccessResource } from "@/lib/access";
+import { trackEvent } from "@/lib/analytics";
+import Paywall from "./Paywall";
+import { isEnabled } from "@/lib/featureFlags";
 import IdealFamilyIconFinal from "./IdealFamilyIconFinal";
 import JesusIconFinal from "./JesusIconFinal";
 import ArchangelMichaelIconFinal from "./ArchangelMichaelIconFinal";
@@ -58,6 +62,7 @@ export default function AudioPlayback({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [showPaywall, setShowPaywall] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [testMode, setTestMode] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
@@ -72,7 +77,7 @@ export default function AudioPlayback({
   const [authSuccess, setAuthSuccess] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingStory, setPendingStory] = useState<any>(null); // Temporäre Speicherung
-  const { user, signIn, signUp } = useAuth();
+  const { user, session, signIn, signUp } = useAuth();
   const router = useRouter();
 
   // Lade Testmodus aus localStorage - nur nach Mount
@@ -143,6 +148,36 @@ export default function AudioPlayback({
     }
     
     try {
+      // Feature-Gating: Prüfe ob User noch Ressourcen erstellen kann
+      // Nur wenn Paywall-Feature aktiviert ist
+      const paywallEnabled = isEnabled('PAYWALL_ENABLED');
+      
+      if (paywallEnabled) {
+        const { data: existingStories } = await supabase
+          .from('saved_stories')
+          .select('id, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: true });
+        
+        const resourceCount = existingStories?.length || 0;
+        console.log(`[savePendingStoryToDatabase] User has ${resourceCount} resource(s)`);
+        
+        // 1. Ressource ist gratis (immer erlaubt)
+        if (resourceCount === 0) {
+          console.log('[savePendingStoryToDatabase] First resource is free - allowing save');
+        } else {
+          // Ab der 2. Ressource: IMMER Paywall prüfen
+          console.log(`[savePendingStoryToDatabase] User has ${resourceCount} resource(s), checking access for next resource...`);
+          const canCreate = await canCreateResource(user.id);
+          
+          if (!canCreate) {
+            console.log('[savePendingStoryToDatabase] User cannot create more resources - showing paywall');
+            setShowPaywall(true);
+            return;
+          }
+        }
+      }
+      
       console.log('Saving pending story to database...');
       
       const { data, error } = await supabase
@@ -184,6 +219,36 @@ export default function AudioPlayback({
     }
     
     try {
+      // Feature-Gating: Prüfe ob User noch Ressourcen erstellen kann
+      // Nur wenn Paywall-Feature aktiviert ist
+      const paywallEnabled = isEnabled('PAYWALL_ENABLED');
+      
+      if (paywallEnabled) {
+        // 1. Ressource ist gratis für 3 Tage, danach benötigt man Zugang
+        const { data: existingStories } = await supabase
+          .from('saved_stories')
+          .select('id, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: true });
+        
+        const resourceCount = existingStories?.length || 0;
+        
+        // 1. Ressource ist gratis (immer erlaubt)
+        if (resourceCount === 0) {
+          console.log('First resource is free - allowing save');
+        } else {
+          // Ab der 2. Ressource: IMMER Paywall prüfen (keine 3-Tage-Regel für 2. Ressource)
+          console.log(`User has ${resourceCount} resource(s), checking access for next resource...`);
+          const canCreate = await canCreateResource(user.id);
+          
+          if (!canCreate) {
+            console.log('User cannot create more resources - showing paywall');
+            setShowPaywall(true);
+            return;
+          }
+        }
+      }
+
       console.log('Checking for existing duplicate story...');
       
       let shouldSkipSave = false;
@@ -239,6 +304,29 @@ export default function AudioPlayback({
         // Kein Popup - nur Console-Log
       } else {
         console.log('Story saved successfully:', data);
+        
+        // Track Resource Creation Event (nur wenn User eingeloggt ist)
+        if (user && data && data[0]) {
+          trackEvent({
+            eventType: 'resource_created',
+            storyId: data[0].id,
+            resourceFigureName: selectedFigure.name,
+            voiceId: selectedVoiceId || undefined,
+          }, { accessToken: session?.access_token || null });
+        }
+        
+        // Erhöhe Ressourcen-Zähler nur wenn User bereits Zugang hat (nicht für 1. gratis Ressource)
+        // Prüfe ob user_access existiert - wenn ja, dann increment
+        const { data: userAccess } = await supabase
+          .from('user_access')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+        
+        // Nur Zähler erhöhen, wenn User bereits Zugang hat (also nach Zahlung)
+        if (userAccess) {
+          await incrementResourceCount(user.id);
+        }
         // Kein Popup - nur Console-Log
       }
     } catch (err) {
@@ -316,9 +404,42 @@ export default function AudioPlayback({
     savePendingStory();
     
     if (user) {
-      // Wenn angemeldet, versuche sofort in der Datenbank zu speichern
+      // Prüfe ZUERST ob User Ressource speichern kann (Paywall-Prüfung)
+      // Nur wenn Paywall-Feature aktiviert ist
+      const paywallEnabled = isEnabled('PAYWALL_ENABLED');
+      
+      if (paywallEnabled) {
+        console.log('[handleSaveStory] Checking if user can save resource...');
+        
+        const { data: existingStories } = await supabase
+          .from('saved_stories')
+          .select('id, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: true });
+        
+        const resourceCount = existingStories?.length || 0;
+        console.log(`[handleSaveStory] User has ${resourceCount} resource(s) in database`);
+        
+        // 1. Ressource ist gratis (immer erlaubt)
+        if (resourceCount === 0) {
+          console.log('[handleSaveStory] First resource is free - allowing save');
+        } else {
+          // Ab der 2. Ressource: IMMER Paywall prüfen
+          console.log(`[handleSaveStory] User has ${resourceCount} resource(s), checking access for next resource...`);
+          const canCreate = await canCreateResource(user.id);
+          
+          if (!canCreate) {
+            console.log('[handleSaveStory] User cannot create more resources - showing paywall');
+            setShowPaywall(true);
+            return; // Wichtig: Früher Return, damit nicht gespeichert wird
+          }
+        }
+      }
+      
+      // Wenn angemeldet und Zugang erlaubt, versuche sofort in der Datenbank zu speichern
       try {
         await saveStoryToDatabase();
+        
         // Lösche temporäre Daten nach erfolgreichem Speichern
         localStorage.removeItem('pendingStory');
         setPendingStory(null);
@@ -623,6 +744,19 @@ export default function AudioPlayback({
     const handleEnded = () => {
       setIsPlaying(false);
       setCurrentTime(0);
+      
+      // Track vollständigen Audio-Play (nur wenn User eingeloggt ist UND eine gültige Session hat)
+      if (user && session && audioState?.audioUrl && audio.duration) {
+        trackEvent({
+          eventType: 'audio_play_complete',
+          resourceFigureName: selectedFigure.name,
+          voiceId: selectedVoiceId || undefined,
+          metadata: {
+            completed: true,
+            audioDuration: audio.duration,
+          },
+        }, { accessToken: session.access_token });
+      }
     };
     const handleLoadStart = () => setIsLoading(true);
     const handleCanPlay = () => setIsLoading(false);
@@ -649,31 +783,120 @@ export default function AudioPlayback({
       audio.removeEventListener('progress', updateBuffered);
       audio.removeEventListener('error', handleError);
     };
-  }, [audioState, onAudioStateChange]);
+  }, [audioState, onAudioStateChange, user, session, selectedFigure, selectedVoiceId]);
 
-  const togglePlayPause = () => {
+  const togglePlayPause = async () => {
     const audio = audioRef.current;
     if (!audio || !audioState?.audioUrl) return;
 
     if (isPlaying) {
       audio.pause();
-    } else {
-      audio.play().catch((err) => {
-        console.error('Audio play failed:', err);
-        setError('Failed to play audio. Please try again.');
-      });
+      setIsPlaying(false);
+      return;
     }
-    setIsPlaying(!isPlaying);
+    
+    // Prüfe ob User Zugang hat (nur wenn eingeloggt und Paywall aktiviert)
+    const paywallEnabled = isEnabled('PAYWALL_ENABLED');
+    
+    if (user && paywallEnabled) {
+      console.log('[AudioPlayback] Checking access before playing audio...');
+      
+      // Prüfe ob User bereits Ressourcen hat (für 2. Ressource Paywall)
+      const { data: existingStories } = await supabase
+        .from('saved_stories')
+        .select('id, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
+      
+      const resourceCount = existingStories?.length || 0;
+      console.log(`[AudioPlayback] User has ${resourceCount} resource(s) in database`);
+      
+      // Wenn User bereits 1+ Ressourcen hat, ist diese neue Ressource (noch nicht gespeichert) die 2.+ - Paywall prüfen
+      if (resourceCount >= 1) {
+        // Prüfe ob User aktiven Zugang hat
+        const { hasActiveAccess } = await import('@/lib/access');
+        const hasAccess = await hasActiveAccess(user.id);
+        
+        if (!hasAccess) {
+          console.log('[AudioPlayback] User has 1+ resources but no active access - showing paywall');
+          setShowPaywall(true);
+          return;
+        }
+      } else if (resourceCount === 1 && existingStories && existingStories.length === 1) {
+        // Erste Ressource existiert bereits - prüfe 3-Tage-Regel
+        const firstResource = existingStories[0];
+        const firstResourceDate = new Date(firstResource.created_at);
+        const daysSinceFirst = (Date.now() - firstResourceDate.getTime()) / (1000 * 60 * 60 * 24);
+        
+        if (daysSinceFirst >= 3) {
+          console.log('[AudioPlayback] First resource trial expired - showing paywall');
+          setShowPaywall(true);
+          return;
+        }
+      }
+      // Wenn resourceCount === 0: Erste Ressource, Audio ist erlaubt (innerhalb von 3 Tagen nach Erstellung)
+    }
+
+    audio.play().then(() => {
+      setIsPlaying(true);
+      // Track Audio-Play Event (nur wenn User eingeloggt ist UND eine gültige Session hat)
+      if (user && session) {
+        trackEvent({
+          eventType: 'audio_play',
+          resourceFigureName: selectedFigure.name,
+          voiceId: selectedVoiceId || undefined,
+        }, { accessToken: session.access_token });
+      }
+    }).catch((err) => {
+      console.error('Audio play failed:', err);
+      setError('Failed to play audio. Please try again.');
+      setIsPlaying(false);
+    });
   };
 
-  const restart = () => {
+  const restart = async () => {
     const audio = audioRef.current;
     if (!audio) return;
+    
+    // Prüfe Zugang auch beim Restart (gleiche Logik wie togglePlayPause)
+    // Nur wenn Paywall-Feature aktiviert ist
+    const paywallEnabled = isEnabled('PAYWALL_ENABLED');
+    
+    if (user && audioState?.audioUrl && paywallEnabled) {
+      const { data: existingStories } = await supabase
+        .from('saved_stories')
+        .select('id, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
+      
+      const resourceCount = existingStories?.length || 0;
+      
+      if (resourceCount >= 1) {
+        const { hasActiveAccess } = await import('@/lib/access');
+        const hasAccess = await hasActiveAccess(user.id);
+        
+        if (!hasAccess) {
+          setShowPaywall(true);
+          return;
+        }
+      }
+    }
     
     audio.currentTime = 0;
     setCurrentTime(0);
     if (isPlaying) {
-      audio.play();
+      audio.play().then(() => {
+        // Track Audio-Play Event beim Restart (nur wenn User eingeloggt ist UND eine gültige Session hat)
+        if (user && session) {
+          trackEvent({
+            eventType: 'audio_play',
+            resourceFigureName: selectedFigure.name,
+            voiceId: selectedVoiceId || undefined,
+          }, { accessToken: session.access_token });
+        }
+      }).catch((err) => {
+        console.error('Audio play failed on restart:', err);
+      });
     }
   };
 
@@ -1209,6 +1432,14 @@ export default function AudioPlayback({
             </button>
           </motion.div>
         </div>
+      )}
+
+      {/* Paywall Modal */}
+      {showPaywall && (
+        <Paywall
+          onClose={() => setShowPaywall(false)}
+          message="Deine kostenlose 3-Tage-Trial-Periode ist abgelaufen. Aktiviere das 3-Monats-Paket für 179€, um deine Ressource weiterhin zu nutzen und 2 weitere Ressourcen zu erstellen (insgesamt 3 Ressourcen für 3 Monate)."
+        />
       )}
     </div>
   );

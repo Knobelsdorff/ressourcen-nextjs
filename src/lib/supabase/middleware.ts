@@ -15,6 +15,9 @@ export async function updateSession(request: NextRequest) {
                     return request.cookies.getAll()
                 },
                 setAll(cookiesToSet) {
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log('Middleware: Setting cookies:', cookiesToSet.map(c => c.name).join(', '));
+                    }
                     cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
                     supabaseResponse = NextResponse.next({
                         request,
@@ -34,13 +37,19 @@ export async function updateSession(request: NextRequest) {
     // IMPORTANT: DO NOT REMOVE auth.getUser()
 
     const {data: user} = await supabase.auth.getUser()
-    if (
-        (!user || !user.user) && request.nextUrl.pathname.startsWith('/dashboard')
-    ) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/auth/login'
-        return NextResponse.redirect(url)
+    
+    // Debug: Log für API-Routen
+    if (process.env.NODE_ENV === 'development' && request.nextUrl.pathname.startsWith('/api/')) {
+        console.log('Middleware: API route', request.nextUrl.pathname, {
+            hasUser: !!user?.user,
+            userEmail: user?.user?.email,
+            cookieCount: request.cookies.getAll().length,
+            cookieNames: request.cookies.getAll().map(c => c.name).join(', '),
+        });
     }
+    
+    // Leite nicht mehr um – wir lassen /dashboard auch ohne Redirect durch,
+    // die App selbst kümmert sich um die Darstellung für nicht eingeloggte Nutzer.
 
     // IMPORTANT: You *must* return the supabaseResponse object as it is.
     // If you're creating a new response object with NextResponse.next() make sure to:

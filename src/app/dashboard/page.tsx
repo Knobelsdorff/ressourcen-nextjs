@@ -2,9 +2,14 @@
 
 import { motion } from "framer-motion";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, Volume2, User, Mail, Calendar, Clock, Star, Trophy, Target, Shield, HelpCircle, MessageCircle, Bug, Key, Trash, Crown, Zap, TrendingUp, Play, Pause } from "lucide-react";
+import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, Volume2, User, Mail, Calendar, Clock, Star, Trophy, Target, Shield, HelpCircle, MessageCircle, Bug, Key, Trash, Crown, Zap, TrendingUp, Play, Pause, BarChart3, Lock } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
+import { getUserAccess, canAccessResource } from "@/lib/access";
+import { useSearchParams } from "next/navigation";
+import Paywall from "@/components/Paywall";
+import { trackEvent } from "@/lib/analytics";
 
 interface SavedStory {
   id: string;
@@ -18,8 +23,22 @@ interface SavedStory {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'profile' | 'stories'>('stories');
+  
+  // Prüfe ob User Admin ist
+  const isAdmin = (() => {
+    if (!user?.email) return false;
+    const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
+      .split(',')
+      .map(e => e.trim().toLowerCase())
+      .filter(Boolean);
+    return adminEmails.includes(user.email.toLowerCase());
+  })();
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [userAccess, setUserAccess] = useState<any>(null);
   const [stories, setStories] = useState<SavedStory[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -52,6 +71,7 @@ export default function Dashboard() {
     expiresAt: null as Date | null,
     isPro: false
   });
+  const [resourceAccessStatus, setResourceAccessStatus] = useState<Record<string, { canAccess: boolean; isFirst: boolean; trialExpired: boolean }>>({});
 
   // Funktion zur Bestimmung des Ressourcen-Typs
   const getResourceTypeLabel = (resourceFigure: any) => {
@@ -139,6 +159,83 @@ export default function Dashboard() {
     });
   }, []);
 
+  // Lade Zugangsstatus
+  const loadUserAccess = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const access = await getUserAccess(user.id);
+      setUserAccess(access);
+      
+      if (access) {
+        setSubscriptionStatus({
+          plan: '3-Monats-Paket',
+          credits: access.resources_limit - access.resources_created,
+          expiresAt: access.access_expires_at ? new Date(access.access_expires_at) : null,
+          isPro: access.status === 'active' && (!access.access_expires_at || new Date(access.access_expires_at) > new Date())
+        });
+      }
+    } catch (error) {
+      console.error('Error loading user access:', error);
+    }
+  }, [user]);
+
+  // Funktion zum Entfernen von Duplikaten
+  const removeDuplicates = useCallback((stories: SavedStory[]): SavedStory[] => {
+    if (!stories || stories.length === 0) return stories;
+    
+    const normalizeText = (s: string) => (s || '').replace(/\s+/g, ' ').trim();
+    const seen = new Map<string, SavedStory>();
+    
+    // Sortiere nach created_at (neueste zuerst), damit wir die neueste Version behalten
+    const sorted = [...stories].sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    
+    for (const story of sorted) {
+      const normalizedContent = normalizeText(story.content || '').slice(0, 500);
+      const title = story.title || '';
+      
+      // Erstelle einen eindeutigen Key basierend auf title und content
+      const key = `${title}:${normalizedContent}`;
+      
+      // Wenn wir diese Kombination noch nicht gesehen haben, behalte sie
+      if (!seen.has(key)) {
+        seen.set(key, story);
+      } else {
+        // Duplikat gefunden - entscheide welche Version behalten werden soll
+        const existing = seen.get(key)!;
+        const existingHasAudio = !!(existing.audio_url && existing.audio_url.trim() !== '');
+        const currentHasAudio = !!(story.audio_url && story.audio_url.trim() !== '');
+        
+        // Priorität: Version mit Audio > neueste Version
+        if (currentHasAudio && !existingHasAudio) {
+          // Neue Version hat Audio, alte nicht - ersetze die alte
+          console.log(`Dashboard: Keeping duplicate with audio (newer): ${story.id}`);
+          seen.set(key, story);
+        } else if (!currentHasAudio && existingHasAudio) {
+          // Alte Version hat Audio, neue nicht - behalte die alte
+          console.log(`Dashboard: Keeping duplicate with audio (older): ${existing.id}`);
+          // Keine Änderung, behalte existing
+        } else {
+          // Beide haben Audio oder beide nicht - behalte die neueste
+          if (new Date(story.created_at).getTime() > new Date(existing.created_at).getTime()) {
+            console.log(`Dashboard: Keeping newer duplicate: ${story.id}`);
+            seen.set(key, story);
+          }
+        }
+      }
+    }
+    
+    const unique = Array.from(seen.values());
+    
+    if (unique.length < stories.length) {
+      console.log(`Dashboard: Removed ${stories.length - unique.length} duplicate stories`);
+    }
+    
+    return unique;
+  }, []);
+
   // Lade Geschichten aus Supabase
   const loadStories = useCallback(async () => {
     if (!user) {
@@ -164,8 +261,114 @@ export default function Dashboard() {
         setError(`Fehler beim Laden der Geschichten: ${error.message}`);
       } else {
         console.log('Stories loaded successfully:', data);
-        setStories(data || []);
-        calculateUserStats(data || []);
+        
+        // Entferne Duplikate BEVOR wir sie setzen
+        const uniqueStories = removeDuplicates(data || []);
+        const duplicateCount = (data || []).length - uniqueStories.length;
+        console.log(`Dashboard: After deduplication: ${uniqueStories.length} unique stories (was ${(data || []).length})`);
+        
+        // Wenn Duplikate gefunden wurden, lösche sie automatisch aus der Datenbank
+        if (duplicateCount > 0) {
+          console.log(`Dashboard: Found ${duplicateCount} duplicate(s), cleaning up...`);
+          // Finde die IDs der Duplikate
+          const uniqueIds = new Set(uniqueStories.map(s => s.id));
+          const duplicateIds = (data || [])
+            .filter(s => !uniqueIds.has(s.id))
+            .map(s => s.id);
+          
+          // Logge welche Duplikate gelöscht werden und welche behalten werden
+          const keptStories = uniqueStories.filter(s => 
+            (data || []).some(d => d.id === s.id && 
+              (data || []).filter(d2 => {
+                const norm1 = (s.content || '').replace(/\s+/g, ' ').trim().slice(0, 500);
+                const norm2 = (d2.content || '').replace(/\s+/g, ' ').trim().slice(0, 500);
+                return d2.title === s.title && norm1 === norm2 && d2.id !== s.id;
+              }).length > 0
+            )
+          );
+          
+          keptStories.forEach(kept => {
+            const duplicates = (data || []).filter(d => {
+              const norm1 = (kept.content || '').replace(/\s+/g, ' ').trim().slice(0, 500);
+              const norm2 = (d.content || '').replace(/\s+/g, ' ').trim().slice(0, 500);
+              return d.title === kept.title && norm1 === norm2 && d.id !== kept.id;
+            });
+            console.log(`Dashboard: Keeping story ${kept.id} (has audio: ${!!kept.audio_url}), deleting duplicates:`, duplicates.map(d => `${d.id} (has audio: ${!!d.audio_url})`));
+          });
+          
+          if (duplicateIds.length > 0) {
+            console.log(`Dashboard: Deleting ${duplicateIds.length} duplicate stories from database:`, duplicateIds);
+            // Lösche Duplikate im Hintergrund (nicht blockierend)
+            supabase
+              .from('saved_stories')
+              .delete()
+              .in('id', duplicateIds)
+              .then(({ error }) => {
+                if (error) {
+                  console.error('Dashboard: Error deleting duplicates:', error);
+                } else {
+                  console.log(`Dashboard: Successfully deleted ${duplicateIds.length} duplicate stories`);
+                }
+              });
+          }
+        }
+        
+        // Prüfe Zugangsstatus für jede Ressource BEVOR wir sie setzen
+        if (user && uniqueStories.length > 0) {
+          const accessStatusMap: Record<string, { canAccess: boolean; isFirst: boolean; trialExpired: boolean }> = {};
+          const sortedStories = [...uniqueStories].sort((a, b) => 
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          );
+          
+          // Prüfe ob User aktiven Zugang hat
+          const hasActiveAccess = userAccess && 
+            userAccess.status === 'active' && 
+            (!userAccess.access_expires_at || new Date(userAccess.access_expires_at) > new Date());
+          
+          for (const story of uniqueStories) {
+            const isFirst = sortedStories[0].id === story.id;
+            let canAccess = false;
+            let trialExpired = false;
+            
+            // Wenn User aktiven Zugang hat, kann er immer Audio abspielen
+            if (hasActiveAccess) {
+              canAccess = true;
+              trialExpired = false;
+            } else if (isFirst) {
+              // Prüfe ob erste Ressource noch innerhalb von 3 Tagen
+              const firstResourceDate = new Date(sortedStories[0].created_at);
+              const daysSinceFirst = (Date.now() - firstResourceDate.getTime()) / (1000 * 60 * 60 * 24);
+              canAccess = daysSinceFirst < 3;
+              trialExpired = daysSinceFirst >= 3;
+            } else {
+              // Nicht die erste Ressource - benötigt aktiven Zugang
+              canAccess = false;
+              trialExpired = false;
+            }
+            
+            accessStatusMap[story.id] = { canAccess, isFirst, trialExpired };
+          }
+          
+          setResourceAccessStatus(accessStatusMap);
+        }
+        
+        setStories(uniqueStories);
+        calculateUserStats(uniqueStories);
+        
+        // Track Dashboard-Visit (nur wenn User eingeloggt ist UND eine gültige Session hat)
+        console.log('Dashboard: Checking if should track dashboard_visit:', {
+          hasUser: !!user,
+          hasSession: !!session,
+          userEmail: user?.email,
+        });
+        if (user && session) {
+          console.log('Dashboard: Tracking dashboard_visit event');
+          trackEvent({
+            eventType: 'dashboard_visit',
+          }, { accessToken: session.access_token });
+        } else {
+          console.log('Dashboard: NOT tracking dashboard_visit - missing user or session');
+        }
       }
     } catch (err) {
       console.error('Error:', err);
@@ -173,7 +376,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [user, calculateUserStats]);
+  }, [user, calculateUserStats, removeDuplicates, userAccess]);
 
   const loadFullName = useCallback(async () => {
     if (!user) return;
@@ -299,25 +502,38 @@ export default function Dashboard() {
             // Robuste Duplikat-Prüfung - prüfe nach title, content und user_id
             console.log('Dashboard: Checking for duplicates with title:', figureName, 'and head:', signatureHead.substring(0, 50) + '...');
             
+            // Verbesserte Duplikatsprüfung: Prüfe auf vollständigen Content, nicht nur auf title
             const { data: existingStories, error: checkError } = await supabase
               .from('saved_stories')
               .select('id, title, content, created_at')
               .eq('user_id', user.id)
-              .eq('title', figureName)
               .order('created_at', { ascending: false })
-              .limit(10);
+              .limit(20); // Prüfe mehr Stories
 
             if (checkError) {
               console.error('Error checking for duplicates:', checkError);
               console.log('Continuing with save despite duplicate check error...');
             } else if (existingStories && existingStories.length > 0) {
+              // Prüfe auf exakte Übereinstimmung des Contents (erste 500 Zeichen)
+              const normalizedContentFull = normalizedContent.slice(0, 500);
               const foundSimilar = existingStories.some((es: any) => {
                 const norm = normalizeText(es.content || '');
-                return norm.slice(0, 200) === signatureHead;
+                const normHead = norm.slice(0, 500);
+                // Exakte Übereinstimmung oder sehr ähnlich (>95% der ersten 500 Zeichen)
+                return normHead === normalizedContentFull || 
+                       (normHead.length > 100 && normalizedContentFull.length > 100 && 
+                        normHead.slice(0, 100) === normalizedContentFull.slice(0, 100));
               });
               if (foundSimilar) {
-                console.log('Dashboard: Duplicate story (by normalized head) found, skipping save');
+                console.log('Dashboard: Duplicate story (by content) found, skipping save');
                 shouldSkipSave = true;
+                // Lösche pendingStory sofort, da Duplikat
+                localStorage.removeItem('pendingStory');
+                try { localStorage.removeItem('pendingStory_saving'); } catch {}
+                setPendingStory(null);
+                setIsSavingPendingStory(false);
+                loadStories(); // Lade Stories neu, um Duplikat zu entfernen
+                return;
               }
             } else {
               console.log('Dashboard: No duplicates found, proceeding with save');
@@ -385,13 +601,15 @@ export default function Dashboard() {
             }, 3000);
           } else {
             console.log('Pending story saved from dashboard:', data);
-            // Lösche temporäre Daten nur wenn erfolgreich gespeichert
+            // Lösche temporäre Daten SOFORT wenn erfolgreich gespeichert
             localStorage.removeItem('pendingStory');
             try { localStorage.removeItem('pendingStory_saving'); } catch {}
             setPendingStory(null);
+            setIsSavingPendingStory(false);
             // Lade Geschichten neu
-            loadStories();
-            // Verhindere weitere Speicherversuche
+            await loadStories();
+            // Verhindere weitere Speicherversuche - markiere als erledigt
+            hasCheckedPendingRef.current = true;
             return;
           }
         } catch (dbError) {
@@ -445,22 +663,52 @@ export default function Dashboard() {
   useEffect(() => {
     if (user) {
       loadStories();
+      loadUserAccess();
       // Lade den vollständigen Namen
       loadFullName();
     }
-  }, [user]);
+  }, [user, loadStories, loadUserAccess]);
 
   // Einziger useEffect für pending stories und URL-Parameter
   useEffect(() => {
     if (!user) return;
-    if (hasCheckedPendingRef.current) return;
-    hasCheckedPendingRef.current = true;
+    
+    // WICHTIG: Prüfe ob bereits gespeichert wurde, bevor wir erneut prüfen
+    const savedPendingStory = typeof window !== 'undefined' ? localStorage.getItem('pendingStory') : null;
+    if (!savedPendingStory && hasCheckedPendingRef.current) {
+      // Keine pending story mehr und bereits geprüft - nicht erneut prüfen
+      return;
+    }
+    
+    // Setze Flag nur wenn wir wirklich prüfen werden
+    if (hasCheckedPendingRef.current && !savedPendingStory) {
+      return;
+    }
+    
+    // Setze Flag wenn wir prüfen werden
+    if (savedPendingStory) {
+      hasCheckedPendingRef.current = true;
+    }
 
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const confirmed = urlParams.get('confirmed');
+      const paymentSuccess = urlParams.get('payment') === 'success';
+      const sessionId = urlParams.get('session_id');
+      
+      // Nach erfolgreicher Zahlung: Zugangsstatus neu laden
+      if (paymentSuccess) {
+        console.log('Dashboard: Payment successful, reloading access status', { sessionId });
+        // Warte kurz, damit Webhook Zeit hat, den Zugang zu erstellen
+        setTimeout(async () => {
+          await loadUserAccess();
+          await loadStories(); // Lade auch Stories neu, falls neue Ressource erstellt werden kann
+          // Erfolgsmeldung anzeigen
+          alert('Zahlung erfolgreich! Dein Zugang wurde aktiviert. Du kannst jetzt Ressourcen erstellen.');
+        }, 2000); // 2 Sekunden warten, damit Webhook Zeit hat
+      }
 
-      console.log('Dashboard: URL params check', { confirmed, user: !!user });
+      console.log('Dashboard: URL params check', { confirmed, paymentSuccess, user: !!user });
 
       // Direkt prüfen, ohne zusätzliche Verzögerung; Guard verhindert Doppelausführung
       checkForPendingStories();
@@ -471,8 +719,18 @@ export default function Dashboard() {
         newUrl.searchParams.delete('confirmed');
         window.history.replaceState({}, '', newUrl.toString());
       }
+      
+      // payment Parameter aufräumen nach erfolgreicher Verarbeitung
+      if (paymentSuccess) {
+        setTimeout(() => {
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete('payment');
+          newUrl.searchParams.delete('session_id');
+          window.history.replaceState({}, '', newUrl.toString());
+        }, 3000);
+      }
     }
-  }, [user, checkForPendingStories]);
+  }, [user, checkForPendingStories, loadUserAccess, loadStories]);
 
   // Entfernt - redundanter useEffect
 
@@ -668,12 +926,32 @@ ${story.content}
     }
   };
 
-  const playAudio = useCallback((audioUrl: string, storyId: string) => {
+  const playAudio = useCallback(async (audioUrl: string, storyId: string) => {
+    // Prüfe ob User Zugang hat (Trial-Periode oder bezahlt)
+    // Nur wenn Paywall-Feature aktiviert ist
+    const paywallEnabled = isEnabled('PAYWALL_ENABLED');
+    
+    if (user && paywallEnabled) {
+      console.log(`[playAudio] Checking access for story ${storyId}...`);
+      const canAccess = await canAccessResource(user.id, storyId);
+      console.log(`[playAudio] Access check result for story ${storyId}:`, canAccess);
+      if (!canAccess) {
+        // Trial-Periode abgelaufen oder nicht die erste Ressource - zeige Paywall
+        console.log(`[playAudio] Access denied for story ${storyId} - showing paywall`);
+        setShowPaywall(true);
+        return;
+      }
+      console.log(`[playAudio] Access granted for story ${storyId} - proceeding with playback`);
+    }
+    
     // Stoppe alle anderen Audio-Elemente
     Object.values(audioElements).forEach(audio => {
       audio.pause();
       audio.currentTime = 0;
     });
+    
+    // Finde Story für Tracking
+    const story = stories.find(s => s.id === storyId);
     
     // Erstelle oder verwende existierendes Audio-Element
     let audio = audioElements[storyId];
@@ -684,6 +962,22 @@ ${story.content}
       // Event Listener für Audio-Ende
       audio.addEventListener('ended', () => {
         setPlayingAudioId(null);
+        
+        // Track vollständigen Audio-Play (nur wenn User eingeloggt ist UND eine gültige Session hat)
+        if (user && session && story && audio.duration) {
+          trackEvent({
+            eventType: 'audio_play_complete',
+            storyId: storyId,
+            resourceFigureName: typeof story.resource_figure === 'string' 
+              ? story.resource_figure 
+              : story.resource_figure?.name,
+            voiceId: story.voice_id || undefined,
+            metadata: {
+              completed: true,
+              audioDuration: audio.duration,
+            },
+          }, { accessToken: session.access_token });
+        }
       });
       
       audio.addEventListener('error', () => {
@@ -700,8 +994,20 @@ ${story.content}
     // Spiele Audio ab
     audio.play().then(() => {
       setPlayingAudioId(storyId);
+      
+      // Track Audio-Play Event (nur wenn User eingeloggt ist UND eine gültige Session hat)
+      if (user && session && story) {
+        trackEvent({
+          eventType: 'audio_play',
+          storyId: storyId,
+          resourceFigureName: typeof story.resource_figure === 'string' 
+            ? story.resource_figure 
+            : story.resource_figure?.name,
+          voiceId: story.voice_id || undefined,
+        }, { accessToken: session.access_token });
+      }
     }).catch(console.error);
-  }, [audioElements]);
+  }, [audioElements, user, stories]);
 
   const pauseAudio = useCallback((storyId: string) => {
     const audio = audioElements[storyId];
@@ -763,6 +1069,16 @@ ${story.content}
               <BookOpen className="w-5 h-5" />
               <span>Meine Ressourcen ({stories.length})</span>
             </button>
+            
+            {isAdmin && (
+              <button
+                onClick={() => router.push('/admin/analytics')}
+                className="flex items-center space-x-2 px-6 py-3 rounded-xl font-medium transition-all duration-300 text-white bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 shadow-lg"
+              >
+                <BarChart3 className="w-5 h-5" />
+                <span>Admin Analytics</span>
+              </button>
+            )}
           </div>
         </motion.div>
 
@@ -941,9 +1257,15 @@ ${story.content}
                 </div>
                 {!subscriptionStatus.isPro && (
                   <div className="mt-4 text-center">
-                    <button className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-6 py-3 rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all duration-300 font-medium">
-                      Upgrade zu Pro
+                    <button 
+                      onClick={() => setShowPaywall(true)}
+                      className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-300 font-medium"
+                    >
+                      3-Monats-Paket aktivieren (179€)
                     </button>
+                    <p className="text-xs text-amber-600 mt-2">
+                      Statt 1,5 Sitzungen (330€) nur 179€
+                    </p>
                   </div>
                 )}
               </div>
@@ -1173,25 +1495,86 @@ ${story.content}
                                       <Pause className="w-6 h-6" />
                                       Pause
                                 </button>
-                                  ) : (
-                                    <button
-                                      onClick={() => playAudio(story.audio_url!, story.id)}
-                                      className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-3 text-lg font-medium"
-                                    >
-                                      <Play className="w-6 h-6" />
-                                      Audio abspielen
-                                    </button>
-                                  )}
+                                  ) : (() => {
+                                    const accessStatus = resourceAccessStatus[story.id];
+                                    const canAccess = accessStatus?.canAccess ?? true; // Fallback: erlauben wenn nicht geprüft
+                                    const isFirst = accessStatus?.isFirst ?? false;
+                                    const trialExpired = accessStatus?.trialExpired ?? false;
+                                    
+                                    if (!canAccess) {
+                                      return (
+                                        <button
+                                          onClick={() => setShowPaywall(true)}
+                                          className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-3 text-lg font-medium opacity-75 cursor-pointer"
+                                        >
+                                          <Lock className="w-6 h-6" />
+                                          {isFirst && trialExpired ? 'Trial abgelaufen - Zugang aktivieren' : 'Zugang aktivieren'}
+                                        </button>
+                                      );
+                                    }
+                                    
+                                    return (
+                                      <button
+                                        onClick={async () => {
+                                          // Prüfe Zugang vor dem Abspielen (nur wenn Paywall aktiviert)
+                                          const paywallEnabled = isEnabled('PAYWALL_ENABLED');
+                                          
+                                          if (user && paywallEnabled) {
+                                            console.log(`[Dashboard] Checking access for story ${story.id} before playing...`);
+                                            const canAccessNow = await canAccessResource(user.id, story.id);
+                                            console.log(`[Dashboard] Access check result for story ${story.id}:`, canAccessNow);
+                                            if (!canAccessNow) {
+                                              console.log(`[Dashboard] Access denied for story ${story.id} - showing paywall`);
+                                              setShowPaywall(true);
+                                              return;
+                                            }
+                                            console.log(`[Dashboard] Access granted for story ${story.id} - playing audio`);
+                                          }
+                                          playAudio(story.audio_url!, story.id);
+                                        }}
+                                        className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-3 text-lg font-medium"
+                                      >
+                                        <Play className="w-6 h-6" />
+                                        Audio abspielen
+                                      </button>
+                                    );
+                                  })()}
                                 </div>
                                 <p className="text-amber-600 text-sm">
-                                  {playingAudioId === story.id ? '🔊 Audio wird abgespielt' : '✓ Audio verfügbar - Klicke zum Abspielen'}
+                                  {playingAudioId === story.id ? '🔊 Audio wird abgespielt' : (() => {
+                                    const accessStatus = resourceAccessStatus[story.id];
+                                    const canAccess = accessStatus?.canAccess ?? true;
+                                    const isFirst = accessStatus?.isFirst ?? false;
+                                    const trialExpired = accessStatus?.trialExpired ?? false;
+                                    
+                                    if (!canAccess && isFirst && trialExpired) {
+                                      return '⏰ Deine 3-Tage-Trial-Periode ist abgelaufen. Aktiviere den Zugang, um Audio abzuspielen.';
+                                    } else if (!canAccess) {
+                                      return '🔒 Aktiviere den Zugang, um Audio abzuspielen.';
+                                    }
+                                    return '✓ Audio verfügbar - Klicke zum Abspielen';
+                                  })()}
                                 </p>
                               </div>
                             ) : (
                               <div className="space-y-3">
-                                <p className="text-amber-600 text-sm text-center">
+                                <p className="text-amber-600 text-sm text-center mb-3">
                                   Für diese Geschichte ist noch kein Audio verfügbar.
                                 </p>
+                                {generatingAudioFor === story.id ? (
+                                  <div className="flex items-center justify-center gap-2 text-amber-600">
+                                    <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+                                    <span>Audio wird generiert...</span>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => generateAudio(story.id)}
+                                    className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2 mx-auto font-medium"
+                                  >
+                                    <Volume2 className="w-5 h-5" />
+                                    Audio generieren
+                                  </button>
+                                )}
                               </div>
                             )}
                           </div>
@@ -1240,9 +1623,15 @@ ${story.content}
             </div>
           )}
         </motion.div>
-
-
       </div>
-        </div>
+
+      {/* Paywall Modal */}
+      {showPaywall && (
+        <Paywall
+          onClose={() => setShowPaywall(false)}
+          message="Aktiviere das 3-Monats-Paket für 179€, um Ressourcen zu erstellen."
+        />
+      )}
+    </div>
     );
 }
