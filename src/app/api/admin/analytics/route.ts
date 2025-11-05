@@ -653,15 +653,15 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('Error fetching analytics:', error);
       console.error('Error details:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
+        message: (error as Error | null)?.message,
+        code: (error as any)?.code,
+        details: (error as any)?.details,
+        hint: (error as any)?.hint,
       });
       return NextResponse.json(
         { 
           error: 'Failed to fetch analytics',
-          details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+          details: process.env.NODE_ENV === 'development' ? (error as Error | null)?.message : undefined,
         },
         { status: 500 }
       );
@@ -796,8 +796,8 @@ export async function GET(request: NextRequest) {
     console.error('Error in admin analytics:', error);
     console.error('Error stack:', error.stack);
     console.error('Error details:', {
-      message: error.message,
-      name: error.name,
+      message: (error as Error)?.message,
+      name: (error as Error)?.name,
       cause: error.cause,
     });
     return NextResponse.json(
