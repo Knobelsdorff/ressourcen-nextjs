@@ -87,12 +87,27 @@ function safeConsoleError(message: string, error: any): void {
 
 export async function getUserAccess(userId: string): Promise<UserAccess | null> {
   try {
-    const supabase = createSPAClient();
+    // Verwende denselben Client wie das Dashboard (supabase aus @/lib/supabase)
+    // Dieser Client hat die Session im localStorage
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log(`[getUserAccess] Session check for user ${userId}:`, {
+      hasSession: !!session,
+      sessionUserId: session?.user?.id,
+      requestedUserId: userId,
+      userIdsMatch: session?.user?.id === userId,
+    });
+    
     const { data, error } = await supabase
       .from('user_access')
       .select('*')
       .eq('user_id', userId)
       .single();
+    
+    console.log(`[getUserAccess] Query result for user ${userId}:`, {
+      hasData: !!data,
+      error: error?.message,
+      errorCode: error?.code,
+    });
 
     if (error) {
       // PGRST116 = no rows returned (normal, wenn kein Zugang existiert)
@@ -309,32 +324,46 @@ export async function getUserAccess(userId: string): Promise<UserAccess | null> 
 
 export async function hasActiveAccess(userId: string): Promise<boolean> {
   try {
-    const supabase = createSPAClient();
+    // Verwende denselben Client wie das Dashboard (supabase aus @/lib/supabase)
+    // Dieser Client hat die Session im localStorage
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log(`[hasActiveAccess] Session check for user ${userId}:`, {
+      hasSession: !!session,
+      sessionUserId: session?.user?.id,
+      requestedUserId: userId,
+      userIdsMatch: session?.user?.id === userId,
+    });
+    
+    console.log(`[hasActiveAccess] Checking access for user ${userId}`);
     // has_active_access ist nicht in den generierten Typen, existiert aber in der DB
     const { data, error } = await (supabase as any).rpc('has_active_access', {
       user_uuid: userId,
     });
 
+    console.log(`[hasActiveAccess] RPC call result:`, { data, error: error?.message, errorCode: error?.code });
+
     if (error) {
       // Prüfe ob es ein 404-Fehler ist (Funktion existiert nicht)
       if (error.code === 'PGRST202' || error.message?.includes('function') || error.message?.includes('does not exist')) {
-        console.warn('has_active_access function does not exist in database. Please run supabase-payment-setup.sql');
+        console.warn('[hasActiveAccess] has_active_access function does not exist in database. Please run supabase-payment-setup.sql');
         // Funktion existiert nicht - gibt false zurück (kein Zugang)
         return false;
       }
       
       // Nur loggen wenn es ein relevanter Fehler ist (nicht leer)
       if (error.message && error.message.trim() !== '') {
-        console.error('Error checking access:', error.message, error.code);
+        console.error('[hasActiveAccess] Error checking access:', error.message, error.code);
       }
       return false;
     }
 
-    return data === true;
+    const result = data === true;
+    console.log(`[hasActiveAccess] Final result for user ${userId}:`, result);
+    return result;
   } catch (error: any) {
     // Nur loggen wenn es ein relevanter Fehler ist
     if (error?.message && error.message.trim() !== '') {
-      console.error('Error checking access:', error.message);
+      console.error('[hasActiveAccess] Unexpected error:', error.message);
     }
     return false;
   }
@@ -440,9 +469,12 @@ export async function canAccessResource(userId: string, resourceId?: string): Pr
     
     // Prüfe ob User Zugang hat (aktiv und nicht abgelaufen)
     const hasAccess = await hasActiveAccess(userId);
+    console.log(`[canAccessResource] hasActiveAccess result for user ${userId}:`, hasAccess);
     if (hasAccess) {
+      console.log(`[canAccessResource] User has active access - granting access to all resources`);
       return true; // Mit aktivem Zugang kann man immer Audio abspielen
     }
+    console.log(`[canAccessResource] User does NOT have active access - checking first resource rule`);
 
     // Lade alle Ressourcen des Users
     console.log(`[canAccessResource] Fetching stories for user ${userId}, checking resource ${resourceId || 'any'}`);

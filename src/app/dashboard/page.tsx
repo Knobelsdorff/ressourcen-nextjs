@@ -6,7 +6,7 @@ import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, Volum
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
-import { getUserAccess, canAccessResource } from "@/lib/access";
+import { getUserAccess, canAccessResource, hasActiveAccess } from "@/lib/access";
 import Paywall from "@/components/Paywall";
 import { trackEvent } from "@/lib/analytics";
 import { isEnabled } from "@/lib/featureFlags";
@@ -163,19 +163,68 @@ export default function Dashboard() {
     if (!user) return;
     
     try {
+      // Versuche zuerst getUserAccess (für Details)
       const access = await getUserAccess(user.id);
-      setUserAccess(access);
       
+      // Falls getUserAccess erfolgreich war, setze userAccess
       if (access) {
+        setUserAccess(access);
         setSubscriptionStatus({
           plan: '3-Monats-Paket',
           credits: access.resources_limit - access.resources_created,
           expiresAt: access.access_expires_at ? new Date(access.access_expires_at) : null,
           isPro: access.status === 'active' && (!access.access_expires_at || new Date(access.access_expires_at) > new Date())
         });
+        return; // Erfolgreich geladen, keine weiteren Checks nötig
+      }
+      
+      // Falls getUserAccess null zurückgibt (406 Error oder kein Zugang), prüfe direkt mit hasActiveAccess
+      // hasActiveAccess verwendet RPC-Funktion (SECURITY DEFINER) und umgeht RLS
+      console.log('[loadUserAccess] getUserAccess returned null, checking hasActiveAccess as fallback');
+      const hasAccess = await hasActiveAccess(user.id);
+      console.log('[loadUserAccess] hasActiveAccess result:', hasAccess);
+      
+      if (hasAccess) {
+        // User hat Zugang in DB, aber Details konnten nicht geladen werden (406 Error)
+        // Setze minimalen Zugang-Status - das Dashboard verwendet dann hasActiveAccess als Fallback
+        setUserAccess({
+          id: '',
+          user_id: user.id,
+          plan_type: 'standard',
+          resources_created: 0,
+          resources_limit: 3,
+          access_starts_at: new Date().toISOString(),
+          access_expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 2 Wochen
+          status: 'active'
+        } as any);
+      } else {
+        // Kein Zugang vorhanden
+        setUserAccess(null);
       }
     } catch (error) {
       console.error('Error loading user access:', error);
+      // Fallback: Prüfe direkt mit hasActiveAccess
+      try {
+        const hasAccess = await hasActiveAccess(user.id);
+        console.log('[loadUserAccess] Exception fallback hasActiveAccess result:', hasAccess);
+        if (hasAccess) {
+          setUserAccess({
+            id: '',
+            user_id: user.id,
+            plan_type: 'standard',
+            resources_created: 0,
+            resources_limit: 3,
+            access_starts_at: new Date().toISOString(),
+            access_expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 2 Wochen
+            status: 'active'
+          } as any);
+        } else {
+          setUserAccess(null);
+        }
+      } catch (fallbackError) {
+        console.error('Fallback hasActiveAccess also failed:', fallbackError);
+        setUserAccess(null);
+      }
     }
   }, [user]);
 
@@ -237,6 +286,7 @@ export default function Dashboard() {
 
   // Lade Geschichten aus Supabase
   const loadStories = useCallback(async () => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     if (!user) {
       console.log('Dashboard: No user logged in, skipping loadStories');
       return;
@@ -320,9 +370,23 @@ export default function Dashboard() {
           );
           
           // Prüfe ob User aktiven Zugang hat
-          const hasActiveAccess = userAccess && 
-            userAccess.status === 'active' && 
-            (!userAccess.access_expires_at || new Date(userAccess.access_expires_at) > new Date());
+          // Verwende userAccess State (wird von loadUserAccess gesetzt, inkl. Fallback)
+          // Fallback: Wenn userAccess null ist (406 Error), prüfe direkt mit hasActiveAccess
+          let userHasActiveAccess = false;
+          if (userAccess) {
+            userHasActiveAccess = userAccess.status === 'active' && 
+              (!userAccess.access_expires_at || new Date(userAccess.access_expires_at) > new Date());
+          } else {
+            // userAccess konnte nicht geladen werden (406 Error) - prüfe direkt mit RPC
+            // Dies ist ein Fallback für den Fall, dass getUserAccess fehlschlägt
+            try {
+              userHasActiveAccess = await hasActiveAccess(user.id);
+              console.log('[Dashboard] userAccess is null, using hasActiveAccess fallback:', userHasActiveAccess);
+            } catch (error) {
+              console.error('[Dashboard] Error checking hasActiveAccess fallback:', error);
+              userHasActiveAccess = false;
+            }
+          }
           
           for (const story of uniqueStories) {
             const isFirst = sortedStories[0].id === story.id;
@@ -330,7 +394,7 @@ export default function Dashboard() {
             let trialExpired = false;
             
             // Wenn User aktiven Zugang hat, kann er immer Audio abspielen
-            if (hasActiveAccess) {
+            if (userHasActiveAccess) {
               canAccess = true;
               trialExpired = false;
             } else if (isFirst) {
@@ -375,7 +439,8 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [user, calculateUserStats, removeDuplicates, userAccess]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]); // calculateUserStats, removeDuplicates, userAccess werden über Closure verwendet
 
   const loadFullName = useCallback(async () => {
     if (!user) return;
@@ -631,7 +696,8 @@ export default function Dashboard() {
       console.error('Error processing pending story:', err);
       setIsSavingPendingStory(false); // Flag auch bei Fehlern zurücksetzen
     }
-  }, [user, loadStories, pendingStory, isSavingPendingStory]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, pendingStory, isSavingPendingStory]); // loadStories wird über Closure verwendet
 
   const saveFullName = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -666,7 +732,8 @@ export default function Dashboard() {
       // Lade den vollständigen Namen
       loadFullName();
     }
-  }, [user, loadStories, loadUserAccess]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]); // Nur user als Dependency, um Endlosschleife zu vermeiden
 
   // Einziger useEffect für pending stories und URL-Parameter
   useEffect(() => {
@@ -729,7 +796,8 @@ export default function Dashboard() {
         }, 3000);
       }
     }
-  }, [user, checkForPendingStories, loadUserAccess, loadStories]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]); // checkForPendingStories, loadUserAccess, loadStories werden über Closure verwendet
 
   // Entfernt - redundanter useEffect
 
@@ -937,27 +1005,45 @@ ${story.content}
   };
 
   const playAudio = useCallback(async (audioUrl: string, storyId: string) => {
+    // VALIDIERUNG: Prüfe ob audioUrl gültig ist
+    if (!audioUrl || audioUrl.trim() === '') {
+      console.error(`[playAudio] Invalid audioUrl for story ${storyId}:`, audioUrl);
+      alert('Fehler: Audio-URL ist ungültig. Bitte kontaktiere den Support.');
+      return;
+    }
+    
+    console.log(`[playAudio] Starting playback for story ${storyId} with URL:`, audioUrl);
+    
     // Prüfe ob User Zugang hat (Trial-Periode oder bezahlt)
     // Nur wenn Paywall-Feature aktiviert ist
     const paywallEnabled = isEnabled('PAYWALL_ENABLED');
     
     if (user && paywallEnabled) {
       console.log(`[playAudio] Checking access for story ${storyId}...`);
-      const canAccess = await canAccessResource(user.id, storyId);
-      console.log(`[playAudio] Access check result for story ${storyId}:`, canAccess);
-      if (!canAccess) {
-        // Trial-Periode abgelaufen oder nicht die erste Ressource - zeige Paywall
-        console.log(`[playAudio] Access denied for story ${storyId} - showing paywall`);
+      try {
+        const canAccess = await canAccessResource(user.id, storyId);
+        console.log(`[playAudio] Access check result for story ${storyId}:`, canAccess);
+        if (!canAccess) {
+          // Trial-Periode abgelaufen oder nicht die erste Ressource - zeige Paywall
+          console.log(`[playAudio] Access denied for story ${storyId} - showing paywall`);
+          setShowPaywall(true);
+          return;
+        }
+        console.log(`[playAudio] Access granted for story ${storyId} - proceeding with playback`);
+      } catch (accessError) {
+        console.error(`[playAudio] Error checking access for story ${storyId}:`, accessError);
+        // Bei Fehler bei der Zugangsprüfung: Zeige Paywall (sicherer)
         setShowPaywall(true);
         return;
       }
-      console.log(`[playAudio] Access granted for story ${storyId} - proceeding with playback`);
     }
     
-    // Stoppe alle anderen Audio-Elemente
-    Object.values(audioElements).forEach(audio => {
-      audio.pause();
-      audio.currentTime = 0;
+    // Stoppe alle anderen Audio-Elemente und resette sie
+    Object.entries(audioElements).forEach(([id, audio]) => {
+      if (id !== storyId) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
     });
     
     // Finde Story für Tracking
@@ -966,7 +1052,9 @@ ${story.content}
     // Erstelle oder verwende existierendes Audio-Element
     let audio = audioElements[storyId];
     if (!audio) {
-      audio = new Audio(audioUrl);
+      console.log(`[playAudio] Creating new audio element for story ${storyId}`);
+      audio = new Audio();
+      audio.preload = 'auto';
       setAudioElements(prev => ({ ...prev, [storyId]: audio }));
       
       // Event Listener für Audio-Ende
@@ -990,19 +1078,283 @@ ${story.content}
         }
       });
       
-      audio.addEventListener('error', () => {
+      audio.addEventListener('error', (e) => {
         setPlayingAudioId(null);
-        console.error('Audio playback error');
+        const error = audio.error;
+        console.error('Audio playback error:', {
+          code: error?.code,
+          message: error?.message,
+          storyId,
+          audioUrl
+        });
+        // Zeige benutzerfreundliche Fehlermeldung nur wenn es wirklich ein Audio-Fehler ist
+        // (nicht wenn Paywall angezeigt werden sollte)
+        // Prüfe ob Paywall-Feature aktiviert ist und ob User Zugang hat
+        const paywallEnabled = isEnabled('PAYWALL_ENABLED');
+        if (paywallEnabled && user) {
+          // Prüfe nochmal ob User Zugang hat - wenn nicht, zeige Paywall statt Fehlermeldung
+          canAccessResource(user.id, storyId).then(canAccess => {
+            if (!canAccess) {
+              console.log(`[playAudio] Access denied after audio error - showing paywall instead`);
+              setShowPaywall(true);
+            } else {
+              // Echter Audio-Fehler
+              alert('Fehler beim Abspielen des Audios. Bitte versuche es erneut oder kontaktiere den Support.');
+            }
+          }).catch(() => {
+            // Bei Fehler bei der Prüfung: Zeige normale Fehlermeldung
+            alert('Fehler beim Abspielen des Audios. Bitte versuche es erneut oder kontaktiere den Support.');
+          });
+        } else {
+          // Paywall nicht aktiviert oder kein User - zeige normale Fehlermeldung
+          alert('Fehler beim Abspielen des Audios. Bitte versuche es erneut oder kontaktiere den Support.');
+        }
+      });
+      
+      // Event Listener für Load-Error
+      audio.addEventListener('loadstart', () => {
+        console.log(`[playAudio] Loading audio for story ${storyId}`);
+      });
+      
+      audio.addEventListener('canplay', () => {
+        console.log(`[playAudio] Audio ready for story ${storyId}`);
       });
     }
     
     // Setze neue URL falls nötig
-    if (audio.src !== audioUrl) {
-      audio.src = audioUrl;
+    // Vergleiche die vollständigen URLs (Audio-URLs sind vollständige HTTPS-URLs)
+    const currentSrc = audio.src || '';
+    const needsNewSource = currentSrc !== audioUrl && audioUrl;
+    
+    if (needsNewSource) {
+      console.log(`[playAudio] Setting new audio source for story ${storyId}:`, {
+        oldSrc: currentSrc,
+        newSrc: audioUrl
+      });
+      
+      // Pausiere und resette Audio-Element vor dem URL-Wechsel
+      audio.pause();
+      audio.currentTime = 0;
+      
+      // WICHTIG: Erstelle ein neues Audio-Element für eine saubere Basis
+      // Verwende new Audio() ohne URL, dann setze src explizit
+      const newAudio = new Audio();
+      newAudio.preload = 'auto';
+      
+      // Setze URL explizit
+      newAudio.src = audioUrl;
+      
+      // WICHTIG: Prüfe sofort ob URL gesetzt wurde
+      if (!newAudio.src || newAudio.src === '' || newAudio.src === window.location.href) {
+        console.error(`[playAudio] Failed to set audio src! Retrying...`, {
+          storyId,
+          audioUrl,
+          audioSrc: newAudio.src
+        });
+        // Versuche nochmal
+        newAudio.src = audioUrl;
+        // Falls immer noch nicht gesetzt, verwende load() Methode
+        if (!newAudio.src || newAudio.src === '') {
+          console.error(`[playAudio] Audio src still empty after retry! Using load() method`);
+          newAudio.load();
+        }
+      }
+      
+      console.log(`[playAudio] Created new audio element with URL:`, {
+        storyId,
+        audioUrl,
+        audioSrc: newAudio.src,
+        srcIsSet: !!newAudio.src && newAudio.src !== '' && newAudio.src !== window.location.href
+      });
+      
+      // Verwende neues Audio-Element BEVOR wir es im State setzen
+      audio = newAudio;
+      
+      // Ersetze altes Audio-Element im State NACH dem Setzen der URL
+      setAudioElements(prev => ({ ...prev, [storyId]: newAudio }));
+      
+      // Füge Event-Listener NACH dem Setzen der URL hinzu
+      newAudio.addEventListener('ended', () => {
+        setPlayingAudioId(null);
+        if (user && session && story && newAudio.duration) {
+          trackEvent({
+            eventType: 'audio_play_complete',
+            storyId: storyId,
+            resourceFigureName: typeof story.resource_figure === 'string' 
+              ? story.resource_figure 
+              : story.resource_figure?.name,
+            voiceId: story.voice_id || undefined,
+            metadata: {
+              completed: true,
+              audioDuration: newAudio.duration,
+            },
+          }, { accessToken: session.access_token });
+        }
+      });
+      
+      newAudio.addEventListener('error', (e) => {
+        const error = newAudio.error;
+        const isDuringLoading = error?.code === 4 && (newAudio.readyState === 0 || newAudio.readyState === 1);
+        
+        // Prüfe ob es ein echter Fehler ist (nicht nur ein Loading-Event)
+        // Error-Code 4 = MEDIA_ELEMENT_ERROR, aber das kann auch während des Ladens auftreten
+        if (isDuringLoading) {
+          // Audio ist noch im Loading-Zustand - warte auf canplay event
+          // Logge nur als debug, nicht als error
+          console.log('[playAudio] Audio error during loading (ignoring, waiting for canplay):', {
+            code: error?.code,
+            message: error?.message,
+            readyState: newAudio.readyState,
+            audioSrc: newAudio.src
+          });
+          return; // Nicht als Fehler behandeln, warte auf canplay
+        }
+        
+        // Nur als Fehler behandeln, wenn Audio wirklich nicht geladen werden kann
+        console.error('[playAudio] Real audio error (not during loading):', {
+          code: error?.code,
+          message: error?.message,
+          storyId,
+          audioUrl,
+          audioSrc: newAudio.src,
+          readyState: newAudio.readyState
+        });
+        
+        setPlayingAudioId(null);
+        
+        const paywallEnabled = isEnabled('PAYWALL_ENABLED');
+        if (paywallEnabled && user) {
+          canAccessResource(user.id, storyId).then(canAccess => {
+            if (!canAccess) {
+              console.log(`[playAudio] Access denied after audio error - showing paywall instead`);
+              setShowPaywall(true);
+            } else {
+              alert('Fehler beim Abspielen des Audios. Bitte versuche es erneut oder kontaktiere den Support.');
+            }
+          }).catch(() => {
+            alert('Fehler beim Abspielen des Audios. Bitte versuche es erneut oder kontaktiere den Support.');
+          });
+        } else {
+          alert('Fehler beim Abspielen des Audios. Bitte versuche es erneut oder kontaktiere den Support.');
+        }
+      });
+      
+      newAudio.addEventListener('loadstart', () => {
+        console.log(`[playAudio] Loading audio for story ${storyId}`);
+      });
+      
+      newAudio.addEventListener('canplay', () => {
+        console.log(`[playAudio] Audio ready for story ${storyId}`);
+      });
+      
+      // Prüfe ob URL korrekt gesetzt wurde
+      if (!audio.src || audio.src === '' || audio.src === window.location.href) {
+        console.error(`[playAudio] Audio src is empty or invalid for story ${storyId}!`, {
+          audioSrc: audio.src,
+          audioUrl: audioUrl,
+          readyState: audio.readyState
+        });
+        // Versuche URL nochmal zu setzen
+        audio.src = audioUrl;
+        console.log(`[playAudio] Retried setting audio src:`, audio.src);
+      }
+      
+      // Warte auf Load, bevor wir abspielen
+      try {
+        await new Promise<void>((resolve, reject) => {
+          let timeoutId: NodeJS.Timeout;
+          let resolved = false;
+          
+          const cleanup = () => {
+            if (timeoutId) clearTimeout(timeoutId);
+            audio.removeEventListener('canplay', onCanPlay);
+            audio.removeEventListener('canplaythrough', onCanPlay);
+            audio.removeEventListener('error', onError);
+            audio.removeEventListener('loadstart', onLoadStart);
+          };
+          
+          const onCanPlay = () => {
+            if (resolved) return;
+            resolved = true;
+            cleanup();
+            resolve();
+          };
+          
+          const onError = (e: Event) => {
+            if (resolved) return;
+            resolved = true;
+            cleanup();
+            const error = audio.error;
+            console.error(`[playAudio] Audio error during load for story ${storyId}:`, {
+              code: error?.code,
+              message: error?.message,
+              audioSrc: audio.src,
+              audioUrl: audioUrl
+            });
+            reject(new Error(`Audio konnte nicht geladen werden: ${error?.message || 'Unbekannter Fehler'}`));
+          };
+          
+          const onLoadStart = () => {
+            console.log(`[playAudio] Audio loading started for story ${storyId}, src: ${audio.src}`);
+          };
+          
+          // Wenn Audio bereits geladen ist, resolve sofort
+          if (audio.readyState >= 2) { // HAVE_CURRENT_DATA
+            console.log(`[playAudio] Audio already loaded for story ${storyId}, readyState: ${audio.readyState}`);
+            resolved = true;
+            cleanup();
+            resolve();
+            return;
+          }
+          
+          // Prüfe ob Audio bereits im Loading-Prozess ist
+          if (audio.readyState >= 1) { // HAVE_METADATA
+            console.log(`[playAudio] Audio metadata loaded, waiting for canplay, readyState: ${audio.readyState}`);
+          }
+          
+          // Prüfe nochmal ob src gesetzt ist bevor wir Event-Listener hinzufügen
+          if (!audio.src || audio.src === '') {
+            console.error(`[playAudio] Audio src is still empty before adding listeners! Setting again...`);
+            audio.src = audioUrl;
+          }
+          
+          audio.addEventListener('canplay', onCanPlay, { once: true });
+          audio.addEventListener('canplaythrough', onCanPlay, { once: true }); // Auch auf canplaythrough warten
+          audio.addEventListener('error', onError, { once: true });
+          audio.addEventListener('loadstart', onLoadStart, { once: true });
+          
+          // Timeout nach 15 Sekunden (länger für langsamere Verbindungen)
+          timeoutId = setTimeout(() => {
+            if (resolved) return;
+            resolved = true;
+            cleanup();
+            console.error(`[playAudio] Timeout: Audio did not load within 15 seconds for story ${storyId}`, {
+              readyState: audio.readyState,
+              audioSrc: audio.src,
+              audioUrl: audioUrl
+            });
+            reject(new Error('Audio-Laden hat zu lange gedauert'));
+          }, 15000);
+        });
+        console.log(`[playAudio] Audio loaded successfully for story ${storyId}`);
+      } catch (error) {
+        console.error('[playAudio] Error loading audio:', error);
+        alert('Fehler beim Laden des Audios. Bitte versuche es erneut.');
+        setPlayingAudioId(null);
+        return;
+      }
+    } else {
+      console.log(`[playAudio] Using existing audio source for story ${storyId}, readyState: ${audio.readyState}`);
+      // Prüfe ob Audio-Element in einem guten Zustand ist
+      if (audio.readyState === 0) { // HAVE_NOTHING - Audio wurde noch nicht geladen
+        console.log(`[playAudio] Audio element not loaded yet, triggering load`);
+        audio.load();
+      }
     }
     
     // Spiele Audio ab
-    audio.play().then(() => {
+    try {
+      await audio.play();
       setPlayingAudioId(storyId);
       
       // Track Audio-Play Event (nur wenn User eingeloggt ist UND eine gültige Session hat)
@@ -1016,8 +1368,19 @@ ${story.content}
           voiceId: story.voice_id || undefined,
         }, { accessToken: session.access_token });
       }
-    }).catch(console.error);
-  }, [audioElements, user, stories]);
+    } catch (playError: any) {
+      console.error('[playAudio] Error playing audio:', playError);
+      setPlayingAudioId(null);
+      // Zeige benutzerfreundliche Fehlermeldung
+      if (playError?.name === 'NotAllowedError') {
+        alert('Audio-Wiedergabe wurde blockiert. Bitte erlaube Audio-Wiedergabe in deinem Browser.');
+      } else if (playError?.name === 'NotSupportedError') {
+        alert('Dieses Audio-Format wird von deinem Browser nicht unterstützt.');
+      } else {
+        alert('Fehler beim Abspielen des Audios. Bitte versuche es erneut.');
+      }
+    }
+  }, [audioElements, user, stories, session]);
 
   const pauseAudio = useCallback((storyId: string) => {
     const audio = audioElements[storyId];
@@ -1540,7 +1903,16 @@ ${story.content}
                                             }
                                             console.log(`[Dashboard] Access granted for story ${story.id} - playing audio`);
                                           }
-                                          playAudio(story.audio_url!, story.id);
+                                          
+                                          // VALIDIERUNG: Prüfe ob audio_url vorhanden ist
+                                          if (!story.audio_url || story.audio_url.trim() === '') {
+                                            console.error(`[Dashboard] No audio_url for story ${story.id}:`, story);
+                                            alert('Fehler: Diese Ressource hat keine Audio-URL. Bitte generiere das Audio erneut.');
+                                            return;
+                                          }
+                                          
+                                          console.log(`[Dashboard] Calling playAudio with URL:`, story.audio_url);
+                                          playAudio(story.audio_url, story.id);
                                         }}
                                       className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-3 text-lg font-medium"
                                     >
