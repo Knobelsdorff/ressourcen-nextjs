@@ -1262,11 +1262,10 @@ ${story.content}
       try {
         await new Promise<void>((resolve, reject) => {
           let resolved = false;
-          let timeoutId: NodeJS.Timeout | undefined;
           
-          const cleanup = () => {
-            if (timeoutId) {
-              clearTimeout(timeoutId);
+          const cleanup = (timeoutIdToClear?: NodeJS.Timeout) => {
+            if (timeoutIdToClear) {
+              clearTimeout(timeoutIdToClear);
             }
             audio.removeEventListener('canplay', onCanPlay);
             audio.removeEventListener('canplaythrough', onCanPlay);
@@ -1277,14 +1276,14 @@ ${story.content}
           const onCanPlay = () => {
             if (resolved) return;
             resolved = true;
-            cleanup();
+            cleanup(timeoutId);
             resolve();
           };
           
           const onError = (e: Event) => {
             if (resolved) return;
             resolved = true;
-            cleanup();
+            cleanup(timeoutId);
             const error = audio.error;
             console.error(`[playAudio] Audio error during load for story ${storyId}:`, {
               code: error?.code,
@@ -1325,17 +1324,19 @@ ${story.content}
           audio.addEventListener('loadstart', onLoadStart, { once: true });
           
           // Timeout nach 15 Sekunden (länger für langsamere Verbindungen)
-          timeoutId = setTimeout(() => {
+          // timeoutId muss const sein, da es nur einmal zugewiesen wird
+          // eslint-disable-next-line prefer-const
+          const timeoutId: NodeJS.Timeout = setTimeout(() => {
             if (resolved) return;
             resolved = true;
-            cleanup();
+            cleanup(timeoutId);
             console.error(`[playAudio] Timeout: Audio did not load within 15 seconds for story ${storyId}`, {
               readyState: audio.readyState,
               audioSrc: audio.src,
               audioUrl: audioUrl
             });
             reject(new Error('Audio-Laden hat zu lange gedauert'));
-          }, 15000) as NodeJS.Timeout;
+          }, 15000);
         });
         console.log(`[playAudio] Audio loaded successfully for story ${storyId}`);
       } catch (error) {
