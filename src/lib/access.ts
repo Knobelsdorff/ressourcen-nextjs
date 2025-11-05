@@ -310,7 +310,8 @@ export async function getUserAccess(userId: string): Promise<UserAccess | null> 
 export async function hasActiveAccess(userId: string): Promise<boolean> {
   try {
     const supabase = createSPAClient();
-    const { data, error } = await supabase.rpc('has_active_access', {
+    // has_active_access ist nicht in den generierten Typen, existiert aber in der DB
+    const { data, error } = await (supabase as any).rpc('has_active_access', {
       user_uuid: userId,
     });
 
@@ -362,7 +363,8 @@ export async function canCreateResource(userId: string): Promise<boolean> {
     }
     
     // Ab der 2. Ressource: Prüfe über RPC-Funktion
-    const { data, error } = await supabase.rpc('can_create_resource', {
+    // can_create_resource ist nicht in den generierten Typen, existiert aber in der DB
+    const { data, error } = await (supabase as any).rpc('can_create_resource', {
       user_uuid: userId,
     });
 
@@ -519,7 +521,8 @@ export async function canAccessResource(userId: string, resourceId?: string): Pr
 export async function incrementResourceCount(userId: string): Promise<number> {
   try {
     const supabase = createSPAClient();
-    const { data, error } = await supabase.rpc('increment_resource_count', {
+    // increment_resource_count ist nicht in den generierten Typen, existiert aber in der DB
+    const { data, error } = await (supabase as any).rpc('increment_resource_count', {
       user_uuid: userId,
     });
 
