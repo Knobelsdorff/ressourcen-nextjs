@@ -333,9 +333,9 @@ export default function RessourcenApp() {
         return;
       } else {
         // Paywall deaktiviert oder nicht eingeloggt: Erlaube Weiterleitung
-        console.log('Moving from step', appState.currentStep, 'to', appState.currentStep + 1);
-        setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
-        return;
+      console.log('Moving from step', appState.currentStep, 'to', appState.currentStep + 1);
+      setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
+      return;
       }
     }
 

@@ -102,13 +102,13 @@ export async function POST(request: NextRequest) {
 
     // Debug: Log Auth-Status (immer loggen)
     console.log('Analytics Track API: Auth check', {
-      hasError: !!authError,
-      errorMessage: authError?.message,
-      hasUser: !!user,
+          hasError: !!authError,
+          errorMessage: authError?.message,
+          hasUser: !!user,
       userEmail: user?.email,
-      cookieCount: allCookies.length,
+          cookieCount: allCookies.length,
       cookieNames: allCookies.map(c => c.name),
-    });
+        });
 
     if (authError || !user) {
       const errorResponse = NextResponse.json(
@@ -148,19 +148,19 @@ export async function POST(request: NextRequest) {
       console.log('Analytics Track API: Inserting event with service role client (bypassing RLS)...');
       // user_analytics ist nicht in den generierten Typen, existiert aber in der DB
       const { data, error } = await (adminSupabase as any)
-          .from('user_analytics')
-          .insert({
-            user_id: user.id,
-            event_type: eventType,
-            story_id: storyId || null,
-            resource_figure_name: resourceFigureName || null,
-            voice_id: voiceId || null,
-            metadata: metadata || {},
-          })
-          .select()
-          .single();
-        
-        if (error) {
+      .from('user_analytics')
+      .insert({
+        user_id: user.id,
+        event_type: eventType,
+        story_id: storyId || null,
+        resource_figure_name: resourceFigureName || null,
+        voice_id: voiceId || null,
+        metadata: metadata || {},
+      })
+      .select()
+      .single();
+
+    if (error) {
           console.error('Analytics Track API: Error inserting event:', {
             error: (error as any)?.message,
             code: (error as any)?.code,

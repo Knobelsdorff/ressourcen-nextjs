@@ -83,3 +83,4 @@ supabase-payment-setup.sql
   - Prüfe RLS-Policies
 
 
+

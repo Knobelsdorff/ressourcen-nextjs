@@ -686,7 +686,7 @@ export default function Dashboard() {
     
     // Setze Flag wenn wir prüfen werden
     if (savedPendingStory) {
-      hasCheckedPendingRef.current = true;
+    hasCheckedPendingRef.current = true;
     }
 
     if (typeof window !== 'undefined') {
@@ -857,8 +857,19 @@ ${story.content}
     URL.revokeObjectURL(url);
   };
 
-  const downloadAudio = (story: SavedStory) => {
+  const downloadAudio = async (story: SavedStory) => {
     if (!story.audio_url) return;
+    
+    // Prüfe Premium-Status
+    if (user) {
+      const { hasPremiumAccess } = await import('@/lib/access');
+      const hasPremium = await hasPremiumAccess(user.id);
+      
+      if (!hasPremium) {
+        alert('Audio-Downloads sind nur für Premium-User verfügbar. Bitte wähle den Premium-Plan, um Downloads zu nutzen.');
+        return;
+      }
+    }
     
     const a = document.createElement('a');
     a.href = story.audio_url;
@@ -1502,7 +1513,7 @@ ${story.content}
                                     
                                     if (!canAccess) {
                                       return (
-                                        <button
+                                    <button
                                           onClick={() => setShowPaywall(true)}
                                           className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-3 text-lg font-medium opacity-75 cursor-pointer"
                                         >
@@ -1531,11 +1542,11 @@ ${story.content}
                                           }
                                           playAudio(story.audio_url!, story.id);
                                         }}
-                                        className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-3 text-lg font-medium"
-                                      >
-                                        <Play className="w-6 h-6" />
-                                        Audio abspielen
-                                      </button>
+                                      className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-3 text-lg font-medium"
+                                    >
+                                      <Play className="w-6 h-6" />
+                                      Audio abspielen
+                                    </button>
                                     );
                                   })()}
                                 </div>

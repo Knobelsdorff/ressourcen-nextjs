@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Heart, Clock, User, Trash2, Download, Volume2, Play, Pause, RotateCcw, ChevronLeft } from "lucide-react";
 import { ResourceFigure, AudioState } from "@/app/page";
 import { QuestionAnswer } from "@/components/RelationshipSelection";
+import { useAuth } from "@/components/providers/auth-provider";
 
 interface SavedStory {
   id: string;
@@ -24,6 +25,7 @@ interface SavedStoriesModalProps {
 }
 
 export default function SavedStoriesModal({ isOpen, onClose }: SavedStoriesModalProps) {
+  const { user } = useAuth();
   const [savedStories, setSavedStories] = useState<SavedStory[]>([]);
   const [selectedStory, setSelectedStory] = useState<SavedStory | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -134,8 +136,19 @@ ${story.audioState?.audioUrl ? `Audio-URL: ${story.audioState.audioUrl}` : 'Kein
     URL.revokeObjectURL(url);
   };
 
-  const downloadAudio = (story: SavedStory) => {
+  const downloadAudio = async (story: SavedStory) => {
     if (!story.audioState?.audioUrl) return;
+    
+    // Prüfe Premium-Status
+    if (user) {
+      const { hasPremiumAccess } = await import('@/lib/access');
+      const hasPremium = await hasPremiumAccess(user.id);
+      
+      if (!hasPremium) {
+        alert('Audio-Downloads sind nur für Premium-User verfügbar. Bitte wähle den Premium-Plan, um Downloads zu nutzen.');
+        return;
+      }
+    }
     
     const a = document.createElement('a');
     a.href = story.audioState.audioUrl;

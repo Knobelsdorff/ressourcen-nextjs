@@ -224,19 +224,19 @@ export default function AudioPlayback({
       const paywallEnabled = isEnabled('PAYWALL_ENABLED');
       
       if (paywallEnabled) {
-        // 1. Ressource ist gratis für 3 Tage, danach benötigt man Zugang
-        const { data: existingStories } = await supabase
-          .from('saved_stories')
-          .select('id, created_at')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: true });
-        
-        const resourceCount = existingStories?.length || 0;
-        
+      // 1. Ressource ist gratis für 3 Tage, danach benötigt man Zugang
+      const { data: existingStories } = await supabase
+        .from('saved_stories')
+        .select('id, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
+      
+      const resourceCount = existingStories?.length || 0;
+      
         // 1. Ressource ist gratis (immer erlaubt)
-        if (resourceCount === 0) {
-          console.log('First resource is free - allowing save');
-        } else {
+      if (resourceCount === 0) {
+        console.log('First resource is free - allowing save');
+      } else {
           // Ab der 2. Ressource: IMMER Paywall prüfen (keine 3-Tage-Regel für 2. Ressource)
           console.log(`User has ${resourceCount} resource(s), checking access for next resource...`);
           const canCreate = await canCreateResource(user.id);
@@ -848,10 +848,10 @@ export default function AudioPlayback({
         }, { accessToken: session.access_token });
       }
     }).catch((err) => {
-      console.error('Audio play failed:', err);
-      setError('Failed to play audio. Please try again.');
+        console.error('Audio play failed:', err);
+        setError('Failed to play audio. Please try again.');
       setIsPlaying(false);
-    });
+      });
   };
 
   const restart = async () => {

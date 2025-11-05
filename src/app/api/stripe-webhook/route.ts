@@ -62,12 +62,17 @@ export async function POST(request: NextRequest) {
     }
 
     try {
+      // Hole planType aus Metadata (Standard: 'standard')
+      const planType = session.metadata?.planType || 'standard';
+      console.log('Stripe Webhook: Plan type from metadata:', planType);
+      
       // Erstelle/aktualisiere Zugang in Supabase
-      console.log('Stripe Webhook: Calling create_access_after_payment for user:', userId);
+      console.log('Stripe Webhook: Calling create_access_after_payment for user:', userId, 'planType:', planType);
       const { data, error } = await supabase.rpc('create_access_after_payment', {
         user_uuid: userId,
         payment_intent_id: session.payment_intent as string,
         checkout_session_id: session.id,
+        plan_type: planType, // 'standard' oder 'premium'
       });
 
       if (error) {

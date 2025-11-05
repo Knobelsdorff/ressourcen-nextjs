@@ -30,9 +30,9 @@ export async function GET(request: NextRequest) {
     const cookieHeader = request.headers.get('cookie');
     
     // Debug: Log alle Cookie-Namen (immer loggen für Debugging)
-    console.log('Admin Analytics API: Cookie store count:', allCookies.length);
-    console.log('Admin Analytics API: Cookie store names:', allCookies.map(c => c.name).join(', '));
-    console.log('Admin Analytics API: Cookie header present:', !!cookieHeader);
+      console.log('Admin Analytics API: Cookie store count:', allCookies.length);
+      console.log('Admin Analytics API: Cookie store names:', allCookies.map(c => c.name).join(', '));
+      console.log('Admin Analytics API: Cookie header present:', !!cookieHeader);
     
     // Sammle Cookies, die gesetzt werden müssen
     const cookiesToSet: Array<{ name: string; value: string; options?: any }> = [];
@@ -89,8 +89,8 @@ export async function GET(request: NextRequest) {
       } catch (err: any) {
         authError = err;
         console.log('Admin Analytics API: Auth via Bearer token - exception:', err.message);
+        }
       }
-    }
     
     // Fallback: Versuche mit Cookies, wenn Bearer Token nicht funktioniert hat
     if (!user || authError) {
@@ -100,13 +100,13 @@ export async function GET(request: NextRequest) {
       // A simple mistake could make it very hard to debug issues with users being randomly logged out.
       const result = await supabase.auth.getUser();
       if (result.data.user) {
-        user = result.data.user;
+      user = result.data.user;
         authError = null; // Reset error if cookies work
         console.log('Admin Analytics API: Auth via cookies - success:', {
           userEmail: user?.email,
         });
       } else {
-        authError = result.error;
+      authError = result.error;
         console.log('Admin Analytics API: Auth via cookies - error:', {
           error: authError?.message,
           cookieCount: allCookies.length,
@@ -147,10 +147,10 @@ export async function GET(request: NextRequest) {
 
     // Prüfe ob User Admin ist
     if (!isAdminUser(user.email)) {
-      console.log('Admin Analytics API: User is not admin', {
-        userEmail: user.email,
-        adminEmails: process.env.NEXT_PUBLIC_ADMIN_EMAILS,
-      });
+        console.log('Admin Analytics API: User is not admin', {
+          userEmail: user.email,
+          adminEmails: process.env.NEXT_PUBLIC_ADMIN_EMAILS,
+        });
       const forbiddenResponse = NextResponse.json(
         { error: 'Forbidden - Admin access required' },
         { status: 403 }
@@ -225,7 +225,7 @@ export async function GET(request: NextRequest) {
 
     // Baue Query auf - Verwende Admin Client für alle Events
     // WICHTIG: Filter müssen VOR dem Select angewendet werden, damit Supabase sie korrekt verarbeitet
-    
+
     // Filter nach Datum
     // WICHTIG: HTML date inputs liefern Format "YYYY-MM-DD" (z.B. "2025-10-01")
     // Konvertiere zu ISO-String mit Zeit für Supabase

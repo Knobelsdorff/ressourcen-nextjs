@@ -36,3 +36,4 @@ COMMENT ON COLUMN public.user_analytics.event_type IS 'Typ des Events: audio_pla
 COMMENT ON COLUMN public.user_analytics.metadata IS 'Zusätzliche Event-Daten als JSON (z.B. play_duration, play_position, completed)';
 
 
+

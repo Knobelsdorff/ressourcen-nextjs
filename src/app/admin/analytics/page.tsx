@@ -128,7 +128,7 @@ export default function AdminAnalytics() {
         statusText: response.statusText,
         url: response.url,
       });
-      
+
       // Prüfe ob Response gültig ist
       if (!response.ok) {
         let errorMessage = "Fehler beim Laden der Analytics";

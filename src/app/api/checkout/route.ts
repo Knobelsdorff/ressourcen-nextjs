@@ -11,11 +11,17 @@ const supabase = createClient(
 export async function POST(request: NextRequest) {
   try {
     console.log('Checkout API: Request received');
-    const { userId } = await request.json();
+    const { userId, planType = 'standard' } = await request.json();
 
     if (!userId) {
       console.error('Checkout API: Missing userId');
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    }
+
+    // Validiere planType
+    if (planType !== 'standard' && planType !== 'premium') {
+      console.error('Checkout API: Invalid planType:', planType);
+      return NextResponse.json({ error: 'Invalid plan type' }, { status: 400 });
     }
 
     // Stripe erst zur Laufzeit initialisieren (nicht beim Build)
@@ -28,7 +34,17 @@ export async function POST(request: NextRequest) {
       apiVersion: '2025-10-29.clover',
     });
 
-    console.log('Checkout API: Creating Stripe checkout session for user:', userId);
+    console.log('Checkout API: Creating Stripe checkout session for user:', userId, 'planType:', planType);
+
+    // Preis und Beschreibung basierend auf Plan-Type
+    const isPremium = planType === 'premium';
+    const price = isPremium ? 24900 : 17900; // 249€ Premium, 179€ Standard
+    const productName = isPremium 
+      ? 'Ressourcen-App: Premium 3-Monats-Paket'
+      : 'Ressourcen-App: Standard 3-Monats-Paket';
+    const description = isPremium
+      ? '3 Ressourcen, 3 Monate Zugang, Audio-Downloads inklusive - Statt 1,5 Sitzungen (330€) nur 249€'
+      : '3 Ressourcen, 3 Monate Zugang - Statt 1,5 Sitzungen (330€) nur 179€';
 
     // Erstelle Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
@@ -38,10 +54,10 @@ export async function POST(request: NextRequest) {
           price_data: {
             currency: 'eur',
             product_data: {
-              name: 'Ressourcen-App: 3-Monats-Paket',
-              description: '3 Ressourcen, 3 Monate Zugang - Statt 1,5 Sitzungen (330€) nur 179€',
+              name: productName,
+              description: description,
             },
-            unit_amount: 17900, // 179€ in Cent
+            unit_amount: price,
           },
           quantity: 1,
         },
@@ -52,7 +68,7 @@ export async function POST(request: NextRequest) {
       client_reference_id: userId,
       metadata: {
         userId,
-        planType: '3-months',
+        planType: planType, // 'standard' oder 'premium'
         resourcesLimit: '3',
       },
     });
@@ -61,6 +77,7 @@ export async function POST(request: NextRequest) {
       sessionId: session.id,
       hasUrl: !!session.url,
       userId,
+      planType,
     });
 
     if (!session.url) {

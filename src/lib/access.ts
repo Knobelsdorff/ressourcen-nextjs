@@ -340,6 +340,28 @@ export async function hasActiveAccess(userId: string): Promise<boolean> {
   }
 }
 
+/**
+ * Prüft ob User Premium-Zugang hat (mit Download-Funktion)
+ */
+export async function hasPremiumAccess(userId: string): Promise<boolean> {
+  try {
+    const access = await getUserAccess(userId);
+    if (!access) return false;
+    
+    // Prüfe ob Zugang aktiv ist
+    const isActive = access.status === 'active' && 
+      (!access.access_expires_at || new Date(access.access_expires_at) > new Date());
+    
+    // Prüfe ob Premium-Plan
+    const isPremium = access.plan_type === 'premium';
+    
+    return isActive && isPremium;
+  } catch (error: any) {
+    console.error('Error checking premium access:', error);
+    return false;
+  }
+}
+
 export async function canCreateResource(userId: string): Promise<boolean> {
   try {
     // Verwende denselben Client wie das Dashboard (supabase aus @/lib/supabase)
@@ -538,14 +560,14 @@ export async function incrementResourceCount(userId: string): Promise<number> {
   }
 }
 
-export async function createCheckoutSession(userId: string): Promise<{ sessionId: string; url: string } | null> {
+export async function createCheckoutSession(userId: string, planType: 'standard' | 'premium' = 'standard'): Promise<{ sessionId: string; url: string } | null> {
   try {
     const response = await fetch('/api/checkout', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ userId }),
+      body: JSON.stringify({ userId, planType }),
     });
 
     if (!response.ok) {

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, Check, Sparkles } from 'lucide-react';
+import { Lock, Check, Sparkles, Download } from 'lucide-react';
 import { createCheckoutSession } from '@/lib/access';
 import { useAuth } from '@/components/providers/auth-provider';
 
@@ -15,8 +15,9 @@ export default function Paywall({ onClose, message }: PaywallProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<'standard' | 'premium'>('standard');
 
-  const handleCheckout = async () => {
+  const handleCheckout = async (planType: 'standard' | 'premium') => {
     if (!user?.id) {
       setError('Bitte melde dich zuerst an.');
       return;
@@ -26,8 +27,8 @@ export default function Paywall({ onClose, message }: PaywallProps) {
     setError(null);
 
     try {
-      console.log('Paywall: Creating checkout session for user:', user.id);
-      const result = await createCheckoutSession(user.id);
+      console.log('Paywall: Creating checkout session for user:', user.id, 'planType:', planType);
+      const result = await createCheckoutSession(user.id, planType);
 
       if (!result) {
         console.error('Paywall: Checkout session creation returned null');
@@ -54,11 +55,11 @@ export default function Paywall({ onClose, message }: PaywallProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative"
+        className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full p-8 relative my-8"
       >
         <div className="text-center">
           <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
@@ -73,45 +74,97 @@ export default function Paywall({ onClose, message }: PaywallProps) {
             <p className="text-amber-700 mb-6">{message}</p>
           )}
 
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-6">
-            <div className="text-left space-y-4">
-              <div className="flex items-start gap-3">
-                <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-semibold text-amber-900">2 weitere Ressourcen</p>
-                  <p className="text-sm text-amber-700">Deine kostenlose 3-Tage-Trial-Periode ist abgelaufen. Erstelle 2 weitere Ressourcen (insgesamt 3 Ressourcen).</p>
+          {/* Plan Selection */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            {/* Standard Plan */}
+            <div
+              onClick={() => setSelectedPlan('standard')}
+              className={`border-2 rounded-xl p-6 cursor-pointer transition-all ${
+                selectedPlan === 'standard'
+                  ? 'border-amber-500 bg-amber-50'
+                  : 'border-amber-200 bg-white hover:border-amber-300'
+              }`}
+            >
+              <div className="text-left">
+                <h3 className="text-xl font-bold text-amber-900 mb-2">Standard</h3>
+                <div className="mb-4">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-bold text-amber-900">179€</span>
+                    <span className="text-amber-600 text-sm">einmalig</span>
+                  </div>
+                  <p className="text-xs text-amber-600 mt-1">
+                    Statt 1,5 Sitzungen (330€)
+                  </p>
                 </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-semibold text-amber-900">3 Monate Zugang</p>
-                  <p className="text-sm text-amber-700">Täglich nutzbar, wann immer du willst</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-semibold text-amber-900">Professionelle Audio-Stimmen</p>
-                  <p className="text-sm text-amber-700">Premium-Qualität für jede Ressource</p>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-amber-700">2 weitere Ressourcen (insgesamt 3)</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-amber-700">3 Monate Zugang</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-amber-700">Professionelle Audio-Stimmen</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-amber-700">Streaming (kein Download)</p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="mb-6">
-            <div className="flex items-baseline justify-center gap-2 mb-2">
-              <span className="text-4xl font-bold text-amber-900">179€</span>
-              <span className="text-amber-600">einmalig</span>
+            {/* Premium Plan */}
+            <div
+              onClick={() => setSelectedPlan('premium')}
+              className={`border-2 rounded-xl p-6 cursor-pointer transition-all relative ${
+                selectedPlan === 'premium'
+                  ? 'border-purple-500 bg-purple-50'
+                  : 'border-purple-200 bg-white hover:border-purple-300'
+              }`}
+            >
+              {selectedPlan === 'premium' && (
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                  EMPFOHLEN
+                </div>
+              )}
+              <div className="text-left">
+                <h3 className="text-xl font-bold text-purple-900 mb-2 flex items-center gap-2">
+                  Premium
+                  <Sparkles className="w-4 h-4 text-purple-600" />
+                </h3>
+                <div className="mb-4">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-bold text-purple-900">249€</span>
+                    <span className="text-purple-600 text-sm">einmalig</span>
+                  </div>
+                  <p className="text-xs text-purple-600 mt-1">
+                    Statt 1,5 Sitzungen (330€)
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-purple-700">2 weitere Ressourcen (insgesamt 3)</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-purple-700">3 Monate Zugang</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-purple-700">Professionelle Audio-Stimmen</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Download className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm font-semibold text-purple-900">Audio-Downloads inklusive</p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <p className="text-sm text-amber-700">
-              Statt 1,5 Sitzungen (330€) nur 179€
-            </p>
-            <p className="text-xs text-amber-600 mt-1">
-              Sitzungszeit für tiefere Arbeit nutzen
-            </p>
           </div>
 
           {error && (
@@ -131,9 +184,13 @@ export default function Paywall({ onClose, message }: PaywallProps) {
               </button>
             )}
             <button
-              onClick={handleCheckout}
+              onClick={() => handleCheckout(selectedPlan)}
               disabled={loading || !user}
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold"
+              className={`flex-1 px-4 py-3 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold ${
+                selectedPlan === 'premium'
+                  ? 'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700'
+                  : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600'
+              }`}
             >
               {loading ? (
                 <>
@@ -143,7 +200,7 @@ export default function Paywall({ onClose, message }: PaywallProps) {
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  Jetzt aktivieren
+                  {selectedPlan === 'premium' ? 'Premium aktivieren' : 'Standard aktivieren'}
                 </>
               )}
             </button>
