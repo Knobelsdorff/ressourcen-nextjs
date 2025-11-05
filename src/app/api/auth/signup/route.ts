@@ -240,7 +240,7 @@ export async function POST(request: NextRequest) {
     
     // 5. Logge erfolgreichen Registrierungsversuch
     try {
-      await adminSupabase
+      await (adminSupabase as any)
         .from('registration_attempts')
         .insert({
           ip_address: clientIP,
