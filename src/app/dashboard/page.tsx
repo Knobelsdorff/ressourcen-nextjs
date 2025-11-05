@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
 import { getUserAccess, canAccessResource } from "@/lib/access";
-import { useSearchParams } from "next/navigation";
 import Paywall from "@/components/Paywall";
 import { trackEvent } from "@/lib/analytics";
 import { isEnabled } from "@/lib/featureFlags";
@@ -25,7 +24,6 @@ interface SavedStory {
 
 export default function Dashboard() {
   const { user, session } = useAuth();
-  const searchParams = useSearchParams();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'profile' | 'stories'>('stories');
   
