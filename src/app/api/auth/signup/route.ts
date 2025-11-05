@@ -190,6 +190,8 @@ export async function POST(request: NextRequest) {
         }
       }
     });
+
+    const createdUser = (authData as any)?.user as { id: string; email: string | null } | null;
     
     if (authError) {
       console.error('[Multi-Account] Error creating user:', authError);
@@ -207,15 +209,15 @@ export async function POST(request: NextRequest) {
       if (authError.message.includes('confirmation email') || 
           authError.message.includes('Error sending')) {
         // Prüfe ob User trotzdem erstellt wurde
-        if (authData?.user) {
+        if (createdUser) {
           console.warn('[Multi-Account] User created but email confirmation failed:', authError.message);
           // User wurde erstellt, aber Email konnte nicht gesendet werden
           // Das ist OK - User kann sich trotzdem einloggen (wenn Email-Bestätigung deaktiviert ist)
           return NextResponse.json({
             success: true,
             user: {
-              id: authData.user.id,
-              email: authData.user.email,
+              id: createdUser.id,
+              email: createdUser.email,
             },
             message: 'Registrierung erfolgreich! Bitte melden Sie sich an (Email-Bestätigung wurde übersprungen).',
             warning: 'Email-Bestätigung konnte nicht gesendet werden. Bitte überprüfe deine Supabase SMTP-Konfiguration.',
@@ -229,7 +231,7 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    if (!authData.user) {
+    if (!createdUser) {
       return NextResponse.json(
         { error: 'User konnte nicht erstellt werden' },
         { status: 500 }
@@ -243,28 +245,20 @@ export async function POST(request: NextRequest) {
         .insert({
           ip_address: clientIP,
           email: email,
-          user_id: authData.user.id,
+          user_id: createdUser.id,
           success: true,
         });
       
-      console.log(`[Multi-Account] Successfully registered user: ${authData.user.id} from IP: ${clientIP}`);
+      console.log(`[Multi-Account] Successfully registered user: ${createdUser.id} from IP: ${clientIP}`);
     } catch (logError: any) {
-      // Logging-Fehler sollten die Registrierung nicht blockieren
-      if (logError.code === '42P01' || logError.message?.includes('does not exist')) {
-        console.warn('[Multi-Account] registration_attempts table not found - skipping log. Please run supabase-multi-account-prevention.sql');
-      } else {
-        console.error('[Multi-Account] Error logging registration attempt:', logError);
-      }
+      console.error('[Multi-Account] Failed to log registration attempt:', logError);
     }
-    
-    // 6. Sende Bestätigungs-Email (wird von Supabase automatisch gemacht)
-    // Wir geben die User-Daten zurück, aber die Email-Bestätigung muss separat gehandhabt werden
-    
+
     return NextResponse.json({
       success: true,
       user: {
-        id: authData.user.id,
-        email: authData.user.email,
+        id: createdUser.id,
+        email: createdUser.email,
       },
       message: 'Registrierung erfolgreich! Bitte bestätigen Sie Ihre E-Mail-Adresse.',
     });
