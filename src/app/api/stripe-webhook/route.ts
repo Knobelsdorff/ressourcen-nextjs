@@ -2,21 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-10-29.clover',
-});
-
+// Supabase kann beim Build initialisiert werden, da NEXT_PUBLIC_ Variablen verfügbar sind
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
-
 export async function POST(request: NextRequest) {
   console.log('Stripe Webhook: Request received');
   const body = await request.text();
   const signature = request.headers.get('stripe-signature');
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
+
+  // Stripe erst zur Laufzeit initialisieren (nicht beim Build)
+  if (!process.env.STRIPE_SECRET_KEY) {
+    console.error('Stripe Webhook: STRIPE_SECRET_KEY not configured');
+    return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 });
+  }
+
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2025-10-29.clover',
+  });
 
   if (!signature || !webhookSecret) {
     console.error('Stripe Webhook: Missing signature or webhook secret', {
