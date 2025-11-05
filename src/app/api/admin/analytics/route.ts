@@ -548,8 +548,8 @@ export async function GET(request: NextRequest) {
       hasError: !!error,
       errorMessage: (error as Error | null)?.message,
       errorCode: (error as any)?.code,
-      errorDetails: error?.details,
-      errorHint: error?.hint,
+      errorDetails: (error as any)?.details,
+      errorHint: (error as any)?.hint,
     });
     if (relevantEvents && relevantEvents.length > 0) {
       console.log('Admin Analytics API: Event samples (first 3):');
