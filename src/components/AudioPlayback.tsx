@@ -824,7 +824,7 @@ export default function AudioPlayback({
         }
       } else if (resourceCount === 1 && existingStories && existingStories.length === 1) {
         // Erste Ressource existiert bereits - prüfe 3-Tage-Regel
-        const firstResource = existingStories[0];
+        const firstResource = (existingStories as Array<{ created_at: string }>)[0];
         const firstResourceDate = new Date(firstResource.created_at);
         const daysSinceFirst = (Date.now() - firstResourceDate.getTime()) / (1000 * 60 * 60 * 24);
         
