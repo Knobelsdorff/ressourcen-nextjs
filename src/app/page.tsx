@@ -16,7 +16,6 @@ import SavedStoriesModal from "@/components/SavedStoriesModal";
 import { useAppReset } from "@/components/providers/app-reset-provider";
 import Paywall from "@/components/Paywall";
 import { canCreateResource } from "@/lib/access";
-import { isEnabled } from "@/lib/featureFlags";
 
 export interface ResourceFigure {
   id: string;
