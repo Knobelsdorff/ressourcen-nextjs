@@ -286,7 +286,7 @@ export default function AudioPlayback({
 
       console.log('No duplicates found, saving story to database...');
       
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('saved_stories')
         .insert({
           user_id: user.id,
