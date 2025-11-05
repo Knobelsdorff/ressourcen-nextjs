@@ -85,8 +85,9 @@ function getClientIP(request: NextRequest): string {
     return realIP;
   }
   
-  // Fallback (wird in Produktion nicht verwendet)
-  return request.ip || 'unknown';
+  // Fallback: In Vercel/Edge-Funktionen sollte immer ein Header vorhanden sein
+  // Falls nicht, verwende 'unknown' (wird in Produktion nicht verwendet)
+  return 'unknown';
 }
 
 export async function POST(request: NextRequest) {
