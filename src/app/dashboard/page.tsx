@@ -10,6 +10,7 @@ import { getUserAccess, canAccessResource } from "@/lib/access";
 import { useSearchParams } from "next/navigation";
 import Paywall from "@/components/Paywall";
 import { trackEvent } from "@/lib/analytics";
+import { isEnabled } from "@/lib/featureFlags";
 
 interface SavedStory {
   id: string;
