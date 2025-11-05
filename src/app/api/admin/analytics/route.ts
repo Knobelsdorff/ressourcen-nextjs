@@ -367,7 +367,7 @@ export async function GET(request: NextRequest) {
     }
     
     const events = allEvents;
-    const error = null;
+    const error: Error | null = null;
     
     // Debug: Zeige Datumsbereich ALLER geladenen Events
     if (events.length > 0) {
