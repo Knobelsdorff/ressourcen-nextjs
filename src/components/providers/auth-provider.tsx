@@ -162,7 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateProfile = async (updates: { full_name?: string; avatar_url?: string }) => {
     if (!user) return { error: new Error('No user logged in') };
 
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('profiles')
       .upsert({
         id: user.id,
