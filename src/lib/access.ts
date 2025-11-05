@@ -498,8 +498,11 @@ export async function canAccessResource(userId: string, resourceId?: string): Pr
       return false;
     }
 
+    // Typisiere stories für TypeScript
+    const typedStories = stories as Array<{ id: string; created_at: string }>;
+
     // Log alle gefundenen Ressourcen
-    console.log(`[canAccessResource] Stories found:`, stories.map(s => ({
+    console.log(`[canAccessResource] Stories found:`, typedStories.map(s => ({
       id: s.id,
       created_at: s.created_at,
       isRequestedResource: s.id === resourceId
@@ -507,7 +510,7 @@ export async function canAccessResource(userId: string, resourceId?: string): Pr
 
     // Wenn spezifische Ressource angegeben, prüfe ob es die erste ist
     if (resourceId) {
-      const firstResource = stories[0];
+      const firstResource = typedStories[0];
       console.log(`[canAccessResource] Comparing:`, {
         requestedResourceId: resourceId,
         firstResourceId: firstResource.id,
@@ -543,23 +546,23 @@ export async function canAccessResource(userId: string, resourceId?: string): Pr
         // Es ist nicht die erste Ressource - benötigt Zugang
         console.log(`[canAccessResource] Not first resource:`, {
           resourceId,
-          firstResourceId: stories[0].id,
-          totalResources: stories.length,
-          allResourceIds: stories.map(s => s.id),
+          firstResourceId: typedStories[0].id,
+          totalResources: typedStories.length,
+          allResourceIds: typedStories.map(s => s.id),
         });
         return false;
       }
     }
 
     // Keine spezifische Ressource - prüfe ob erste Ressource noch innerhalb von 3 Tagen
-    const firstResourceDate = new Date(stories[0].created_at);
+    const firstResourceDate = new Date(typedStories[0].created_at);
     const daysSinceFirst = (Date.now() - firstResourceDate.getTime()) / (1000 * 60 * 60 * 24);
 
     // Nur die erste Ressource kann innerhalb von 3 Tagen Audio abspielen
-    const canAccess = daysSinceFirst < 3 && stories.length === 1;
+    const canAccess = daysSinceFirst < 3 && typedStories.length === 1;
     
     console.log(`[canAccessResource] General check:`, {
-      totalResources: stories.length,
+      totalResources: typedStories.length,
       daysSinceFirst: daysSinceFirst.toFixed(2),
       canAccess,
     });
