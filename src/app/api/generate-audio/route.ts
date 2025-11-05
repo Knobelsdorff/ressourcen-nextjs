@@ -284,14 +284,14 @@ const supabaseAdmin = await import('@/lib/supabase/serverAdminClient').then(mod 
     console.error('Audio generation error:', error);
     
     // Spezifische Fehlermeldungen
-    if (error.name === 'AbortError') {
+    if ((error as any)?.name === 'AbortError') {
       return NextResponse.json(
         { error: 'Audio generation timed out. Please try again.' },
         { status: 408 }
       );
     }
     
-    if (error.message?.includes('fetch')) {
+    if ((error as any)?.message?.includes('fetch')) {
       return NextResponse.json(
         { error: 'Network error. Please check your connection and try again.' },
         { status: 503 }
@@ -302,8 +302,8 @@ const supabaseAdmin = await import('@/lib/supabase/serverAdminClient').then(mod 
     return NextResponse.json(
       { 
         error: 'Failed to generate audio. Please try again.',
-        details: error.message || 'Unknown error',
-        type: error.name || 'Error'
+        details: (error as any)?.message || 'Unknown error',
+        type: (error as any)?.name || 'Error'
       },
       { status: 500 }
     );

@@ -67,10 +67,10 @@ export async function POST(request: NextRequest) {
       if (error) {
         console.error('Stripe Webhook: Error creating access:', error);
         console.error('Stripe Webhook: Error details:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint,
+          message: (error as any)?.message,
+          code: (error as any)?.code,
+          details: (error as any)?.details,
+          hint: (error as any)?.hint,
         });
         return NextResponse.json({ error: 'Failed to create access' }, { status: 500 });
       }
@@ -80,8 +80,8 @@ export async function POST(request: NextRequest) {
       });
     } catch (error: any) {
       console.error('Stripe Webhook: Exception processing webhook:', error);
-      console.error('Stripe Webhook: Exception stack:', error.stack);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('Stripe Webhook: Exception stack:', (error as any)?.stack);
+      return NextResponse.json({ error: (error as any)?.message }, { status: 500 });
     }
   } else {
     console.log('Stripe Webhook: Event type not handled:', event.type);

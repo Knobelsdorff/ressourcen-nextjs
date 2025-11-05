@@ -162,13 +162,13 @@ export async function POST(request: NextRequest) {
         
         if (error) {
           console.error('Analytics Track API: Error inserting event:', {
-            error: error.message,
-            code: error.code,
-            details: error.details,
-            hint: error.hint,
+            error: (error as any)?.message,
+            code: (error as any)?.code,
+            details: (error as any)?.details,
+            hint: (error as any)?.hint,
           });
           return NextResponse.json(
-            { error: 'Failed to track event', details: error.message },
+            { error: 'Failed to track event', details: (error as any)?.message },
             { status: 500 }
           );
         }
@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Error in analytics track:', error);
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: (error as any)?.message || 'Internal server error' },
       { status: 500 }
     );
   }
