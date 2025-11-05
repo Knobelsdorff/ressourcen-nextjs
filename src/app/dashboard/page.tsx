@@ -709,9 +709,9 @@ export default function Dashboard() {
     setFullNameSuccess('');
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('profiles')
-        .update({ full_name: fullName, pronunciation_hint: pronunciationHint } as any)
+        .update({ full_name: fullName, pronunciation_hint: pronunciationHint })
         .eq('id', user.id);
 
       if (error) {
