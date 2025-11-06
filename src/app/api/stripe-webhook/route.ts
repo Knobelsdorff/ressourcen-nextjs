@@ -14,13 +14,26 @@ export const dynamic = 'force-dynamic';
 // Body-Size-Limit für Webhooks
 export const maxDuration = 30;
 
+// GET Handler für Webhook-Endpunkt-Test (Stripe sendet manchmal GET Requests zum Testen)
+export async function GET(request: NextRequest) {
+  console.log('Stripe Webhook: GET request received (test/health check)');
+  return NextResponse.json({ 
+    status: 'ok', 
+    message: 'Webhook endpoint is reachable',
+    timestamp: new Date().toISOString()
+  });
+}
+
 export async function POST(request: NextRequest) {
   console.log('Stripe Webhook: Request received');
   console.log('Stripe Webhook: Environment:', process.env.NODE_ENV);
+  console.log('Stripe Webhook: Request URL:', request.url);
+  console.log('Stripe Webhook: Request method:', request.method);
   console.log('Stripe Webhook: Request headers:', {
     contentType: request.headers.get('content-type'),
     userAgent: request.headers.get('user-agent'),
     hasStripeSignature: !!request.headers.get('stripe-signature'),
+    host: request.headers.get('host'),
   });
   
   // WICHTIG: In Vercel könnte der Body bereits geparst sein
