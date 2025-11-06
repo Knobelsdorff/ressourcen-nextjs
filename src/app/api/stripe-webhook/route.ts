@@ -11,19 +11,48 @@ const supabase = createClient(
 // WICHTIG: Deaktiviere Body-Parsing für Webhook-Route
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+// Body-Size-Limit für Webhooks
+export const maxDuration = 30;
 
 export async function POST(request: NextRequest) {
   console.log('Stripe Webhook: Request received');
+  console.log('Stripe Webhook: Environment:', process.env.NODE_ENV);
+  console.log('Stripe Webhook: Request headers:', {
+    contentType: request.headers.get('content-type'),
+    userAgent: request.headers.get('user-agent'),
+    hasStripeSignature: !!request.headers.get('stripe-signature'),
+  });
   
-  // WICHTIG: Lese den Body als Text, bevor er geparst wird
-  // Verwende request.body als Stream, falls request.text() nicht funktioniert
+  // WICHTIG: In Vercel könnte der Body bereits geparst sein
+  // Versuche zuerst als Text zu lesen (für Stripe direkt)
+  // Falls das fehlschlägt, versuche als JSON (falls bereits geparst)
   let body: string;
   try {
+    // Versuche zuerst als Text zu lesen (Standard für Stripe Webhooks)
     body = await request.text();
-    console.log('Stripe Webhook: Body received, length:', body.length);
+    console.log('Stripe Webhook: Body read as text, length:', body.length);
+    
+    // Prüfe ob Body bereits JSON ist (durch Vercel geparst)
+    if (body.length === 0 || body === '{}') {
+      console.warn('Stripe Webhook: Body is empty or empty object, trying to read as JSON');
+      // Versuche als JSON zu lesen und zurück zu stringifizieren
+      const jsonBody = await request.json();
+      body = JSON.stringify(jsonBody);
+      console.log('Stripe Webhook: Body read as JSON and stringified, length:', body.length);
+    }
+    
+    console.log('Stripe Webhook: Body preview (first 200 chars):', body.substring(0, 200));
   } catch (error) {
     console.error('Stripe Webhook: Error reading body:', error);
-    return NextResponse.json({ error: 'Failed to read request body' }, { status: 400 });
+    // Fallback: Versuche als JSON zu lesen
+    try {
+      const jsonBody = await request.json();
+      body = JSON.stringify(jsonBody);
+      console.log('Stripe Webhook: Fallback: Body read as JSON, length:', body.length);
+    } catch (jsonError) {
+      console.error('Stripe Webhook: Both text and JSON reading failed:', jsonError);
+      return NextResponse.json({ error: 'Failed to read request body' }, { status: 400 });
+    }
   }
   
   const signature = request.headers.get('stripe-signature');
@@ -34,6 +63,7 @@ export async function POST(request: NextRequest) {
     hasWebhookSecret: !!webhookSecret,
     signatureLength: signature?.length,
     webhookSecretLength: webhookSecret?.length,
+    webhookSecretPreview: webhookSecret.substring(0, 10) + '...' + webhookSecret.substring(webhookSecret.length - 5),
   });
 
   // Stripe erst zur Laufzeit initialisieren (nicht beim Build)
@@ -57,10 +87,29 @@ export async function POST(request: NextRequest) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    // Prüfe ob Body JSON ist (könnte bereits geparst sein)
+    let bodyToVerify = body;
+    
+    // Falls Body bereits JSON-String ist, verwende ihn direkt
+    // Falls Body bereits geparst wurde, müssen wir ihn wieder zu JSON stringifizieren
+    if (typeof body === 'object') {
+      bodyToVerify = JSON.stringify(body);
+      console.log('Stripe Webhook: Body was object, stringified to length:', bodyToVerify.length);
+    }
+    
+    console.log('Stripe Webhook: Attempting signature verification with body length:', bodyToVerify.length);
+    event = stripe.webhooks.constructEvent(bodyToVerify, signature, webhookSecret);
     console.log('Stripe Webhook: Event verified:', event.type);
   } catch (err: any) {
     console.error('Stripe Webhook: Signature verification failed:', err.message);
+    console.error('Stripe Webhook: Error details:', {
+      message: err.message,
+      bodyLength: body.length,
+      bodyType: typeof body,
+      bodyPreview: typeof body === 'string' ? body.substring(0, 100) : 'object',
+      signatureLength: signature?.length,
+      webhookSecretLength: webhookSecret?.length,
+    });
     return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
   }
 
