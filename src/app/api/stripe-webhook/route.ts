@@ -37,17 +37,15 @@ export async function POST(request: NextRequest) {
   });
   
   // WICHTIG: Stripe Webhooks benötigen den EXAKTEN RAW Body für Signatur-Verifikation
-  // In Next.js 15/Vercel muss der Body als Buffer gelesen werden, um Whitespace/Formatierung zu erhalten
+  // In Next.js 15/Vercel: Lese Body als Text direkt (sollte RAW Body sein)
+  // Fallback: Als ArrayBuffer lesen, falls Text nicht funktioniert
   let body: string;
   
   try {
-    // WICHTIG: Lese Body als ArrayBuffer, dann als UTF-8 String
-    // Dies stellt sicher, dass der Body exakt so bleibt, wie Stripe ihn gesendet hat
-    // (inkl. Zeilenumbrüche, Whitespace, etc.)
-    const arrayBuffer = await request.arrayBuffer();
-    body = Buffer.from(arrayBuffer).toString('utf-8');
+    // Versuche zuerst als Text zu lesen (sollte RAW Body sein in Next.js 15)
+    body = await request.text();
     
-    console.log('Stripe Webhook: Body read as ArrayBuffer->UTF8, length:', body.length);
+    console.log('Stripe Webhook: Body read as text, length:', body.length);
     
     // Prüfe ob Body gültig ist
     if (!body || body.length === 0) {
@@ -57,20 +55,22 @@ export async function POST(request: NextRequest) {
     console.log('Stripe Webhook: Body preview (first 200 chars):', body.substring(0, 200));
     console.log('Stripe Webhook: Body is valid JSON string:', body.startsWith('{'));
     console.log('Stripe Webhook: Body contains newlines:', body.includes('\n'));
+    console.log('Stripe Webhook: Body character codes (first 10):', Array.from(body.substring(0, 10)).map(c => c.charCodeAt(0)));
   } catch (error) {
-    console.error('Stripe Webhook: Error reading body as ArrayBuffer:', error);
+    console.error('Stripe Webhook: Error reading body as text:', error);
     
-    // Fallback: Versuche als Text zu lesen (falls ArrayBuffer nicht funktioniert)
+    // Fallback: Versuche als ArrayBuffer zu lesen
     try {
-      console.log('Stripe Webhook: Fallback: Trying to read body as text...');
-      body = await request.text();
-      console.log('Stripe Webhook: Body read as text, length:', body.length);
+      console.log('Stripe Webhook: Fallback: Trying to read body as ArrayBuffer...');
+      const arrayBuffer = await request.arrayBuffer();
+      body = Buffer.from(arrayBuffer).toString('utf-8');
+      console.log('Stripe Webhook: Body read as ArrayBuffer, length:', body.length);
       
       if (!body || body.length === 0) {
-        throw new Error('Body from text is empty');
+        throw new Error('Body from ArrayBuffer is empty');
       }
-    } catch (textError) {
-      console.error('Stripe Webhook: Both ArrayBuffer and text reading failed:', textError);
+    } catch (arrayBufferError) {
+      console.error('Stripe Webhook: Both text and ArrayBuffer reading failed:', arrayBufferError);
       return NextResponse.json({ 
         error: 'Failed to read request body',
         details: 'Body could not be read. This might be a Vercel-specific issue.'
@@ -110,13 +110,17 @@ export async function POST(request: NextRequest) {
   let event: Stripe.Event;
 
   try {
-    // WICHTIG: Verwende den Body direkt - er sollte bereits als RAW String vorliegen
-    // Stripe benötigt den exakten Body, wie er gesendet wurde (inkl. Whitespace, Zeilenumbrüche)
+    // WICHTIG: Stripe benötigt den exakten RAW Body für Signatur-Verifikation
+    // Der Body muss exakt so sein, wie Stripe ihn gesendet hat (inkl. Whitespace, Zeilenumbrüche)
     console.log('Stripe Webhook: Attempting signature verification with body length:', body.length);
-    console.log('Stripe Webhook: Body first 50 chars:', body.substring(0, 50));
-    console.log('Stripe Webhook: Body last 50 chars:', body.substring(body.length - 50));
+    console.log('Stripe Webhook: Body first 50 chars (JSON):', JSON.stringify(body.substring(0, 50)));
+    console.log('Stripe Webhook: Body last 50 chars (JSON):', JSON.stringify(body.substring(body.length - 50)));
+    console.log('Stripe Webhook: Body has trailing newline:', body.endsWith('\n'));
+    console.log('Stripe Webhook: Body has carriage return:', body.includes('\r'));
+    console.log('Stripe Webhook: Body character codes (first 10):', Array.from(body.substring(0, 10)).map(c => c.charCodeAt(0)));
     
-    // Verwende den Body direkt - er ist bereits als String
+    // WICHTIG: Verwende den Body direkt - er sollte bereits als RAW String vorliegen
+    // Stripe's constructEvent erwartet den exakten Body-String
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     console.log('Stripe Webhook: Event verified:', event.type);
   } catch (err: any) {
@@ -126,9 +130,29 @@ export async function POST(request: NextRequest) {
       bodyLength: body.length,
       bodyType: typeof body,
       bodyPreview: typeof body === 'string' ? body.substring(0, 100) : 'object',
+      bodyFirstCharsJSON: typeof body === 'string' ? JSON.stringify(body.substring(0, 50)) : 'object',
       signatureLength: signature?.length,
       webhookSecretLength: webhookSecret?.length,
+      webhookSecretFirstChars: webhookSecret.substring(0, 10),
     });
+    
+    // TEMPORÄR: Für Test-Modus, versuche Event ohne Signatur-Verifikation zu parsen (NUR ZUM DEBUGGING)
+    // WICHTIG: Dies sollte später entfernt werden!
+    if (process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')) {
+      console.warn('Stripe Webhook: Test-Modus - Versuche Event ohne Signatur-Verifikation zu parsen (NUR ZUM DEBUGGING)');
+      try {
+        const parsedBody = JSON.parse(body);
+        if (parsedBody.type === 'checkout.session.completed') {
+          console.warn('Stripe Webhook: Event könnte gültig sein, aber Signatur-Verifikation fehlgeschlagen');
+          console.warn('Stripe Webhook: Das Problem ist wahrscheinlich, dass der Body von Vercel modifiziert wurde');
+          // Wir verwenden das geparste Event nur für Debugging - nicht für Production!
+          // return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
+        }
+      } catch (parseError) {
+        console.error('Stripe Webhook: Could not parse body as JSON:', parseError);
+      }
+    }
+    
     return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
   }
 
