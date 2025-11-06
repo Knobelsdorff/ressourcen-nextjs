@@ -87,9 +87,22 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ sessionId: session.id, url: session.url });
   } catch (error: any) {
-    console.error('Checkout error:', error);
+    console.error('Checkout error:', {
+      message: error?.message,
+      type: error?.type,
+      code: error?.code,
+      statusCode: error?.statusCode,
+      raw: error,
+    });
     return NextResponse.json(
-      { error: (error as any)?.message || 'Failed to create checkout session' },
+      { 
+        error: error?.message || 'Failed to create checkout session',
+        details: process.env.NODE_ENV === 'development' ? {
+          type: error?.type,
+          code: error?.code,
+          statusCode: error?.statusCode,
+        } : undefined,
+      },
       { status: 500 }
     );
   }

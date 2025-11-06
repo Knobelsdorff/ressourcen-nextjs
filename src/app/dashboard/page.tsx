@@ -767,12 +767,40 @@ export default function Dashboard() {
       if (paymentSuccess) {
         console.log('Dashboard: Payment successful, reloading access status', { sessionId });
         // Warte kurz, damit Webhook Zeit hat, den Zugang zu erstellen
-        setTimeout(async () => {
+        // Versuche mehrmals, falls Webhook noch nicht verarbeitet wurde
+        let retryCount = 0;
+        const maxRetries = 8; // Mehr Versuche für Live-Website
+        const retryDelay = 2000; // 2 Sekunden
+        
+        const checkAccess = async () => {
+          console.log(`Dashboard: Checking access (attempt ${retryCount + 1}/${maxRetries})`);
           await loadUserAccess();
-          await loadStories(); // Lade auch Stories neu, falls neue Ressource erstellt werden kann
-          // Erfolgsmeldung anzeigen
-          alert('Zahlung erfolgreich! Dein Zugang wurde aktiviert. Du kannst jetzt Ressourcen erstellen.');
-        }, 2000); // 2 Sekunden warten, damit Webhook Zeit hat
+          await loadStories();
+          
+          // Prüfe ob Zugang jetzt aktiv ist
+          const hasAccess = await hasActiveAccess(user.id);
+          console.log('Dashboard: Access check result:', hasAccess);
+          
+          if (hasAccess) {
+            // Erfolgsmeldung anzeigen und Seite neu laden für vollständige Aktualisierung
+            alert('Zahlung erfolgreich! Dein Zugang wurde aktiviert. Die Seite wird neu geladen...');
+            // Seite neu laden, damit alles korrekt aktualisiert wird
+            window.location.reload();
+          } else if (retryCount < maxRetries - 1) {
+            // Noch kein Zugang - versuche es erneut
+            retryCount++;
+            setTimeout(checkAccess, retryDelay);
+          } else {
+            // Nach mehreren Versuchen immer noch kein Zugang
+            // Lade Seite trotzdem neu - möglicherweise ist der Zugang jetzt in der DB
+            console.warn('Dashboard: Access not activated after payment, webhook may have failed. Reloading page anyway...');
+            alert('Zahlung erfolgreich! Die Seite wird neu geladen, um den Zugang zu prüfen...');
+            window.location.reload();
+          }
+        };
+        
+        // Starte erste Prüfung nach 3 Sekunden (mehr Zeit für Webhook auf Live-Website)
+        setTimeout(checkAccess, 3000);
       }
 
       console.log('Dashboard: URL params check', { confirmed, paymentSuccess, user: !!user });

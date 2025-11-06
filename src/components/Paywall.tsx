@@ -27,29 +27,29 @@ export default function Paywall({ onClose, message }: PaywallProps) {
     setError(null);
 
     try {
-      console.log('Paywall: Creating checkout session for user:', user.id, 'planType:', planType);
+      console.log('[Paywall] Creating checkout session for user:', user.id, 'planType:', planType);
       const result = await createCheckoutSession(user.id, planType);
 
       if (!result) {
-        console.error('Paywall: Checkout session creation returned null');
-        setError('Fehler beim Erstellen der Checkout-Session. Bitte versuche es erneut.');
+        console.error('[Paywall] Checkout session creation returned null');
+        setError('Fehler beim Erstellen der Checkout-Session. Bitte öffne die Browser-Konsole (F12) für Details und versuche es erneut.');
         setLoading(false);
         return;
       }
 
       if (!result.url) {
-        console.error('Paywall: Checkout session has no URL:', result);
-        setError('Fehler beim Erstellen der Checkout-Session. Bitte versuche es erneut.');
+        console.error('[Paywall] Checkout session has no URL:', result);
+        setError('Fehler beim Erstellen der Checkout-Session. Bitte öffne die Browser-Konsole (F12) für Details und versuche es erneut.');
         setLoading(false);
         return;
       }
 
-      console.log('Paywall: Redirecting to Stripe Checkout:', result.url);
+      console.log('[Paywall] Redirecting to Stripe Checkout:', result.url);
       // Weiterleitung zu Stripe Checkout
       window.location.href = result.url;
     } catch (err: any) {
-      console.error('Paywall: Checkout error:', err);
-      setError(err.message || 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.');
+      console.error('[Paywall] Checkout error:', err);
+      setError(`Ein Fehler ist aufgetreten: ${err.message || 'Unbekannter Fehler'}. Bitte öffne die Browser-Konsole (F12) für Details.`);
       setLoading(false);
     }
   };

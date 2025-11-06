@@ -8,11 +8,33 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// WICHTIG: Deaktiviere Body-Parsing für Webhook-Route
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   console.log('Stripe Webhook: Request received');
-  const body = await request.text();
+  
+  // WICHTIG: Lese den Body als Text, bevor er geparst wird
+  // Verwende request.body als Stream, falls request.text() nicht funktioniert
+  let body: string;
+  try {
+    body = await request.text();
+    console.log('Stripe Webhook: Body received, length:', body.length);
+  } catch (error) {
+    console.error('Stripe Webhook: Error reading body:', error);
+    return NextResponse.json({ error: 'Failed to read request body' }, { status: 400 });
+  }
+  
   const signature = request.headers.get('stripe-signature');
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
+  
+  console.log('Stripe Webhook: Signature check', {
+    hasSignature: !!signature,
+    hasWebhookSecret: !!webhookSecret,
+    signatureLength: signature?.length,
+    webhookSecretLength: webhookSecret?.length,
+  });
 
   // Stripe erst zur Laufzeit initialisieren (nicht beim Build)
   if (!process.env.STRIPE_SECRET_KEY) {

@@ -597,6 +597,8 @@ export async function incrementResourceCount(userId: string): Promise<number> {
 
 export async function createCheckoutSession(userId: string, planType: 'standard' | 'premium' = 'standard'): Promise<{ sessionId: string; url: string } | null> {
   try {
+    console.log('[createCheckoutSession] Calling /api/checkout with:', { userId, planType });
+    
     const response = await fetch('/api/checkout', {
       method: 'POST',
       headers: {
@@ -605,15 +607,23 @@ export async function createCheckoutSession(userId: string, planType: 'standard'
       body: JSON.stringify({ userId, planType }),
     });
 
+    console.log('[createCheckoutSession] Response status:', response.status, response.statusText);
+
     if (!response.ok) {
-      const error = await response.json();
-      console.error('Checkout error:', error);
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      console.error('[createCheckoutSession] Checkout error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error,
+      });
       return null;
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log('[createCheckoutSession] Success:', { hasSessionId: !!result.sessionId, hasUrl: !!result.url });
+    return result;
   } catch (error) {
-    console.error('Error creating checkout session:', error);
+    console.error('[createCheckoutSession] Network or parsing error:', error);
     return null;
   }
 }
