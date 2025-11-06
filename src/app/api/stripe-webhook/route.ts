@@ -24,34 +24,48 @@ export async function POST(request: NextRequest) {
   });
   
   // WICHTIG: In Vercel könnte der Body bereits geparst sein
+  // Stripe Webhooks benötigen den RAW Body für Signatur-Verifikation
   // Versuche zuerst als Text zu lesen (für Stripe direkt)
-  // Falls das fehlschlägt, versuche als JSON (falls bereits geparst)
   let body: string;
+  
   try {
-    // Versuche zuerst als Text zu lesen (Standard für Stripe Webhooks)
+    // Methode 1: Als Text lesen (Standard für Stripe Webhooks)
+    // In Next.js 15 sollte request.text() den raw body zurückgeben
     body = await request.text();
     console.log('Stripe Webhook: Body read as text, length:', body.length);
     
-    // Prüfe ob Body bereits JSON ist (durch Vercel geparst)
-    if (body.length === 0 || body === '{}') {
-      console.warn('Stripe Webhook: Body is empty or empty object, trying to read as JSON');
-      // Versuche als JSON zu lesen und zurück zu stringifizieren
-      const jsonBody = await request.json();
-      body = JSON.stringify(jsonBody);
-      console.log('Stripe Webhook: Body read as JSON and stringified, length:', body.length);
+    // Prüfe ob Body gültig ist
+    if (!body || body.length === 0) {
+      throw new Error('Body is empty');
+    }
+    
+    // Prüfe ob Body bereits ein leeres JSON-Objekt ist (durch Vercel geparst)
+    if (body === '{}' || body.trim() === '{}') {
+      throw new Error('Body is empty JSON object');
     }
     
     console.log('Stripe Webhook: Body preview (first 200 chars):', body.substring(0, 200));
+    console.log('Stripe Webhook: Body is valid JSON string:', body.startsWith('{'));
   } catch (error) {
-    console.error('Stripe Webhook: Error reading body:', error);
-    // Fallback: Versuche als JSON zu lesen
+    console.error('Stripe Webhook: Error reading body as text:', error);
+    
+    // Fallback: Versuche als ArrayBuffer zu lesen und dann zu String zu konvertieren
+    // Dies könnte notwendig sein, wenn Vercel den Body anders behandelt
     try {
-      const jsonBody = await request.json();
-      body = JSON.stringify(jsonBody);
-      console.log('Stripe Webhook: Fallback: Body read as JSON, length:', body.length);
-    } catch (jsonError) {
-      console.error('Stripe Webhook: Both text and JSON reading failed:', jsonError);
-      return NextResponse.json({ error: 'Failed to read request body' }, { status: 400 });
+      console.log('Stripe Webhook: Trying to read body as ArrayBuffer...');
+      const arrayBuffer = await request.arrayBuffer();
+      body = Buffer.from(arrayBuffer).toString('utf-8');
+      console.log('Stripe Webhook: Body read as ArrayBuffer and converted to string, length:', body.length);
+      
+      if (!body || body.length === 0) {
+        throw new Error('Body from ArrayBuffer is empty');
+      }
+    } catch (arrayBufferError) {
+      console.error('Stripe Webhook: ArrayBuffer reading also failed:', arrayBufferError);
+      return NextResponse.json({ 
+        error: 'Failed to read request body',
+        details: 'Body could not be read as text or ArrayBuffer. This might be a Vercel-specific issue.'
+      }, { status: 400 });
     }
   }
   
