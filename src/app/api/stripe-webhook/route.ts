@@ -36,48 +36,44 @@ export async function POST(request: NextRequest) {
     host: request.headers.get('host'),
   });
   
-  // WICHTIG: In Vercel könnte der Body bereits geparst sein
-  // Stripe Webhooks benötigen den RAW Body für Signatur-Verifikation
-  // Versuche zuerst als Text zu lesen (für Stripe direkt)
+  // WICHTIG: Stripe Webhooks benötigen den EXAKTEN RAW Body für Signatur-Verifikation
+  // In Next.js 15/Vercel muss der Body als Buffer gelesen werden, um Whitespace/Formatierung zu erhalten
   let body: string;
   
   try {
-    // Methode 1: Als Text lesen (Standard für Stripe Webhooks)
-    // In Next.js 15 sollte request.text() den raw body zurückgeben
-    body = await request.text();
-    console.log('Stripe Webhook: Body read as text, length:', body.length);
+    // WICHTIG: Lese Body als ArrayBuffer, dann als UTF-8 String
+    // Dies stellt sicher, dass der Body exakt so bleibt, wie Stripe ihn gesendet hat
+    // (inkl. Zeilenumbrüche, Whitespace, etc.)
+    const arrayBuffer = await request.arrayBuffer();
+    body = Buffer.from(arrayBuffer).toString('utf-8');
+    
+    console.log('Stripe Webhook: Body read as ArrayBuffer->UTF8, length:', body.length);
     
     // Prüfe ob Body gültig ist
     if (!body || body.length === 0) {
       throw new Error('Body is empty');
     }
     
-    // Prüfe ob Body bereits ein leeres JSON-Objekt ist (durch Vercel geparst)
-    if (body === '{}' || body.trim() === '{}') {
-      throw new Error('Body is empty JSON object');
-    }
-    
     console.log('Stripe Webhook: Body preview (first 200 chars):', body.substring(0, 200));
     console.log('Stripe Webhook: Body is valid JSON string:', body.startsWith('{'));
+    console.log('Stripe Webhook: Body contains newlines:', body.includes('\n'));
   } catch (error) {
-    console.error('Stripe Webhook: Error reading body as text:', error);
+    console.error('Stripe Webhook: Error reading body as ArrayBuffer:', error);
     
-    // Fallback: Versuche als ArrayBuffer zu lesen und dann zu String zu konvertieren
-    // Dies könnte notwendig sein, wenn Vercel den Body anders behandelt
+    // Fallback: Versuche als Text zu lesen (falls ArrayBuffer nicht funktioniert)
     try {
-      console.log('Stripe Webhook: Trying to read body as ArrayBuffer...');
-      const arrayBuffer = await request.arrayBuffer();
-      body = Buffer.from(arrayBuffer).toString('utf-8');
-      console.log('Stripe Webhook: Body read as ArrayBuffer and converted to string, length:', body.length);
+      console.log('Stripe Webhook: Fallback: Trying to read body as text...');
+      body = await request.text();
+      console.log('Stripe Webhook: Body read as text, length:', body.length);
       
       if (!body || body.length === 0) {
-        throw new Error('Body from ArrayBuffer is empty');
+        throw new Error('Body from text is empty');
       }
-    } catch (arrayBufferError) {
-      console.error('Stripe Webhook: ArrayBuffer reading also failed:', arrayBufferError);
+    } catch (textError) {
+      console.error('Stripe Webhook: Both ArrayBuffer and text reading failed:', textError);
       return NextResponse.json({ 
         error: 'Failed to read request body',
-        details: 'Body could not be read as text or ArrayBuffer. This might be a Vercel-specific issue.'
+        details: 'Body could not be read. This might be a Vercel-specific issue.'
       }, { status: 400 });
     }
   }
@@ -114,18 +110,14 @@ export async function POST(request: NextRequest) {
   let event: Stripe.Event;
 
   try {
-    // Prüfe ob Body JSON ist (könnte bereits geparst sein)
-    let bodyToVerify = body;
+    // WICHTIG: Verwende den Body direkt - er sollte bereits als RAW String vorliegen
+    // Stripe benötigt den exakten Body, wie er gesendet wurde (inkl. Whitespace, Zeilenumbrüche)
+    console.log('Stripe Webhook: Attempting signature verification with body length:', body.length);
+    console.log('Stripe Webhook: Body first 50 chars:', body.substring(0, 50));
+    console.log('Stripe Webhook: Body last 50 chars:', body.substring(body.length - 50));
     
-    // Falls Body bereits JSON-String ist, verwende ihn direkt
-    // Falls Body bereits geparst wurde, müssen wir ihn wieder zu JSON stringifizieren
-    if (typeof body === 'object') {
-      bodyToVerify = JSON.stringify(body);
-      console.log('Stripe Webhook: Body was object, stringified to length:', bodyToVerify.length);
-    }
-    
-    console.log('Stripe Webhook: Attempting signature verification with body length:', bodyToVerify.length);
-    event = stripe.webhooks.constructEvent(bodyToVerify, signature, webhookSecret);
+    // Verwende den Body direkt - er ist bereits als String
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     console.log('Stripe Webhook: Event verified:', event.type);
   } catch (err: any) {
     console.error('Stripe Webhook: Signature verification failed:', err.message);
