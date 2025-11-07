@@ -242,7 +242,9 @@ export async function POST(request: NextRequest) {
     console.log('Stripe Webhook: Event type not handled:', event.type);
   }
 
-  return NextResponse.json({ received: true });
+  // WICHTIG: Immer 200 zurückgeben, damit Stripe das Event als erfolgreich markiert
+  // Auch wenn die Signatur-Verifikation im Test-Modus fehlgeschlagen ist, aber das Event verarbeitet wurde
+  return NextResponse.json({ received: true }, { status: 200 });
 }
 
 

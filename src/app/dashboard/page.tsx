@@ -765,12 +765,25 @@ export default function Dashboard() {
       
       // Nach erfolgreicher Zahlung: Zugangsstatus neu laden
       if (paymentSuccess) {
+        // WICHTIG: Prüfe ob bereits geprüft wurde, um mehrfache Ausführung zu vermeiden
+        const paymentCheckKey = `payment_checked_${sessionId || 'unknown'}`;
+        if (typeof window !== 'undefined' && sessionStorage.getItem(paymentCheckKey)) {
+          console.log('Dashboard: Payment already checked, skipping...');
+          return;
+        }
+        
+        // Markiere als geprüft
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem(paymentCheckKey, 'true');
+        }
+        
         console.log('Dashboard: Payment successful, reloading access status', { sessionId });
         // Warte kurz, damit Webhook Zeit hat, den Zugang zu erstellen
         // Versuche mehrmals, falls Webhook noch nicht verarbeitet wurde
         let retryCount = 0;
         const maxRetries = 8; // Mehr Versuche für Live-Website
         const retryDelay = 2000; // 2 Sekunden
+        let alertShown = false; // Verhindere mehrfache Alerts
         
         const checkAccess = async () => {
           console.log(`Dashboard: Checking access (attempt ${retryCount + 1}/${maxRetries})`);
@@ -782,8 +795,11 @@ export default function Dashboard() {
           console.log('Dashboard: Access check result:', hasAccess);
           
           if (hasAccess) {
-            // Erfolgsmeldung anzeigen und Seite neu laden für vollständige Aktualisierung
-            alert('Zahlung erfolgreich! Dein Zugang wurde aktiviert. Die Seite wird neu geladen...');
+            // Erfolgsmeldung nur einmal anzeigen
+            if (!alertShown) {
+              alertShown = true;
+              alert('Zahlung erfolgreich! Dein Zugang wurde aktiviert. Die Seite wird neu geladen...');
+            }
             // Seite neu laden, damit alles korrekt aktualisiert wird
             window.location.reload();
           } else if (retryCount < maxRetries - 1) {
@@ -794,7 +810,10 @@ export default function Dashboard() {
             // Nach mehreren Versuchen immer noch kein Zugang
             // Lade Seite trotzdem neu - möglicherweise ist der Zugang jetzt in der DB
             console.warn('Dashboard: Access not activated after payment, webhook may have failed. Reloading page anyway...');
-            alert('Zahlung erfolgreich! Die Seite wird neu geladen, um den Zugang zu prüfen...');
+            if (!alertShown) {
+              alertShown = true;
+              alert('Zahlung erfolgreich! Die Seite wird neu geladen, um den Zugang zu prüfen...');
+            }
             window.location.reload();
           }
         };
