@@ -46,11 +46,17 @@ export async function POST(request: NextRequest) {
   let body: string;
   
   try {
-    // In Edge Functions: Body direkt als Text lesen (sollte unverändert sein)
-    console.log('Stripe Webhook: Reading body as text (Edge Function preserves raw body)...');
-    body = await request.text();
+    // WICHTIG: In Edge Functions: Lese Body als ArrayBuffer, dann als Text
+    // Dies stellt sicher, dass wir die exakte Byte-Repräsentation erhalten
+    console.log('Stripe Webhook: Reading body as ArrayBuffer (Edge Function)...');
+    const arrayBuffer = await request.arrayBuffer();
     
-    console.log('Stripe Webhook: Body read as text, length:', body.length);
+    // In Edge Functions: Verwende TextDecoder statt Buffer
+    const decoder = new TextDecoder('utf-8');
+    body = decoder.decode(arrayBuffer);
+    
+    console.log('Stripe Webhook: Body read as ArrayBuffer->TextDecoder, length:', body.length);
+    console.log('Stripe Webhook: ArrayBuffer byteLength:', arrayBuffer.byteLength);
     
     // Prüfe ob Body gültig ist
     if (!body || body.length === 0) {
@@ -61,23 +67,24 @@ export async function POST(request: NextRequest) {
     console.log('Stripe Webhook: Body is valid JSON string:', body.startsWith('{'));
     console.log('Stripe Webhook: Body contains newlines:', body.includes('\n'));
     console.log('Stripe Webhook: Body character codes (first 10):', Array.from(body.substring(0, 10)).map(c => c.charCodeAt(0)));
-  } catch (error) {
-    console.error('Stripe Webhook: Error reading body as text:', error);
     
-    // Fallback: Versuche als ArrayBuffer zu lesen
+    // Logge erste Bytes als Hex (für Debugging)
+    const firstBytes = new Uint8Array(arrayBuffer.slice(0, 10));
+    console.log('Stripe Webhook: First 10 bytes (hex):', Array.from(firstBytes).map(b => '0x' + b.toString(16).padStart(2, '0')));
+  } catch (error) {
+    console.error('Stripe Webhook: Error reading body as ArrayBuffer:', error);
+    
+    // Fallback: Versuche als Text zu lesen
     try {
-      console.log('Stripe Webhook: Fallback: Trying to read body as ArrayBuffer...');
-      const arrayBuffer = await request.arrayBuffer();
-      // In Edge Functions: Verwende TextDecoder statt Buffer
-      const decoder = new TextDecoder('utf-8');
-      body = decoder.decode(arrayBuffer);
-      console.log('Stripe Webhook: Body read as ArrayBuffer->TextDecoder, length:', body.length);
+      console.log('Stripe Webhook: Fallback: Trying to read body as text...');
+      body = await request.text();
+      console.log('Stripe Webhook: Body read as text, length:', body.length);
       
       if (!body || body.length === 0) {
-        throw new Error('Body from ArrayBuffer is empty');
+        throw new Error('Body from text is empty');
       }
-    } catch (arrayBufferError) {
-      console.error('Stripe Webhook: Both text and ArrayBuffer reading failed:', arrayBufferError);
+    } catch (textError) {
+      console.error('Stripe Webhook: Both ArrayBuffer and text reading failed:', textError);
       return NextResponse.json({ 
         error: 'Failed to read request body',
         details: 'Body could not be read.'
@@ -120,9 +127,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 });
   }
 
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2025-10-29.clover',
-  });
+  // WICHTIG: In Edge Functions: Stripe ohne apiVersion initialisieren
+  // Edge Functions haben möglicherweise Probleme mit bestimmten API-Versionen
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
   if (!signature || !webhookSecret) {
     console.error('Stripe Webhook: Missing signature or webhook secret', {
