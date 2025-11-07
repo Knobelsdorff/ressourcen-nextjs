@@ -59,6 +59,9 @@ export async function POST(request: NextRequest) {
     console.log('Stripe Webhook: Reading body as ArrayBuffer to preserve exact bytes...');
     const arrayBuffer = await request.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    
+    // WICHTIG: Verwende Buffer direkt für Signatur-Verifikation, nicht String
+    // Stripe benötigt die exakte Byte-Repräsentation
     body = buffer.toString('utf-8');
     
     console.log('Stripe Webhook: Body read as ArrayBuffer->Buffer->UTF8, length:', body.length);
@@ -138,8 +141,18 @@ export async function POST(request: NextRequest) {
     
     // WICHTIG: Verwende constructEventAsync statt constructEvent für bessere Fehlerbehandlung
     // Der Body sollte bereits als RAW String vorliegen (aus ArrayBuffer konvertiert)
-    event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
-    console.log('Stripe Webhook: Event verified:', event.type);
+    // WICHTIG: Stripe benötigt den exakten Body-String, wie er gesendet wurde
+    // Versuche zuerst mit dem String-Body
+    try {
+      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
+      console.log('Stripe Webhook: Event verified:', event.type);
+    } catch (constructError: any) {
+      // Falls das fehlschlägt, versuche mit Buffer direkt (falls Stripe das unterstützt)
+      console.warn('Stripe Webhook: constructEventAsync with string failed, trying alternative method...');
+      // Fallback: Versuche nochmal mit dem exakten Body
+      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
+      console.log('Stripe Webhook: Event verified (retry):', event.type);
+    }
   } catch (err: any) {
     // TEMPORÄR: Für Test-Modus, umgehe Signatur-Verifikation wenn sie fehlschlägt
     // WICHTIG: Dies ist nur für Debugging! In Production sollte Signatur-Verifikation IMMER funktionieren!

@@ -769,12 +769,22 @@ export default function Dashboard() {
         const paymentCheckKey = `payment_checked_${sessionId || 'unknown'}`;
         if (typeof window !== 'undefined' && sessionStorage.getItem(paymentCheckKey)) {
           console.log('Dashboard: Payment already checked, skipping...');
+          // Entferne URL-Parameter sofort, um erneute Ausführung zu verhindern
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete('payment');
+          newUrl.searchParams.delete('session_id');
+          window.history.replaceState({}, '', newUrl.toString());
           return;
         }
         
-        // Markiere als geprüft
+        // Markiere als geprüft SOFORT, bevor wir etwas anderes tun
         if (typeof window !== 'undefined') {
           sessionStorage.setItem(paymentCheckKey, 'true');
+          // Entferne URL-Parameter sofort, um erneute Ausführung zu verhindern
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete('payment');
+          newUrl.searchParams.delete('session_id');
+          window.history.replaceState({}, '', newUrl.toString());
         }
         
         console.log('Dashboard: Payment successful, reloading access status', { sessionId });
