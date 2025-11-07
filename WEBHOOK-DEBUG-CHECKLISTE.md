@@ -1,83 +1,184 @@
-# Webhook Debug Checkliste - Schritt für Schritt
+# Webhook-Debug-Checkliste: Keine Events nach Zahlung
 
-## Schritt 1: Prüfe Vercel Logs
+## ⚠️ WICHTIG: Es gibt ZWEI Webhook-Routen!
 
-1. Gehe zu Vercel Dashboard → **Deployments**
-2. Wähle den letzten Deployment aus
-3. Klicke auf **"Logs"**
-4. Suche nach folgenden Zeilen:
-   - `"Stripe Webhook: Request received"`
-   - `"Stripe Webhook: Body received, length:"`
-   - `"Stripe Webhook: Signature check"`
-   - `"Stripe Webhook: Signature verification failed"`
+1. `/api/stripe-webhook` (alte Route mit viel Logging)
+2. `/api/stripe/webhook` (neue Route)
 
-**Was zeigt die Log-Zeile "Signature check"?**
-- `webhookSecretLength`: Sollte > 0 sein
-- `hasWebhookSecret`: Sollte `true` sein
+**Stelle sicher, dass die URL in Stripe mit der Route übereinstimmt!**
 
-**Kopiere mir bitte die relevanten Log-Zeilen!**
+---
 
-## Schritt 2: Prüfe Stripe Webhook Events
+## Schritt 1: Prüfe welche URL in Stripe konfiguriert ist
 
 1. Gehe zu Stripe Dashboard → **Webhooks**
-2. Klicke auf deinen Endpunkt (`https://ressourcen-nextjs.vercel.app/api/stripe-webhook`)
-3. Klicke auf **"Ereignisse"** oder **"Events"**
-4. Führe eine Testzahlung durch
-5. Prüfe ob ein neues Event erscheint
-6. Klicke auf das Event
-7. Prüfe:
-   - **Status**: Was steht dort? (Erfolgreich, Fehlgeschlagen, etc.)
-   - **Antwort**: Was steht in der Antwort?
-   - **Fehler**: Gibt es eine Fehlermeldung?
+2. Klicke auf deinen Endpoint
+3. **Kopiere die exakte URL** (z.B. `https://www.ressourcen.app/api/stripe-webhook`)
 
-**Kopiere mir bitte:**
-- Event-Status
-- Fehlermeldung (falls vorhanden)
-- Antwort-Code
+**WICHTIG:** 
+- Wenn URL `/api/stripe-webhook` → Route muss in `src/app/api/stripe-webhook/route.ts` sein
+- Wenn URL `/api/stripe/webhook` → Route muss in `src/app/api/stripe/webhook/route.ts` sein
 
-## Schritt 3: Prüfe Webhook-Secret in Vercel
+---
 
-1. Gehe zu Vercel Dashboard → **Settings** → **Environment Variables**
-2. Finde `STRIPE_WEBHOOK_SECRET`
-3. Prüfe:
-   - Ist es gesetzt?
-   - Beginnt es mit `whsec_`?
-   - Wie viele Zeichen hat es? (sollte ca. 50-60 Zeichen sein)
+## Schritt 2: Prüfe ob Endpoint erreichbar ist
 
-**Antwort:**
-- Ist `STRIPE_WEBHOOK_SECRET` vorhanden? Ja/Nein
-- Beginnt es mit `whsec_`? Ja/Nein
-- Wie viele Zeichen hat es? (ungefähr)
+Öffne im Browser:
+- `https://www.ressourcen.app/api/stripe-webhook` (falls diese URL in Stripe steht)
+- ODER `https://www.ressourcen.app/api/stripe/webhook` (falls diese URL in Stripe steht)
 
-## Schritt 4: Prüfe Webhook-Secret in Stripe
+**Erwartetes Ergebnis:**
+```json
+{"status":"ok","message":"Webhook endpoint is reachable","timestamp":"..."}
+```
 
-1. Gehe zu Stripe Dashboard → **Webhooks**
-2. Klicke auf deinen Endpunkt
-3. Klicke auf **"Signing-Geheimnis anzeigen"** oder **"Reveal signing secret"**
-4. Kopiere das Secret (beginnt mit `whsec_...`)
+**Falls 404:** Endpoint existiert nicht → Route prüfen und redeployen
 
-**Antwort:**
-- Beginnt das Secret in Stripe mit `whsec_`? Ja/Nein
-- Wie viele Zeichen hat es? (ungefähr)
+---
 
-## Schritt 5: Vergleich
+## Schritt 3: Prüfe Stripe Webhook-Logs
 
-**Vergleiche:**
-- Stimmt das Secret in Vercel mit dem Secret in Stripe überein?
-- Haben beide die gleiche Länge?
-- Beginnt beide mit `whsec_`?
+1. Stripe Dashboard → **Webhooks** → Dein Endpoint
+2. Klicke auf **"Logbuch"** oder **"Events"**
+3. Prüfe ob Events angezeigt werden
 
-**Antwort:**
-- Stimmen die Secrets überein? Ja/Nein
+**Falls KEINE Events:**
+- Stripe sendet nichts → Endpoint ist nicht aktiv oder URL ist falsch
+- Prüfe ob Endpoint **"Aktiv"** ist (grüner Status)
 
-## Schritt 6: Prüfe ob Code deployed ist
+**Falls Events vorhanden, aber mit Fehler:**
+- Klicke auf das Event
+- Prüfe **Status-Code** (sollte 200 sein)
+- Prüfe **Antwort** (sollte `{"received": true}` sein)
 
-1. Gehe zu Vercel Dashboard → **Deployments**
-2. Prüfe den letzten Deployment:
-   - Wann wurde er erstellt?
-   - Hat er die neuesten Code-Änderungen?
+---
 
-**Antwort:**
-- Wann wurde der letzte Deployment erstellt?
-- Wurden die Code-Änderungen gepusht?
+## Schritt 4: Prüfe Vercel-Logs
 
+1. Vercel Dashboard → **Deployments** → Neuestes Deployment
+2. Klicke auf **"Logs"**
+3. Suche nach: `[stripe/webhook]` oder `Stripe Webhook:`
+
+**Erwartete Logs bei erfolgreichem Event:**
+```
+[stripe/webhook] Request received
+[stripe/webhook] STRIPE EVENT RECEIVED checkout.session.completed
+[stripe/webhook] HANDLING checkout.session.completed
+[stripe/webhook] SESSION COMPLETED { sessionId: ..., userId: ..., ... }
+[stripe/webhook] Creating access for user: ...
+[stripe/webhook] Access created successfully for user ...
+```
+
+**Falls KEINE Logs:**
+- Stripe sendet nichts an Vercel
+- Prüfe Stripe Webhook-Konfiguration (Schritt 1)
+
+**Falls Logs mit Fehler:**
+- Kopiere die Fehlermeldung
+- Häufig: "Signature verification failed" → Webhook-Secret stimmt nicht
+
+---
+
+## Schritt 5: Prüfe Webhook-Secret
+
+1. Stripe Dashboard → **Webhooks** → Dein Endpoint
+2. Klicke auf **"Signing-Geheimnis anzeigen"** oder **"Reveal signing secret"**
+3. Kopiere das komplette Secret (beginnt mit `whsec_...`)
+
+4. Vercel Dashboard → **Settings** → **Environment Variables**
+5. Prüfe `STRIPE_WEBHOOK_SECRET`
+6. **Vergleiche:** Stimmt das Secret überein?
+
+**WICHTIG:**
+- Secret muss EXAKT übereinstimmen (keine Leerzeichen, keine Zeilenumbrüche)
+- Nach Änderung: **Redeploy** notwendig!
+
+---
+
+## Schritt 6: Test-Event manuell senden
+
+1. Stripe Dashboard → **Webhooks** → Dein Endpoint
+2. Klicke auf **"Testereignis senden"** oder **"Send test webhook"**
+3. Wähle: `checkout.session.completed`
+4. Klicke auf **"Ereignis senden"**
+
+**Prüfe sofort:**
+- Vercel-Logs: Erscheint `[stripe/webhook] Request received`?
+- Stripe-Logs: Erscheint ein neues Event?
+
+**Falls Test-Event funktioniert, aber echte Zahlung nicht:**
+- Problem liegt in der Checkout-Session-Erstellung
+- Prüfe ob `client_reference_id` oder `metadata.userId` gesetzt wird
+
+---
+
+## Schritt 7: Prüfe Checkout-Session-Erstellung
+
+1. Öffne Browser-Konsole (F12)
+2. Führe eine Testzahlung durch
+3. Prüfe Logs:
+   ```
+   [createCheckoutSession] Calling /api/checkout with: ...
+   checkout response { sessionId: ..., url: ... }
+   ```
+
+4. Prüfe ob `client_reference_id` und `metadata` in der Checkout-Session gesetzt werden:
+   - Öffne `src/app/api/checkout/route.ts`
+   - Prüfe ob `client_reference_id: userId` und `metadata: { userId, planType }` gesetzt werden
+
+---
+
+## Schritt 8: Häufige Probleme
+
+### Problem: "Signature verification failed"
+**Lösung:**
+- Webhook-Secret in Vercel aktualisieren
+- Redeploy
+- Prüfe ob richtige Route verwendet wird
+
+### Problem: "No userId found"
+**Lösung:**
+- Prüfe ob `client_reference_id` oder `metadata.userId` in Checkout-Session gesetzt wird
+- Prüfe `src/app/api/checkout/route.ts`
+
+### Problem: "Failed to create access"
+**Lösung:**
+- Prüfe ob RPC-Funktion `create_access_after_payment` in Supabase existiert
+- Prüfe Supabase-Logs
+
+### Problem: Keine Events in Stripe
+**Lösung:**
+- Endpoint ist nicht aktiv → Aktiviere in Stripe
+- URL ist falsch → Prüfe und korrigiere
+- Endpoint existiert nicht → Prüfe Route und redeploye
+
+---
+
+## Quick-Fix: Endpoint neu erstellen
+
+Falls nichts funktioniert:
+
+1. **Lösche alten Endpoint in Stripe**
+2. **Erstelle neuen Endpoint:**
+   - URL: `https://www.ressourcen.app/api/stripe-webhook` (ODER `/api/stripe/webhook`)
+   - Ereignisse: `checkout.session.completed`
+   - **WICHTIG:** Im richtigen Modus (Test/Live)!
+3. **Kopiere neues Secret nach Vercel**
+4. **Redeploy**
+5. **Teste erneut**
+
+---
+
+## Debug-Commands
+
+### Lokal testen (mit Stripe CLI):
+```bash
+stripe login
+stripe trigger checkout.session.completed
+```
+
+### Endpoint-Erreichbarkeit prüfen:
+```bash
+curl https://www.ressourcen.app/api/stripe-webhook
+# Sollte JSON zurückgeben, nicht 404
+```

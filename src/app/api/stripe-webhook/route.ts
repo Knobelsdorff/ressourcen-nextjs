@@ -27,13 +27,25 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   console.log('Stripe Webhook: Request received');
   console.log('Stripe Webhook: Environment:', process.env.NODE_ENV);
-  console.log('Stripe Webhook: Request URL:', request.url);
+  
+  // WICHTIG: request.url zeigt auf die interne Vercel-Domain, auch wenn Stripe an die Custom-Domain sendet
+  // Prüfe stattdessen den Host-Header, um die tatsächliche Domain zu sehen
+  const host = request.headers.get('host') || '';
+  const forwardedHost = request.headers.get('x-forwarded-host') || '';
+  const originalUrl = request.headers.get('x-original-url') || '';
+  
+  console.log('Stripe Webhook: Request URL (internal):', request.url);
+  console.log('Stripe Webhook: Host header:', host);
+  console.log('Stripe Webhook: X-Forwarded-Host:', forwardedHost);
+  console.log('Stripe Webhook: X-Original-URL:', originalUrl);
   console.log('Stripe Webhook: Request method:', request.method);
   console.log('Stripe Webhook: Request headers:', {
     contentType: request.headers.get('content-type'),
     userAgent: request.headers.get('user-agent'),
     hasStripeSignature: !!request.headers.get('stripe-signature'),
-    host: request.headers.get('host'),
+    host: host,
+    forwardedHost: forwardedHost,
+    originalUrl: originalUrl,
   });
   
   // WICHTIG: Stripe Webhooks benötigen den EXAKTEN RAW Body für Signatur-Verifikation
