@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { supabase, SavedStory } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,13 +13,7 @@ export default function SavedStories() {
   const [error, setError] = useState('');
   const [useLocalStorage, setUseLocalStorage] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      fetchStories();
-    }
-  }, [user]);
-
-  const fetchStories = async () => {
+  const fetchStories = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -58,7 +52,13 @@ export default function SavedStories() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      fetchStories();
+    }
+  }, [user, fetchStories]);
 
   const deleteStory = async (storyId: string) => {
     try {

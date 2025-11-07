@@ -109,7 +109,7 @@ export default function StoryGeneration({
     }
   }, [generatedStory, editedStory]);
 
-  const generateStory = async () => {
+  const generateStory = useCallback(async () => {
     console.log('Starting story generation...', { selectedFigure, questionAnswers });
     setIsGenerating(true);
     
@@ -146,7 +146,7 @@ export default function StoryGeneration({
     } finally {
       setIsGenerating(false);
     }
-  };
+  }, [selectedFigure, questionAnswers, onStoryGenerated, onNext]);
 
   const handleRegenerate = () => {
     generateStory();
