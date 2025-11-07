@@ -983,24 +983,10 @@ ${story.content}
     URL.revokeObjectURL(url);
   };
 
+  // Download-Funktion entfernt - Streaming only für bessere Kundenbindung
   const downloadAudio = async (story: SavedStory) => {
-    if (!story.audio_url) return;
-    
-    // Prüfe Premium-Status
-    if (user) {
-      const { hasPremiumAccess } = await import('@/lib/access');
-      const hasPremium = await hasPremiumAccess(user.id);
-      
-      if (!hasPremium) {
-        alert('Audio-Downloads sind nur für Premium-User verfügbar. Bitte wähle den Premium-Plan, um Downloads zu nutzen.');
-        return;
-      }
-    }
-    
-    const a = document.createElement('a');
-    a.href = story.audio_url;
-    a.download = `${story.title}_audio.mp3`;
-    a.click();
+    // Downloads sind deaktiviert - nur Streaming verfügbar
+    alert('Downloads sind aktuell nicht verfügbar. Bitte nutze das Streaming-Feature.');
   };
 
 

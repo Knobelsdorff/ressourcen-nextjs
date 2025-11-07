@@ -5,16 +5,18 @@ export const runtime = 'nodejs'
 
 const PLAN_CONFIG = {
   standard: {
-    price: 17900,
-    productName: 'Ressourcen-App: Standard 3-Monats-Paket',
-    description: '3 Ressourcen, 3 Monate Zugang - Statt 1,5 Sitzungen (330€) nur 179€',
+    price: 4900, // Early Adopter: 49€ (später 99€)
+    productName: 'Ressourcen-App: Standard 3-Monats-Paket (Early Adopter)',
+    description: '3 Ressourcen, 3 Monate Zugang - Early Adopter Preis (50% Rabatt)',
     resourcesLimit: '3',
+    originalPrice: 9900, // Späterer Preis für Grandfathering
   },
   premium: {
-    price: 24900,
-    productName: 'Ressourcen-App: Premium 3-Monats-Paket',
-    description: '3 Ressourcen, 3 Monate Zugang, Audio-Downloads inklusive - Statt 1,5 Sitzungen (330€) nur 249€',
-    resourcesLimit: '3',
+    price: 7900, // Early Adopter: 79€ (später 149€)
+    productName: 'Ressourcen-App: Premium 3-Monats-Paket (Early Adopter)',
+    description: '5 Ressourcen, 6 Monate Zugang, Exklusive Features - Early Adopter Preis (47% Rabatt)',
+    resourcesLimit: '5', // Premium: Mehr Ressourcen
+    originalPrice: 14900, // Späterer Preis für Grandfathering
   },
 } as const
 
@@ -83,6 +85,8 @@ export async function POST(request: Request) {
         userId,
         planType,
         resourcesLimit: planConfig.resourcesLimit,
+        originalPrice: planConfig.originalPrice.toString(), // Für Grandfathering
+        isEarlyAdopter: 'true', // Markiere als Early Adopter
       },
     })
 

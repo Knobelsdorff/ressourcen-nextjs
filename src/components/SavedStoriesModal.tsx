@@ -136,27 +136,10 @@ ${story.audioState?.audioUrl ? `Audio-URL: ${story.audioState.audioUrl}` : 'Kein
     URL.revokeObjectURL(url);
   };
 
+  // Download-Funktion entfernt - Streaming only für bessere Kundenbindung
   const downloadAudio = async (story: SavedStory) => {
-    if (!story.audioState?.audioUrl) return;
-    
-    // Prüfe Premium-Status
-    if (user) {
-      const { hasPremiumAccess } = await import('@/lib/access');
-      const hasPremium = await hasPremiumAccess(user.id);
-      
-      if (!hasPremium) {
-        alert('Audio-Downloads sind nur für Premium-User verfügbar. Bitte wähle den Premium-Plan, um Downloads zu nutzen.');
-        return;
-      }
-    }
-    
-    const a = document.createElement('a');
-    a.href = story.audioState.audioUrl;
-    a.download = `${story.title?.replace(/[^a-zA-Z0-9]/g, '_') || 'geschichte'}_audio.mp3`;
-    a.target = '_blank';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    // Downloads sind deaktiviert - nur Streaming verfügbar
+    alert('Downloads sind aktuell nicht verfügbar. Bitte nutze das Streaming-Feature.');
   };
 
   const toggleAudioPlayback = () => {
@@ -500,12 +483,7 @@ function MobileStoryDetails({ story, onDelete, onDownload, onDownloadAudio, audi
                   )}
                 </button>
                 
-                <button
-                  onClick={() => onDownloadAudio(story)}
-                  className="p-2 bg-orange-100 text-amber-700 rounded-full hover:bg-orange-200 transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                </button>
+                {/* Download-Button entfernt - Streaming only für bessere Kundenbindung */}
               </div>
 
               <div className="mt-4 text-center">
@@ -552,7 +530,7 @@ function DesktopStoryDetails({ story, onDelete, onDownload, onDownloadAudio, aud
   story: SavedStory;
   onDelete: (id: string) => void;
   onDownload: (story: SavedStory) => void;
-  onDownloadAudio: (story: SavedStory) => void;
+  onDownloadAudio: (story: SavedStory) => void; // Wird nicht mehr verwendet, aber für Kompatibilität behalten
   audioRef: React.RefObject<HTMLAudioElement>;
   isPlaying: boolean;
   currentTime: number;
@@ -640,12 +618,7 @@ function DesktopStoryDetails({ story, onDelete, onDownload, onDownloadAudio, aud
                   )}
                 </button>
                 
-                <button
-                  onClick={() => onDownloadAudio(story)}
-                  className="p-2 bg-orange-100 text-amber-700 rounded-full hover:bg-orange-200 transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                </button>
+                {/* Download-Button entfernt - Streaming only für bessere Kundenbindung */}
               </div>
 
               <div className="mt-4 text-center">

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, Check, Sparkles, Download } from 'lucide-react';
+import { Lock, Check, Sparkles } from 'lucide-react';
 import { createCheckoutSession } from '@/lib/access';
 import { useAuth } from '@/components/providers/auth-provider';
 
@@ -70,6 +70,14 @@ export default function Paywall({ onClose, message }: PaywallProps) {
             Zugang aktivieren
           </h2>
 
+          {/* Early Adopter Badge */}
+          <div className="mb-4 inline-block bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2 rounded-full text-sm font-semibold">
+            🎉 Early Adopter Preis - 50% Rabatt
+          </div>
+          <p className="text-sm text-amber-600 mb-4">
+            Wir sind noch in der Beta-Phase. Early Adopters erhalten diesen Preis dauerhaft, auch wenn wir später die Preise für neue Kunden erhöhen.
+          </p>
+
           {message && (
             <p className="text-amber-700 mb-6">{message}</p>
           )}
@@ -89,11 +97,15 @@ export default function Paywall({ onClose, message }: PaywallProps) {
                 <h3 className="text-xl font-bold text-amber-900 mb-2">Standard</h3>
                 <div className="mb-4">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-amber-900">179€</span>
+                    <span className="text-3xl font-bold text-amber-900">49€</span>
                     <span className="text-amber-600 text-sm">einmalig</span>
                   </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-gray-400 line-through">99€</span>
+                    <span className="text-xs text-green-600 font-semibold">50% Rabatt</span>
+                  </div>
                   <p className="text-xs text-amber-600 mt-1">
-                    Statt 1,5 Sitzungen (330€)
+                    Early Adopter Preis - dauerhaft gesichert
                   </p>
                 </div>
                 <div className="space-y-3">
@@ -138,29 +150,37 @@ export default function Paywall({ onClose, message }: PaywallProps) {
                 </h3>
                 <div className="mb-4">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-purple-900">249€</span>
+                    <span className="text-3xl font-bold text-purple-900">79€</span>
                     <span className="text-purple-600 text-sm">einmalig</span>
                   </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-gray-400 line-through">149€</span>
+                    <span className="text-xs text-green-600 font-semibold">47% Rabatt</span>
+                  </div>
                   <p className="text-xs text-purple-600 mt-1">
-                    Statt 1,5 Sitzungen (330€)
+                    Early Adopter Preis - dauerhaft gesichert
                   </p>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-start gap-2">
                     <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-purple-700">2 weitere Ressourcen (insgesamt 3)</p>
+                    <p className="text-sm text-purple-700">4 weitere Ressourcen (insgesamt 5)</p>
                   </div>
                   <div className="flex items-start gap-2">
                     <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-purple-700">3 Monate Zugang</p>
+                    <p className="text-sm text-purple-700">6 Monate Zugang</p>
                   </div>
                   <div className="flex items-start gap-2">
                     <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                     <p className="text-sm text-purple-700">Professionelle Audio-Stimmen</p>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Download className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm font-semibold text-purple-900">Audio-Downloads inklusive</p>
+                    <Sparkles className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm font-semibold text-purple-900">Exklusive Premium-Features</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-purple-700">Streaming (kein Download)</p>
                   </div>
                 </div>
               </div>
