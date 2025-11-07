@@ -7,7 +7,8 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-  const sig = headers().get('stripe-signature')
+  const headerList = await headers()
+  const sig = headerList.get('stripe-signature')
 
   if (!sig) return NextResponse.json({ error: 'Missing stripe-signature' }, { status: 400 })
 
