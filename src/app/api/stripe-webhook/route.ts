@@ -49,15 +49,20 @@ export async function POST(request: NextRequest) {
   });
   
   // WICHTIG: Stripe Webhooks benötigen den EXAKTEN RAW Body für Signatur-Verifikation
-  // In Next.js 15/Vercel: Lese Body als Text direkt (sollte RAW Body sein)
-  // Fallback: Als ArrayBuffer lesen, falls Text nicht funktioniert
+  // In Next.js 15/Vercel: Lese Body direkt als ArrayBuffer, um Modifikationen zu vermeiden
+  // Vercel könnte den Body modifizieren, wenn wir ihn als Text lesen
   let body: string;
   
   try {
-    // Versuche zuerst als Text zu lesen (sollte RAW Body sein in Next.js 15)
-    body = await request.text();
+    // WICHTIG: Lese Body direkt als ArrayBuffer, dann konvertiere zu String
+    // Dies stellt sicher, dass wir die exakte Byte-Repräsentation erhalten
+    console.log('Stripe Webhook: Reading body as ArrayBuffer to preserve exact bytes...');
+    const arrayBuffer = await request.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    body = buffer.toString('utf-8');
     
-    console.log('Stripe Webhook: Body read as text, length:', body.length);
+    console.log('Stripe Webhook: Body read as ArrayBuffer->Buffer->UTF8, length:', body.length);
+    console.log('Stripe Webhook: Buffer length (bytes):', buffer.length);
     
     // Prüfe ob Body gültig ist
     if (!body || body.length === 0) {
@@ -68,21 +73,21 @@ export async function POST(request: NextRequest) {
     console.log('Stripe Webhook: Body is valid JSON string:', body.startsWith('{'));
     console.log('Stripe Webhook: Body contains newlines:', body.includes('\n'));
     console.log('Stripe Webhook: Body character codes (first 10):', Array.from(body.substring(0, 10)).map(c => c.charCodeAt(0)));
+    console.log('Stripe Webhook: Buffer first 10 bytes (hex):', Array.from(buffer.slice(0, 10)).map(b => '0x' + b.toString(16).padStart(2, '0')));
   } catch (error) {
-    console.error('Stripe Webhook: Error reading body as text:', error);
+    console.error('Stripe Webhook: Error reading body as ArrayBuffer:', error);
     
-    // Fallback: Versuche als ArrayBuffer zu lesen
+    // Fallback: Versuche als Text zu lesen (falls ArrayBuffer nicht funktioniert)
     try {
-      console.log('Stripe Webhook: Fallback: Trying to read body as ArrayBuffer...');
-      const arrayBuffer = await request.arrayBuffer();
-      body = Buffer.from(arrayBuffer).toString('utf-8');
-      console.log('Stripe Webhook: Body read as ArrayBuffer, length:', body.length);
+      console.log('Stripe Webhook: Fallback: Trying to read body as text...');
+      body = await request.text();
+      console.log('Stripe Webhook: Body read as text, length:', body.length);
       
       if (!body || body.length === 0) {
-        throw new Error('Body from ArrayBuffer is empty');
+        throw new Error('Body from text is empty');
       }
-    } catch (arrayBufferError) {
-      console.error('Stripe Webhook: Both text and ArrayBuffer reading failed:', arrayBufferError);
+    } catch (textError) {
+      console.error('Stripe Webhook: Both ArrayBuffer and text reading failed:', textError);
       return NextResponse.json({ 
         error: 'Failed to read request body',
         details: 'Body could not be read. This might be a Vercel-specific issue.'
@@ -131,9 +136,9 @@ export async function POST(request: NextRequest) {
     console.log('Stripe Webhook: Body has carriage return:', body.includes('\r'));
     console.log('Stripe Webhook: Body character codes (first 10):', Array.from(body.substring(0, 10)).map(c => c.charCodeAt(0)));
     
-    // WICHTIG: Verwende den Body direkt - er sollte bereits als RAW String vorliegen
-    // Stripe's constructEvent erwartet den exakten Body-String
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    // WICHTIG: Verwende constructEventAsync statt constructEvent für bessere Fehlerbehandlung
+    // Der Body sollte bereits als RAW String vorliegen (aus ArrayBuffer konvertiert)
+    event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
     console.log('Stripe Webhook: Event verified:', event.type);
   } catch (err: any) {
     // TEMPORÄR: Für Test-Modus, umgehe Signatur-Verifikation wenn sie fehlschlägt
