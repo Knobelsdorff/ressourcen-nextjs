@@ -17,7 +17,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('Stripe Webhook: Request received');
+  // ⚠️ WARNUNG: Diese Route ist DEPRECATED!
+  // Bitte verwende stattdessen: /api/webhook/stripe
+  console.warn('⚠️ DEPRECATED ROUTE: /api/stripe-webhook wird verwendet!');
+  console.warn('⚠️ Bitte aktualisiere Stripe Webhook URL zu: /api/webhook/stripe');
+  console.log('Stripe Webhook: Request received (DEPRECATED ROUTE)');
   console.log('Stripe Webhook: Environment:', process.env.NODE_ENV);
   
   // WICHTIG: request.url zeigt auf die interne Vercel-Domain, auch wenn Stripe an die Custom-Domain sendet

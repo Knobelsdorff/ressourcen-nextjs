@@ -16,7 +16,17 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('[webhook/stripe] Request received');
+  // Debug: Prüfe welche URL tatsächlich aufgerufen wurde
+  const url = request.url;
+  const pathname = new URL(url).pathname;
+  const host = request.headers.get('host') || '';
+  const forwardedHost = request.headers.get('x-forwarded-host') || '';
+  
+  console.log('[webhook/stripe] ✅ Request received at NEW route');
+  console.log('[webhook/stripe] Request URL:', url);
+  console.log('[webhook/stripe] Pathname:', pathname);
+  console.log('[webhook/stripe] Host:', host);
+  console.log('[webhook/stripe] X-Forwarded-Host:', forwardedHost);
   
   if (!process.env.STRIPE_SECRET_KEY) {
     console.error('[webhook/stripe] STRIPE_SECRET_KEY not configured');
