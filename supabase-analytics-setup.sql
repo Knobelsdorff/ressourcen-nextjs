@@ -37,3 +37,4 @@ COMMENT ON COLUMN public.user_analytics.metadata IS 'Zusätzliche Event-Daten al
 
 
 
+
