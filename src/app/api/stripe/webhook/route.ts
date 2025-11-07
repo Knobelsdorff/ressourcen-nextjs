@@ -6,7 +6,7 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-06-20' })
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
   const sig = headers().get('stripe-signature')
 
   if (!sig) return NextResponse.json({ error: 'Missing stripe-signature' }, { status: 400 })
@@ -20,6 +20,7 @@ export async function POST(req: Request) {
       sig,
       process.env.STRIPE_WEBHOOK_SECRET!
     )
+    console.log('STRIPE EVENT RECEIVED', event.type)
   } catch (err: any) {
     return NextResponse.json({ error: `Webhook signature verification failed: ${err.message}` }, { status: 400 })
   }
@@ -27,12 +28,16 @@ export async function POST(req: Request) {
   try {
     switch (event.type) {
       case 'checkout.session.completed':
+        console.log('HANDLING', event.type)
+        console.log('SESSION COMPLETED', event.data.object)
         // hier kannst du später Zugriff freischalten
         break
       case 'customer.subscription.updated':
+        console.log('HANDLING', event.type)
         // Abo aktualisiert
         break
       case 'customer.subscription.deleted':
+        console.log('HANDLING', event.type)
         // Abo beendet
         break
       default:

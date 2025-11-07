@@ -10,7 +10,7 @@ export async function POST(request: Request) {
 
     if (!priceId) return NextResponse.json({ error: 'Missing priceId' }, { status: 400 })
 
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-06-20' })
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription', // oder 'payment'

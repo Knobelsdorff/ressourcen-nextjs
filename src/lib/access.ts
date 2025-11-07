@@ -625,6 +625,10 @@ export async function createCheckoutSession(userId: string, planType: 'standard'
 
     const result = await response.json();
     console.log('[createCheckoutSession] Success:', { hasSessionId: !!result.sessionId, hasUrl: !!result.url });
+    console.log('checkout response', result);
+    if (result.url) {
+      console.log('checkout url', result.url);
+    }
     return result;
   } catch (error) {
     console.error('[createCheckoutSession] Network or parsing error:', error);
