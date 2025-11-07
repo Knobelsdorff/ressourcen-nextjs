@@ -97,11 +97,15 @@ export async function getUserAccess(userId: string): Promise<UserAccess | null> 
       userIdsMatch: session?.user?.id === userId,
     });
     
+    // Verwende .maybeSingle() statt .single(), um den PGRST116 Fehler zu vermeiden
+    // .maybeSingle() gibt null zurück, wenn keine Zeile gefunden wird (statt Fehler)
     const { data, error } = await supabase
       .from('user_access')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .order('created_at', { ascending: false }) // Neueste zuerst
+      .limit(1)
+      .maybeSingle();
     
     console.log(`[getUserAccess] Query result for user ${userId}:`, {
       hasData: !!data,
