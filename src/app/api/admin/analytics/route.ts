@@ -526,15 +526,50 @@ export async function GET(request: NextRequest) {
       })) : [],
     });
 
-    // Filtere dashboard_visit Events heraus (nicht relevant)
+    // Filtere dashboard_visit und audio_play Events heraus (nicht relevant)
     const dashboardVisitCount = eventsToUse?.filter(e => e.event_type === 'dashboard_visit').length || 0;
+    const audioPlayCount = eventsToUse?.filter(e => e.event_type === 'audio_play').length || 0;
     
-    // Filtere dashboard_visit Events heraus (Admin-Filterung erfolgt später nach dem Laden der Email-Adressen)
-    const relevantEvents = eventsToUse?.filter(e => e.event_type !== 'dashboard_visit') || [];
+    // Filtere dashboard_visit und audio_play Events heraus (Admin-Filterung erfolgt später nach dem Laden der Email-Adressen)
+    let relevantEvents = eventsToUse?.filter(e => 
+      e.event_type !== 'dashboard_visit' && e.event_type !== 'audio_play'
+    ) || [];
     
     if (dashboardVisitCount > 0) {
       console.log(`Admin Analytics API: Filtered out ${dashboardVisitCount} dashboard_visit events (not relevant)`);
     }
+    if (audioPlayCount > 0) {
+      console.log(`Admin Analytics API: Filtered out ${audioPlayCount} audio_play events (not relevant)`);
+    }
+    
+    // Dedupliziere user_login Events: Nur einmal pro Stunde pro User
+    const userLoginEvents: Map<string, { event: any; hour: string }> = new Map();
+    const otherEvents: any[] = [];
+    
+    relevantEvents.forEach(event => {
+      if (event.event_type === 'user_login') {
+        const eventDate = new Date(event.created_at);
+        const hourKey = `${event.user_id}_${eventDate.getFullYear()}-${String(eventDate.getMonth() + 1).padStart(2, '0')}-${String(eventDate.getDate()).padStart(2, '0')}_${String(eventDate.getHours()).padStart(2, '0')}`;
+        
+        // Wenn noch kein Event für diese Stunde existiert, oder dieses Event neuer ist, speichere es
+        if (!userLoginEvents.has(hourKey) || 
+            new Date(event.created_at) > new Date(userLoginEvents.get(hourKey)!.event.created_at)) {
+          userLoginEvents.set(hourKey, { event, hour: hourKey });
+        }
+      } else {
+        otherEvents.push(event);
+      }
+    });
+    
+    // Kombiniere deduplizierte user_login Events mit anderen Events
+    const deduplicatedUserLogins = Array.from(userLoginEvents.values()).map(v => v.event);
+    const filteredUserLoginCount = relevantEvents.filter(e => e.event_type === 'user_login').length - deduplicatedUserLogins.length;
+    
+    if (filteredUserLoginCount > 0) {
+      console.log(`Admin Analytics API: Deduplicated ${filteredUserLoginCount} user_login events (only 1 per hour per user)`);
+    }
+    
+    relevantEvents = [...otherEvents, ...deduplicatedUserLogins];
 
     // Hole alle unique User-IDs (nur von relevanten Events, VOR Admin-Filterung)
     const uniqueUserIds = relevantEvents ? Array.from(new Set(relevantEvents.map(e => e.user_id).filter(Boolean))) : [];
@@ -769,6 +804,8 @@ export async function GET(request: NextRequest) {
       _debug: {
         totalEventsInDB: events?.length || 0,
         dashboardVisitCount,
+        audioPlayCount,
+        filteredUserLoginCount,
         relevantEventsCount: relevantEvents.length,
         rawEventTypes: rawEventTypes,
         eventTypeCounts: events ? rawEventTypes.map(type => ({

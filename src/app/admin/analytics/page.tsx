@@ -34,7 +34,6 @@ interface AnalyticsEvent {
 interface AnalyticsStats {
   totalEvents: number;
   totalUsers: number;
-  audioPlays: number;
   audioCompletions: number;
   resourcesCreated: number;
   userLogins: number;
@@ -199,6 +198,8 @@ export default function AdminAnalytics() {
           console.log('Admin Analytics Frontend: API Debug Info:', {
             totalEventsInDB: data._debug.totalEventsInDB,
             dashboardVisitCount: data._debug.dashboardVisitCount,
+            audioPlayCount: data._debug.audioPlayCount,
+            filteredUserLoginCount: data._debug.filteredUserLoginCount,
             relevantEventsCount: data._debug.relevantEventsCount,
             rawEventTypes: data._debug.rawEventTypes,
             eventTypeCounts: data._debug.eventTypeCounts,
@@ -210,10 +211,12 @@ export default function AdminAnalytics() {
           
           if (data._debug.totalEventsInDB > data._debug.relevantEventsCount) {
             const filteredCount = data._debug.totalEventsInDB - data._debug.relevantEventsCount;
-            console.warn(`Admin Analytics Frontend: ${filteredCount} events were filtered out (likely dashboard_visit events)`);
+            console.warn(`Admin Analytics Frontend: ${filteredCount} events were filtered out`);
             console.log('Admin Analytics Frontend: Breakdown:', {
               totalInDB: data._debug.totalEventsInDB,
-              dashboardVisits: data._debug.dashboardVisitCount,
+              dashboardVisits: data._debug.dashboardVisitCount || 0,
+              audioPlays: data._debug.audioPlayCount || 0,
+              userLoginsDeduplicated: data._debug.filteredUserLoginCount || 0,
               relevant: data._debug.relevantEventsCount,
               filtered: filteredCount,
             });
@@ -284,11 +287,8 @@ export default function AdminAnalytics() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, isAdmin, user, session, startDate, endDate, eventType]);
 
-  // Berechne Completion-Rate
-  const completionRate =
-    stats && stats.audioPlays > 0
-      ? ((stats.audioCompletions / stats.audioPlays) * 100).toFixed(1)
-      : "0";
+  // Completion-Rate: Da audio_play Events nicht mehr getrackt werden, zeigen wir N/A
+  const completionRate = 'N/A';
 
   // Formatierung für Datum
   const formatDate = (dateString: string) => {
@@ -304,7 +304,6 @@ export default function AdminAnalytics() {
   // Formatierung für Event-Typ
   const formatEventType = (type: string) => {
     const translations: Record<string, string> = {
-      audio_play: "Audio gestartet",
       audio_play_complete: "Audio vollständig",
       resource_created: "Ressource erstellt",
       user_login: "User eingeloggt",
@@ -400,7 +399,6 @@ export default function AdminAnalytics() {
                 <option value="">Alle</option>
                 <option value="user_login">User eingeloggt</option>
                 <option value="resource_created">Ressource erstellt</option>
-                <option value="audio_play">Audio gestartet</option>
                 <option value="audio_play_complete">Audio vollständig</option>
               </select>
             </div>
@@ -508,8 +506,8 @@ export default function AdminAnalytics() {
                 <div className="flex items-center justify-between mb-2">
                   <PlayCircle className="w-8 h-8 text-purple-600" />
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{stats.audioPlays}</p>
-                <p className="text-sm text-gray-600">Audio-Plays</p>
+                <p className="text-2xl font-bold text-gray-900">-</p>
+                <p className="text-sm text-gray-600">Audio-Plays (nicht mehr getrackt)</p>
               </motion.div>
             </div>
 
@@ -522,10 +520,6 @@ export default function AdminAnalytics() {
                   Audio-Statistiken
                 </h2>
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-700">Audio gestartet:</span>
-                    <span className="font-semibold text-gray-900">{stats.audioPlays}</span>
-                  </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-700">Audio vollständig:</span>
                     <span className="font-semibold text-gray-900">{stats.audioCompletions}</span>
@@ -605,7 +599,6 @@ export default function AdminAnalytics() {
               // Berechne Statistiken pro User
               const statsByUser: Record<string, {
                 resourcesCreated: number;
-                audioPlays: number;
                 audioCompletions: number;
                 userLogins: number;
                 totalEvents: number;
@@ -616,7 +609,6 @@ export default function AdminAnalytics() {
                 if (!statsByUser[email]) {
                   statsByUser[email] = {
                     resourcesCreated: 0,
-                    audioPlays: 0,
                     audioCompletions: 0,
                     userLogins: 0,
                     totalEvents: 0,
@@ -627,13 +619,12 @@ export default function AdminAnalytics() {
                 
                 if (event.event_type === 'resource_created') {
                   statsByUser[email].resourcesCreated++;
-                } else if (event.event_type === 'audio_play') {
-                  statsByUser[email].audioPlays++;
                 } else if (event.event_type === 'audio_play_complete') {
                   statsByUser[email].audioCompletions++;
                 } else if (event.event_type === 'user_login') {
                   statsByUser[email].userLogins++;
                 }
+                // audio_play Events werden nicht mehr getrackt
               });
               
               const sortedUsers = Object.entries(statsByUser)
@@ -652,7 +643,6 @@ export default function AdminAnalytics() {
                           <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">Email</th>
                           <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">Logins</th>
                           <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">Ressourcen erstellt</th>
-                          <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">Audio-Plays</th>
                           <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">Audio vollständig</th>
                           <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">Gesamt Events</th>
                         </tr>
@@ -663,7 +653,6 @@ export default function AdminAnalytics() {
                             <td className="py-2 px-4 text-sm text-gray-900 font-medium">{userEmail}</td>
                             <td className="py-2 px-4 text-sm text-gray-600">{userStats.userLogins}</td>
                             <td className="py-2 px-4 text-sm text-gray-600">{userStats.resourcesCreated}</td>
-                            <td className="py-2 px-4 text-sm text-gray-600">{userStats.audioPlays}</td>
                             <td className="py-2 px-4 text-sm text-gray-600">{userStats.audioCompletions}</td>
                             <td className="py-2 px-4 text-sm text-gray-900 font-semibold">{userStats.totalEvents}</td>
                           </tr>
