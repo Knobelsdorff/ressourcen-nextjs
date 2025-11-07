@@ -2,17 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
-// Supabase kann beim Build initialisiert werden, da NEXT_PUBLIC_ Variablen verfügbar sind
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-// WICHTIG: Deaktiviere Body-Parsing für Webhook-Route
-export const runtime = 'nodejs';
+// WICHTIG: Edge Function für unveränderten Body (keine Modifikation durch Vercel)
+export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
-// Body-Size-Limit für Webhooks
-export const maxDuration = 30;
 
 // GET Handler für Webhook-Endpunkt-Test (Stripe sendet manchmal GET Requests zum Testen)
 export async function GET(request: NextRequest) {
@@ -49,23 +41,16 @@ export async function POST(request: NextRequest) {
   });
   
   // WICHTIG: Stripe Webhooks benötigen den EXAKTEN RAW Body für Signatur-Verifikation
-  // In Next.js 15/Vercel: Lese Body direkt als ArrayBuffer, um Modifikationen zu vermeiden
-  // Vercel könnte den Body modifizieren, wenn wir ihn als Text lesen
+  // In Edge Functions: Lese Body direkt als Text (Edge Functions erhalten Body unverändert)
+  // Edge Functions erhalten den Body unverändert, daher sollte Text-Lesung funktionieren
   let body: string;
   
   try {
-    // WICHTIG: Lese Body direkt als ArrayBuffer, dann konvertiere zu String
-    // Dies stellt sicher, dass wir die exakte Byte-Repräsentation erhalten
-    console.log('Stripe Webhook: Reading body as ArrayBuffer to preserve exact bytes...');
-    const arrayBuffer = await request.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    // In Edge Functions: Body direkt als Text lesen (sollte unverändert sein)
+    console.log('Stripe Webhook: Reading body as text (Edge Function preserves raw body)...');
+    body = await request.text();
     
-    // WICHTIG: Verwende Buffer direkt für Signatur-Verifikation, nicht String
-    // Stripe benötigt die exakte Byte-Repräsentation
-    body = buffer.toString('utf-8');
-    
-    console.log('Stripe Webhook: Body read as ArrayBuffer->Buffer->UTF8, length:', body.length);
-    console.log('Stripe Webhook: Buffer length (bytes):', buffer.length);
+    console.log('Stripe Webhook: Body read as text, length:', body.length);
     
     // Prüfe ob Body gültig ist
     if (!body || body.length === 0) {
@@ -76,24 +61,26 @@ export async function POST(request: NextRequest) {
     console.log('Stripe Webhook: Body is valid JSON string:', body.startsWith('{'));
     console.log('Stripe Webhook: Body contains newlines:', body.includes('\n'));
     console.log('Stripe Webhook: Body character codes (first 10):', Array.from(body.substring(0, 10)).map(c => c.charCodeAt(0)));
-    console.log('Stripe Webhook: Buffer first 10 bytes (hex):', Array.from(buffer.slice(0, 10)).map(b => '0x' + b.toString(16).padStart(2, '0')));
   } catch (error) {
-    console.error('Stripe Webhook: Error reading body as ArrayBuffer:', error);
+    console.error('Stripe Webhook: Error reading body as text:', error);
     
-    // Fallback: Versuche als Text zu lesen (falls ArrayBuffer nicht funktioniert)
+    // Fallback: Versuche als ArrayBuffer zu lesen
     try {
-      console.log('Stripe Webhook: Fallback: Trying to read body as text...');
-      body = await request.text();
-      console.log('Stripe Webhook: Body read as text, length:', body.length);
+      console.log('Stripe Webhook: Fallback: Trying to read body as ArrayBuffer...');
+      const arrayBuffer = await request.arrayBuffer();
+      // In Edge Functions: Verwende TextDecoder statt Buffer
+      const decoder = new TextDecoder('utf-8');
+      body = decoder.decode(arrayBuffer);
+      console.log('Stripe Webhook: Body read as ArrayBuffer->TextDecoder, length:', body.length);
       
       if (!body || body.length === 0) {
-        throw new Error('Body from text is empty');
+        throw new Error('Body from ArrayBuffer is empty');
       }
-    } catch (textError) {
-      console.error('Stripe Webhook: Both ArrayBuffer and text reading failed:', textError);
+    } catch (arrayBufferError) {
+      console.error('Stripe Webhook: Both text and ArrayBuffer reading failed:', arrayBufferError);
       return NextResponse.json({ 
         error: 'Failed to read request body',
-        details: 'Body could not be read. This might be a Vercel-specific issue.'
+        details: 'Body could not be read.'
       }, { status: 400 });
     }
   }
@@ -247,6 +234,18 @@ export async function POST(request: NextRequest) {
       const planType = session.metadata?.planType || 'standard';
       console.log('Stripe Webhook: Plan type from metadata:', planType);
       
+      // Erstelle Supabase Client in Edge Function (muss innerhalb der Funktion erstellt werden)
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+          },
+        }
+      );
+      
       // Erstelle/aktualisiere Zugang in Supabase
       console.log('Stripe Webhook: Calling create_access_after_payment for user:', userId, 'planType:', planType);
       const { data, error } = await supabase.rpc('create_access_after_payment', {
@@ -272,8 +271,8 @@ export async function POST(request: NextRequest) {
       });
     } catch (error: any) {
       console.error('Stripe Webhook: Exception processing webhook:', error);
-      console.error('Stripe Webhook: Exception stack:', (error as any)?.stack);
-      return NextResponse.json({ error: (error as any)?.message }, { status: 500 });
+      console.error('Stripe Webhook: Exception message:', (error as any)?.message);
+      return NextResponse.json({ error: (error as any)?.message || 'Unknown error' }, { status: 500 });
     }
   } else {
     console.log('Stripe Webhook: Event type not handled:', event.type);
