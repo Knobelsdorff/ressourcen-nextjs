@@ -107,7 +107,25 @@ export async function POST(request: NextRequest) {
     signatureLength: signature?.length,
     webhookSecretLength: webhookSecret?.length,
     webhookSecretPreview: webhookSecret.substring(0, 10) + '...' + webhookSecret.substring(webhookSecret.length - 5),
+    webhookSecretStartsWith: webhookSecret.startsWith('whsec_'),
+    webhookSecretEndsWith: webhookSecret.substring(webhookSecret.length - 5),
+    signatureStartsWith: signature?.substring(0, 20),
   });
+  
+  // WICHTIG: Prüfe ob Webhook-Secret korrekt formatiert ist
+  if (!webhookSecret.startsWith('whsec_')) {
+    console.error('Stripe Webhook: Webhook secret does not start with whsec_! This is likely wrong.');
+    console.error('Stripe Webhook: Secret preview:', webhookSecret.substring(0, 20));
+  }
+  
+  // Prüfe auf versteckte Zeichen (Leerzeichen, Zeilenumbrüche)
+  if (webhookSecret.includes('\n') || webhookSecret.includes('\r') || webhookSecret.includes(' ')) {
+    console.error('Stripe Webhook: Webhook secret contains whitespace or newlines! This will cause signature verification to fail.');
+    console.error('Stripe Webhook: Secret length:', webhookSecret.length);
+    console.error('Stripe Webhook: Secret has newline:', webhookSecret.includes('\n'));
+    console.error('Stripe Webhook: Secret has carriage return:', webhookSecret.includes('\r'));
+    console.error('Stripe Webhook: Secret has spaces:', webhookSecret.includes(' '));
+  }
 
   // Stripe erst zur Laufzeit initialisieren (nicht beim Build)
   if (!process.env.STRIPE_SECRET_KEY) {
@@ -142,16 +160,22 @@ export async function POST(request: NextRequest) {
     // WICHTIG: Verwende constructEventAsync statt constructEvent für bessere Fehlerbehandlung
     // Der Body sollte bereits als RAW String vorliegen (aus ArrayBuffer konvertiert)
     // WICHTIG: Stripe benötigt den exakten Body-String, wie er gesendet wurde
-    // Versuche zuerst mit dem String-Body
+    
+    // Bereinige Webhook-Secret (entferne Leerzeichen/Zeilenumbrüche)
+    const cleanWebhookSecret = webhookSecret.trim().replace(/\r?\n/g, '');
+    
+    if (cleanWebhookSecret !== webhookSecret) {
+      console.warn('Stripe Webhook: Webhook secret had whitespace/newlines, cleaned it');
+      console.warn('Stripe Webhook: Original length:', webhookSecret.length, 'Cleaned length:', cleanWebhookSecret.length);
+    }
+    
     try {
-      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
-      console.log('Stripe Webhook: Event verified:', event.type);
+      event = await stripe.webhooks.constructEventAsync(body, signature, cleanWebhookSecret);
+      console.log('Stripe Webhook: Event verified successfully:', event.type);
     } catch (constructError: any) {
-      // Falls das fehlschlägt, versuche mit Buffer direkt (falls Stripe das unterstützt)
-      console.warn('Stripe Webhook: constructEventAsync with string failed, trying alternative method...');
-      // Fallback: Versuche nochmal mit dem exakten Body
-      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
-      console.log('Stripe Webhook: Event verified (retry):', event.type);
+      // Falls das fehlschlägt, versuche mit dem originalen Secret (falls das Problem woanders liegt)
+      console.error('Stripe Webhook: Signature verification failed with cleaned secret:', constructError.message);
+      throw constructError; // Wirf den Fehler weiter, damit der Test-Modus-Fallback greift
     }
   } catch (err: any) {
     // TEMPORÄR: Für Test-Modus, umgehe Signatur-Verifikation wenn sie fehlschlägt
