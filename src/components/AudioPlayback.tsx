@@ -1438,7 +1438,7 @@ export default function AudioPlayback({
       {showPaywall && (
         <Paywall
           onClose={() => setShowPaywall(false)}
-          message="Deine kostenlose 3-Tage-Trial-Periode ist abgelaufen. Aktiviere das 3-Monats-Paket für 179€, um deine Ressource weiterhin zu nutzen und 2 weitere Ressourcen zu erstellen (insgesamt 3 Ressourcen für 3 Monate)."
+          message="Deine kostenlose 3-Tage-Trial-Periode ist abgelaufen. Aktiviere ein Paket (ab 49€), um deine Ressource weiterhin zu nutzen und weitere Ressourcen zu erstellen."
         />
       )}
     </div>

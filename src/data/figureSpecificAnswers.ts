@@ -2469,6 +2469,93 @@ export const figureSpecificData: FigureSpecificData = {
         "Du bist mein größtes Glück"
       ]
     }
+  },
+
+  'lilith': {
+    1: {
+      question: "Wie wirkt sie und was strahlt sie aus?",
+      prompt: "Beschreibe das Aussehen und die Ausstrahlung von Lilith.",
+      example: "Sie hat mystische Augen und strahlt eine kraftvolle, selbstbestimmte Energie aus.",
+      blocks: [
+        "Mystische, durchdringende Augen voller Weisheit",
+        "Stolze, aufrechte Haltung - sie beugt sich niemandem",
+        "Dunkle, verführerische Ausstrahlung voller Kraft",
+        "Sexuelle Präsenz, die ihre Energie zeigt",
+        "Mächtige Aura, die mich umhüllt",
+        "Trägt ihre eigene Kraft und Selbstbestimmung in sich",
+        "Schaut mich an, als würde ich wirklich zählen - als Gleichberechtigte"
+      ]
+    },
+    2: {
+      question: "Wie fühlst du dich, wenn sie nah bei dir ist?",
+      prompt: "Beschreibe deine inneren Gefühle in der Nähe von Lilith.",
+      example: "Ich fühle mich frei, mächtig und selbstbestimmt.",
+      blocks: [
+        "Frei und unabhängig - niemand kann mich kontrollieren",
+        "Mächtig und selbstbestimmt in meiner eigenen Kraft",
+        "Stolz auf meine sexuelle Energie und Weiblichkeit",
+        "Emanzipiert und gleichberechtigt",
+        "Stark und furchtlos, bereit für alles",
+        "In meiner eigenen Kraft und Sexualität bestätigt",
+        "Vollständig ich selbst - ohne mich zu verstecken"
+      ]
+    },
+    3: {
+      question: "Was macht sie, wenn es dir mal nicht gut geht?",
+      prompt: "Beschreibe, wie Lilith dich in schwierigen Momenten unterstützt.",
+      example: "Sie erinnert mich an meine eigene Kraft und weigert sich, mich klein zu machen.",
+      blocks: [
+        "Sie erinnert mich an meine eigene Kraft und Stärke",
+        "Sie wehrt jeden ab, der mich klein machen möchte",
+        "Sie zeigt mir, wie ich mich befreien kann",
+        "Sie ermutigt mich, für mich selbst einzustehen",
+        "Sie lehrt mich, meine sexuelle Energie zu nutzen",
+        "Sie stärkt meinen Willen zur Selbstbestimmung",
+        "Sie zeigt mir, dass ich niemandem gehorchen muss"
+      ]
+    },
+    4: {
+      question: "Durch was würdest du dich von ihr geliebt fühlen?",
+      prompt: "Beschreibe, was Lilith tut, um dir ihre Unterstützung zu zeigen.",
+      example: "Sie anerkennt meine sexuelle Energie und feiert sie mit mir.",
+      blocks: [
+        "Sie anerkennt meine sexuelle Energie und feiert sie mit mir",
+        "Sie respektiert meine Selbstbestimmung vollständig",
+        "Sie behandelt mich als Gleichberechtigte, nicht als Untergebene",
+        "Sie ermutigt mich, meine eigenen Grenzen zu setzen",
+        "Sie zeigt mir, dass ich stolz auf meine Weiblichkeit sein kann",
+        "Sie lehrt mich, meine eigene Kraft zu nutzen",
+        "Sie akzeptiert mich vollständig - mit all meiner Sexualität und Kraft"
+      ]
+    },
+    5: {
+      question: "Um was würdest du sie bitten?",
+      prompt: "Formuliere, was du dir von Lilith wünschst.",
+      example: "Bitte lehre mich, wie ich mich befreien und selbstbestimmt leben kann.",
+      blocks: [
+        "Lehre mich, wie ich mich befreien und selbstbestimmt leben kann",
+        "Zeig mir, wie ich meine sexuelle Energie stolz leben kann",
+        "Hilf mir, mich von Unterdrückung zu befreien",
+        "Lehre mich, für meine Gleichberechtigung einzustehen",
+        "Zeig mir, wie ich meine eigene Kraft nutzen kann",
+        "Hilf mir, stolz auf meine Weiblichkeit und Sexualität zu sein",
+        "Lehre mich, niemandem zu gehorchen, der mich klein machen will"
+      ]
+    },
+    6: {
+      question: "Was würde sie dir idealerweise sagen?",
+      prompt: "Teile die ermutigenden Sätze, die Lilith dir sagen würde.",
+      example: "Du bist frei und niemand kann dich kontrollieren - du bestimmst über dich selbst.",
+      blocks: [
+        "Du bist frei und niemand kann dich kontrollieren - du bestimmst über dich selbst",
+        "Deine sexuelle Energie ist deine Kraft - sei stolz darauf",
+        "Du musst dich niemandem unterwerfen - du bist gleichberechtigt",
+        "Du bist mächtig und selbstbestimmt - nutze deine Kraft",
+        "Deine Weiblichkeit ist deine Stärke - verstecke sie nicht",
+        "Du bist vollständig du selbst - und das ist perfekt",
+        "Du hast das Recht, deine eigenen Grenzen zu setzen und nein zu sagen"
+      ]
+    }
   }
 };
 

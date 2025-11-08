@@ -195,5 +195,13 @@ export const fictionalFigures: ResourceFigure[] = [
     description: "Furchtloser Beschützer, loyal und mächtig",
     category: "fictional",
     pronouns: "er/ihm"
+  },
+  {
+    id: "lilith",
+    name: "Lilith",
+    emoji: "🌙",
+    description: "Emanzipiert, selbstbestimmt und stolz auf ihre sexuelle Energie",
+    category: "fictional",
+    pronouns: "sie/ihr"
   }
 ];

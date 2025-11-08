@@ -8,6 +8,7 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
 import { getUserAccess, canAccessResource, hasActiveAccess } from "@/lib/access";
 import Paywall from "@/components/Paywall";
+import PaymentSuccessModal from "@/components/PaymentSuccessModal";
 import { trackEvent } from "@/lib/analytics";
 import { isEnabled } from "@/lib/featureFlags";
 
@@ -37,6 +38,8 @@ export default function Dashboard() {
     return adminEmails.includes(user.email.toLowerCase());
   })();
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
+  const [paymentSuccessMessage, setPaymentSuccessMessage] = useState<string>('');
   const [userAccess, setUserAccess] = useState<any>(null);
   const [stories, setStories] = useState<SavedStory[]>([]);
   const [loading, setLoading] = useState(false);
@@ -808,10 +811,10 @@ export default function Dashboard() {
             // Erfolgsmeldung nur einmal anzeigen
             if (!alertShown) {
               alertShown = true;
-              alert('Zahlung erfolgreich! Dein Zugang wurde aktiviert. Die Seite wird neu geladen...');
+              setPaymentSuccessMessage('Dein Zugang wurde aktiviert. Die Seite wird automatisch aktualisiert...');
+              setShowPaymentSuccess(true);
             }
-            // Seite neu laden, damit alles korrekt aktualisiert wird
-            window.location.reload();
+            // Seite wird automatisch vom Modal neu geladen
           } else if (retryCount < maxRetries - 1) {
             // Noch kein Zugang - versuche es erneut
             retryCount++;
@@ -822,9 +825,10 @@ export default function Dashboard() {
             console.warn('Dashboard: Access not activated after payment, webhook may have failed. Reloading page anyway...');
             if (!alertShown) {
               alertShown = true;
-              alert('Zahlung erfolgreich! Die Seite wird neu geladen, um den Zugang zu prüfen...');
+              setPaymentSuccessMessage('Zahlung erfolgreich! Die Seite wird aktualisiert, um den Zugang zu prüfen...');
+              setShowPaymentSuccess(true);
             }
-            window.location.reload();
+            // Seite wird automatisch vom Modal neu geladen
           }
         };
         
@@ -1679,10 +1683,10 @@ ${story.content}
                       onClick={() => setShowPaywall(true)}
                       className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-300 font-medium"
                     >
-                      3-Monats-Paket aktivieren (179€)
+                      Paket aktivieren (ab 49€)
                     </button>
                     <p className="text-xs text-amber-600 mt-2">
-                      Statt 1,5 Sitzungen (330€) nur 179€
+                      Early Adopter Preis - 50% Rabatt
                     </p>
                   </div>
                 )}
@@ -2056,7 +2060,15 @@ ${story.content}
       {showPaywall && (
         <Paywall
           onClose={() => setShowPaywall(false)}
-          message="Aktiviere das 3-Monats-Paket für 179€, um Ressourcen zu erstellen."
+          message="Aktiviere ein Paket (ab 49€), um Ressourcen zu erstellen."
+        />
+      )}
+
+      {/* Payment Success Modal */}
+      {showPaymentSuccess && (
+        <PaymentSuccessModal
+          onClose={() => setShowPaymentSuccess(false)}
+          message={paymentSuccessMessage}
         />
       )}
     </div>

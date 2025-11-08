@@ -91,6 +91,7 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
     // Scoring-basierte Sortierung: berücksichtigt Typ, Geschlecht und Figur-Spezifika
     const preferredVoiceTypes: string[] = (() => {
       if (isAnimal) return ['friendly', 'neutral', 'maternal', 'paternal'];
+      if (figureName.includes('lilith')) return ['neutral', 'friendly']; // Lilith: neutral/friendly bevorzugen, nicht maternal
       if (figureName.includes('oma') || figureName.includes('grandma') || figureName.includes('großmutter')) return ['elderly', 'maternal', 'neutral', 'friendly'];
       if (figureName.includes('opa') || figureName.includes('grandpa') || figureName.includes('großvater')) return ['elderly', 'paternal', 'neutral', 'friendly'];
       if (figureName.includes('mutter') || figureName.includes('mama') || figureName.includes('mother')) return ['maternal', 'elderly', 'neutral', 'friendly'];
@@ -154,6 +155,29 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
       }
       if (figureName.includes('freund') || figureName.includes('friend')) {
         if (vt === 'friendly' || vt === 'neutral') score += 5;
+      }
+      // Lilith: Mila - selbstbewusst & einfühlsam bevorzugen
+      if (figureName.includes('lilith')) {
+        if (vn.includes('mila')) {
+          score += 25; // Sehr hoher Boost für Mila bei Lilith (höchste Priorität)
+        }
+        // Tanja explizit für Lilith abwerten (ist zu therapeutisch/mütterlich)
+        if (vn.includes('tanja')) {
+          score -= 10; // Tanja abwerten für Lilith
+        }
+        // Auch selbstbewusste/einfühlsame Stimmen bevorzugen (aber nicht so stark wie Mila)
+        const vdesc = (voice.description || '').toLowerCase();
+        if (vdesc.includes('selbstbewusst') || vdesc.includes('einfühlsam') || 
+            vdesc.includes('confident') || vdesc.includes('empathetic')) {
+          // Aber nicht für Tanja, die bereits abgewertet wurde
+          if (!vn.includes('tanja')) {
+            score += 3;
+          }
+        }
+        // Therapeutische/mütterliche Stimmen für Lilith weniger passend
+        if (vt === 'maternal' || vdesc.includes('therapeutisch') || vdesc.includes('therapeutic')) {
+          score -= 5;
+        }
       }
 
       // 4) Sammlung/Qualitäts-Heuristik: Collections bevorzugen
