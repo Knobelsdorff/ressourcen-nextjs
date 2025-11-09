@@ -1,6 +1,52 @@
 import { createSPAClient } from './supabase/client';
 import { supabase } from './supabase';
 
+/**
+ * Prüft ob ein User ein Admin ist (Full-Admin oder Music-Admin)
+ * @param userEmail - Email-Adresse des Users
+ * @returns true wenn User Admin ist, sonst false
+ */
+function isAdminUser(userEmail: string | undefined): boolean {
+  if (!userEmail) {
+    console.log('[isAdminUser] No email provided');
+    return false;
+  }
+  
+  const email = userEmail.toLowerCase().trim();
+  
+  // Prüfe Full-Admins (haben Zugriff auf Analytics + Music)
+  const fullAdminEmailsRaw = process.env.NEXT_PUBLIC_ADMIN_EMAILS || '';
+  const fullAdminEmails = fullAdminEmailsRaw
+    .split(',')
+    .map(e => e.trim().toLowerCase())
+    .filter(Boolean);
+  
+  // Prüfe Music-Admins (haben nur Zugriff auf Music-Verwaltung)
+  const musicAdminEmailsRaw = process.env.NEXT_PUBLIC_MUSIC_ADMIN_EMAILS || '';
+  const musicAdminEmails = musicAdminEmailsRaw
+    .split(',')
+    .map(e => e.trim().toLowerCase())
+    .filter(Boolean);
+  
+  const isFullAdmin = fullAdminEmails.includes(email);
+  const isMusicAdmin = musicAdminEmails.includes(email);
+  const isAdmin = isFullAdmin || isMusicAdmin;
+  
+  console.log('[isAdminUser] Admin check:', {
+    userEmail,
+    normalizedEmail: email,
+    fullAdminEmailsRaw,
+    fullAdminEmails,
+    musicAdminEmailsRaw,
+    musicAdminEmails,
+    isFullAdmin,
+    isMusicAdmin,
+    isAdmin
+  });
+  
+  return isAdmin;
+}
+
 export interface UserAccess {
   id: string;
   user_id: string;
@@ -402,6 +448,26 @@ export async function canCreateResource(userId: string): Promise<boolean> {
     
     console.log(`[canCreateResource] Checking if user ${userId} can create resource...`);
     
+    // Prüfe ob User ein Admin ist - Admins haben immer Zugriff
+    // Versuche zuerst über getUser, dann über getSession
+    let userEmail: string | undefined;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      userEmail = user?.email;
+      if (!userEmail) {
+        // Fallback: Versuche über Session
+        const { data: { session } } = await supabase.auth.getSession();
+        userEmail = session?.user?.email;
+      }
+    } catch (error) {
+      console.warn('[canCreateResource] Error getting user email:', error);
+    }
+    
+    if (userEmail && isAdminUser(userEmail)) {
+      console.log(`[canCreateResource] User is admin (${userEmail}) - allowing unlimited resource creation`);
+      return true;
+    }
+    
     // Prüfe zuerst manuell die Anzahl der Ressourcen (für Fallback)
     const { data: stories, error: storiesError } = await supabase
       .from('saved_stories')
@@ -461,6 +527,12 @@ export async function canAccessResource(userId: string, resourceId?: string): Pr
       userIdsMatch: session?.user?.id === userId,
       sessionError: sessionError?.message,
     });
+    
+    // Prüfe ob User ein Admin ist - Admins haben immer Zugriff auf alle Ressourcen
+    if (session?.user?.email && isAdminUser(session.user.email)) {
+      console.log(`[canAccessResource] User is admin (${session.user.email}) - granting unlimited access to all resources`);
+      return true;
+    }
     
     if (!session || session.user.id !== userId) {
       console.error('[canAccessResource] Session mismatch or missing session!', {

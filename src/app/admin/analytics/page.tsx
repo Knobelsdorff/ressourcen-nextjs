@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   RefreshCw,
   Download,
+  Music,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -356,10 +357,21 @@ export default function AdminAnalytics() {
             <ArrowLeft className="w-4 h-4" />
             Zurück zum Dashboard
           </Link>
-          <h1 className="text-3xl md:text-4xl font-bold text-amber-900 mb-2">
-            Admin Analytics
-          </h1>
-          <p className="text-amber-700">Nutzerverhalten und Statistiken</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-amber-900 mb-2">
+                Admin Analytics
+              </h1>
+              <p className="text-amber-700">Nutzerverhalten und Statistiken</p>
+            </div>
+            <Link
+              href="/admin/music"
+              className="inline-flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              <Music className="w-4 h-4" />
+              Musik verwalten
+            </Link>
+          </div>
         </div>
 
         {/* Filter */}

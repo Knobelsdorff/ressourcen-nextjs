@@ -74,7 +74,17 @@ export async function trackEvent(event: AnalyticsEvent, options: TrackEventOptio
       headers,
       credentials: 'include', // Wichtig: Cookies mitsenden
       body: JSON.stringify(event),
+    }).catch((fetchError) => {
+      // Netzwerk-Fehler (z.B. Server nicht erreichbar)
+      console.warn('trackEvent: Network error (server might be starting):', fetchError.message);
+      return null; // Return null statt Error zu werfen
     });
+
+    // Wenn fetch fehlgeschlagen ist (z.B. Server startet noch), ignorieren
+    if (!response) {
+      console.log('trackEvent: Fetch failed, ignoring (server might be starting)');
+      return;
+    }
 
     console.log('trackEvent response:', {
       ok: response.ok,
@@ -89,16 +99,17 @@ export async function trackEvent(event: AnalyticsEvent, options: TrackEventOptio
         // Stillschweigend ignorieren - User ist nicht eingeloggt
         return;
       }
-      // Andere Fehler loggen
+      // Andere Fehler loggen (aber nicht werfen)
       const errorText = await response.text().catch(() => '');
-      console.error('Failed to track event:', response.status, response.statusText, errorText);
+      console.warn('trackEvent: Failed to track event:', response.status, response.statusText, errorText);
     } else {
       // Debug: Erfolgreiches Tracking loggen (kann später entfernt werden)
       const responseData = await response.json().catch(() => null);
       console.log('Analytics event tracked successfully:', event.eventType, responseData);
     }
-  } catch (error) {
-    console.error('Failed to track event:', error);
+  } catch (error: any) {
+    // Alle anderen Fehler abfangen (z.B. JSON-Parsing, etc.)
+    console.warn('trackEvent: Error tracking event (non-blocking):', error?.message || error);
     // Nicht blockieren - Tracking sollte non-blocking sein
   }
 }
