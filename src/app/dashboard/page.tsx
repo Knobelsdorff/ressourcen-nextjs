@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { getUserAccess, canAccessResource, hasActiveAccess } from "@/lib/access";
 import Paywall from "@/components/Paywall";
 import PaymentSuccessModal from "@/components/PaymentSuccessModal";
+import ClientResourceModal from "@/components/ClientResourceModal";
 import { trackEvent } from "@/lib/analytics";
 import { isEnabled } from "@/lib/featureFlags";
 import { getBackgroundMusicUrl, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
@@ -16,12 +17,14 @@ import { getBackgroundMusicUrl, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMu
 interface SavedStory {
   id: string;
   title: string;
-  content: string;
+  content: string | null;
   resource_figure: any;
   question_answers: any[];
   audio_url?: string;
   voice_id?: string;
   created_at: string;
+  is_audio_only?: boolean;
+  client_email?: string | null;
 }
 
 export default function Dashboard() {
@@ -56,6 +59,7 @@ export default function Dashboard() {
   const [showPaywall, setShowPaywall] = useState(false);
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [paymentSuccessMessage, setPaymentSuccessMessage] = useState<string>('');
+  const [showClientResourceModal, setShowClientResourceModal] = useState(false);
   const [userAccess, setUserAccess] = useState<any>(null);
   const [stories, setStories] = useState<SavedStory[]>([]);
   const [loading, setLoading] = useState(false);
@@ -305,6 +309,30 @@ export default function Dashboard() {
     return unique;
   }, []);
 
+  // Ordne pending Ressourcen zu (wenn User eingeloggt ist)
+  const assignPendingResources = useCallback(async () => {
+    if (!user?.email) return false;
+
+    try {
+      const response = await fetch('/api/resources/assign-pending', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.assignedCount > 0) {
+          console.log(`Dashboard: Assigned ${data.assignedCount} pending resources`);
+          return true; // Ressourcen wurden zugeordnet
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error('Error assigning pending resources:', error);
+      return false;
+    }
+  }, [user]);
+
   // Lade Geschichten aus Supabase
   const loadStories = useCallback(async () => {
     if (!user) {
@@ -317,6 +345,15 @@ export default function Dashboard() {
     setError('');
     
     try {
+      // Versuche zuerst pending Ressourcen zuzuordnen
+      const resourcesAssigned = await assignPendingResources();
+      
+      // Wenn Ressourcen zugeordnet wurden, warte kurz bevor wir neu laden
+      if (resourcesAssigned) {
+        // Kurze Pause, damit die DB-Update abgeschlossen ist
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
       const { data, error } = await supabase
         .from('saved_stories')
         .select('*')
@@ -428,8 +465,17 @@ export default function Dashboard() {
             }
           }
           
+          // Trenne Audio-only und normale Ressourcen
+          const audioOnlyStories = sortedStories.filter(s => s.is_audio_only === true);
+          const normalStories = sortedStories.filter(s => !s.is_audio_only);
+          
           for (const story of uniqueStories) {
             const isFirst = sortedStories[0].id === story.id;
+            const isAudioOnly = story.is_audio_only === true;
+            
+            // Prüfe ob es die erste normale Ressource ist (ignoriere Audio-only Ressourcen)
+            const isFirstNormal = normalStories.length > 0 && normalStories[0].id === story.id;
+            
             let canAccess = false;
             let trialExpired = false;
             
@@ -442,16 +488,41 @@ export default function Dashboard() {
               // Wenn User aktiven Zugang hat, kann er immer Audio abspielen
               canAccess = true;
               trialExpired = false;
-            } else if (isFirst) {
-              // Prüfe ob erste Ressource noch innerhalb von 3 Tagen
-              const firstResourceDate = new Date(sortedStories[0].created_at);
+            } else if (isAudioOnly) {
+              // Audio-only Ressourcen: 3 Monate (90 Tage) kostenlos
+              const resourceDate = new Date(story.created_at);
+              const daysSinceCreation = (Date.now() - resourceDate.getTime()) / (1000 * 60 * 60 * 24);
+              const monthsSinceCreation = daysSinceCreation / 30;
+              canAccess = monthsSinceCreation < 3;
+              trialExpired = monthsSinceCreation >= 3;
+              console.log(`[Dashboard] Audio-only resource ${story.id}:`, {
+                daysSinceCreation: daysSinceCreation.toFixed(2),
+                monthsSinceCreation: monthsSinceCreation.toFixed(2),
+                canAccess,
+                trialExpired
+              });
+            } else if (isFirstNormal) {
+              // Erste normale Ressource: 3 Tage kostenlos (unabhängig von Audio-only Ressourcen)
+              const firstResourceDate = new Date(normalStories[0].created_at);
               const daysSinceFirst = (Date.now() - firstResourceDate.getTime()) / (1000 * 60 * 60 * 24);
               canAccess = daysSinceFirst < 3;
               trialExpired = daysSinceFirst >= 3;
+              console.log(`[Dashboard] First normal resource ${story.id}:`, {
+                daysSinceFirst: daysSinceFirst.toFixed(2),
+                canAccess,
+                trialExpired,
+                totalNormalResources: normalStories.length,
+                totalAudioOnlyResources: audioOnlyStories.length
+              });
             } else {
-              // Nicht die erste Ressource - benötigt aktiven Zugang
+              // Nicht die erste normale Ressource - benötigt aktiven Zugang
               canAccess = false;
               trialExpired = false;
+              console.log(`[Dashboard] Not first normal resource ${story.id} - access denied`, {
+                storyId: story.id,
+                firstNormalResourceId: normalStories.length > 0 ? normalStories[0].id : 'none',
+                totalNormalResources: normalStories.length
+              });
             }
             
             accessStatusMap[story.id] = { canAccess, isFirst, trialExpired };
@@ -485,7 +556,7 @@ export default function Dashboard() {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]); // calculateUserStats, removeDuplicates, userAccess werden über Closure verwendet
+  }, [user, assignPendingResources]); // calculateUserStats, removeDuplicates, userAccess werden über Closure verwendet
 
   const loadFullName = useCallback(async () => {
     if (!user) return;
@@ -807,6 +878,25 @@ export default function Dashboard() {
       const confirmed = urlParams.get('confirmed');
       const paymentSuccess = urlParams.get('payment') === 'success';
       const sessionId = urlParams.get('session_id');
+      const resourceId = urlParams.get('resource');
+      
+      // Prüfe ob resource Parameter vorhanden ist (nach Signup/Login)
+      if (resourceId) {
+        console.log('Dashboard: Resource parameter found:', resourceId);
+        // Rufe assignPendingResources auf, um die Ressource zuzuordnen
+        assignPendingResources().then(() => {
+          // Lade Stories neu, um die zugeordnete Ressource anzuzeigen
+          loadStories().then(() => {
+            // Entferne resource Parameter aus URL
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete('resource');
+            window.history.replaceState({}, '', newUrl.toString());
+            
+            // Zeige Erfolgsmeldung
+            console.log('Dashboard: Resource assigned successfully');
+          });
+        });
+      }
       
       // Nach erfolgreicher Zahlung: Zugangsstatus neu laden
       if (paymentSuccess) {
@@ -1833,7 +1923,10 @@ ${story.content}
       
       // Spiele Stimme ab (nach 3 Sekunden Verzögerung, wenn Musik läuft)
       await audio.play();
-      // setPlayingAudioId wird bereits gesetzt, wenn Musik startet
+      
+      // Setze playingAudioId wenn Audio startet (auch wenn keine Musik vorhanden ist)
+      setPlayingAudioId(storyId);
+      console.log(`[playAudio] Audio playback started for story ${storyId}, setPlayingAudioId`);
       
       // Überwache Lautstärke während der Wiedergabe und stelle sicher, dass sie immer auf 100% bleibt
       const ensureVolumeInterval = setInterval(() => {
@@ -1968,6 +2061,16 @@ ${story.content}
               >
                 <Music className="w-5 h-5" />
                 <span>Musik verwalten</span>
+              </button>
+            )}
+            
+            {(isAdmin || isMusicAdmin) && (
+              <button
+                onClick={() => setShowClientResourceModal(true)}
+                className="flex items-center space-x-2 px-6 py-3 rounded-xl font-medium transition-all duration-300 text-white bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-lg"
+              >
+                <Volume2 className="w-5 h-5" />
+                <span>Ressource für Klienten erstellen</span>
               </button>
             )}
           </div>
@@ -2329,9 +2432,21 @@ ${story.content}
                     >
                       <div className="flex justify-between items-start mb-4">
                         <div>
-                          <h3 className="text-lg font-semibold text-amber-900 mb-2">
-                            {story.title}
-                          </h3>
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="text-lg font-semibold text-amber-900">
+                              {story.title}
+                            </h3>
+                            {story.is_audio_only && (
+                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                                Audio-only
+                              </span>
+                            )}
+                            {story.client_email && (
+                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium" title={`Für Klient: ${story.client_email}`}>
+                                Klient
+                              </span>
+                            )}
+                          </div>
                           <p className="text-amber-700 text-sm mb-2">
                             <strong>{getResourceTypeLabel(story.resource_figure)}:</strong> {story.resource_figure?.name || 'Unbekannt'}
                           </p>
@@ -2540,6 +2655,18 @@ ${story.content}
           message={paymentSuccessMessage}
         />
       )}
+
+      {/* Client Resource Modal */}
+      <ClientResourceModal
+        isOpen={showClientResourceModal}
+        onClose={() => setShowClientResourceModal(false)}
+        onSuccess={() => {
+          // Lade Stories neu nach erfolgreicher Erstellung
+          if (user) {
+            loadStories();
+          }
+        }}
+      />
     </div>
-    );
+  );
 }

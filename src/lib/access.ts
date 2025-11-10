@@ -552,11 +552,11 @@ export async function canAccessResource(userId: string, resourceId?: string): Pr
     }
     console.log(`[canAccessResource] User does NOT have active access - checking first resource rule`);
 
-    // Lade alle Ressourcen des Users
+    // Lade alle Ressourcen des Users (inkl. is_audio_only Flag)
     console.log(`[canAccessResource] Fetching stories for user ${userId}, checking resource ${resourceId || 'any'}`);
     const { data: stories, error } = await supabase
       .from('saved_stories')
-      .select('id, created_at')
+      .select('id, created_at, is_audio_only')
       .eq('user_id', userId)
       .order('created_at', { ascending: true });
 
@@ -575,75 +575,135 @@ export async function canAccessResource(userId: string, resourceId?: string): Pr
     }
 
     // Typisiere stories für TypeScript
-    const typedStories = stories as Array<{ id: string; created_at: string }>;
+    const typedStories = stories as Array<{ id: string; created_at: string; is_audio_only?: boolean }>;
 
     // Log alle gefundenen Ressourcen
     console.log(`[canAccessResource] Stories found:`, typedStories.map(s => ({
       id: s.id,
       created_at: s.created_at,
+      is_audio_only: s.is_audio_only,
       isRequestedResource: s.id === resourceId
     })));
 
-    // Wenn spezifische Ressource angegeben, prüfe ob es die erste ist
+    // Wenn spezifische Ressource angegeben, prüfe Zugang
     if (resourceId) {
-      const firstResource = typedStories[0];
-      console.log(`[canAccessResource] Comparing:`, {
-        requestedResourceId: resourceId,
-        firstResourceId: firstResource.id,
-        idsMatch: firstResource.id === resourceId,
-      });
+      const requestedResource = typedStories.find(s => s.id === resourceId);
       
-      if (firstResource.id === resourceId) {
-        // Es ist die erste Ressource - prüfe 3-Tage-Regel
-        const firstResourceDate = new Date(firstResource.created_at);
+      if (!requestedResource) {
+        console.log(`[canAccessResource] Requested resource ${resourceId} not found in user's stories`);
+        return false;
+      }
+      
+      // Prüfe ob es eine Audio-only Ressource ist
+      const isAudioOnly = requestedResource.is_audio_only === true;
+      
+      if (isAudioOnly) {
+        // Audio-only Ressourcen: 3 Monate (90 Tage) kostenlos
+        const resourceDate = new Date(requestedResource.created_at);
         const now = Date.now();
-        const resourceTime = firstResourceDate.getTime();
-        const daysSinceFirst = (now - resourceTime) / (1000 * 60 * 60 * 24);
+        const resourceTime = resourceDate.getTime();
+        const daysSinceCreation = (now - resourceTime) / (1000 * 60 * 60 * 24);
+        const monthsSinceCreation = daysSinceCreation / 30;
         
-        console.log(`[canAccessResource] First resource check:`, {
+        console.log(`[canAccessResource] Audio-only resource check:`, {
           resourceId,
-          firstResourceId: firstResource.id,
-          created_at: firstResource.created_at,
-          created_at_iso: firstResourceDate.toISOString(),
-          now: new Date(now).toISOString(),
-          resourceTime,
-          nowTime: now,
-          timeDiff: now - resourceTime,
-          daysSinceFirst: daysSinceFirst.toFixed(4),
-          hoursSinceFirst: ((now - resourceTime) / (1000 * 60 * 60)).toFixed(2),
-          canAccess: daysSinceFirst < 3,
-          willReturn: daysSinceFirst < 3,
+          created_at: requestedResource.created_at,
+          daysSinceCreation: daysSinceCreation.toFixed(2),
+          monthsSinceCreation: monthsSinceCreation.toFixed(2),
+          canAccess: monthsSinceCreation < 3,
         });
         
-        const result = daysSinceFirst < 3;
-        console.log(`[canAccessResource] Returning: ${result} for first resource ${resourceId}`);
+        const result = monthsSinceCreation < 3;
+        console.log(`[canAccessResource] Returning: ${result} for audio-only resource ${resourceId}`);
         return result;
       } else {
-        // Es ist nicht die erste Ressource - benötigt Zugang
-        console.log(`[canAccessResource] Not first resource:`, {
-          resourceId,
-          firstResourceId: typedStories[0].id,
-          totalResources: typedStories.length,
-          allResourceIds: typedStories.map(s => s.id),
-        });
-        return false;
+        // Normale Ressource (mit Text + Audio)
+        // Finde die erste normale Ressource (ignoriere Audio-only Ressourcen)
+        const normalResources = typedStories.filter(s => !s.is_audio_only);
+        
+        if (normalResources.length === 0) {
+          // Keine normalen Ressourcen vorhanden - sollte nicht passieren, aber sicherheitshalber
+          console.log(`[canAccessResource] No normal resources found, but resource is not audio-only`);
+          return false;
+        }
+        
+        const firstNormalResource = normalResources[0];
+        const isFirstNormal = firstNormalResource.id === resourceId;
+        
+        if (isFirstNormal) {
+          // Erste normale Ressource - prüfe 3-Tage-Regel
+          const firstResourceDate = new Date(firstNormalResource.created_at);
+          const now = Date.now();
+          const resourceTime = firstResourceDate.getTime();
+          const daysSinceFirst = (now - resourceTime) / (1000 * 60 * 60 * 24);
+          
+          console.log(`[canAccessResource] First normal resource check:`, {
+            resourceId,
+            firstNormalResourceId: firstNormalResource.id,
+            created_at: firstNormalResource.created_at,
+            daysSinceFirst: daysSinceFirst.toFixed(4),
+            canAccess: daysSinceFirst < 3,
+          });
+          
+          const result = daysSinceFirst < 3;
+          console.log(`[canAccessResource] Returning: ${result} for first normal resource ${resourceId}`);
+          return result;
+        } else {
+          // Es ist nicht die erste normale Ressource - benötigt Zugang
+          console.log(`[canAccessResource] Not first normal resource:`, {
+            resourceId,
+            firstNormalResourceId: firstNormalResource.id,
+            totalNormalResources: normalResources.length,
+            totalResources: typedStories.length,
+          });
+          return false;
+        }
       }
     }
 
-    // Keine spezifische Ressource - prüfe ob erste Ressource noch innerhalb von 3 Tagen
-    const firstResourceDate = new Date(typedStories[0].created_at);
-    const daysSinceFirst = (Date.now() - firstResourceDate.getTime()) / (1000 * 60 * 60 * 24);
-
-    // Nur die erste Ressource kann innerhalb von 3 Tagen Audio abspielen
-    const canAccess = daysSinceFirst < 3 && typedStories.length === 1;
+    // Keine spezifische Ressource - prüfe alle Ressourcen
+    // Audio-only Ressourcen: 3 Monate kostenlos
+    // Normale Ressourcen: Nur erste Ressource, 3 Tage kostenlos
+    const audioOnlyResources = typedStories.filter(s => s.is_audio_only === true);
+    const normalResources = typedStories.filter(s => !s.is_audio_only);
     
-    console.log(`[canAccessResource] General check:`, {
-      totalResources: typedStories.length,
-      daysSinceFirst: daysSinceFirst.toFixed(2),
-      canAccess,
-    });
+    // Wenn nur Audio-only Ressourcen vorhanden: Alle sind 3 Monate kostenlos
+    if (audioOnlyResources.length > 0 && normalResources.length === 0) {
+      const oldestAudioOnly = audioOnlyResources[0];
+      const resourceDate = new Date(oldestAudioOnly.created_at);
+      const daysSinceCreation = (Date.now() - resourceDate.getTime()) / (1000 * 60 * 60 * 24);
+      const monthsSinceCreation = daysSinceCreation / 30;
+      
+      const canAccess = monthsSinceCreation < 3;
+      console.log(`[canAccessResource] Only audio-only resources:`, {
+        count: audioOnlyResources.length,
+        monthsSinceCreation: monthsSinceCreation.toFixed(2),
+        canAccess,
+      });
+      return canAccess;
+    }
     
-    return canAccess;
+    // Wenn normale Ressourcen vorhanden: Prüfe erste normale Ressource (3 Tage)
+    if (normalResources.length > 0) {
+      const firstNormalResource = normalResources[0];
+      const firstResourceDate = new Date(firstNormalResource.created_at);
+      const daysSinceFirst = (Date.now() - firstResourceDate.getTime()) / (1000 * 60 * 60 * 24);
+      
+      // Nur die erste normale Ressource kann innerhalb von 3 Tagen Audio abspielen
+      const canAccess = daysSinceFirst < 3 && normalResources.length === 1;
+      
+      console.log(`[canAccessResource] Normal resources check:`, {
+        normalResourcesCount: normalResources.length,
+        audioOnlyCount: audioOnlyResources.length,
+        daysSinceFirst: daysSinceFirst.toFixed(2),
+        canAccess,
+      });
+      
+      return canAccess;
+    }
+    
+    // Fallback: Keine Ressourcen gefunden
+    return false;
   } catch (error) {
     console.error('Error checking resource access:', error);
     // Bei Fehler: Erlaube Zugriff (Fail-Open für bessere UX)

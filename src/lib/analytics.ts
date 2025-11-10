@@ -5,7 +5,8 @@ export type AnalyticsEventType =
   | 'resource_created' 
   | 'dashboard_visit'
   | 'audio_play_complete'
-  | 'user_login';
+  | 'user_login'
+  | 'user_signup';
 
 export interface AnalyticsEvent {
   eventType: AnalyticsEventType;

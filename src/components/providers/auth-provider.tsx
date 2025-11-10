@@ -23,8 +23,109 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Verarbeite Hash-Fragments (für Supabase Auth Callbacks)
+    const handleHashFragment = async () => {
+      if (typeof window === 'undefined') return;
+      
+      const hash = window.location.hash;
+      console.log('AuthProvider: Checking hash fragment:', hash ? hash.substring(0, 50) + '...' : 'none');
+      
+      if (hash && hash.includes('access_token')) {
+        console.log('AuthProvider: ✅ Hash fragment with access_token found! Processing...');
+        
+        // Parse Hash-Fragment
+        const hashParams = new URLSearchParams(hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        const expiresIn = hashParams.get('expires_in');
+        const tokenType = hashParams.get('token_type');
+        const type = hashParams.get('type');
+        
+        if (accessToken && refreshToken) {
+          try {
+            // Setze Session aus Hash-Fragment
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            
+            if (error) {
+              console.error('AuthProvider: Error setting session from hash:', error);
+            } else if (data.session) {
+              console.log('AuthProvider: Session set from hash fragment');
+              console.log('AuthProvider: User metadata:', data.user?.user_metadata);
+              console.log('AuthProvider: User app_metadata:', data.user?.app_metadata);
+              setSession(data.session);
+              setUser(data.user);
+              
+              // Prüfe ob resource_id im JWT Token vorhanden ist (bei signup oder magiclink)
+              const resourceId = data.user?.user_metadata?.resource_id;
+              console.log('AuthProvider: Resource ID from user_metadata:', resourceId);
+              
+              // Baue Dashboard-URL mit resource Parameter (falls vorhanden)
+              let dashboardUrl = '/dashboard';
+              if (resourceId) {
+                dashboardUrl = `/dashboard?resource=${resourceId}`;
+                console.log('AuthProvider: Resource ID found in token:', resourceId);
+              } else {
+                // Prüfe ob resource in URL-Parametern vorhanden ist
+                const urlParams = new URLSearchParams(window.location.search);
+                const resourceParam = urlParams.get('resource');
+                if (resourceParam) {
+                  dashboardUrl = `/dashboard?resource=${resourceParam}`;
+                  console.log('AuthProvider: Resource ID found in URL:', resourceParam);
+                }
+              }
+              
+              // Entferne Hash-Fragment aus URL
+              const newUrl = new URL(window.location.href);
+              newUrl.hash = '';
+              newUrl.pathname = dashboardUrl.split('?')[0];
+              if (dashboardUrl.includes('?')) {
+                const params = new URLSearchParams(dashboardUrl.split('?')[1]);
+                params.forEach((value, key) => {
+                  newUrl.searchParams.set(key, value);
+                });
+              }
+              
+              console.log('AuthProvider: Redirecting to:', newUrl.toString());
+              
+              // Verwende window.location.replace() für sofortige Weiterleitung (ohne Zurück-Button)
+              window.location.replace(newUrl.toString());
+              
+              // Track login event
+              if (type === 'signup') {
+                try {
+                  const { trackEvent } = await import('@/lib/analytics');
+                  trackEvent({
+                    eventType: 'user_signup',
+                  }, { accessToken: data.session.access_token });
+                } catch (error) {
+                  console.error('Error tracking signup event:', error);
+                }
+              } else {
+                try {
+                  const { trackEvent } = await import('@/lib/analytics');
+                  trackEvent({
+                    eventType: 'user_login',
+                  }, { accessToken: data.session.access_token });
+                } catch (error) {
+                  console.error('Error tracking login event:', error);
+                }
+              }
+            }
+          } catch (err) {
+            console.error('AuthProvider: Error processing hash fragment:', err);
+          }
+        }
+      }
+    };
+
     // Initial session check
     const getSession = async () => {
+      // Prüfe zuerst Hash-Fragments (wichtig: vor getSession!)
+      await handleHashFragment();
+      
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setUser(session?.user ?? null);
@@ -32,6 +133,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     getSession();
+    
+    // Zusätzlich: Prüfe Hash-Fragments auch bei Hash-Änderungen (für direkte Navigation)
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash && hash.includes('access_token')) {
+        console.log('AuthProvider: Hash changed, processing...');
+        handleHashFragment();
+      }
+    };
+    
+    if (typeof window !== 'undefined') {
+      window.addEventListener('hashchange', handleHashChange);
+      
+      // Prüfe auch sofort, falls Hash bereits vorhanden ist
+      if (window.location.hash.includes('access_token')) {
+        console.log('AuthProvider: Hash already present on mount, processing immediately...');
+        handleHashFragment();
+      }
+    }
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -54,7 +174,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('hashchange', handleHashChange);
+      }
+    };
   }, []);
 
   const signUp = async (email: string, password: string) => {

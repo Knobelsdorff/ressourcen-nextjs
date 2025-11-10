@@ -146,6 +146,7 @@ export default function Header() {
   };
 
 
+
   if (loading) {
     return (
       <header className="bg-white border-b border-orange-100">
@@ -378,20 +379,32 @@ export default function Header() {
                       type="button"
                       onClick={handlePasswordReset}
                       disabled={isSendingReset}
-                      className="text-sm text-amber-600 hover:text-amber-800 disabled:opacity-50"
+                      className="text-sm text-amber-600 hover:text-amber-800 disabled:opacity-50 font-medium"
                     >
-                      {isSendingReset ? 'Sende Link…' : 'Passwort vergessen?'}
+                      {isSendingReset ? 'Sende Link…' : 'Passwort setzen/zurücksetzen'}
                     </button>
                   </div>
                 )}
                 
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-3 px-4 rounded-lg font-medium hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? 'Wird verarbeitet...' : (authMode === 'login' ? 'Anmelden' : 'Registrieren')}
-                </button>
+                {authMode === 'login' && (
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-3 px-4 rounded-lg font-medium hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? 'Wird verarbeitet...' : 'Anmelden'}
+                  </button>
+                )}
+                
+                {authMode === 'register' && (
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-3 px-4 rounded-lg font-medium hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? 'Wird verarbeitet...' : 'Registrieren'}
+                  </button>
+                )}
               </form>
               
               <div className="mt-6 text-center">
