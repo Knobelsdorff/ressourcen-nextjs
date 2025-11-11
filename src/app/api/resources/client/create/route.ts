@@ -283,23 +283,33 @@ export async function POST(request: NextRequest) {
         // Sende benutzerdefinierte Email mit Magic Link (falls vorhanden)
         if (magicLink) {
           try {
+            console.log('[API/resources/client/create] Attempting to send email to:', normalizedClientEmail);
+            console.log('[API/resources/client/create] Magic link available:', !!magicLink);
+            console.log('[API/resources/client/create] Resource name:', resourceName.trim());
+            
             const { sendResourceReadyEmail } = await import('@/lib/email');
             const emailResult = await sendResourceReadyEmail({
               to: normalizedClientEmail,
-              resourceName: resourceName.trim(),
+              resourceNames: [resourceName.trim()],
               magicLink: magicLink,
             });
 
             if (emailResult.success) {
-              console.log('Resource ready email sent successfully to:', normalizedClientEmail);
+              console.log('[API/resources/client/create] ✅ Resource ready email sent successfully to:', normalizedClientEmail);
             } else {
-              console.error('Failed to send resource ready email:', emailResult.error);
+              console.error('[API/resources/client/create] ❌ Failed to send resource ready email:', emailResult.error);
               // Fehler ist nicht kritisch - Magic Link wurde generiert
             }
           } catch (emailError: any) {
-            console.error('Error sending custom email:', emailError);
+            console.error('[API/resources/client/create] ❌ Error sending custom email:', emailError);
+            console.error('[API/resources/client/create] Error details:', {
+              message: emailError?.message,
+              stack: emailError?.stack,
+            });
             // Fehler ist nicht kritisch - Magic Link wurde generiert
           }
+        } else {
+          console.warn('[API/resources/client/create] ⚠️ No magic link generated, cannot send email to:', normalizedClientEmail);
         }
       } catch (emailError: any) {
         console.error('Error processing email for client:', emailError);

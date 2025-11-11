@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '@/lib/types/database.types';
+import { shouldFilterEmail } from '@/lib/analytics-filter';
 
 export async function POST(request: NextRequest) {
   // WICHTIG: Log immer am Anfang um zu sehen ob Track-Endpoint aufgerufen wird
@@ -124,6 +125,20 @@ export async function POST(request: NextRequest) {
 
     // Debug: Log erfolgreiche Auth (immer loggen)
     console.log('Analytics Track API: User authenticated:', user.id, 'Event:', eventType);
+
+    // Prüfe ob E-Mail gefiltert werden soll
+    if (shouldFilterEmail(user.email)) {
+      console.log('Analytics Track API: Filtering event for filtered email:', user.email);
+      // Stillschweigend ignorieren - kein Event speichern
+      const filteredResponse = NextResponse.json(
+        { success: true, filtered: true, message: 'Event filtered' }
+      );
+      // Setze Cookies in der Response
+      cookiesToSet.forEach(({ name, value, options }) => {
+        filteredResponse.cookies.set(name, value, options);
+      });
+      return filteredResponse;
+    }
 
     // WICHTIG: Verwende IMMER Service Role Key für das INSERT, da User bereits authentifiziert ist
     // Das umgeht RLS-Probleme komplett

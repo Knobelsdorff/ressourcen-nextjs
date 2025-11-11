@@ -5,11 +5,16 @@
 
 interface SendResourceReadyEmailParams {
   to: string;
-  resourceName: string;
+  resourceName?: string; // Für Rückwärtskompatibilität
+  resourceNames?: string[]; // Array von Ressourcennamen
   magicLink: string;
 }
 
-const getEmailHTML = (resourceName: string, magicLink: string) => `
+const getEmailHTML = (resourceNames: string[], magicLink: string) => {
+  const isMultiple = resourceNames.length > 1;
+  const resourceNamesList = resourceNames.map(name => `<li style="margin-bottom: 8px;"><strong>"${name}"</strong></li>`).join('');
+  
+  return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -18,7 +23,7 @@ const getEmailHTML = (resourceName: string, magicLink: string) => `
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-    <h1 style="color: white; margin: 0; font-size: 28px;">Deine Ressource ist bereit!</h1>
+    <h1 style="color: white; margin: 0; font-size: 28px;">${isMultiple ? 'Deine Ressourcen sind bereit!' : 'Deine Ressource ist bereit!'}</h1>
   </div>
   
   <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
@@ -27,11 +32,20 @@ const getEmailHTML = (resourceName: string, magicLink: string) => `
     </p>
     
     <p style="font-size: 16px; margin-bottom: 20px;">
-      Deine persönliche Ressource <strong>"${resourceName}"</strong> wurde für dich erstellt und ist jetzt verfügbar.
+      ${isMultiple 
+        ? `Die folgenden ${resourceNames.length} Ressourcen wurden für dich erstellt und sind jetzt verfügbar:`
+        : `Deine persönliche Ressource <strong>"${resourceNames[0]}"</strong> wurde für dich erstellt und ist jetzt verfügbar.`
+      }
     </p>
     
+    ${isMultiple ? `
+    <ul style="font-size: 16px; margin-bottom: 20px; padding-left: 20px; list-style-type: disc;">
+      ${resourceNamesList}
+    </ul>
+    ` : ''}
+    
     <p style="font-size: 16px; margin-bottom: 30px;">
-      Klicke auf den Button unten, um dich anzumelden und auf deine Ressource zuzugreifen:
+      Klicke auf den Button unten, um dich anzumelden und auf ${isMultiple ? 'deine Ressourcen' : 'deine Ressource'} zuzugreifen:
     </p>
     
     <div style="text-align: center; margin: 30px 0;">
@@ -57,13 +71,30 @@ const getEmailHTML = (resourceName: string, magicLink: string) => `
 </body>
 </html>
 `;
+};
 
 export async function sendResourceReadyEmail({
   to,
   resourceName,
+  resourceNames,
   magicLink,
 }: SendResourceReadyEmailParams): Promise<{ success: boolean; error?: string }> {
   try {
+    // Normalisiere resourceNames Array (für Rückwärtskompatibilität)
+    const names = resourceNames || (resourceName ? [resourceName] : []);
+    
+    if (names.length === 0) {
+      console.error('[Email] ❌ No resource names provided');
+      return { success: false, error: 'Keine Ressourcennamen angegeben' };
+    }
+    
+    console.log('[Email] sendResourceReadyEmail called:', {
+      to,
+      resourceNames: names,
+      count: names.length,
+      hasMagicLink: !!magicLink,
+    });
+    
     // Option 1: Nodemailer mit SMTP (für Supabase SMTP oder andere SMTP-Server)
     const smtpHost = process.env.SMTP_HOST;
     const smtpPort = process.env.SMTP_PORT;
@@ -71,8 +102,17 @@ export async function sendResourceReadyEmail({
     const smtpPassword = process.env.SMTP_PASSWORD;
     const smtpFrom = process.env.SMTP_FROM_EMAIL || 'noreply@ressourcen.app'; // Absender-Email (wird in Email angezeigt)
 
+    console.log('[Email] SMTP configuration check:', {
+      hasHost: !!smtpHost,
+      hasPort: !!smtpPort,
+      hasUser: !!smtpUser,
+      hasPassword: !!smtpPassword,
+      fromEmail: smtpFrom,
+    });
+
     if (smtpHost && smtpPort && smtpUser && smtpPassword) {
       try {
+        console.log('[Email] Attempting to send email via SMTP...');
         const nodemailer = await import('nodemailer');
         
         const transporter = nodemailer.createTransport({
@@ -85,26 +125,49 @@ export async function sendResourceReadyEmail({
           },
         });
 
+        // Teste SMTP-Verbindung
+        console.log('[Email] Verifying SMTP connection...');
+        await transporter.verify();
+        console.log('[Email] ✅ SMTP connection verified');
+
+        console.log('[Email] Sending email...');
+        const isMultiple = names.length > 1;
         const info = await transporter.sendMail({
           from: `"Ressourcen App" <${smtpFrom}>`,
           to: to,
-          subject: 'Deine Ressource ist bereit!',
-          html: getEmailHTML(resourceName, magicLink),
+          subject: isMultiple ? `Deine ${names.length} Ressourcen sind bereit!` : 'Deine Ressource ist bereit!',
+          html: getEmailHTML(names, magicLink),
         });
 
-        console.log('Email sent via SMTP:', info.messageId);
+        console.log('[Email] ✅ Email sent via SMTP:', {
+          messageId: info.messageId,
+          response: info.response,
+          accepted: info.accepted,
+          rejected: info.rejected,
+        });
         return { success: true };
       } catch (smtpError: any) {
-        console.error('SMTP email error:', smtpError);
+        console.error('[Email] ❌ SMTP email error:', {
+          message: smtpError?.message,
+          code: smtpError?.code,
+          command: smtpError?.command,
+          response: smtpError?.response,
+          responseCode: smtpError?.responseCode,
+          stack: smtpError?.stack,
+        });
         // Fallback zu Logging
+        return { success: false, error: smtpError?.message || 'SMTP error' };
       }
+    } else {
+      console.warn('[Email] ⚠️ SMTP not configured - missing environment variables');
     }
 
     // Option 2: Fallback - Logge Email-Details (für Development/Testing)
+    const isMultiple = names.length > 1;
     console.log('\n=== 📧 EMAIL VERSENDEN (Development/Testing Mode) ===');
     console.log('An:', to);
-    console.log('Betreff: Deine Ressource ist bereit!');
-    console.log('Ressource:', resourceName);
+    console.log('Betreff:', isMultiple ? `Deine ${names.length} Ressourcen sind bereit!` : 'Deine Ressource ist bereit!');
+    console.log('Ressourcen:', names);
     console.log('Magic Link:', magicLink);
     console.log('\n⚠️  HINWEIS: Email wird nicht wirklich versendet.');
     console.log('   Um Emails zu versenden, konfiguriere SMTP in .env.local:');
@@ -117,9 +180,14 @@ export async function sendResourceReadyEmail({
     
     // In Development: Magic Link in Console ausgeben
     if (process.env.NODE_ENV === 'development') {
+      const isMultiple = names.length > 1;
       console.log('\n📧 EMAIL-VORSCHAU:');
-      console.log(`Betreff: Deine Ressource ist bereit!`);
-      console.log(`\nHallo,\n\nDeine persönliche Ressource "${resourceName}" wurde für dich erstellt und ist jetzt verfügbar.\n\nKlicke auf diesen Link, um dich anzumelden:\n${magicLink}\n\nDieser Link ist 24 Stunden gültig.\n`);
+      console.log(`Betreff: ${isMultiple ? `Deine ${names.length} Ressourcen sind bereit!` : 'Deine Ressource ist bereit!'}`);
+      if (isMultiple) {
+        console.log(`\nHallo,\n\nDie folgenden ${names.length} Ressourcen wurden für dich erstellt:\n${names.map(n => `- "${n}"`).join('\n')}\n\nKlicke auf diesen Link, um dich anzumelden:\n${magicLink}\n\nDieser Link ist 24 Stunden gültig.\n`);
+      } else {
+        console.log(`\nHallo,\n\nDeine persönliche Ressource "${names[0]}" wurde für dich erstellt und ist jetzt verfügbar.\n\nKlicke auf diesen Link, um dich anzumelden:\n${magicLink}\n\nDieser Link ist 24 Stunden gültig.\n`);
+      }
     }
 
     return { success: true };

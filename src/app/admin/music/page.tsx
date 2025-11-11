@@ -5,8 +5,9 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
 import { realFigures, fictionalFigures } from "@/data/figures";
 import { motion } from "framer-motion";
-import { Music, Upload, Trash2, Play, Pause, CheckCircle, XCircle, ArrowLeft } from "lucide-react";
+import { Music, Upload, Trash2, Play, Pause, CheckCircle, XCircle, ArrowLeft, Edit2, Save, X, Volume2, TestTube } from "lucide-react";
 import Link from "next/link";
+import { AnimatePresence } from "framer-motion";
 
 interface MusicTrack {
   id: string;
@@ -17,6 +18,7 @@ interface MusicTrack {
   track_title: string | null;
   track_artist: string | null;
   is_default: boolean;
+  volume: number;
   created_at: string;
   updated_at: string;
 }
@@ -28,12 +30,15 @@ export default function AdminMusicPage() {
   const [tracks, setTracks] = useState<MusicTrack[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [trackTitle, setTrackTitle] = useState("");
-  const [trackArtist, setTrackArtist] = useState("");
+  const [sourceLink, setSourceLink] = useState("");
   const [isDefault, setIsDefault] = useState(false);
   const [loading, setLoading] = useState(true);
   const [playingTrack, setPlayingTrack] = useState<string | null>(null);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+  const [editingTrackId, setEditingTrackId] = useState<string | null>(null);
+  const [editSourceLink, setEditSourceLink] = useState("");
+  const [editingVolume, setEditingVolume] = useState<number>(0.12);
+  const [showTestModal, setShowTestModal] = useState<string | null>(null);
 
   // Prüfe ob User Admin ist (Full Admin oder Music Admin)
   const isMusicAdmin = (() => {
@@ -118,6 +123,16 @@ export default function AdminMusicPage() {
       return;
     }
 
+    // Optional: URL-Validierung für Source-Link
+    if (sourceLink) {
+      try {
+        new URL(sourceLink);
+      } catch {
+        alert("Bitte gib eine gültige URL für den Quell-Link ein.");
+        return;
+      }
+    }
+
     setUploading(true);
     try {
       // Erstelle FormData für API-Request
@@ -128,11 +143,8 @@ export default function AdminMusicPage() {
       if (figure?.name) {
         formData.append("figureName", figure.name);
       }
-      if (trackTitle) {
-        formData.append("trackTitle", trackTitle);
-      }
-      if (trackArtist) {
-        formData.append("trackArtist", trackArtist);
+      if (sourceLink) {
+        formData.append("sourceLink", sourceLink);
       }
       formData.append("isDefault", isDefault.toString());
 
@@ -152,8 +164,7 @@ export default function AdminMusicPage() {
       // Erfolg - lade Tracks neu
       alert("Track erfolgreich hochgeladen!");
       setUploadFile(null);
-      setTrackTitle("");
-      setTrackArtist("");
+      setSourceLink("");
       setIsDefault(false);
       loadTracks();
     } catch (error: any) {
@@ -225,6 +236,67 @@ export default function AdminMusicPage() {
     }
   };
 
+  const handleStartEdit = (track: MusicTrack) => {
+    setEditingTrackId(track.id);
+    // Verwende track_title als Source-Link (falls vorhanden)
+    setEditSourceLink(track.track_title || "");
+    // Setze aktuelle Lautstärke (falls vorhanden, sonst Standard)
+    setEditingVolume(track.volume != null ? parseFloat(track.volume.toString()) : 0.12);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTrackId(null);
+    setEditSourceLink("");
+    setEditingVolume(0.12);
+  };
+
+  const handleSaveEdit = async (trackId: string) => {
+    // Source-Link ist optional, aber wenn angegeben, sollte es eine gültige URL sein
+    if (editSourceLink) {
+      try {
+        new URL(editSourceLink);
+      } catch {
+        alert("Bitte gib eine gültige URL für den Quell-Link ein.");
+        return;
+      }
+    }
+
+    // Validierung: Lautstärke muss zwischen 0.01 und 0.25 sein (1% - 25%)
+    if (editingVolume < 0.01 || editingVolume > 0.25) {
+      alert("Lautstärke muss zwischen 1% und 25% liegen.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/admin/music/update", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          trackId,
+          sourceLink: editSourceLink || null,
+          volume: editingVolume,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(errorData.error || `Update failed with status ${response.status}`);
+      }
+
+      // Erfolg - lade Tracks neu
+      alert("Track erfolgreich aktualisiert!");
+      setEditingTrackId(null);
+      setEditSourceLink("");
+      setEditingVolume(0.12);
+      loadTracks();
+    } catch (error: any) {
+      console.error("Update error:", error);
+      alert("Fehler beim Aktualisieren: " + (error.message || "Unbekannter Fehler"));
+    }
+  };
+
   const handlePlayPause = (trackUrl: string, trackId: string) => {
     if (playingTrack === trackId && audioElement) {
       // Pausiere
@@ -251,6 +323,16 @@ export default function AdminMusicPage() {
     }
   };
 
+  // Test-Modal State (muss VOR useEffect definiert werden)
+  const [testResource, setTestResource] = useState<{ audioUrl: string; title: string } | null>(null);
+  const [testMusicVolume, setTestMusicVolume] = useState<number>(0.12);
+  const [testMusicPlaying, setTestMusicPlaying] = useState(false);
+  const [testVoicePlaying, setTestVoicePlaying] = useState(false);
+  const [testMusicAudio, setTestMusicAudio] = useState<HTMLAudioElement | null>(null);
+  const [testVoiceAudio, setTestVoiceAudio] = useState<HTMLAudioElement | null>(null);
+  const [loadingTestResource, setLoadingTestResource] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
   // Cleanup beim Unmount
   useEffect(() => {
     return () => {
@@ -258,8 +340,365 @@ export default function AdminMusicPage() {
         audioElement.pause();
         audioElement.currentTime = 0;
       }
+      if (testMusicAudio) {
+        testMusicAudio.pause();
+        testMusicAudio.currentTime = 0;
+      }
+      if (testVoiceAudio) {
+        testVoiceAudio.pause();
+        testVoiceAudio.currentTime = 0;
+      }
     };
-  }, [audioElement]);
+  }, [audioElement, testMusicAudio, testVoiceAudio]);
+
+  // Lade Test-Ressource für Track
+  const loadTestResource = async (track: MusicTrack) => {
+    setLoadingTestResource(true);
+    try {
+      // Prüfe ob User vorhanden ist
+      if (!user?.id) {
+        console.warn('[loadTestResource] No user ID available');
+        setTestResource({
+          audioUrl: '',
+          title: `Test für ${track.figure_name || track.figure_id}`
+        });
+        setLoadingTestResource(false);
+        return;
+      }
+
+      // Suche nach Admin-eigener Ressource für diese Figur
+      const figureId = track.figure_id.toLowerCase();
+      const figureName = track.figure_name?.toLowerCase();
+      
+      console.log('[loadTestResource] Searching for resources:', {
+        figureId,
+        figureName,
+        userId: user.id
+      });
+
+      const { data: resources, error } = await supabase
+        .from('saved_stories')
+        .select('id, title, audio_url, resource_figure')
+        .eq('user_id', user.id)
+        .not('audio_url', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(20); // Erhöht auf 20 für bessere Suche
+
+      if (error) {
+        console.error('[loadTestResource] Error loading test resources:', error);
+        // Fallback: Verwende generische Test-Stimme
+        setTestResource({
+          audioUrl: '', // Wird generiert
+          title: `Test für ${track.figure_name || figureId}`
+        });
+        setLoadingTestResource(false);
+        return;
+      }
+
+      console.log('[loadTestResource] Found resources:', resources?.length || 0);
+      console.log('[loadTestResource] Resources:', resources?.map((r: any) => ({
+        id: r.id,
+        title: r.title,
+        resource_figure: r.resource_figure
+      })));
+
+      // Finde Ressource mit passender figure_id oder figure_name
+      type ResourceType = {
+        id: string;
+        title: string;
+        audio_url: string | null;
+        resource_figure: any;
+      };
+      
+      const matchingResource = (resources as ResourceType[] | null)?.find((r: ResourceType) => {
+        const resourceFigure = r.resource_figure;
+        
+        // Debug-Logging
+        console.log('[loadTestResource] Checking resource:', {
+          resourceId: r.id,
+          resourceTitle: r.title,
+          resourceFigure,
+          figureId,
+          figureName
+        });
+
+        // Fall 1: resource_figure ist ein String
+        if (typeof resourceFigure === 'string') {
+          const matches = resourceFigure.toLowerCase() === figureId || 
+                         resourceFigure.toLowerCase() === figureName;
+          console.log('[loadTestResource] String match:', matches);
+          return matches;
+        }
+
+        // Fall 2: resource_figure ist ein Objekt mit id und/oder name
+        if (resourceFigure && typeof resourceFigure === 'object') {
+          const resourceId = resourceFigure.id?.toLowerCase();
+          const resourceName = resourceFigure.name?.toLowerCase();
+          
+          const matches = 
+            (resourceId && (resourceId === figureId || resourceId === figureName)) ||
+            (resourceName && (resourceName === figureId || resourceName === figureName));
+          
+          console.log('[loadTestResource] Object match:', {
+            resourceId,
+            resourceName,
+            matches
+          });
+          return matches;
+        }
+
+        return false;
+      });
+
+      console.log('[loadTestResource] Matching resource found:', matchingResource);
+
+      if (matchingResource && matchingResource.audio_url) {
+        console.log('[loadTestResource] Using found resource:', matchingResource.title);
+        setTestResource({
+          audioUrl: matchingResource.audio_url,
+          title: matchingResource.title || 'Test-Ressource'
+        });
+      } else {
+        // Fallback: Verwende generische Test-Stimme
+        console.log('[loadTestResource] No matching resource found, using generic test voice');
+        setTestResource({
+          audioUrl: '', // Wird generiert
+          title: `Test für ${track.figure_name || figureId}`
+        });
+      }
+    } catch (error) {
+      console.error('[loadTestResource] Error in loadTestResource:', error);
+      setTestResource({
+        audioUrl: '',
+        title: `Test für ${track.figure_name || track.figure_id}`
+      });
+    } finally {
+      setLoadingTestResource(false);
+    }
+  };
+
+  // Öffne Test-Modal
+  const handleOpenTest = async (track: MusicTrack) => {
+    setShowTestModal(track.id);
+    setTestMusicVolume(track.volume || 0.12);
+    await loadTestResource(track);
+  };
+
+  // Schließe Test-Modal
+  const handleCloseTest = () => {
+    // Stoppe alle Audio-Wiedergaben
+    if (testMusicAudio) {
+      testMusicAudio.pause();
+      testMusicAudio.currentTime = 0;
+      setTestMusicAudio(null);
+    }
+    if (testVoiceAudio) {
+      testVoiceAudio.pause();
+      testVoiceAudio.currentTime = 0;
+      setTestVoiceAudio(null);
+    }
+    setTestMusicPlaying(false);
+    setTestVoicePlaying(false);
+    setShowTestModal(null);
+    setTestResource(null);
+    setSaveSuccess(false); // Reset Success-Meldung
+  };
+
+  // Test-Playback starten
+  const handleTestPlay = async (track: MusicTrack) => {
+    try {
+      // Stoppe vorherige Wiedergaben
+      if (testMusicAudio) {
+        testMusicAudio.pause();
+        testMusicAudio.currentTime = 0;
+      }
+      if (testVoiceAudio) {
+        testVoiceAudio.pause();
+        testVoiceAudio.currentTime = 0;
+      }
+
+      // Starte Hintergrundmusik ZUERST
+      let music: HTMLAudioElement | null = null;
+      if (track.track_url) {
+        music = new Audio(track.track_url);
+        music.loop = true;
+        music.volume = testMusicVolume;
+        
+        // Warte bis Musik geladen ist
+        await new Promise<void>((resolve, reject) => {
+          music!.addEventListener('canplay', () => resolve(), { once: true });
+          music!.addEventListener('error', () => reject(new Error('Musik konnte nicht geladen werden')), { once: true });
+          music!.load();
+        });
+        
+        await music.play();
+        setTestMusicAudio(music);
+        setTestMusicPlaying(true);
+        console.log('[handleTestPlay] Background music started');
+      }
+
+      // Starte Stimme (falls vorhanden)
+      let voiceUrl = testResource?.audioUrl;
+      
+      // Falls keine Ressource gefunden, generiere generische Test-Stimme
+      if (!voiceUrl) {
+        setLoadingTestResource(true);
+        try {
+          // Verwende "empfohlene" Stimme (erste weibliche Stimme aus der Liste)
+          const recommendedVoiceId = 'SHTtk5n3RQvLx4dcvfGR'; // Sanft und beruhigend
+          const testText = `Dies ist ein Test der Hintergrundmusik für ${track.figure_name || track.figure_id}. Die Musik sollte die Stimme unterstützen, ohne sie zu übertönen.`;
+          
+          const response = await fetch('/api/generate-audio', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              text: testText,
+              voiceId: recommendedVoiceId,
+              adminPreview: false,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error('Fehler beim Generieren der Test-Stimme');
+          }
+
+          const data = await response.json();
+          voiceUrl = data.audioUrl;
+        } catch (error) {
+          console.error('Error generating test voice:', error);
+          alert('Fehler beim Generieren der Test-Stimme. Bitte versuche es erneut.');
+          setLoadingTestResource(false);
+          return;
+        } finally {
+          setLoadingTestResource(false);
+        }
+      }
+
+      if (voiceUrl) {
+        // Hole aktuelle Musik-Referenz aus State (falls State noch nicht aktualisiert wurde, verwende lokale Variable)
+        const currentMusic = testMusicAudio || music;
+        
+        const voice = new Audio(voiceUrl);
+        voice.volume = 1.0;
+        
+        // Warte bis Stimme geladen ist
+        await new Promise<void>((resolve, reject) => {
+          voice.addEventListener('canplay', () => resolve(), { once: true });
+          voice.addEventListener('error', () => reject(new Error('Stimme konnte nicht geladen werden')), { once: true });
+          voice.load();
+        });
+        
+        // Stelle sicher, dass Musik noch läuft
+        if (currentMusic && currentMusic.paused) {
+          console.log('[handleTestPlay] Music was paused, restarting...');
+          await currentMusic.play();
+        }
+        
+        voice.addEventListener('ended', () => {
+          setTestVoicePlaying(false);
+          // Fade-out Musik wenn Stimme endet
+          const musicToFade = testMusicAudio || currentMusic;
+          if (musicToFade) {
+            const fadeOut = setInterval(() => {
+              if (musicToFade && musicToFade.volume > 0) {
+                musicToFade.volume = Math.max(0, musicToFade.volume - 0.01);
+              } else {
+                clearInterval(fadeOut);
+                if (musicToFade) {
+                  musicToFade.pause();
+                  musicToFade.currentTime = 0;
+                  setTestMusicAudio(null);
+                  setTestMusicPlaying(false);
+                }
+              }
+            }, 50);
+          }
+        });
+        
+        await voice.play();
+        setTestVoiceAudio(voice);
+        setTestVoicePlaying(true);
+        console.log('[handleTestPlay] Voice started, music should still be playing');
+        
+        // Verifiziere dass Musik noch läuft
+        setTimeout(() => {
+          const musicCheck = testMusicAudio || currentMusic;
+          if (musicCheck) {
+            console.log('[handleTestPlay] Music status after voice start:', {
+              paused: musicCheck.paused,
+              volume: musicCheck.volume,
+              currentTime: musicCheck.currentTime
+            });
+            if (musicCheck.paused) {
+              console.warn('[handleTestPlay] Music was paused after voice start, restarting...');
+              musicCheck.play().catch(err => console.error('Error restarting music:', err));
+            }
+          }
+        }, 500);
+      }
+    } catch (error) {
+      console.error('Error in handleTestPlay:', error);
+      alert('Fehler beim Abspielen des Tests. Bitte versuche es erneut.');
+    }
+  };
+
+  // Test-Playback stoppen
+  const handleTestStop = () => {
+    if (testMusicAudio) {
+      testMusicAudio.pause();
+      testMusicAudio.currentTime = 0;
+      setTestMusicAudio(null);
+      setTestMusicPlaying(false);
+    }
+    if (testVoiceAudio) {
+      testVoiceAudio.pause();
+      testVoiceAudio.currentTime = 0;
+      setTestVoiceAudio(null);
+      setTestVoicePlaying(false);
+    }
+  };
+
+  // Speichere Lautstärke-Änderung
+  const handleSaveTestVolume = async (track: MusicTrack) => {
+    try {
+      const response = await fetch("/api/admin/music/update", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          trackId: track.id,
+          volume: testMusicVolume,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Fehler beim Speichern der Lautstärke");
+      }
+
+      // Aktualisiere lokalen Track
+      setTracks(tracks.map(t => 
+        t.id === track.id ? { ...t, volume: testMusicVolume } : t
+      ));
+
+      // Aktualisiere Musik-Lautstärke während Wiedergabe
+      if (testMusicAudio) {
+        testMusicAudio.volume = testMusicVolume;
+      }
+
+      // Zeige Success-Meldung und schließe Modal nach kurzer Verzögerung
+      setSaveSuccess(true);
+      setTimeout(() => {
+        handleCloseTest();
+        setSaveSuccess(false);
+      }, 1500); // 1.5 Sekunden anzeigen, dann schließen
+    } catch (error: any) {
+      console.error("Error saving volume:", error);
+      alert("Fehler beim Speichern: " + (error.message || "Unbekannter Fehler"));
+    }
+  };
 
   if (authLoading || loading) {
     return (
@@ -396,30 +835,19 @@ export default function AdminMusicPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Titel (optional):
+                    Link zur Quelle (optional):
                   </label>
                   <input
-                    type="text"
-                    value={trackTitle}
-                    onChange={(e) => setTrackTitle(e.target.value)}
+                    type="url"
+                    value={sourceLink}
+                    onChange={(e) => setSourceLink(e.target.value)}
                     className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="z.B. Mystical Ambience"
+                    placeholder="https://www.premiumbeat.com/..."
                     disabled={uploading}
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Künstler (optional):
-                  </label>
-                  <input
-                    type="text"
-                    value={trackArtist}
-                    onChange={(e) => setTrackArtist(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="z.B. Premium Beat"
-                    disabled={uploading}
-                  />
+                  <p className="mt-1 text-sm text-gray-500">
+                    Optional: Link zur Quelle des Tracks (z.B. PremiumBeat) für Referenz.
+                  </p>
                 </div>
 
                 <div className="flex items-center">
@@ -491,46 +919,130 @@ export default function AdminMusicPage() {
                               </span>
                             )}
                           </div>
-                          {track.track_artist && (
-                            <p className="text-sm text-gray-600 mb-1">Künstler: {track.track_artist}</p>
-                          )}
-                          <p className="text-xs text-gray-500 font-mono break-all mb-3">
+                          
+                          <p className="text-xs text-gray-500 font-mono break-all mb-2">
                             {track.track_url}
                           </p>
-                          <div className="flex items-center gap-4">
-                            <button
-                              onClick={() => handlePlayPause(track.track_url, track.id)}
-                              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-                            >
-                              {playingTrack === track.id ? (
-                                <>
-                                  <Pause className="w-4 h-4" />
-                                  Pausieren
-                                </>
+                          {editingTrackId === track.id ? (
+                            <div className="mb-3 space-y-3">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                  Link zur Quelle (optional):
+                                </label>
+                                <input
+                                  type="url"
+                                  value={editSourceLink}
+                                  onChange={(e) => setEditSourceLink(e.target.value)}
+                                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                  placeholder="https://www.premiumbeat.com/..."
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                  Lautstärke: {(editingVolume * 100).toFixed(0)}%
+                                </label>
+                                <input
+                                  type="range"
+                                  min="0.01"
+                                  max="0.25"
+                                  step="0.01"
+                                  value={editingVolume}
+                                  onChange={(e) => setEditingVolume(parseFloat(e.target.value))}
+                                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                />
+                                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                                  <span>1%</span>
+                                  <span>25%</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleSaveEdit(track.id)}
+                                  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-500 text-white hover:bg-blue-600 rounded-md transition-colors"
+                                >
+                                  <Save className="w-4 h-4" />
+                                  Speichern
+                                </button>
+                                <button
+                                  onClick={handleCancelEdit}
+                                  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-md transition-colors"
+                                >
+                                  <X className="w-4 h-4" />
+                                  Abbrechen
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="mb-3 space-y-1">
+                              {track.track_title ? (
+                                <p className="text-xs text-gray-400">
+                                  Quelle: <a href={track.track_title} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">{track.track_title}</a>
+                                </p>
                               ) : (
-                                <>
-                                  <Play className="w-4 h-4" />
-                                  Abspielen
-                                </>
+                                <p className="text-xs text-gray-400 italic">
+                                  Kein Quell-Link gesetzt. Klicke auf "Bearbeiten", um einen Link hinzuzufügen.
+                                </p>
                               )}
-                            </button>
-                            <button
-                              onClick={() => handleToggleDefault(track.id, track.is_default)}
-                              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-                                track.is_default
-                                  ? "bg-green-100 text-green-700 hover:bg-green-200"
-                                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                              }`}
-                            >
-                              {track.is_default ? "Standard entfernen" : "Als Standard setzen"}
-                            </button>
-                            <button
-                              onClick={() => handleDelete(track.id)}
-                              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-100 text-red-700 hover:bg-red-200 rounded-md transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Löschen
-                            </button>
+                              <p className="text-xs text-gray-500">
+                                Lautstärke: {((track.volume || 0.12) * 100).toFixed(0)}%
+                              </p>
+                            </div>
+                          )}
+                          
+                          <div className="flex items-center gap-4">
+                            {editingTrackId !== track.id && (
+                              <>
+                                <button
+                                  onClick={() => handlePlayPause(track.track_url, track.id)}
+                                  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                                  disabled={!track.track_url}
+                                >
+                                  {playingTrack === track.id ? (
+                                    <>
+                                      <Pause className="w-4 h-4" />
+                                      Pausieren
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Play className="w-4 h-4" />
+                                      Abspielen
+                                    </>
+                                  )}
+                                </button>
+                                <button
+                                  onClick={() => handleOpenTest(track)}
+                                  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-md transition-colors"
+                                  title="Mit Ressource testen"
+                                >
+                                  <TestTube className="w-4 h-4" />
+                                  Testen
+                                </button>
+                                <button
+                                  onClick={() => handleStartEdit(track)}
+                                  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md transition-colors"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                  Bearbeiten
+                                </button>
+                                <button
+                                  onClick={() => handleToggleDefault(track.id, track.is_default)}
+                                  className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                                    track.is_default
+                                      ? "bg-green-100 text-green-700 hover:bg-green-200"
+                                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                  }`}
+                                >
+                                  {track.is_default ? "Standard entfernen" : "Als Standard setzen"}
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(track.id)}
+                                  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-100 text-red-700 hover:bg-red-200 rounded-md transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  Löschen
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -542,6 +1054,159 @@ export default function AdminMusicPage() {
           </>
         )}
       </div>
+
+      {/* Test-Modal */}
+      <AnimatePresence>
+        {showTestModal && (() => {
+          const track = tracks.find(t => t.id === showTestModal);
+          if (!track) return null;
+
+          return (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+              onClick={handleCloseTest}
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between p-6 border-b">
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    Hintergrundmusik testen
+                  </h2>
+                  <button
+                    onClick={handleCloseTest}
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">
+                      Track: {track.track_title || track.track_id}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Figur: {track.figure_name || track.figure_id}
+                    </p>
+                  </div>
+
+                  {/* Lautstärke-Slider */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Musik-Lautstärke: {(testMusicVolume * 100).toFixed(0)}%
+                    </label>
+                    <input
+                      type="range"
+                      min="0.01"
+                      max="0.25"
+                      step="0.01"
+                      value={testMusicVolume}
+                      onChange={(e) => {
+                        const newVolume = parseFloat(e.target.value);
+                        setTestMusicVolume(newVolume);
+                        // Aktualisiere während Wiedergabe
+                        if (testMusicAudio) {
+                          testMusicAudio.volume = newVolume;
+                        }
+                      }}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>1%</span>
+                      <span>25%</span>
+                    </div>
+                  </div>
+
+                  {/* Success-Meldung */}
+                  {saveSuccess && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className="bg-green-50 border-2 border-green-300 rounded-xl p-4 flex items-center gap-3"
+                    >
+                      <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
+                      <div>
+                        <p className="text-green-800 font-medium">
+                          Lautstärke erfolgreich gespeichert!
+                        </p>
+                        <p className="text-green-700 text-sm mt-1">
+                          Die Einstellung wurde auf {(testMusicVolume * 100).toFixed(0)}% gesetzt.
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Test-Ressource Info */}
+                  {loadingTestResource ? (
+                    <div className="text-center py-4">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                      <p className="mt-2 text-sm text-gray-600">Lade Test-Ressource...</p>
+                    </div>
+                  ) : testResource ? (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="text-sm text-blue-800">
+                        {testResource.audioUrl 
+                          ? `✅ Test-Ressource gefunden: "${testResource.title}"`
+                          : `ℹ️ Keine eigene Ressource gefunden. Verwende generische Test-Stimme.`
+                        }
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {/* Playback Controls */}
+                  <div className="flex items-center justify-center gap-4">
+                    {testMusicPlaying || testVoicePlaying ? (
+                      <button
+                        onClick={handleTestStop}
+                        className="flex items-center gap-2 px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-full font-semibold transition-colors"
+                      >
+                        <Pause className="w-5 h-5" />
+                        Stoppen
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleTestPlay(track)}
+                        disabled={loadingTestResource}
+                        className="flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-full font-semibold transition-colors disabled:opacity-50"
+                      >
+                        <Play className="w-5 h-5" />
+                        Test abspielen
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-between p-6 border-t bg-gray-50">
+                  <button
+                    onClick={handleCloseTest}
+                    className="px-6 py-3 text-gray-700 hover:bg-gray-200 rounded-xl font-medium transition-colors"
+                  >
+                    Schließen
+                  </button>
+                  <button
+                    onClick={() => handleSaveTestVolume(track)}
+                    className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-colors"
+                  >
+                    Lautstärke speichern
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
     </div>
   );
 }

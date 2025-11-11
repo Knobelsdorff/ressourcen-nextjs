@@ -12,7 +12,7 @@ import PaymentSuccessModal from "@/components/PaymentSuccessModal";
 import ClientResourceModal from "@/components/ClientResourceModal";
 import { trackEvent } from "@/lib/analytics";
 import { isEnabled } from "@/lib/featureFlags";
-import { getBackgroundMusicUrl, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
+import { getBackgroundMusicTrack, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
 
 interface SavedStory {
   id: string;
@@ -1191,73 +1191,34 @@ ${story.content}
       return;
     }
     
-    // Stoppe dynamische Lautstärkenanpassung während Fade-Out
-    const volumeAdjustInterval = (musicAudio as any)._volumeAdjustInterval;
-    if (volumeAdjustInterval) {
-      clearInterval(volumeAdjustInterval);
-      (musicAudio as any)._volumeAdjustInterval = null;
-    }
+    // Fade-Out mit volume (konsistente Methode für alle User)
+    const startVolume = musicAudio.volume;
+    const fadeOutInterval = 50; // Update alle 50ms
+    const steps = duration / fadeOutInterval;
+    const volumeStep = startVolume / steps;
+    let currentStep = 0;
     
-    // Verwende GainNode für Fade-Out, falls AudioContext vorhanden
-    const audioContext = (musicAudio as any)._audioContext;
-    const gainNode = (musicAudio as any)._gainNode;
+    console.log(`[fadeOutMusic] Starting fade-out for story ${storyId}, duration: ${duration}ms, startVolume: ${startVolume}`);
     
-    if (audioContext && gainNode) {
-      // Fade-Out mit GainNode (präziser)
-      const startGain = gainNode.gain.value;
-      const fadeOutSteps = duration / 50; // Update alle 50ms
-      let currentStep = 0;
+    const fadeInterval = setInterval(() => {
+      if (!musicAudio || musicAudio.paused) {
+        clearInterval(fadeInterval);
+        console.log(`[fadeOutMusic] Music already paused, stopping fade-out`);
+        return;
+      }
       
-      console.log(`[fadeOutMusic] Starting fade-out with GainNode for story ${storyId}, duration: ${duration}ms`);
+      currentStep++;
+      const newVolume = Math.max(0, startVolume - (volumeStep * currentStep));
+      musicAudio.volume = newVolume;
       
-      const fadeInterval = setInterval(() => {
-        if (!musicAudio || musicAudio.paused) {
-          clearInterval(fadeInterval);
-          return;
-        }
-        
-        currentStep++;
-        const newGain = Math.max(0, startGain * (1 - currentStep / fadeOutSteps));
-        gainNode.gain.setTargetAtTime(newGain, audioContext.currentTime, 0.05);
-        
-        if (currentStep >= fadeOutSteps || newGain <= 0.001) {
-          clearInterval(fadeInterval);
-          musicAudio.pause();
-          musicAudio.currentTime = 0;
-          gainNode.gain.value = DEFAULT_MUSIC_VOLUME; // Reset für nächste Wiedergabe
-          console.log(`[fadeOutMusic] Fade-out completed for story ${storyId}`);
-        }
-      }, 50);
-    } else {
-      // Fallback: Fade-Out mit volume (wenn kein AudioContext)
-      const startVolume = musicAudio.volume;
-      const fadeOutInterval = 50; // Update alle 50ms
-      const steps = duration / fadeOutInterval;
-      const volumeStep = startVolume / steps;
-      let currentStep = 0;
-      
-      console.log(`[fadeOutMusic] Starting fade-out with volume for story ${storyId}, duration: ${duration}ms, startVolume: ${startVolume}`);
-      
-      const fadeInterval = setInterval(() => {
-        if (!musicAudio || musicAudio.paused) {
-          clearInterval(fadeInterval);
-          console.log(`[fadeOutMusic] Music already paused, stopping fade-out`);
-          return;
-        }
-        
-        currentStep++;
-        const newVolume = Math.max(0, startVolume - (volumeStep * currentStep));
-        musicAudio.volume = newVolume;
-        
-        if (currentStep >= steps || newVolume <= 0) {
-          clearInterval(fadeInterval);
-          musicAudio.pause();
-          musicAudio.currentTime = 0;
-          musicAudio.volume = DEFAULT_MUSIC_VOLUME; // Reset für nächste Wiedergabe
-          console.log(`[fadeOutMusic] Fade-out completed for story ${storyId}`);
-        }
-      }, fadeOutInterval);
-    }
+      if (currentStep >= steps || newVolume <= 0) {
+        clearInterval(fadeInterval);
+        musicAudio.pause();
+        musicAudio.currentTime = 0;
+        musicAudio.volume = DEFAULT_MUSIC_VOLUME; // Reset für nächste Wiedergabe
+        console.log(`[fadeOutMusic] Fade-out completed for story ${storyId}`);
+      }
+    }, fadeOutInterval);
   }, []);
 
   const playAudio = useCallback(async (audioUrl: string, storyId: string) => {
@@ -1333,9 +1294,11 @@ ${story.content}
     console.log(`[playAudio] Resource Figure Type:`, typeof story?.resource_figure);
     
     // Hole Hintergrundmusik-URL für diese Figur (unterstützt ID und Name)
-    console.log(`[playAudio] Calling getBackgroundMusicUrl with: ${figureIdOrName}`);
-    const musicUrl = await getBackgroundMusicUrl(figureIdOrName);
-    console.log(`[playAudio] getBackgroundMusicUrl returned:`, musicUrl);
+    console.log(`[playAudio] Calling getBackgroundMusicTrack with: ${figureIdOrName}`);
+    const musicTrack = await getBackgroundMusicTrack(figureIdOrName);
+    const musicUrl = musicTrack?.track_url || null;
+    const musicVolume = musicTrack?.volume || DEFAULT_MUSIC_VOLUME;
+    console.log(`[playAudio] getBackgroundMusicTrack returned:`, { musicUrl, musicVolume });
     
     console.log(`[playAudio] Background music check:`, {
       storyId,
@@ -1413,13 +1376,7 @@ ${story.content}
               console.log(`[playAudio] Stopping background music immediately`);
               musicAudio.pause();
               musicAudio.currentTime = 0;
-              const audioContext = (musicAudio as any)._audioContext;
-              const gainNode = (musicAudio as any)._gainNode;
-              if (audioContext && gainNode) {
-                gainNode.gain.value = DEFAULT_MUSIC_VOLUME; // Reset
-              } else {
-                musicAudio.volume = DEFAULT_MUSIC_VOLUME; // Reset
-              }
+              musicAudio.volume = DEFAULT_MUSIC_VOLUME; // Reset für nächste Wiedergabe
             }
           }
           return prev;
@@ -1566,13 +1523,7 @@ ${story.content}
               console.log(`[playAudio] Stopping background music immediately`);
               musicAudio.pause();
               musicAudio.currentTime = 0;
-              const audioContext = (musicAudio as any)._audioContext;
-              const gainNode = (musicAudio as any)._gainNode;
-              if (audioContext && gainNode) {
-                gainNode.gain.value = DEFAULT_MUSIC_VOLUME; // Reset
-              } else {
-                musicAudio.volume = DEFAULT_MUSIC_VOLUME; // Reset
-              }
+              musicAudio.volume = DEFAULT_MUSIC_VOLUME; // Reset für nächste Wiedergabe
             }
           }
           return prev;
@@ -1767,111 +1718,17 @@ ${story.content}
         if (!musicAudio) {
           console.log(`[playAudio] Creating background music element for story ${storyId}`);
           musicAudio = new Audio(musicUrl);
-          musicAudio.crossOrigin = 'anonymous'; // Wichtig für CORS mit Web Audio API
+          musicAudio.crossOrigin = 'anonymous'; // Für mögliche zukünftige Features
           musicAudio.loop = true; // Wiederholt sich
-          musicAudio.volume = DEFAULT_MUSIC_VOLUME; // Setze initiale Lautstärke
+          musicAudio.volume = musicVolume; // Track-spezifische Lautstärke
           
-          // Versuche dynamische Lautstärkenanpassung mit Web Audio API
-          // Falls CORS nicht funktioniert, verwenden wir einfache Lautstärkenkontrolle
-          let audioContext: AudioContext | null = null;
-          let analyser: AnalyserNode | null = null;
-          let gainNode: GainNode | null = null;
-          let sourceNode: MediaElementAudioSourceNode | null = null;
-          let volumeAdjustInterval: NodeJS.Timeout | null = null;
-          
-          // Versuche AudioContext zu erstellen, aber erwarte CORS-Probleme
-          try {
-            audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-            sourceNode = audioContext.createMediaElementSource(musicAudio);
-            analyser = audioContext.createAnalyser();
-            gainNode = audioContext.createGain();
-            
-            analyser.fftSize = 256;
-            analyser.smoothingTimeConstant = 0.8;
-            
-            // Verbinde die Nodes
-            sourceNode.connect(analyser);
-            analyser.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            gainNode.gain.value = DEFAULT_MUSIC_VOLUME;
-            
-            // Dynamische Lautstärkenanpassung
-            const dataArray = new Uint8Array(analyser.frequencyBinCount);
-            const targetLevel = 0.3;
-            const maxGain = 0.25; // Maximale Lautstärke (25%)
-            const minGain = 0.18; // Minimale Lautstärke (18%)
-            const adjustmentSpeed = 0.15;
-            
-            let currentGain = DEFAULT_MUSIC_VOLUME;
-            let corsCheckCount = 0;
-            let corsWorking = false;
-            
-            volumeAdjustInterval = setInterval(() => {
-              if (!analyser || !gainNode || musicAudio.paused || musicAudio.ended) return;
-              
-              analyser.getByteFrequencyData(dataArray);
-              
-              // Prüfe ob Daten vorhanden sind (CORS-Check)
-              const hasValidData = dataArray.some(val => val > 0);
-              
-              if (!hasValidData) {
-                corsCheckCount++;
-                // Nach 2 Sekunden (20 Checks) prüfen ob CORS funktioniert
-                if (corsCheckCount > 20 && !corsWorking) {
-                  console.warn('[playAudio] CORS restrictions detected - AudioContext outputs zeroes. Disabling dynamic volume adjustment.');
-                  clearInterval(volumeAdjustInterval!);
-                  volumeAdjustInterval = null;
-                  // Trenne AudioContext und verwende direktes Audio
-                  try {
-                    sourceNode?.disconnect();
-                    analyser?.disconnect();
-                    gainNode?.disconnect();
-                    audioContext?.close();
-                  } catch (e) {
-                    // Ignoriere Fehler beim Trennen
-                  }
-                  // Verwende einfache Lautstärkenkontrolle
-                  musicAudio.volume = DEFAULT_MUSIC_VOLUME;
-                  return;
-                }
-                return; // Warte auf Daten
-              }
-              
-              corsWorking = true; // CORS funktioniert!
-              
-              // Berechne RMS
-              let sum = 0;
-              for (let i = 0; i < dataArray.length; i++) {
-                sum += dataArray[i] * dataArray[i];
-              }
-              const rms = Math.sqrt(sum / dataArray.length) / 255;
-              
-              // Anpassung
-              const levelDifference = targetLevel - rms;
-              const adjustment = levelDifference * adjustmentSpeed;
-              currentGain = Math.max(minGain, Math.min(maxGain, currentGain + adjustment));
-              
-              gainNode.gain.setTargetAtTime(currentGain, audioContext!.currentTime, 0.1);
-            }, 100);
-            
-            // Speichere Referenzen
-            (musicAudio as any)._audioContext = audioContext;
-            (musicAudio as any)._gainNode = gainNode;
-            (musicAudio as any)._volumeAdjustInterval = volumeAdjustInterval;
-            
-            console.log(`[playAudio] Dynamic volume adjustment enabled for story ${storyId} (CORS check in progress)`);
-          } catch (audioContextError) {
-            console.warn('[playAudio] AudioContext not available, using simple volume control:', audioContextError);
-            // Fallback: Einfache Lautstärkenkontrolle
-            musicAudio.volume = DEFAULT_MUSIC_VOLUME;
-          }
+          // Verwende track-spezifische Lautstärke (falls vorhanden), sonst Standard-Lautstärke
+          console.log(`[playAudio] Background music initialized with volume: ${musicVolume * 100}% (track-specific: ${musicTrack?.volume ? 'yes' : 'no'}) for story ${storyId}`);
           
           setBackgroundMusicElements(prev => ({ ...prev, [storyId]: musicAudio }));
           
           musicAudio.addEventListener('error', (e) => {
             console.error('[playAudio] Background music error:', e);
-            if (volumeAdjustInterval) clearInterval(volumeAdjustInterval);
             // Musik-Fehler nicht anzeigen, nur loggen (nicht kritisch)
           });
           
@@ -1883,22 +1740,7 @@ ${story.content}
             console.log(`[playAudio] Background music ready for story ${storyId}`);
           });
           
-          // Cleanup beim Pausieren/Stoppen
-          musicAudio.addEventListener('pause', () => {
-            const interval = (musicAudio as any)._volumeAdjustInterval;
-            if (interval) {
-              clearInterval(interval);
-              (musicAudio as any)._volumeAdjustInterval = null;
-            }
-          });
-          
-          musicAudio.addEventListener('ended', () => {
-            const interval = (musicAudio as any)._volumeAdjustInterval;
-            if (interval) {
-              clearInterval(interval);
-              (musicAudio as any)._volumeAdjustInterval = null;
-            }
-          });
+          // Keine speziellen Event Listener mehr nötig - Lautstärke ist statisch
         }
         
         // Starte Musik ZUERST (bei Sekunde 0)

@@ -53,6 +53,8 @@ export default function AdminAnalytics() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [eventType, setEventType] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize] = useState<number>(50); // Events pro Seite
 
   // Prüfe ob User Admin ist
   const isAdmin = (() => {
@@ -239,6 +241,7 @@ export default function AdminAnalytics() {
 
       setEvents(data.events || []);
       setStats(data.stats || null);
+      setCurrentPage(1); // Zurück zur ersten Seite, wenn neue Daten geladen werden
     } catch (err: any) {
       setError(err.message || "Fehler beim Laden der Analytics");
       console.error("Error fetching analytics:", err);
@@ -680,45 +683,184 @@ export default function AdminAnalytics() {
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <BarChart3 className="w-6 h-6 text-amber-600" />
-                Event-Details ({events.length})
+                Event-Details ({events.length} insgesamt)
               </h2>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">Zeitpunkt</th>
-                      <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">Event</th>
-                      <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">Ressourcenfigur</th>
-                      <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">User Email</th>
-                      <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">User ID</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {events.slice(0, 50).map((event) => (
-                      <tr key={event.id} className="border-b hover:bg-amber-50">
-                        <td className="py-2 px-4 text-sm text-gray-600">
-                          {formatDate(event.created_at)}
-                        </td>
-                        <td className="py-2 px-4 text-sm text-gray-900">
-                          {formatEventType(event.event_type)}
-                        </td>
-                        <td className="py-2 px-4 text-sm text-gray-600">
-                          {event.resource_figure_name || "-"}
-                        </td>
-                        <td className="py-2 px-4 text-sm text-gray-900 font-medium">
-                          {event.user_email || "-"}
-                        </td>
-                        <td className="py-2 px-4 text-sm text-gray-600">
-                          {event.user_id ? event.user_id.substring(0, 8) + "..." : "-"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {events.length === 0 && (
-                  <p className="text-center py-8 text-gray-500">Keine Events gefunden</p>
-                )}
-              </div>
+              
+              {/* Pagination Info */}
+              {events.length > 0 && (() => {
+                const totalPages = Math.ceil(events.length / pageSize);
+                const startIndex = (currentPage - 1) * pageSize;
+                const endIndex = Math.min(startIndex + pageSize, events.length);
+                const paginatedEvents = events.slice(startIndex, endIndex);
+                
+                return (
+                  <>
+                    <div className="mb-4 flex items-center justify-between">
+                      <p className="text-sm text-gray-600">
+                        Zeige {startIndex + 1} - {endIndex} von {events.length} Events
+                      </p>
+                      {totalPages > 1 && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
+                            className="px-3 py-1.5 text-sm bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            ← Vorherige
+                          </button>
+                          <span className="text-sm text-gray-700">
+                            Seite {currentPage} von {totalPages}
+                          </span>
+                          <button
+                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                            disabled={currentPage === totalPages}
+                            className="px-3 py-1.5 text-sm bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            Nächste →
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Seitenzahlen (wenn mehr als 5 Seiten) */}
+                    {totalPages > 5 && (
+                      <div className="mb-4 flex items-center justify-center gap-1 flex-wrap">
+                        {/* Erste Seite */}
+                        {currentPage > 3 && (
+                          <>
+                            <button
+                              onClick={() => setCurrentPage(1)}
+                              className="px-2 py-1 text-sm bg-amber-100 text-amber-800 rounded hover:bg-amber-200 transition-colors"
+                            >
+                              1
+                            </button>
+                            {currentPage > 4 && <span className="text-gray-400">...</span>}
+                          </>
+                        )}
+                        
+                        {/* Seiten um aktuelle Seite */}
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          let pageNum: number;
+                          if (currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNum = totalPages - 4 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
+                          
+                          if (pageNum < 1 || pageNum > totalPages) return null;
+                          
+                          return (
+                            <button
+                              key={pageNum}
+                              onClick={() => setCurrentPage(pageNum)}
+                              className={`px-2 py-1 text-sm rounded transition-colors ${
+                                currentPage === pageNum
+                                  ? 'bg-amber-600 text-white'
+                                  : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                              }`}
+                            >
+                              {pageNum}
+                            </button>
+                          );
+                        })}
+                        
+                        {/* Letzte Seite */}
+                        {currentPage < totalPages - 2 && (
+                          <>
+                            {currentPage < totalPages - 3 && <span className="text-gray-400">...</span>}
+                            <button
+                              onClick={() => setCurrentPage(totalPages)}
+                              className="px-2 py-1 text-sm bg-amber-100 text-amber-800 rounded hover:bg-amber-200 transition-colors"
+                            >
+                              {totalPages}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">Zeitpunkt</th>
+                            <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">Event</th>
+                            <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">Ressourcenfigur</th>
+                            <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">User Email</th>
+                            <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">User ID</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paginatedEvents.map((event) => (
+                            <tr key={event.id} className="border-b hover:bg-amber-50">
+                              <td className="py-2 px-4 text-sm text-gray-600">
+                                {formatDate(event.created_at)}
+                              </td>
+                              <td className="py-2 px-4 text-sm text-gray-900">
+                                {formatEventType(event.event_type)}
+                              </td>
+                              <td className="py-2 px-4 text-sm text-gray-600">
+                                {event.resource_figure_name || "-"}
+                              </td>
+                              <td className="py-2 px-4 text-sm text-gray-900 font-medium">
+                                {event.user_email || "-"}
+                              </td>
+                              <td className="py-2 px-4 text-sm text-gray-600">
+                                {event.user_id ? event.user_id.substring(0, 8) + "..." : "-"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    {/* Pagination Controls am Ende */}
+                    {totalPages > 1 && (
+                      <div className="mt-4 flex items-center justify-between">
+                        <button
+                          onClick={() => setCurrentPage(1)}
+                          disabled={currentPage === 1}
+                          className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Erste Seite
+                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
+                            className="px-3 py-1.5 text-sm bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            ← Vorherige
+                          </button>
+                          <span className="text-sm text-gray-700 px-3">
+                            Seite {currentPage} von {totalPages}
+                          </span>
+                          <button
+                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                            disabled={currentPage === totalPages}
+                            className="px-3 py-1.5 text-sm bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            Nächste →
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => setCurrentPage(totalPages)}
+                          disabled={currentPage === totalPages}
+                          className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Letzte Seite
+                        </button>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+              
+              {events.length === 0 && (
+                <p className="text-center py-8 text-gray-500">Keine Events gefunden</p>
+              )}
             </div>
           </>
         )}

@@ -72,6 +72,16 @@ export default function AudioRecorder({
         return;
       }
 
+      // Wenn bereits eine Aufnahme vorhanden ist (die noch nicht zur Liste hinzugefügt wurde),
+      // lösche sie, damit eine neue Aufnahme gestartet werden kann
+      // Der Parent-Component (ClientResourceModal) setzt den AudioRecorder über die key-Prop zurück,
+      // nachdem die Aufnahme zur Liste hinzugefügt wurde, sodass normalerweise keine Aufnahme vorhanden sein sollte
+      if (audioBlob || audioUrl) {
+        deleteRecording();
+        // Kurze Verzögerung, damit UI aktualisiert wird
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
@@ -315,13 +325,13 @@ export default function AudioRecorder({
 
       {/* Steuerungs-Buttons */}
       <div className="flex items-center justify-center space-x-4">
-        {!isRecording && !audioBlob && (
+        {!isRecording && (
           <button
             onClick={startRecording}
             className="flex items-center space-x-2 px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-full font-semibold transition-colors shadow-lg"
           >
             <Mic className="w-5 h-5" />
-            <span>Aufnahme starten</span>
+            <span>{audioBlob ? "Neu aufnehmen" : "Aufnahme starten"}</span>
           </button>
         )}
 
@@ -353,16 +363,6 @@ export default function AudioRecorder({
             </button>
           </>
         )}
-
-        {audioBlob && !isRecording && (
-          <button
-            onClick={deleteRecording}
-            className="flex items-center space-x-2 px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-full font-semibold transition-colors"
-          >
-            <Trash2 className="w-5 h-5" />
-            <span>Neu aufnehmen</span>
-          </button>
-        )}
       </div>
 
       {/* Info-Text */}
@@ -370,7 +370,7 @@ export default function AudioRecorder({
         {isRecording 
           ? "Spreche jetzt deine Ressourcen-Geschichte ein..."
           : audioBlob 
-          ? "Aufnahme abgeschlossen. Du kannst die Vorschau anhören oder neu aufnehmen."
+          ? "Aufnahme abgeschlossen. Bitte füge diese Aufnahme zur Liste hinzu, bevor du eine neue Aufnahme startest."
           : "Klicke auf 'Aufnahme starten', um deine Ressourcen-Geschichte aufzunehmen."}
       </p>
     </div>

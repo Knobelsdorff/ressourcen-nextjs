@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { Database } from '@/lib/types/database.types';
 import { createServerAdminClient } from '@/lib/supabase/serverAdminClient';
+import { shouldFilterEmail } from '@/lib/analytics-filter';
 
 /**
  * Prüft ob der aktuelle User ein Admin ist
@@ -672,14 +673,27 @@ export async function GET(request: NextRequest) {
       return e.user_email && adminEmails.includes(e.user_email.toLowerCase());
     }).length;
     
-    // Filtere Admin-Events heraus
+    // Filtere auch Events von gefilterten E-Mail-Adressen (Test-Accounts, Temp-Mail, etc.)
+    const filteredEmailCount = eventsWithEmails.filter(e => {
+      return e.user_email && shouldFilterEmail(e.user_email);
+    }).length;
+    
+    // Filtere Admin-Events und gefilterte E-Mail-Adressen heraus
     const finalEvents = eventsWithEmails.filter(e => {
       // Filtere Admin-Events (vergleiche mit user_email)
       if (e.user_email && adminEmails.includes(e.user_email.toLowerCase())) {
         return false;
       }
+      // Filtere gefilterte E-Mail-Adressen (Test-Accounts, Temp-Mail, etc.)
+      if (e.user_email && shouldFilterEmail(e.user_email)) {
+        return false;
+      }
       return true;
     });
+    
+    if (filteredEmailCount > 0) {
+      console.log(`Admin Analytics API: Filtered out ${filteredEmailCount} events from filtered email addresses`);
+    }
     
     if (adminEventCount > 0) {
       console.log(`Admin Analytics API: Filtered out ${adminEventCount} admin user events (not relevant for analytics)`);

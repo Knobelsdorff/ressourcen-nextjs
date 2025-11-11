@@ -63,8 +63,7 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File;
     const figureId = formData.get('figureId') as string;
     const figureName = formData.get('figureName') as string | null;
-    const trackTitle = formData.get('trackTitle') as string | null;
-    const trackArtist = formData.get('trackArtist') as string | null;
+    const sourceLink = formData.get('sourceLink') as string | null;
     const isDefault = formData.get('isDefault') === 'true';
 
     // Validierung
@@ -87,6 +86,18 @@ export async function POST(request: NextRequest) {
         { error: 'No figureId provided' },
         { status: 400 }
       );
+    }
+
+    // Optional: URL-Validierung für Source-Link
+    if (sourceLink) {
+      try {
+        new URL(sourceLink);
+      } catch {
+        return NextResponse.json(
+          { error: 'Invalid source link URL format' },
+          { status: 400 }
+        );
+      }
     }
 
     // Verwende Admin Client für Storage Upload (umgeht RLS)
@@ -145,8 +156,8 @@ export async function POST(request: NextRequest) {
         figure_name: figureName,
         track_id: trackId,
         track_url: publicUrl,
-        track_title: trackTitle,
-        track_artist: trackArtist,
+        track_title: sourceLink || null, // Verwende track_title für Source-Link
+        track_artist: null,
         is_default: isDefault,
       })
       .select()
