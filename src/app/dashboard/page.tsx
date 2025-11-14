@@ -1019,40 +1019,54 @@ export default function Dashboard() {
         // Warte kurz, damit Webhook Zeit hat, den Zugang zu erstellen
         // Versuche mehrmals, falls Webhook noch nicht verarbeitet wurde
         let retryCount = 0;
-        const maxRetries = 10; // Mehr Versuche für Webhook-Verarbeitung
+        const maxRetries = 6; // Reduziert von 10 auf 6 (12 Sekunden statt 20)
         const retryDelay = 2000; // 2 Sekunden
         let alertShown = false; // Verhindere mehrfache Alerts
+        let storiesLoaded = false; // Verhindere mehrfaches Laden von Stories
         
         const checkAccess = async () => {
           console.log(`Dashboard: Checking access (attempt ${retryCount + 1}/${maxRetries})`);
-          await loadUserAccess();
-          await loadStories();
           
-          // Prüfe ob Zugang jetzt aktiv ist
+          // Lade UserAccess nur einmal am Anfang, nicht bei jedem Retry
+          if (retryCount === 0) {
+            await loadUserAccess();
+          }
+          
+          // Prüfe ob Zugang jetzt aktiv ist (ohne Stories zu laden)
           const hasAccess = await hasActiveAccess(user.id);
           console.log('Dashboard: Access check result:', hasAccess);
           
           if (hasAccess) {
+            // Zugang aktiv - lade Stories nur einmal
+            if (!storiesLoaded) {
+              storiesLoaded = true;
+              await loadStories();
+            }
+            
             // Erfolgsmeldung nur einmal anzeigen
             if (!alertShown) {
               alertShown = true;
               setPaymentSuccessMessage('Dein Zugang wurde aktiviert! Du kannst jetzt unbegrenzt Ressourcen erstellen.');
               setShowPaymentSuccess(true);
             }
-            // Kein automatisches Neuladen mehr - Dashboard aktualisiert sich selbst
+            // Stoppe Retry-Loop, da Zugang aktiv ist
+            return;
           } else if (retryCount < maxRetries - 1) {
-            // Noch kein Zugang - versuche es erneut
+            // Noch kein Zugang - versuche es erneut (ohne Stories zu laden)
             retryCount++;
             setTimeout(checkAccess, retryDelay);
           } else {
             // Nach mehreren Versuchen immer noch kein Zugang
             console.warn('Dashboard: Access not activated after payment. Webhook may have failed or is still processing.');
+            // Lade Stories einmal am Ende, auch wenn kein Zugang aktiv ist
+            if (!storiesLoaded) {
+              await loadStories();
+            }
             if (!alertShown) {
               alertShown = true;
               setPaymentSuccessMessage('Zahlung erfolgreich! Der Zugang wird in Kürze aktiviert. Bitte lade die Seite in ein paar Minuten neu.');
               setShowPaymentSuccess(true);
             }
-            // Kein automatisches Neuladen - User kann manuell neu laden wenn nötig
           }
         };
         
