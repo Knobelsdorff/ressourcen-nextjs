@@ -94,8 +94,11 @@ export default function Dashboard() {
     plan: 'Free',
     credits: 0,
     expiresAt: null as Date | null,
-    isPro: false
+    isPro: false,
+    subscriptionId: null as string | null,
+    subscriptionStatus: null as string | null,
   });
+  const [loadingCustomerPortal, setLoadingCustomerPortal] = useState(false);
   const [resourceAccessStatus, setResourceAccessStatus] = useState<Record<string, { canAccess: boolean; isFirst: boolean; trialExpired: boolean }>>({});
 
   // Funktion zur Bestimmung des Ressourcen-Typs
@@ -195,11 +198,20 @@ export default function Dashboard() {
       // Falls getUserAccess erfolgreich war, setze userAccess
       if (access) {
         setUserAccess(access);
+        
+        // Prüfe ob es ein Subscription-Abo ist
+        const isSubscription = access.plan_type === 'subscription';
+        const hasActiveSubscription = isSubscription && 
+          access.status === 'active' && 
+          (access as any).subscription_status === 'active';
+        
         setSubscriptionStatus({
-          plan: '3-Monats-Paket',
-          credits: access.resources_limit - access.resources_created,
-          expiresAt: access.access_expires_at ? new Date(access.access_expires_at) : null,
-          isPro: access.status === 'active' && (!access.access_expires_at || new Date(access.access_expires_at) > new Date())
+          plan: isSubscription ? 'Monatliches Abo' : '3-Monats-Paket',
+          credits: isSubscription ? 999999 : (access.resources_limit - access.resources_created), // Unlimited für Subscription
+          expiresAt: isSubscription ? null : (access.access_expires_at ? new Date(access.access_expires_at) : null),
+          isPro: hasActiveSubscription || (access.status === 'active' && (!access.access_expires_at || new Date(access.access_expires_at) > new Date())),
+          subscriptionId: (access as any).stripe_subscription_id || null,
+          subscriptionStatus: (access as any).subscription_status || null,
         });
         return; // Erfolgreich geladen, keine weiteren Checks nötig
       }
@@ -2165,15 +2177,23 @@ ${story.content}
                     </div>
                     <p className="text-amber-700 text-lg font-semibold">{subscriptionStatus.plan}</p>
                     {subscriptionStatus.isPro && (
-                      <p className="text-amber-600 text-sm">Pro-Version aktiv</p>
+                      <p className="text-amber-600 text-sm">
+                        {subscriptionStatus.subscriptionStatus === 'active' ? 'Aktiv' : 
+                         subscriptionStatus.subscriptionStatus === 'past_due' ? 'Zahlung ausstehend' :
+                         subscriptionStatus.subscriptionStatus === 'paused' ? 'Pausiert' :
+                         subscriptionStatus.subscriptionStatus === 'canceled' ? 'Gekündigt' :
+                         'Pro-Version aktiv'}
+                      </p>
                     )}
                   </div>
                   <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
                     <div className="flex items-center gap-2 mb-2">
                       <Zap className="w-5 h-5 text-blue-600" />
-                      <span className="font-medium text-blue-900">Credits</span>
+                      <span className="font-medium text-blue-900">Ressourcen</span>
                     </div>
-                    <p className="text-blue-700 text-lg font-semibold">{subscriptionStatus.credits}</p>
+                    <p className="text-blue-700 text-lg font-semibold">
+                      {subscriptionStatus.credits >= 999999 ? 'Unbegrenzt' : subscriptionStatus.credits}
+                    </p>
                     <p className="text-blue-600 text-sm">Verfügbar</p>
                   </div>
                   <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
@@ -2184,11 +2204,46 @@ ${story.content}
                     <p className="text-green-700 text-lg font-semibold">
                       {subscriptionStatus.expiresAt 
                         ? new Date(subscriptionStatus.expiresAt).toLocaleDateString('de-DE')
-                        : 'Unbegrenzt'
+                        : subscriptionStatus.subscriptionId ? 'Monatlich kündbar' : 'Unbegrenzt'
                       }
                     </p>
                   </div>
                 </div>
+                {subscriptionStatus.isPro && subscriptionStatus.subscriptionId && (
+                  <div className="mt-4 text-center">
+                    <button 
+                      onClick={async () => {
+                        if (!user?.id) return;
+                        setLoadingCustomerPortal(true);
+                        try {
+                          const response = await fetch('/api/stripe/customer-portal', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ userId: user.id }),
+                          });
+                          const data = await response.json();
+                          if (data.url) {
+                            window.location.href = data.url;
+                          } else {
+                            alert('Fehler beim Öffnen des Abo-Verwaltungsbereichs. Bitte versuche es später erneut.');
+                          }
+                        } catch (error) {
+                          console.error('Error opening customer portal:', error);
+                          alert('Fehler beim Öffnen des Abo-Verwaltungsbereichs. Bitte versuche es später erneut.');
+                        } finally {
+                          setLoadingCustomerPortal(false);
+                        }
+                      }}
+                      disabled={loadingCustomerPortal}
+                      className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loadingCustomerPortal ? 'Lädt...' : 'Abo verwalten'}
+                    </button>
+                    <p className="text-gray-600 text-sm mt-2">
+                      Hier kannst du dein Abo kündigen, Zahlungsmethode ändern oder Rechnungen ansehen.
+                    </p>
+                  </div>
+                )}
                 {!subscriptionStatus.isPro && (
                   <div className="mt-4 text-center">
                     <button 
