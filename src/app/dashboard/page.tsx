@@ -70,6 +70,7 @@ export default function Dashboard() {
   const [backgroundMusicElements, setBackgroundMusicElements] = useState<{ [key: string]: HTMLAudioElement }>({});
   const [musicEnabled, setMusicEnabled] = useState(true); // Toggle für Musik
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const adminResourceLoadingRef = useRef<string | null>(null); // Verhindere mehrfaches Laden derselben Ressource
   const [pendingStory, setPendingStory] = useState<any>(null);
   const [isSavingPendingStory, setIsSavingPendingStory] = useState(false);
   const hasCheckedPendingRef = useRef(false);
@@ -782,6 +783,33 @@ export default function Dashboard() {
             }, 3000);
           } else {
             console.log('Pending story saved from dashboard:', data);
+            
+            // Track Resource Creation Event (nur wenn erfolgreich gespeichert)
+            if (data && Array.isArray(data) && data.length > 0 && user && session) {
+              const savedResource = data[0] as any;
+              try {
+                await trackEvent({
+                  eventType: 'resource_created',
+                  storyId: savedResource.id,
+                  resourceFigureName: storyData.selectedFigure.name,
+                  voiceId: storyData.selectedVoiceId || undefined,
+                }, { accessToken: session?.access_token || null });
+                console.log('✅ Resource creation event tracked successfully from dashboard');
+              } catch (trackError) {
+                console.error('❌ Failed to track resource_created event from dashboard:', trackError);
+                // Nicht kritisch - Ressource wurde bereits gespeichert
+              }
+            } else {
+              console.warn('⚠️ Cannot track resource_created event from dashboard:', {
+                hasData: !!data,
+                hasDataArray: !!(data && Array.isArray(data)),
+                hasDataItem: !!(data && Array.isArray(data) && data.length > 0),
+                hasUser: !!user,
+                hasSession: !!session,
+                hasAccessToken: !!session?.access_token
+              });
+            }
+            
             // Lösche temporäre Daten SOFORT wenn erfolgreich gespeichert
             localStorage.removeItem('pendingStory');
             try { localStorage.removeItem('pendingStory_saving'); } catch {}
@@ -880,22 +908,87 @@ export default function Dashboard() {
       const sessionId = urlParams.get('session_id');
       const resourceId = urlParams.get('resource');
       
-      // Prüfe ob resource Parameter vorhanden ist (nach Signup/Login)
+      // Prüfe ob resource Parameter vorhanden ist (nach Signup/Login oder Admin-Zugriff)
       if (resourceId) {
         console.log('Dashboard: Resource parameter found:', resourceId);
-        // Rufe assignPendingResources auf, um die Ressource zuzuordnen
-        assignPendingResources().then(() => {
-          // Lade Stories neu, um die zugeordnete Ressource anzuzeigen
+        
+        // Wenn Admin: Lade Ressource direkt, auch wenn sie einem anderen User gehört
+        if (isAdmin) {
+          // Verhindere mehrfaches Laden derselben Ressource
+          if (adminResourceLoadingRef.current === resourceId) {
+            console.log('Dashboard: Resource already being loaded, skipping');
+            return;
+          }
+          adminResourceLoadingRef.current = resourceId;
+          
+          console.log('Dashboard: Admin user - loading resource directly');
+          // Warte bis loadStories() fertig ist, dann füge die Ressource hinzu
           loadStories().then(() => {
-            // Entferne resource Parameter aus URL
-            const newUrl = new URL(window.location.href);
-            newUrl.searchParams.delete('resource');
-            window.history.replaceState({}, '', newUrl.toString());
-            
-            // Zeige Erfolgsmeldung
-            console.log('Dashboard: Resource assigned successfully');
+            // Kurze Verzögerung, damit setStories() in loadStories() abgeschlossen ist
+            setTimeout(() => {
+              fetch(`/api/admin/resources/search?storyId=${resourceId}`, {
+                headers: {
+                  'Authorization': `Bearer ${session?.access_token || ''}`,
+                },
+              })
+                .then(res => res.json())
+                .then(data => {
+                  adminResourceLoadingRef.current = null; // Reset nach erfolgreichem Laden
+                  if (data.resource) {
+                    // Füge Ressource temporär zu stories hinzu (nach loadStories)
+                    const tempStory: SavedStory = {
+                      id: data.resource.id,
+                      title: data.resource.title,
+                      content: data.resource.content,
+                      resource_figure: data.resource.resource_figure,
+                      question_answers: [],
+                      audio_url: data.resource.audio_url,
+                      is_audio_only: data.resource.is_audio_only,
+                      client_email: data.resource.client_email,
+                      created_at: data.resource.created_at || new Date().toISOString(),
+                    };
+                    setStories(prev => {
+                      // Prüfe ob Ressource bereits vorhanden ist
+                      if (prev.find(s => s.id === tempStory.id)) {
+                        console.log('Dashboard: Resource already in stories list');
+                        return prev;
+                      }
+                      console.log('Dashboard: Adding resource to stories list:', tempStory.title);
+                      return [tempStory, ...prev];
+                    });
+                    
+                    // Entferne resource Parameter aus URL
+                    const newUrl = new URL(window.location.href);
+                    newUrl.searchParams.delete('resource');
+                    window.history.replaceState({}, '', newUrl.toString());
+                    
+                    console.log('Dashboard: Resource loaded successfully for admin');
+                  } else {
+                    console.error('Dashboard: Resource not found');
+                    adminResourceLoadingRef.current = null;
+                  }
+                })
+                .catch(error => {
+                  console.error('Dashboard: Error loading resource:', error);
+                  adminResourceLoadingRef.current = null;
+                });
+            }, 500); // Kurze Verzögerung nach loadStories()
           });
-        });
+        } else {
+          // Normale User: Rufe assignPendingResources auf, um die Ressource zuzuordnen
+          assignPendingResources().then(() => {
+            // Lade Stories neu, um die zugeordnete Ressource anzuzeigen
+            loadStories().then(() => {
+              // Entferne resource Parameter aus URL
+              const newUrl = new URL(window.location.href);
+              newUrl.searchParams.delete('resource');
+              window.history.replaceState({}, '', newUrl.toString());
+              
+              // Zeige Erfolgsmeldung
+              console.log('Dashboard: Resource assigned successfully');
+            });
+          });
+        }
       }
       
       // Nach erfolgreicher Zahlung: Zugangsstatus neu laden
@@ -922,11 +1015,11 @@ export default function Dashboard() {
           window.history.replaceState({}, '', newUrl.toString());
         }
         
-        console.log('Dashboard: Payment successful, reloading access status', { sessionId });
+        console.log('Dashboard: Payment successful, checking access status', { sessionId });
         // Warte kurz, damit Webhook Zeit hat, den Zugang zu erstellen
         // Versuche mehrmals, falls Webhook noch nicht verarbeitet wurde
         let retryCount = 0;
-        const maxRetries = 8; // Mehr Versuche für Live-Website
+        const maxRetries = 10; // Mehr Versuche für Webhook-Verarbeitung
         const retryDelay = 2000; // 2 Sekunden
         let alertShown = false; // Verhindere mehrfache Alerts
         
@@ -943,29 +1036,28 @@ export default function Dashboard() {
             // Erfolgsmeldung nur einmal anzeigen
             if (!alertShown) {
               alertShown = true;
-              setPaymentSuccessMessage('Dein Zugang wurde aktiviert. Die Seite wird automatisch aktualisiert...');
+              setPaymentSuccessMessage('Dein Zugang wurde aktiviert! Du kannst jetzt unbegrenzt Ressourcen erstellen.');
               setShowPaymentSuccess(true);
             }
-            // Seite wird automatisch vom Modal neu geladen
+            // Kein automatisches Neuladen mehr - Dashboard aktualisiert sich selbst
           } else if (retryCount < maxRetries - 1) {
             // Noch kein Zugang - versuche es erneut
             retryCount++;
             setTimeout(checkAccess, retryDelay);
           } else {
             // Nach mehreren Versuchen immer noch kein Zugang
-            // Lade Seite trotzdem neu - möglicherweise ist der Zugang jetzt in der DB
-            console.warn('Dashboard: Access not activated after payment, webhook may have failed. Reloading page anyway...');
+            console.warn('Dashboard: Access not activated after payment. Webhook may have failed or is still processing.');
             if (!alertShown) {
               alertShown = true;
-              setPaymentSuccessMessage('Zahlung erfolgreich! Die Seite wird aktualisiert, um den Zugang zu prüfen...');
+              setPaymentSuccessMessage('Zahlung erfolgreich! Der Zugang wird in Kürze aktiviert. Bitte lade die Seite in ein paar Minuten neu.');
               setShowPaymentSuccess(true);
             }
-            // Seite wird automatisch vom Modal neu geladen
+            // Kein automatisches Neuladen - User kann manuell neu laden wenn nötig
           }
         };
         
-        // Starte erste Prüfung nach 3 Sekunden (mehr Zeit für Webhook auf Live-Website)
-        setTimeout(checkAccess, 3000);
+        // Starte erste Prüfung nach 2 Sekunden (Webhook sollte schnell sein)
+        setTimeout(checkAccess, 2000);
       }
 
       console.log('Dashboard: URL params check', { confirmed, paymentSuccess, user: !!user });
@@ -980,15 +1072,7 @@ export default function Dashboard() {
         window.history.replaceState({}, '', newUrl.toString());
       }
       
-      // payment Parameter aufräumen nach erfolgreicher Verarbeitung
-      if (paymentSuccess) {
-        setTimeout(() => {
-          const newUrl = new URL(window.location.href);
-          newUrl.searchParams.delete('payment');
-          newUrl.searchParams.delete('session_id');
-          window.history.replaceState({}, '', newUrl.toString());
-        }, 3000);
-      }
+      // payment Parameter wird bereits oben entfernt, hier nicht nochmal entfernen
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]); // checkForPendingStories, loadUserAccess, loadStories werden über Closure verwendet
@@ -2097,7 +2181,7 @@ ${story.content}
                       onClick={() => setShowPaywall(true)}
                       className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-300 font-medium"
                     >
-                      Paket aktivieren (ab 49€)
+                      Unbegrenzte Ressourcen erstellen
                     </button>
                     <p className="text-xs text-amber-600 mt-2">
                       Early Adopter Preis - 50% Rabatt
@@ -2486,7 +2570,7 @@ ${story.content}
       {showPaywall && (
         <Paywall
           onClose={() => setShowPaywall(false)}
-          message="Aktiviere ein Paket (ab 49€), um Ressourcen zu erstellen."
+          message="Fühle dich jeden Tag sicher, geborgen und beschützt"
         />
       )}
 
@@ -2509,6 +2593,7 @@ ${story.content}
           }
         }}
       />
+
     </div>
   );
 }

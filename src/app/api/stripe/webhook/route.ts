@@ -56,10 +56,12 @@ export async function POST(req: Request) {
         const session = event.data.object as Stripe.Checkout.Session
         console.log('[stripe/webhook] SESSION COMPLETED', {
           sessionId: session.id,
+          mode: session.mode,
           customerEmail: session.customer_email,
           customerId: session.customer,
           clientReferenceId: session.client_reference_id,
           metadata: session.metadata,
+          subscription: session.subscription,
           paymentIntent: session.payment_intent,
         })
 
@@ -71,34 +73,202 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
         }
 
-        // Hole planType aus Metadata (Standard: 'standard')
-        const planType = session.metadata?.planType || 'standard'
-        console.log('[stripe/webhook] Creating access for user:', userId, 'planType:', planType)
+        // Prüfe ob es eine Subscription ist
+        if (session.mode === 'subscription' && session.subscription) {
+          const subscriptionId = session.subscription as string
+          console.log('[stripe/webhook] Creating subscription access for user:', userId, 'subscriptionId:', subscriptionId)
 
-        // Erstelle/aktualisiere Zugang in Supabase
-        const { data, error } = await supabase.rpc('create_access_after_payment', {
-          user_uuid: userId,
-          payment_intent_id: session.payment_intent as string,
-          checkout_session_id: session.id,
-          plan_type: planType,
-        })
+          // Erstelle Abo-Zugang
+          const { data, error } = await supabase.rpc('create_subscription_access', {
+            user_uuid: userId,
+            subscription_id: subscriptionId,
+            checkout_session_id: session.id,
+          })
 
-        if (error) {
-          console.error('[stripe/webhook] Error creating access:', error)
-          return NextResponse.json({ error: 'Failed to create access' }, { status: 500 })
+          if (error) {
+            console.error('[stripe/webhook] Error creating subscription access:', error)
+            return NextResponse.json({ error: 'Failed to create subscription access' }, { status: 500 })
+          }
+
+          console.log('[stripe/webhook] Subscription access created successfully for user', userId, { accessId: data })
+        } else {
+          console.log('[stripe/webhook] Session is not a subscription, skipping')
         }
+        break
 
-        console.log('[stripe/webhook] Access created successfully for user', userId, { accessId: data })
+      case 'customer.subscription.created':
+        console.log('[stripe/webhook] HANDLING', event.type)
+        const createdSubscription = event.data.object as Stripe.Subscription
+        console.log('[stripe/webhook] SUBSCRIPTION CREATED', {
+          subscriptionId: createdSubscription.id,
+          customerId: createdSubscription.customer,
+          status: createdSubscription.status,
+        })
+        // Subscription wird bereits bei checkout.session.completed erstellt
         break
 
       case 'customer.subscription.updated':
         console.log('[stripe/webhook] HANDLING', event.type)
-        // Abo aktualisiert
+        const updatedSubscription = event.data.object as Stripe.Subscription
+        console.log('[stripe/webhook] SUBSCRIPTION UPDATED', {
+          subscriptionId: updatedSubscription.id,
+          status: updatedSubscription.status,
+          cancelAtPeriodEnd: updatedSubscription.cancel_at_period_end,
+        })
+
+        // Aktualisiere Subscription-Status in Datenbank
+        const { error: updateError } = await supabase
+          .from('user_access')
+          .update({
+            subscription_status: updatedSubscription.status,
+            status: updatedSubscription.status === 'active' ? 'active' : 'canceled',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('stripe_subscription_id', updatedSubscription.id)
+
+        if (updateError) {
+          console.error('[stripe/webhook] Error updating subscription status:', updateError)
+        } else {
+          console.log('[stripe/webhook] Subscription status updated successfully')
+        }
         break
 
       case 'customer.subscription.deleted':
         console.log('[stripe/webhook] HANDLING', event.type)
-        // Abo beendet
+        const deletedSubscription = event.data.object as Stripe.Subscription
+        console.log('[stripe/webhook] SUBSCRIPTION DELETED', {
+          subscriptionId: deletedSubscription.id,
+          status: deletedSubscription.status,
+        })
+
+        // Deaktiviere Abo-Zugang
+        const { error: deleteError } = await supabase
+          .from('user_access')
+          .update({
+            subscription_status: 'canceled',
+            status: 'canceled',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('stripe_subscription_id', deletedSubscription.id)
+
+        if (deleteError) {
+          console.error('[stripe/webhook] Error canceling subscription access:', deleteError)
+        } else {
+          console.log('[stripe/webhook] Subscription access canceled successfully')
+        }
+        break
+
+      case 'customer.subscription.paused':
+        console.log('[stripe/webhook] HANDLING', event.type)
+        const pausedSubscription = event.data.object as Stripe.Subscription
+        console.log('[stripe/webhook] SUBSCRIPTION PAUSED', {
+          subscriptionId: pausedSubscription.id,
+          status: pausedSubscription.status,
+        })
+
+        // Setze Subscription auf paused
+        const { error: pauseError } = await supabase
+          .from('user_access')
+          .update({
+            subscription_status: 'paused',
+            status: 'canceled', // Zugang deaktivieren wenn pausiert
+            updated_at: new Date().toISOString(),
+          })
+          .eq('stripe_subscription_id', pausedSubscription.id)
+
+        if (pauseError) {
+          console.error('[stripe/webhook] Error pausing subscription access:', pauseError)
+        } else {
+          console.log('[stripe/webhook] Subscription access paused successfully')
+        }
+        break
+
+      case 'customer.subscription.resumed':
+        console.log('[stripe/webhook] HANDLING', event.type)
+        const resumedSubscription = event.data.object as Stripe.Subscription
+        console.log('[stripe/webhook] SUBSCRIPTION RESUMED', {
+          subscriptionId: resumedSubscription.id,
+          status: resumedSubscription.status,
+        })
+
+        // Reaktiviere Subscription
+        const { error: resumeError } = await supabase
+          .from('user_access')
+          .update({
+            subscription_status: 'active',
+            status: 'active',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('stripe_subscription_id', resumedSubscription.id)
+
+        if (resumeError) {
+          console.error('[stripe/webhook] Error resuming subscription access:', resumeError)
+        } else {
+          console.log('[stripe/webhook] Subscription access resumed successfully')
+        }
+        break
+
+      case 'invoice.payment_succeeded':
+        console.log('[stripe/webhook] HANDLING', event.type)
+        const succeededInvoice = event.data.object as Stripe.Invoice
+        const subscriptionId = typeof (succeededInvoice as any).subscription === 'string' 
+          ? (succeededInvoice as any).subscription 
+          : (succeededInvoice as any).subscription?.id
+        
+        console.log('[stripe/webhook] INVOICE PAYMENT SUCCEEDED', {
+          invoiceId: succeededInvoice.id,
+          subscriptionId,
+          customerId: succeededInvoice.customer,
+        })
+
+        // Stelle sicher, dass Subscription aktiv ist
+        if (subscriptionId) {
+          const { error: invoiceError } = await supabase
+            .from('user_access')
+            .update({
+              subscription_status: 'active',
+              status: 'active',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('stripe_subscription_id', subscriptionId)
+
+          if (invoiceError) {
+            console.error('[stripe/webhook] Error updating subscription after payment:', invoiceError)
+          } else {
+            console.log('[stripe/webhook] Subscription reactivated after successful payment')
+          }
+        }
+        break
+
+      case 'invoice.payment_failed':
+        console.log('[stripe/webhook] HANDLING', event.type)
+        const failedInvoice = event.data.object as Stripe.Invoice
+        const failedSubscriptionId = typeof (failedInvoice as any).subscription === 'string' 
+          ? (failedInvoice as any).subscription 
+          : (failedInvoice as any).subscription?.id
+        
+        console.log('[stripe/webhook] INVOICE PAYMENT FAILED', {
+          invoiceId: failedInvoice.id,
+          subscriptionId: failedSubscriptionId,
+          customerId: failedInvoice.customer,
+        })
+
+        // Setze Subscription auf past_due
+        if (failedSubscriptionId) {
+          const { error: invoiceError } = await supabase
+            .from('user_access')
+            .update({
+              subscription_status: 'past_due',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('stripe_subscription_id', failedSubscriptionId)
+
+          if (invoiceError) {
+            console.error('[stripe/webhook] Error updating subscription after failed payment:', invoiceError)
+          } else {
+            console.log('[stripe/webhook] Subscription marked as past_due after failed payment')
+          }
+        }
         break
 
       default:

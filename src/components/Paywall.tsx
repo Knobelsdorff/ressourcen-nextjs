@@ -15,9 +15,7 @@ export default function Paywall({ onClose, message }: PaywallProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedPlan, setSelectedPlan] = useState<'standard' | 'premium'>('standard');
-
-  const handleCheckout = async (planType: 'standard' | 'premium') => {
+  const handleCheckout = async () => {
     if (!user?.id) {
       setError('Bitte melde dich zuerst an.');
       return;
@@ -27,8 +25,8 @@ export default function Paywall({ onClose, message }: PaywallProps) {
     setError(null);
 
     try {
-      console.log('[Paywall] Creating checkout session for user:', user.id, 'planType:', planType);
-      const result = await createCheckoutSession(user.id, planType);
+      console.log('[Paywall] Creating subscription checkout session for user:', user.id);
+      const result = await createCheckoutSession(user.id, 'subscription');
 
       if (!result) {
         console.error('[Paywall] Checkout session creation returned null');
@@ -67,120 +65,41 @@ export default function Paywall({ onClose, message }: PaywallProps) {
           </div>
 
           <h2 className="text-2xl font-bold text-amber-900 mb-2">
-            Zugang aktivieren
+            Deine tägliche Quelle der Stärke
           </h2>
 
-          {/* Early Adopter Badge */}
-          <div className="mb-4 inline-block bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2 rounded-full text-sm font-semibold">
-            🎉 Early Adopter Preis - 50% Rabatt
-          </div>
-          <p className="text-sm text-amber-600 mb-4">
-            Wir sind noch in der Beta-Phase. Early Adopters erhalten diesen Preis dauerhaft, auch wenn wir später die Preise für neue Kunden erhöhen.
-          </p>
-
-          {message && (
+          {message ? (
             <p className="text-amber-700 mb-6">{message}</p>
+          ) : (
+            <p className="text-amber-700 mb-6">Fühle dich jeden Tag sicher, geborgen und beschützt</p>
           )}
 
-          {/* Plan Selection */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            {/* Standard Plan */}
-            <div
-              onClick={() => setSelectedPlan('standard')}
-              className={`border-2 rounded-xl p-6 cursor-pointer transition-all ${
-                selectedPlan === 'standard'
-                  ? 'border-amber-500 bg-amber-50'
-                  : 'border-amber-200 bg-white hover:border-amber-300'
-              }`}
-            >
-              <div className="text-left">
-                <h3 className="text-xl font-bold text-amber-900 mb-2">Standard</h3>
+          {/* Monatliches Abo */}
+          <div className="max-w-md mx-auto mb-6">
+            <div className="border-2 border-amber-500 bg-amber-50 rounded-xl p-6">
+              <div className="text-center">
+                <h3 className="text-2xl font-bold text-amber-900 mb-2">Monatliches Abo</h3>
                 <div className="mb-4">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-amber-900">49€</span>
-                    <span className="text-amber-600 text-sm">einmalig</span>
+                  <div className="flex items-baseline justify-center gap-2">
+                    <span className="text-4xl font-bold text-amber-900">39€</span>
+                    <span className="text-amber-600 text-sm">pro Monat</span>
                   </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-gray-400 line-through">99€</span>
-                    <span className="text-xs text-green-600 font-semibold">50% Rabatt</span>
-                  </div>
-                  <p className="text-xs text-amber-600 mt-1">
-                    Early Adopter Preis - dauerhaft gesichert
+                  <p className="text-sm text-amber-600 mt-2">
+                    Geschichten, die dein Herz berühren - monatlich kündbar
                   </p>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-3 text-left mt-6">
                   <div className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-amber-700">2 weitere Ressourcen (insgesamt 3)</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-amber-700">3 Monate Zugang</p>
+                    <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-amber-700">Täglich neue Geschichten, die dir Sicherheit geben</p>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-amber-700">Professionelle Audio-Stimmen</p>
+                    <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-amber-700">Professionelle Stimmen und Musik für Geborgenheit</p>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-amber-700">Streaming (kein Download)</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Premium Plan */}
-            <div
-              onClick={() => setSelectedPlan('premium')}
-              className={`border-2 rounded-xl p-6 cursor-pointer transition-all relative ${
-                selectedPlan === 'premium'
-                  ? 'border-purple-500 bg-purple-50'
-                  : 'border-purple-200 bg-white hover:border-purple-300'
-              }`}
-            >
-              {selectedPlan === 'premium' && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                  EMPFOHLEN
-                </div>
-              )}
-              <div className="text-left">
-                <h3 className="text-xl font-bold text-purple-900 mb-2 flex items-center gap-2">
-                  Premium
-                  <Sparkles className="w-4 h-4 text-purple-600" />
-                </h3>
-                <div className="mb-4">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-purple-900">79€</span>
-                    <span className="text-purple-600 text-sm">einmalig</span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-gray-400 line-through">149€</span>
-                    <span className="text-xs text-green-600 font-semibold">47% Rabatt</span>
-                  </div>
-                  <p className="text-xs text-purple-600 mt-1">
-                    Early Adopter Preis - dauerhaft gesichert
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-purple-700">4 weitere Ressourcen (insgesamt 5)</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-purple-700">6 Monate Zugang</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-purple-700">Professionelle Audio-Stimmen</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Sparkles className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm font-semibold text-purple-900">Exklusive Premium-Features</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-purple-700">Streaming (kein Download)</p>
+                    <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-amber-700">Jederzeit kündbar - du hast die Kontrolle</p>
                   </div>
                 </div>
               </div>
@@ -204,13 +123,9 @@ export default function Paywall({ onClose, message }: PaywallProps) {
               </button>
             )}
             <button
-              onClick={() => handleCheckout(selectedPlan)}
+              onClick={handleCheckout}
               disabled={loading || !user}
-              className={`flex-1 px-4 py-3 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold ${
-                selectedPlan === 'premium'
-                  ? 'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700'
-                  : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600'
-              }`}
+              className="flex-1 px-4 py-3 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
             >
               {loading ? (
                 <>
@@ -220,7 +135,7 @@ export default function Paywall({ onClose, message }: PaywallProps) {
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  {selectedPlan === 'premium' ? 'Premium aktivieren' : 'Standard aktivieren'}
+                  Abo für 39€/Monat abschließen
                 </>
               )}
             </button>

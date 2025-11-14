@@ -339,6 +339,20 @@ export default function AudioPlayback({
 
       console.log('No duplicates found, saving story to database...');
       
+      // Debug: Logge die questionAnswers vor dem Speichern
+      console.log('[AudioPlayback] questionAnswers before save:', JSON.stringify(questionAnswers, null, 2));
+      questionAnswers.forEach((qa: any, index: number) => {
+        console.log(`[AudioPlayback] Question ${qa.questionId || index} before save:`, {
+          questionId: qa.questionId,
+          selectedBlocks: qa.selectedBlocks,
+          selectedBlocksCount: qa.selectedBlocks?.length || 0,
+          customBlocks: qa.customBlocks,
+          customBlocksCount: qa.customBlocks?.length || 0,
+          answer: qa.answer,
+          fullQA: qa
+        });
+      });
+      
       const { data, error } = await (supabase as any)
         .from('saved_stories')
         .insert({
@@ -360,12 +374,26 @@ export default function AudioPlayback({
         
         // Track Resource Creation Event (nur wenn User eingeloggt ist)
         if (user && data && data[0]) {
-          trackEvent({
-            eventType: 'resource_created',
-            storyId: data[0].id,
-            resourceFigureName: selectedFigure.name,
-            voiceId: selectedVoiceId || undefined,
-          }, { accessToken: session?.access_token || null });
+          try {
+            await trackEvent({
+              eventType: 'resource_created',
+              storyId: data[0].id,
+              resourceFigureName: selectedFigure.name,
+              voiceId: selectedVoiceId || undefined,
+            }, { accessToken: session?.access_token || null });
+            console.log('✅ Resource creation event tracked successfully');
+          } catch (trackError) {
+            console.error('❌ Failed to track resource_created event:', trackError);
+            // Nicht kritisch - Ressource wurde bereits gespeichert
+          }
+        } else {
+          console.warn('⚠️ Cannot track resource_created event:', {
+            hasUser: !!user,
+            hasData: !!data,
+            hasDataItem: !!(data && data[0]),
+            hasSession: !!session,
+            hasAccessToken: !!session?.access_token
+          });
         }
         
         // Erhöhe Ressourcen-Zähler nur wenn User bereits Zugang hat (nicht für 1. gratis Ressource)
@@ -1648,7 +1676,7 @@ export default function AudioPlayback({
       {showPaywall && (
         <Paywall
           onClose={() => setShowPaywall(false)}
-          message="Deine kostenlose 3-Tage-Trial-Periode ist abgelaufen. Aktiviere ein Paket (ab 49€), um deine Ressource weiterhin zu nutzen und weitere Ressourcen zu erstellen."
+          message="Deine kostenlose 3-Tage-Trial-Periode ist abgelaufen. Fühle dich jeden Tag sicher, geborgen und beschützt"
         />
       )}
     </div>

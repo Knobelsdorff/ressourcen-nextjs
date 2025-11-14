@@ -468,34 +468,36 @@ export async function canCreateResource(userId: string): Promise<boolean> {
       return true;
     }
     
-    // Prüfe zuerst manuell die Anzahl der Ressourcen (für Fallback)
+    // Prüfe zuerst manuell die Anzahl der KI-generierten Ressourcen (ignoriere Audio-only)
     const { data: stories, error: storiesError } = await supabase
       .from('saved_stories')
-      .select('id')
+      .select('id, is_audio_only')
       .eq('user_id', userId);
     
-    const resourceCount = stories?.length || 0;
-    console.log(`[canCreateResource] User has ${resourceCount} resource(s)`);
+    // Zähle nur KI-generierte Ressourcen (nicht Audio-only)
+    const aiResourceCount = stories?.filter((s: any) => !s.is_audio_only).length || 0;
+    const totalResourceCount = stories?.length || 0;
+    console.log(`[canCreateResource] User has ${totalResourceCount} total resource(s), ${aiResourceCount} AI-generated`);
     
-    // 1. Ressource ist immer erlaubt
-    if (resourceCount === 0) {
-      console.log(`[canCreateResource] First resource - allowing creation`);
+    // 1. KI-Ressource ist immer erlaubt (3 Tage Trial)
+    if (aiResourceCount === 0) {
+      console.log(`[canCreateResource] First AI resource - allowing creation`);
       return true;
     }
     
-    // Ab der 2. Ressource: Prüfe über RPC-Funktion
-    // can_create_resource ist nicht in den generierten Typen, existiert aber in der DB
-    const { data, error } = await (supabase as any).rpc('can_create_resource', {
+    // Ab der 2. KI-Ressource: Prüfe über RPC-Funktion (prüft Abo)
+    // can_create_ai_resource ist nicht in den generierten Typen, existiert aber in der DB
+    const { data, error } = await (supabase as any).rpc('can_create_ai_resource', {
       user_uuid: userId,
     });
 
     if (error) {
       // Prüfe ob es ein 404-Fehler ist (Funktion existiert nicht)
       if (error.code === 'PGRST202' || error.message?.includes('function') || error.message?.includes('does not exist')) {
-        console.warn('[canCreateResource] can_create_resource function does not exist in database. Please run supabase-payment-setup.sql');
-        // Funktion existiert nicht - Fallback: Nur erste Ressource erlauben
-        console.log(`[canCreateResource] Function not found - fallback: allowing only first resource (user has ${resourceCount})`);
-        return false; // Ab der 2. Ressource blockieren, wenn Funktion nicht existiert
+        console.warn('[canCreateResource] can_create_ai_resource function does not exist in database. Please run supabase-abo-migration.sql');
+        // Funktion existiert nicht - Fallback: Nur erste KI-Ressource erlauben
+        console.log(`[canCreateResource] Function not found - fallback: allowing only first AI resource (user has ${aiResourceCount} AI resources)`);
+        return false; // Ab der 2. KI-Ressource blockieren, wenn Funktion nicht existiert
       }
       
       console.error('[canCreateResource] Error calling can_create_resource:', error.message, error.code);
@@ -504,7 +506,7 @@ export async function canCreateResource(userId: string): Promise<boolean> {
     }
 
     const canCreate = data === true;
-    console.log(`[canCreateResource] RPC result: ${canCreate} (user has ${resourceCount} resources)`);
+    console.log(`[canCreateResource] RPC result: ${canCreate} (user has ${aiResourceCount} AI resources)`);
     return canCreate;
   } catch (error: any) {
     console.error('[canCreateResource] Unexpected error:', error?.message || error);
@@ -598,24 +600,13 @@ export async function canAccessResource(userId: string, resourceId?: string): Pr
       const isAudioOnly = requestedResource.is_audio_only === true;
       
       if (isAudioOnly) {
-        // Audio-only Ressourcen: 3 Monate (90 Tage) kostenlos
-        const resourceDate = new Date(requestedResource.created_at);
-        const now = Date.now();
-        const resourceTime = resourceDate.getTime();
-        const daysSinceCreation = (now - resourceTime) / (1000 * 60 * 60 * 24);
-        const monthsSinceCreation = daysSinceCreation / 30;
-        
-        console.log(`[canAccessResource] Audio-only resource check:`, {
+        // Audio-only Ressourcen: Immer zugänglich (für jetzt)
+        // Später: Google Calendar Integration hier einbauen
+        console.log(`[canAccessResource] Audio-only resource: Always accessible (for now)`, {
           resourceId,
           created_at: requestedResource.created_at,
-          daysSinceCreation: daysSinceCreation.toFixed(2),
-          monthsSinceCreation: monthsSinceCreation.toFixed(2),
-          canAccess: monthsSinceCreation < 3,
         });
-        
-        const result = monthsSinceCreation < 3;
-        console.log(`[canAccessResource] Returning: ${result} for audio-only resource ${resourceId}`);
-        return result;
+        return true;
       } else {
         // Normale Ressource (mit Text + Audio)
         // Finde die erste normale Ressource (ignoriere Audio-only Ressourcen)
@@ -662,25 +653,17 @@ export async function canAccessResource(userId: string, resourceId?: string): Pr
     }
 
     // Keine spezifische Ressource - prüfe alle Ressourcen
-    // Audio-only Ressourcen: 3 Monate kostenlos
-    // Normale Ressourcen: Nur erste Ressource, 3 Tage kostenlos
+    // Audio-only Ressourcen: Immer zugänglich (für jetzt)
+    // KI-generierte Ressourcen: Nur erste Ressource, 3 Tage kostenlos
     const audioOnlyResources = typedStories.filter(s => s.is_audio_only === true);
     const normalResources = typedStories.filter(s => !s.is_audio_only);
     
-    // Wenn nur Audio-only Ressourcen vorhanden: Alle sind 3 Monate kostenlos
+    // Wenn nur Audio-only Ressourcen vorhanden: Alle sind immer zugänglich
     if (audioOnlyResources.length > 0 && normalResources.length === 0) {
-      const oldestAudioOnly = audioOnlyResources[0];
-      const resourceDate = new Date(oldestAudioOnly.created_at);
-      const daysSinceCreation = (Date.now() - resourceDate.getTime()) / (1000 * 60 * 60 * 24);
-      const monthsSinceCreation = daysSinceCreation / 30;
-      
-      const canAccess = monthsSinceCreation < 3;
-      console.log(`[canAccessResource] Only audio-only resources:`, {
+      console.log(`[canAccessResource] Only audio-only resources: Always accessible (for now)`, {
         count: audioOnlyResources.length,
-        monthsSinceCreation: monthsSinceCreation.toFixed(2),
-        canAccess,
       });
-      return canAccess;
+      return true;
     }
     
     // Wenn normale Ressourcen vorhanden: Prüfe erste normale Ressource (3 Tage)
@@ -731,7 +714,7 @@ export async function incrementResourceCount(userId: string): Promise<number> {
   }
 }
 
-export async function createCheckoutSession(userId: string, planType: 'standard' | 'premium' = 'standard'): Promise<{ sessionId: string; url: string } | null> {
+export async function createCheckoutSession(userId: string, planType: 'subscription' = 'subscription'): Promise<{ sessionId: string; url: string } | null> {
   try {
     console.log('[createCheckoutSession] Calling /api/checkout with:', { userId, planType });
     

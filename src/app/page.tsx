@@ -648,7 +648,7 @@ export default function RessourcenApp() {
       {showPaywall && (
         <Paywall
           onClose={() => setShowPaywall(false)}
-          message="Deine kostenlose erste Ressource ist bereits erstellt. Aktiviere ein Paket (ab 49€), um weitere Ressourcen zu erstellen."
+          message="Deine kostenlose erste Ressource ist bereits erstellt. Fühle dich jeden Tag sicher, geborgen und beschützt"
         />
       )}
     </div>

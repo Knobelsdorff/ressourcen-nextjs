@@ -138,7 +138,8 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const planType = session.metadata?.planType || 'standard';
+      // Nur noch Abo-System (kein 5-pack mehr)
+      const planType = session.metadata?.planType || 'subscription';
       console.log('[webhook/stripe] Creating access for user:', userId, 'planType:', planType);
       
       // Erstelle Supabase Client
@@ -153,19 +154,27 @@ export async function POST(request: NextRequest) {
         }
       );
       
-      const { data, error } = await supabase.rpc('create_access_after_payment', {
-        user_uuid: userId,
-        payment_intent_id: session.payment_intent as string,
-        checkout_session_id: session.id,
-        plan_type: planType,
-      });
-
-      if (error) {
-        console.error('[webhook/stripe] Error creating access:', error);
-        return NextResponse.json({ error: 'Failed to create access' }, { status: 500 });
+      // Für Subscriptions verwenden wir create_subscription_access
+      if (session.mode === 'subscription' && session.subscription) {
+        const subscriptionId = typeof session.subscription === 'string' 
+          ? session.subscription 
+          : (session.subscription as any).id;
+        
+        const { data, error } = await supabase.rpc('create_subscription_access', {
+          user_uuid: userId,
+          subscription_id: subscriptionId,
+          checkout_session_id: session.id,
+        });
+        
+        if (error) {
+          console.error('[webhook/stripe] Error creating subscription access:', error);
+          return NextResponse.json({ error: 'Failed to create subscription access' }, { status: 500 });
+        }
+        
+        console.log('[webhook/stripe] ✅ Subscription access created successfully for user', userId, { accessId: data });
+      } else {
+        console.warn('[webhook/stripe] Session is not a subscription, skipping access creation');
       }
-
-      console.log('[webhook/stripe] ✅ Access created successfully for user', userId, { accessId: data });
     } catch (error: any) {
       console.error('[webhook/stripe] Exception processing webhook:', error);
       return NextResponse.json({ error: error?.message || 'Unknown error' }, { status: 500 });

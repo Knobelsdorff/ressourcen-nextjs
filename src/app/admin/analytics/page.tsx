@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { motion } from "framer-motion";
 import {
@@ -17,8 +17,11 @@ import {
   RefreshCw,
   Download,
   Music,
+  X,
+  Pause,
 } from "lucide-react";
 import Link from "next/link";
+import { questions } from "@/data/questions";
 
 interface AnalyticsEvent {
   id: string;
@@ -55,6 +58,28 @@ export default function AdminAnalytics() {
   const [eventType, setEventType] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize] = useState<number>(50); // Events pro Seite
+  const [selectedResource, setSelectedResource] = useState<any>(null);
+  const [showResourceDetails, setShowResourceDetails] = useState(false);
+  const [isPlayingResource, setIsPlayingResource] = useState(false);
+  const [resourceAudioElement, setResourceAudioElement] = useState<HTMLAudioElement | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const timeUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup für Audio-Element beim Schließen des Modals
+  useEffect(() => {
+    return () => {
+      // Cleanup beim Unmount
+      if (resourceAudioElement) {
+        resourceAudioElement.pause();
+        resourceAudioElement.currentTime = 0;
+      }
+      if (timeUpdateIntervalRef.current) {
+        clearInterval(timeUpdateIntervalRef.current);
+        timeUpdateIntervalRef.current = null;
+      }
+    };
+  }, [resourceAudioElement]);
 
   // Prüfe ob User Admin ist
   const isAdmin = (() => {
@@ -313,6 +338,130 @@ export default function AdminAnalytics() {
       user_login: "User eingeloggt",
     };
     return translations[type] || type;
+  };
+
+  // Funktion zum Laden und Anzeigen einer Ressource
+  const handlePlayResource = async (storyId: string, userEmail?: string | null) => {
+    try {
+      // Suche die Ressource über die story_id
+      const response = await fetch(`/api/admin/resources/search?storyId=${storyId}`, {
+        headers: {
+          'Authorization': `Bearer ${session?.access_token || ''}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Ressource nicht gefunden');
+      }
+
+      const data = await response.json();
+      const resource = data.resource;
+
+      if (resource) {
+        // Zeige Details-Modal statt direkt abzuspielen
+        setSelectedResource(resource);
+        setShowResourceDetails(true);
+      } else {
+        alert('Ressource nicht gefunden');
+      }
+    } catch (error: any) {
+      console.error('Error loading resource:', error);
+      alert('Fehler beim Laden der Ressource: ' + (error.message || 'Unbekannter Fehler'));
+    }
+  };
+
+  // Funktion zum Laden einer Ressource über Name und Email (Fallback wenn story_id fehlt)
+  const handlePlayResourceByName = async (resourceName: string, userEmail?: string | null) => {
+    try {
+      console.log('[handlePlayResourceByName] Searching for resource:', { resourceName, userEmail });
+      
+      // Suche die Ressource über Name und Email
+      const params = new URLSearchParams();
+      params.append('q', resourceName);
+      if (userEmail) {
+        params.append('email', userEmail);
+      }
+      
+      const searchUrl = `/api/admin/resources/search?${params.toString()}`;
+      console.log('[handlePlayResourceByName] Search URL:', searchUrl);
+      
+      const response = await fetch(searchUrl, {
+        headers: {
+          'Authorization': `Bearer ${session?.access_token || ''}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[handlePlayResourceByName] Response not OK:', response.status, errorText);
+        throw new Error(`Ressource nicht gefunden (Status: ${response.status})`);
+      }
+
+      const data = await response.json();
+      console.log('[handlePlayResourceByName] Search response:', data);
+      const resources = data.resources || [];
+      console.log('[handlePlayResourceByName] Found resources:', resources.length);
+      
+      // Logge alle gefundenen Ressourcen für Debugging
+      resources.forEach((r: any, index: number) => {
+        console.log(`[handlePlayResourceByName] Resource ${index}:`, {
+          id: r.id,
+          title: r.title,
+          resource_figure: r.resource_figure,
+          resource_figure_type: typeof r.resource_figure,
+          user_id: r.user_id,
+          client_email: r.client_email
+        });
+      });
+      
+      // Finde die passende Ressource (gleicher Name)
+      // Prüfe verschiedene Möglichkeiten:
+      // 1. Titel entspricht genau
+      // 2. resource_figure (String) entspricht genau
+      // 3. resource_figure (Objekt) name entspricht genau
+      // 4. Titel enthält den Namen (case-insensitive)
+      const resource = resources.find((r: any) => {
+        const titleMatch = r.title?.toLowerCase() === resourceName.toLowerCase();
+        const figureStringMatch = typeof r.resource_figure === 'string' && 
+                                  r.resource_figure.toLowerCase() === resourceName.toLowerCase();
+        const figureObjectMatch = typeof r.resource_figure === 'object' && 
+                                  r.resource_figure?.name?.toLowerCase() === resourceName.toLowerCase();
+        const titleContains = r.title?.toLowerCase().includes(resourceName.toLowerCase());
+        
+        return titleMatch || figureStringMatch || figureObjectMatch || titleContains;
+      });
+
+      if (resource) {
+        console.log('[handlePlayResourceByName] Found matching resource:', resource.id);
+        // Zeige Details-Modal statt direkt abzuspielen
+        setSelectedResource(resource);
+        setShowResourceDetails(true);
+      } else {
+        console.warn('[handlePlayResourceByName] No matching resource found. Available resources:', resources.map((r: any) => ({
+          title: r.title,
+          resource_figure: r.resource_figure
+        })));
+        
+        // Zeige detailliertere Fehlermeldung
+        let errorMessage = `Ressource "${resourceName}" nicht gefunden${userEmail ? ` für ${userEmail}` : ''}.`;
+        if (resources.length > 0) {
+          errorMessage += `\n\nGefunden: ${resources.length} Ressourcen, aber keine passende.`;
+          errorMessage += `\n\nGefundene Ressourcen:\n${resources.slice(0, 5).map((r: any, i: number) => 
+            `${i + 1}. "${r.title}" (${typeof r.resource_figure === 'string' ? r.resource_figure : r.resource_figure?.name || 'N/A'})`
+          ).join('\n')}`;
+        } else {
+          errorMessage += `\n\nKeine Ressourcen gefunden. Die Ressource existiert möglicherweise nicht in der Datenbank oder gehört einem anderen User.`;
+          if (userEmail) {
+            errorMessage += `\n\nHinweis: Der User ${userEmail} hat möglicherweise keine Ressourcen mit diesem Namen.`;
+          }
+        }
+        
+        alert(errorMessage);
+      }
+    } catch (error: any) {
+      console.error('[handlePlayResourceByName] Error loading resource by name:', error);
+      alert('Fehler beim Laden der Ressource: ' + (error.message || 'Unbekannter Fehler'));
+    }
   };
 
   if (!user) {
@@ -788,13 +937,14 @@ export default function AdminAnalytics() {
                             <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">Zeitpunkt</th>
                             <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">Event</th>
                             <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">Ressourcenfigur</th>
+                            <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">Story ID</th>
                             <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">User Email</th>
                             <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">User ID</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {paginatedEvents.map((event) => (
-                            <tr key={event.id} className="border-b hover:bg-amber-50">
+                          {paginatedEvents.map((event, index) => (
+                            <tr key={`${event.id}-${index}`} className="border-b hover:bg-amber-50">
                               <td className="py-2 px-4 text-sm text-gray-600">
                                 {formatDate(event.created_at)}
                               </td>
@@ -802,7 +952,36 @@ export default function AdminAnalytics() {
                                 {formatEventType(event.event_type)}
                               </td>
                               <td className="py-2 px-4 text-sm text-gray-600">
-                                {event.resource_figure_name || "-"}
+                                {event.resource_figure_name ? (
+                                  event.story_id ? (
+                                    <button
+                                      onClick={() => handlePlayResource(event.story_id!, event.user_email)}
+                                      className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors"
+                                      title="Ressource anhören"
+                                    >
+                                      {event.resource_figure_name}
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => handlePlayResourceByName(event.resource_figure_name!, event.user_email)}
+                                      className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors"
+                                      title="Ressource anhören (Suche nach Name)"
+                                    >
+                                      {event.resource_figure_name}
+                                    </button>
+                                  )
+                                ) : (
+                                  "-"
+                                )}
+                              </td>
+                              <td className="py-2 px-4 text-sm text-gray-500 font-mono text-xs">
+                                {event.story_id ? (
+                                  <span title={event.story_id} className="cursor-help">
+                                    {event.story_id.substring(0, 8)}...
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400">-</span>
+                                )}
                               </td>
                               <td className="py-2 px-4 text-sm text-gray-900 font-medium">
                                 {event.user_email || "-"}
@@ -865,6 +1044,330 @@ export default function AdminAnalytics() {
           </>
         )}
       </div>
+
+      {/* Resource Details Modal */}
+      {showResourceDetails && selectedResource && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => {
+          setShowResourceDetails(false);
+          setSelectedResource(null);
+        }}>
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b">
+              <div>
+                {selectedResource.resource_figure && (
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    Ressourcen-Figur: {
+                      (() => {
+                        // Debug: Logge die Daten
+                        console.log('[Resource Details] Debug resource_figure:', {
+                          resource_figure: selectedResource.resource_figure,
+                          type: typeof selectedResource.resource_figure,
+                          is_audio_only: selectedResource.is_audio_only,
+                          is_audio_only_type: typeof selectedResource.is_audio_only,
+                          is_audio_only_strict: selectedResource.is_audio_only === true,
+                          is_audio_only_truthy: !!selectedResource.is_audio_only,
+                          title: selectedResource.title,
+                          content: selectedResource.content,
+                          content_is_null: selectedResource.content === null,
+                          question_answers: selectedResource.question_answers,
+                          question_answers_length: selectedResource.question_answers?.length || 0,
+                          resource_figure_stringified: JSON.stringify(selectedResource.resource_figure)
+                        });
+                        
+                        // Prüfe ob es eine Custom-Ressource ist (audio-only)
+                        // Prüfe sowohl Boolean true als auch String "true"
+                        const isAudioOnlyExplicit = selectedResource.is_audio_only === true || 
+                                          selectedResource.is_audio_only === 'true' || 
+                                          selectedResource.is_audio_only === 1;
+                        
+                        // Zusätzliche Heuristik: Wenn resource_figure ein String ist, der dem Titel entspricht,
+                        // dann ist es wahrscheinlich eine Custom-Ressource (Audio-only Ressourcen haben resource_figure = title)
+                        const resourceFigureIsString = typeof selectedResource.resource_figure === 'string';
+                        const resourceFigureMatchesTitle = resourceFigureIsString && 
+                                                          selectedResource.resource_figure === selectedResource.title;
+                        
+                        // Wenn resource_figure dem Titel entspricht, ist es sehr wahrscheinlich eine Custom-Ressource
+                        const isLikelyCustom = resourceFigureMatchesTitle;
+                        
+                        const isAudioOnly = isAudioOnlyExplicit || isLikelyCustom;
+                        console.log('[Resource Details] isAudioOnly result:', {
+                          explicit: isAudioOnlyExplicit,
+                          resourceFigureIsString,
+                          resourceFigureMatchesTitle,
+                          likelyCustom: isLikelyCustom,
+                          final: isAudioOnly
+                        });
+                        
+                        // Parse resource_figure (kann String oder Objekt sein)
+                        let resourceFigure: any = selectedResource.resource_figure;
+                        
+                        // Wenn es ein String ist, versuche es zu parsen
+                        if (typeof resourceFigure === 'string') {
+                          try {
+                            resourceFigure = JSON.parse(resourceFigure);
+                            console.log('[Resource Details] Parsed string to object:', resourceFigure);
+                          } catch (e) {
+                            // Wenn Parsing fehlschlägt, ist es ein einfacher String
+                            console.log('[Resource Details] String parsing failed, treating as plain string');
+                            // Wenn es eine Custom-Ressource ist (audio-only), zeige "Custom (Name)"
+                            if (isAudioOnly) {
+                              // Wenn der String dem Titel entspricht, verwende den Titel
+                              // Sonst verwende den String selbst als Namen
+                              const customName = (resourceFigure === selectedResource.title) 
+                                ? selectedResource.title 
+                                : resourceFigure;
+                              console.log('[Resource Details] Custom resource with string, name:', customName);
+                              return `Custom (${customName})`;
+                            }
+                            // Normale Ressource mit String
+                            return resourceFigure;
+                          }
+                        }
+                        
+                        // Prüfe ob es eine Custom-Ressource ist
+                        // Wenn is_audio_only true ist, ist es definitiv eine Custom-Ressource
+                        if (isAudioOnly) {
+                          // Custom-Ressource: "Custom (Name)"
+                          // Versuche Name aus resource_figure zu extrahieren
+                          let customName = selectedResource.title || 'Unbekannt';
+                          
+                          if (typeof resourceFigure === 'object' && resourceFigure?.name) {
+                            customName = resourceFigure.name;
+                          } else if (typeof resourceFigure === 'string' && resourceFigure !== selectedResource.title) {
+                            // Wenn resource_figure ein String ist, der nicht dem Titel entspricht
+                            customName = resourceFigure;
+                          }
+                          
+                          console.log('[Resource Details] Detected as Custom resource (audio-only), name:', customName);
+                          return `Custom (${customName})`;
+                        } else if (typeof resourceFigure === 'object' && resourceFigure?.category === 'custom') {
+                          // Custom-Ressource mit category flag
+                          const customName = resourceFigure?.name || selectedResource.title || 'Unbekannt';
+                          console.log('[Resource Details] Detected as Custom resource (category), name:', customName);
+                          return `Custom (${customName})`;
+                        } else if (typeof resourceFigure === 'string') {
+                          // Normale Ressource: Direkt den String anzeigen (z.B. "Erzengel Michael", "Engel")
+                          console.log('[Resource Details] Detected as normal string resource');
+                          return resourceFigure;
+                        } else if (typeof resourceFigure === 'object') {
+                          // Objekt ohne custom category: Name oder ID anzeigen
+                          const name = resourceFigure?.name || resourceFigure?.id || 'Unbekannt';
+                          console.log('[Resource Details] Detected as object resource, name:', name);
+                          return name;
+                        }
+                        console.log('[Resource Details] Fallback to Unbekannt');
+                        return 'Unbekannt';
+                      })()
+                    }
+                  </h2>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  // Stoppe Audio wenn es läuft
+                  if (resourceAudioElement) {
+                    resourceAudioElement.pause();
+                    resourceAudioElement.currentTime = 0;
+                    setIsPlayingResource(false);
+                  }
+                  if (timeUpdateIntervalRef.current) {
+                    clearInterval(timeUpdateIntervalRef.current);
+                    timeUpdateIntervalRef.current = null;
+                  }
+                  setShowResourceDetails(false);
+                  setSelectedResource(null);
+                  setResourceAudioElement(null);
+                  setCurrentTime(0);
+                  setDuration(0);
+                }}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {/* Frage-Antworten */}
+              {selectedResource.question_answers && selectedResource.question_answers.length > 0 ? (
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold mb-4">Fragen & Antworten:</h3>
+                  {selectedResource.question_answers.map((qa: any, qaIndex: number) => {
+                    // Lade Frage-Details
+                    const question = questions.find(q => q.id === qa.questionId);
+                    
+                    // Debug: Logge die Frage-Antwort-Daten
+                    console.log(`[Resource Details] Question ${qa.questionId}:`, {
+                      questionId: qa.questionId,
+                      selectedBlocks: qa.selectedBlocks,
+                      selectedBlocksCount: qa.selectedBlocks?.length || 0,
+                      customBlocks: qa.customBlocks,
+                      customBlocksCount: qa.customBlocks?.length || 0,
+                      answer: qa.answer,
+                      allCustomBlocks: qa.customBlocks,
+                      allSelectedBlocks: qa.selectedBlocks
+                    });
+                    
+                    return (
+                      <div key={`qa-${qaIndex}`} className="border border-gray-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-gray-900 mb-2">
+                          Frage {qa.questionId}: {question?.title || `Frage ${qa.questionId}`}
+                        </h4>
+                        <p className="text-sm text-gray-600 mb-3">{question?.question}</p>
+                        
+                        {/* Ausgewählte Blocks */}
+                        {qa.selectedBlocks && qa.selectedBlocks.length > 0 && (
+                          <div className="mb-3">
+                            <p className="text-sm font-medium text-gray-700 mb-2">Ausgewählte Antworten:</p>
+                            <ul className="list-disc list-inside space-y-1">
+                              {qa.selectedBlocks.map((block: string, blockIndex: number) => (
+                                <li key={`qa-${qaIndex}-block-${blockIndex}`} className="text-sm text-gray-600">
+                                  {block}
+                                  {qa.customBlocks?.includes(block) && (
+                                    <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                                      Custom
+                                    </span>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        
+                        {/* Custom Text */}
+                        {qa.answer && qa.answer.trim() && (
+                          <div className="mb-3">
+                            <p className="text-sm font-medium text-gray-700 mb-1">Eigener Text:</p>
+                            <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">{qa.answer}</p>
+                          </div>
+                        )}
+                        
+                        {/* Custom Blocks - Zeige ALLE Custom-Blocks an, nicht nur die, die nicht in selectedBlocks sind */}
+                        {qa.customBlocks && qa.customBlocks.length > 0 && (
+                          <div>
+                            <p className="text-sm font-medium text-gray-700 mb-1">Custom-Snippets ({qa.customBlocks.length}):</p>
+                            <ul className="list-disc list-inside space-y-1">
+                              {qa.customBlocks.map((block: string, customIndex: number) => (
+                                <li key={`qa-${qaIndex}-custom-${customIndex}`} className="text-sm text-gray-600">
+                                  {block}
+                                  <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                                    Custom
+                                  </span>
+                                  {qa.selectedBlocks?.includes(block) && (
+                                    <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
+                                      (auch ausgewählt)
+                                    </span>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-gray-500">Keine Fragen-Antworten verfügbar</p>
+              )}
+            </div>
+
+            {/* Footer mit Abspielen-Button */}
+            {selectedResource.audio_url && (
+              <div className="p-6 border-t flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  {isPlayingResource && resourceAudioElement && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <span>
+                        {Math.floor(currentTime)}s / {Math.floor(duration)}s
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {isPlayingResource ? (
+                    <button
+                      onClick={() => {
+                        if (resourceAudioElement) {
+                          resourceAudioElement.pause();
+                          setIsPlayingResource(false);
+                          if (timeUpdateIntervalRef.current) {
+                            clearInterval(timeUpdateIntervalRef.current);
+                            timeUpdateIntervalRef.current = null;
+                          }
+                        }
+                      }}
+                      className="px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                    >
+                      <Pause className="w-5 h-5" />
+                      Pausieren
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        if (selectedResource.audio_url) {
+                          // Erstelle Audio-Element falls noch nicht vorhanden
+                          let audio = resourceAudioElement;
+                          if (!audio) {
+                            audio = new Audio(selectedResource.audio_url);
+                            audio.addEventListener('ended', () => {
+                              setIsPlayingResource(false);
+                              setCurrentTime(0);
+                              if (timeUpdateIntervalRef.current) {
+                                clearInterval(timeUpdateIntervalRef.current);
+                                timeUpdateIntervalRef.current = null;
+                              }
+                            });
+                            audio.addEventListener('loadedmetadata', () => {
+                              if (audio) {
+                                setDuration(audio.duration || 0);
+                              }
+                            });
+                            audio.addEventListener('timeupdate', () => {
+                              if (audio) {
+                                setCurrentTime(audio.currentTime || 0);
+                              }
+                            });
+                            setResourceAudioElement(audio);
+                          }
+                          
+                          // Spiele Audio ab
+                          audio.play().then(() => {
+                            setIsPlayingResource(true);
+                            setDuration(audio.duration || 0);
+                            // Starte Timer für Zeit-Anzeige
+                            if (timeUpdateIntervalRef.current) {
+                              clearInterval(timeUpdateIntervalRef.current);
+                            }
+                            timeUpdateIntervalRef.current = setInterval(() => {
+                              if (audio) {
+                                setCurrentTime(audio.currentTime || 0);
+                              }
+                            }, 100);
+                          }).catch((error) => {
+                            console.error('Error playing audio:', error);
+                            alert('Fehler beim Abspielen der Ressource');
+                          });
+                        }
+                      }}
+                      className="px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                    >
+                      <PlayCircle className="w-5 h-5" />
+                      Ressource abspielen
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

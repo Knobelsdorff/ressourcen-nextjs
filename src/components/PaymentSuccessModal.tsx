@@ -10,13 +10,17 @@ interface PaymentSuccessModalProps {
 }
 
 export default function PaymentSuccessModal({ onClose, message }: PaymentSuccessModalProps) {
-  // Automatisch schließen und Seite neu laden nach 3 Sekunden
+  // Automatisch schließen nach 5 Sekunden (ohne automatisches Neuladen)
+  // Das Dashboard prüft selbstständig den Zugang und lädt bei Bedarf neu
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose();
-      // Seite neu laden, damit alles korrekt aktualisiert wird
-      window.location.reload();
-    }, 3000);
+      // Entferne URL-Parameter, um Endlosschleifen zu vermeiden
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('payment');
+      newUrl.searchParams.delete('session_id');
+      window.history.replaceState({}, '', newUrl.toString());
+    }, 5000);
 
     return () => clearTimeout(timer);
   }, [onClose]);

@@ -241,8 +241,8 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Hole planType aus Metadata (Standard: 'standard')
-      const planType = session.metadata?.planType || 'standard';
+      // Nur noch Abo-System (kein 5-pack mehr)
+      const planType = session.metadata?.planType || 'subscription';
       console.log('Stripe Webhook: Plan type from metadata:', planType);
       
       // Erstelle Supabase Client in Edge Function (muss innerhalb der Funktion erstellt werden)
@@ -257,29 +257,36 @@ export async function POST(request: NextRequest) {
         }
       );
       
-      // Erstelle/aktualisiere Zugang in Supabase
-      console.log('Stripe Webhook: Calling create_access_after_payment for user:', userId, 'planType:', planType);
-      const { data, error } = await supabase.rpc('create_access_after_payment', {
-        user_uuid: userId,
-        payment_intent_id: session.payment_intent as string,
-        checkout_session_id: session.id,
-        plan_type: planType, // 'standard' oder 'premium'
-      });
-
-      if (error) {
-        console.error('Stripe Webhook: Error creating access:', error);
-        console.error('Stripe Webhook: Error details:', {
-          message: (error as any)?.message,
-          code: (error as any)?.code,
-          details: (error as any)?.details,
-          hint: (error as any)?.hint,
+      // Für Subscriptions verwenden wir create_subscription_access
+      if (session.mode === 'subscription' && session.subscription) {
+        const subscriptionId = typeof session.subscription === 'string' 
+          ? session.subscription 
+          : (session.subscription as any).id;
+        
+        console.log('Stripe Webhook: Calling create_subscription_access for user:', userId, 'subscriptionId:', subscriptionId);
+        const { data, error } = await supabase.rpc('create_subscription_access', {
+          user_uuid: userId,
+          subscription_id: subscriptionId,
+          checkout_session_id: session.id,
         });
-        return NextResponse.json({ error: 'Failed to create access' }, { status: 500 });
-      }
 
-      console.log(`Stripe Webhook: Access created successfully for user ${userId}`, {
-        accessId: data,
-      });
+        if (error) {
+          console.error('Stripe Webhook: Error creating subscription access:', error);
+          console.error('Stripe Webhook: Error details:', {
+            message: (error as any)?.message,
+            code: (error as any)?.code,
+            details: (error as any)?.details,
+            hint: (error as any)?.hint,
+          });
+          return NextResponse.json({ error: 'Failed to create subscription access' }, { status: 500 });
+        }
+
+        console.log(`Stripe Webhook: Subscription access created successfully for user ${userId}`, {
+          accessId: data,
+        });
+      } else {
+        console.warn('Stripe Webhook: Session is not a subscription, skipping access creation');
+      }
     } catch (error: any) {
       console.error('Stripe Webhook: Exception processing webhook:', error);
       console.error('Stripe Webhook: Exception message:', (error as any)?.message);

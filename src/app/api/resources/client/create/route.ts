@@ -170,6 +170,54 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Track Resource Creation Event (auch für Audio-only Ressourcen)
+    // WICHTIG: Tracke mit der User-ID des Klienten (falls vorhanden) oder Admin-User
+    if (dbData && dbData.id) {
+      try {
+        // Bestimme user_id für Tracking:
+        // - Wenn clientEmail vorhanden und User existiert: verwende Klienten-User-ID
+        // - Sonst: verwende Admin-User-ID
+        let trackingUserId = user.id; // Standard: Admin-User
+        
+        if (normalizedClientEmail) {
+          const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+          const clientUser = existingUsers?.users.find(u => u.email?.toLowerCase() === normalizedClientEmail);
+          if (clientUser) {
+            trackingUserId = clientUser.id;
+          }
+        }
+        
+        // Tracke direkt in der Datenbank (umgeht RLS mit Service Role)
+        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.PRIVATE_SUPABASE_SERVICE_KEY;
+        if (serviceRoleKey) {
+          const { createClient } = await import('@supabase/supabase-js');
+          const trackingSupabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            serviceRoleKey
+          );
+          
+          const { error: trackError } = await (trackingSupabase as any)
+            .from('user_analytics')
+            .insert({
+              user_id: trackingUserId,
+              event_type: 'resource_created',
+              story_id: dbData.id,
+              resource_figure_name: resourceName.trim(),
+              voice_id: null, // Audio-only, keine generierte Stimme
+            });
+          
+          if (trackError) {
+            console.error('Failed to track resource_created event:', trackError);
+          } else {
+            console.log('Resource creation event tracked successfully for:', resourceName.trim());
+          }
+        }
+      } catch (trackError) {
+        console.error('Error tracking resource creation:', trackError);
+        // Nicht kritisch - Ressource wurde bereits gespeichert
+      }
+    }
+
     // Wenn clientEmail vorhanden, sende benutzerdefinierte Email mit Magic-Link
     if (normalizedClientEmail) {
       try {
