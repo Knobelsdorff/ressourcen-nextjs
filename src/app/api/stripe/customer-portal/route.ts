@@ -18,7 +18,14 @@ export async function POST(request: Request) {
     }
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-    const origin = process.env.APP_BASE_URL ?? new URL(request.url).origin
+    const requestUrl = new URL(request.url)
+    const origin = process.env.APP_BASE_URL ?? requestUrl.origin
+    
+    console.log('Customer Portal API: Request details', {
+      origin,
+      requestUrl: requestUrl.toString(),
+      hasAppBaseUrl: !!process.env.APP_BASE_URL,
+    })
 
     // Hole Stripe Customer ID aus Supabase
     const supabase = createClient(
@@ -52,6 +59,7 @@ export async function POST(request: Request) {
     }
 
     console.log('Customer Portal API: Creating portal session for customer:', customerId)
+    console.log('Customer Portal API: Return URL will be:', `${origin}/dashboard?tab=profile`)
 
     // Erstelle Customer Portal Session
     // Optional: Falls du eine spezifische Business Profile Configuration verwenden möchtest,
@@ -61,6 +69,11 @@ export async function POST(request: Request) {
       return_url: `${origin}/dashboard?tab=profile`,
       // Optional: Spezifische Konfiguration verwenden (falls mehrere Business Profiles vorhanden)
       // configuration: process.env.STRIPE_CUSTOMER_PORTAL_CONFIG_ID || undefined,
+    })
+
+    console.log('Customer Portal API: Portal session created successfully:', {
+      sessionId: portalSession.id,
+      url: portalSession.url,
     })
 
     return NextResponse.json({ url: portalSession.url })

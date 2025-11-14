@@ -12,6 +12,15 @@ const supabase = createClient(
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+// GET Handler für Health Check (verhindert 301 Redirect)
+export async function GET(req: Request) {
+  return NextResponse.json({ 
+    status: 'ok', 
+    message: 'Webhook endpoint is reachable',
+    timestamp: new Date().toISOString()
+  })
+}
+
 export async function POST(req: Request) {
   console.log('[stripe/webhook] Request received')
   
