@@ -300,8 +300,48 @@ export async function POST(request: NextRequest) {
 
             if (emailResult.success) {
               console.log(`[API/resources/client/create-batch] ✅ Email sent successfully to: ${normalizedClientEmail}`);
+              
+              // Sende Bestätigungs-Email an Admin
+              try {
+                const { sendAdminConfirmationEmail } = await import('@/lib/email');
+                const adminEmail = user.email; // Admin-Email aus Session
+                if (adminEmail) {
+                  const adminConfirmationResult = await sendAdminConfirmationEmail({
+                    to: adminEmail,
+                    clientEmail: normalizedClientEmail,
+                    resourceNames: resourceNames,
+                    success: true,
+                  });
+                  
+                  if (adminConfirmationResult.success) {
+                    console.log(`[API/resources/client/create-batch] ✅ Admin confirmation email sent to: ${adminEmail}`);
+                  } else {
+                    console.error(`[API/resources/client/create-batch] ❌ Failed to send admin confirmation:`, adminConfirmationResult.error);
+                  }
+                }
+              } catch (adminEmailError: any) {
+                console.error('[API/resources/client/create-batch] Error sending admin confirmation email:', adminEmailError);
+                // Fehler ist nicht kritisch
+              }
             } else {
               console.error(`[API/resources/client/create-batch] ❌ Failed to send email:`, emailResult.error);
+              
+              // Sende Fehler-Bestätigung an Admin
+              try {
+                const { sendAdminConfirmationEmail } = await import('@/lib/email');
+                const adminEmail = user.email;
+                if (adminEmail) {
+                  await sendAdminConfirmationEmail({
+                    to: adminEmail,
+                    clientEmail: normalizedClientEmail,
+                    resourceNames: resourceNames,
+                    success: false,
+                    error: emailResult.error,
+                  });
+                }
+              } catch (adminEmailError: any) {
+                console.error('[API/resources/client/create-batch] Error sending admin error notification:', adminEmailError);
+              }
             }
           } catch (emailError: any) {
             console.error('[API/resources/client/create-batch] Error sending email:', emailError);

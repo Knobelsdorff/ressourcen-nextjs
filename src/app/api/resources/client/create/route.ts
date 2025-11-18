@@ -344,8 +344,48 @@ export async function POST(request: NextRequest) {
 
             if (emailResult.success) {
               console.log('[API/resources/client/create] ✅ Resource ready email sent successfully to:', normalizedClientEmail);
+              
+              // Sende Bestätigungs-Email an Admin
+              try {
+                const { sendAdminConfirmationEmail } = await import('@/lib/email');
+                const adminEmail = user.email;
+                if (adminEmail) {
+                  const adminConfirmationResult = await sendAdminConfirmationEmail({
+                    to: adminEmail,
+                    clientEmail: normalizedClientEmail,
+                    resourceNames: [resourceName.trim()],
+                    success: true,
+                  });
+                  
+                  if (adminConfirmationResult.success) {
+                    console.log('[API/resources/client/create] ✅ Admin confirmation email sent to:', adminEmail);
+                  } else {
+                    console.error('[API/resources/client/create] ❌ Failed to send admin confirmation:', adminConfirmationResult.error);
+                  }
+                }
+              } catch (adminEmailError: any) {
+                console.error('[API/resources/client/create] Error sending admin confirmation:', adminEmailError);
+                // Fehler ist nicht kritisch
+              }
             } else {
               console.error('[API/resources/client/create] ❌ Failed to send resource ready email:', emailResult.error);
+              
+              // Sende Fehler-Bestätigung an Admin
+              try {
+                const { sendAdminConfirmationEmail } = await import('@/lib/email');
+                const adminEmail = user.email;
+                if (adminEmail) {
+                  await sendAdminConfirmationEmail({
+                    to: adminEmail,
+                    clientEmail: normalizedClientEmail,
+                    resourceNames: [resourceName.trim()],
+                    success: false,
+                    error: emailResult.error,
+                  });
+                }
+              } catch (adminEmailError: any) {
+                console.error('[API/resources/client/create] Error sending admin error notification:', adminEmailError);
+              }
               // Fehler ist nicht kritisch - Magic Link wurde generiert
             }
           } catch (emailError: any) {

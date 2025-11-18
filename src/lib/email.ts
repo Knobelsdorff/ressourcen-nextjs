@@ -197,3 +197,183 @@ export async function sendResourceReadyEmail({
   }
 }
 
+interface SendAdminConfirmationEmailParams {
+  to: string; // Admin-Email
+  clientEmail: string; // Klienten-Email
+  resourceNames: string[];
+  success: boolean;
+  error?: string;
+}
+
+const getAdminConfirmationEmailHTML = (
+  clientEmail: string,
+  resourceNames: string[],
+  success: boolean,
+  error?: string
+) => {
+  const isMultiple = resourceNames.length > 1;
+  const resourceNamesList = resourceNames.map(name => `<li style="margin-bottom: 8px;"><strong>"${name}"</strong></li>`).join('');
+  
+  if (!success) {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+    <h1 style="color: white; margin: 0; font-size: 28px;">⚠️ Fehler beim Versenden</h1>
+  </div>
+  
+  <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+    <p style="font-size: 16px; margin-bottom: 20px;">
+      Beim Versenden der Ressourcen an <strong>${clientEmail}</strong> ist ein Fehler aufgetreten.
+    </p>
+    
+    <p style="font-size: 16px; margin-bottom: 20px; color: #ef4444;">
+      <strong>Fehler:</strong> ${error || 'Unbekannter Fehler'}
+    </p>
+    
+    <p style="font-size: 14px; color: #6b7280; margin-top: 30px;">
+      Bitte prüfe die Server-Logs für weitere Details.
+    </p>
+  </div>
+</body>
+</html>
+`;
+  }
+  
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+    <h1 style="color: white; margin: 0; font-size: 28px;">✅ Ressourcen erfolgreich versendet</h1>
+  </div>
+  
+  <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+    <p style="font-size: 16px; margin-bottom: 20px;">
+      Die folgenden ${isMultiple ? `${resourceNames.length} Ressourcen` : 'Ressource'} wurde${isMultiple ? 'n' : ''} erfolgreich an <strong>${clientEmail}</strong> versendet:
+    </p>
+    
+    ${isMultiple ? `
+    <ul style="font-size: 16px; margin-bottom: 20px; padding-left: 20px; list-style-type: disc;">
+      ${resourceNamesList}
+    </ul>
+    ` : `
+    <p style="font-size: 16px; margin-bottom: 20px;">
+      <strong>"${resourceNames[0]}"</strong>
+    </p>
+    `}
+    
+    <p style="font-size: 14px; color: #6b7280; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+      Der Klient hat eine E-Mail mit Magic Link erhalten und kann sich nun anmelden, um auf ${isMultiple ? 'seine Ressourcen' : 'seine Ressource'} zuzugreifen.
+    </p>
+  </div>
+  
+  <div style="text-align: center; margin-top: 20px; padding: 20px; color: #6b7280; font-size: 12px;">
+    <p>© ${new Date().getFullYear()} Ressourcen App - Andreas von Knobelsdorff</p>
+  </div>
+</body>
+</html>
+`;
+};
+
+export async function sendAdminConfirmationEmail({
+  to,
+  clientEmail,
+  resourceNames,
+  success,
+  error,
+}: SendAdminConfirmationEmailParams): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (resourceNames.length === 0) {
+      console.error('[Email] ❌ No resource names provided for admin confirmation');
+      return { success: false, error: 'Keine Ressourcennamen angegeben' };
+    }
+    
+    console.log('[Email] sendAdminConfirmationEmail called:', {
+      to,
+      clientEmail,
+      resourceNames,
+      count: resourceNames.length,
+      success,
+    });
+    
+    // SMTP-Konfiguration (gleiche wie für Klienten-Emails)
+    const smtpHost = process.env.SMTP_HOST;
+    const smtpPort = process.env.SMTP_PORT;
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPassword = process.env.SMTP_PASSWORD;
+    const smtpFrom = process.env.SMTP_FROM_EMAIL || 'noreply@ressourcen.app';
+
+    if (smtpHost && smtpPort && smtpUser && smtpPassword) {
+      try {
+        console.log('[Email] Attempting to send admin confirmation email via SMTP...');
+        const nodemailer = await import('nodemailer');
+        
+        const transporter = nodemailer.createTransport({
+          host: smtpHost,
+          port: parseInt(smtpPort),
+          secure: parseInt(smtpPort) === 465,
+          auth: {
+            user: smtpUser,
+            pass: smtpPassword,
+          },
+        });
+
+        await transporter.verify();
+        console.log('[Email] ✅ SMTP connection verified for admin confirmation');
+
+        const isMultiple = resourceNames.length > 1;
+        const info = await transporter.sendMail({
+          from: `"Ressourcen App" <${smtpFrom}>`,
+          to: to,
+          subject: success 
+            ? `✅ ${isMultiple ? `${resourceNames.length} Ressourcen` : 'Ressource'} erfolgreich an ${clientEmail} versendet`
+            : `⚠️ Fehler beim Versenden an ${clientEmail}`,
+          html: getAdminConfirmationEmailHTML(clientEmail, resourceNames, success, error),
+        });
+
+        console.log('[Email] ✅ Admin confirmation email sent via SMTP:', {
+          messageId: info.messageId,
+          accepted: info.accepted,
+          rejected: info.rejected,
+        });
+        return { success: true };
+      } catch (smtpError: any) {
+        console.error('[Email] ❌ SMTP error sending admin confirmation:', {
+          message: smtpError?.message,
+          code: smtpError?.code,
+        });
+        return { success: false, error: smtpError?.message || 'SMTP error' };
+      }
+    } else {
+      console.warn('[Email] ⚠️ SMTP not configured - admin confirmation email not sent');
+      // Fallback: Logge in Development
+      const isMultiple = resourceNames.length > 1;
+      console.log('\n=== 📧 ADMIN-BESTÄTIGUNG (Development Mode) ===');
+      console.log('An:', to);
+      console.log('Betreff:', success 
+        ? `✅ ${isMultiple ? `${resourceNames.length} Ressourcen` : 'Ressource'} erfolgreich an ${clientEmail} versendet`
+        : `⚠️ Fehler beim Versenden an ${clientEmail}`);
+      console.log('Klient:', clientEmail);
+      console.log('Ressourcen:', resourceNames);
+      console.log('Erfolg:', success);
+      if (error) console.log('Fehler:', error);
+      console.log('==================================================\n');
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('[Email] Error sending admin confirmation email:', error);
+    return { success: false, error: error.message };
+  }
+}
+
