@@ -57,6 +57,7 @@ export async function POST(request: Request) {
     })
 
     // Verwende Price-ID direkt (empfohlen für Production)
+    // payment_method_types erzwingt explizit die angegebenen Methoden
     const session = await stripe.checkout.sessions.create({
       payment_method_types: paymentMethodTypes,
       payment_method_options: {
