@@ -33,29 +33,79 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    const { data: userAccess, error: accessError } = await supabase
-      .from('user_access')
-      .select('stripe_subscription_id')
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .single()
+    // Hole User-Email für Stripe-Suche
+    const { data: userData } = await supabase.auth.admin.getUserById(userId)
+    const userEmail = userData?.user?.email
 
-    if (accessError || !userAccess?.stripe_subscription_id) {
-      console.error('Customer Portal API: No active subscription found for user:', userId)
-      return NextResponse.json({ 
-        error: 'Kein aktives Abo gefunden. Bitte erstelle zuerst ein Abo.' 
-      }, { status: 404 })
+    // Versuche zuerst Subscription-ID aus Datenbank zu holen
+    const { data: userAccess } = await supabase
+      .from('user_access')
+      .select('stripe_subscription_id, stripe_customer_id')
+      .eq('user_id', userId)
+      .not('stripe_subscription_id', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    let subscriptionId: string | null = null
+    let customerId: string | null = null
+
+    if (userAccess?.stripe_subscription_id) {
+      // Subscription-ID in DB gefunden
+      subscriptionId = userAccess.stripe_subscription_id
+      if (subscriptionId) {
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+        customerId = subscription.customer as string
+        console.log('Customer Portal API: Found subscription in database:', subscriptionId)
+      }
+    } else {
+      // Subscription-ID nicht in DB - suche direkt in Stripe
+      console.log('Customer Portal API: No subscription in database, searching in Stripe...')
+      
+      if (userEmail) {
+        // Suche nach Customer mit dieser Email
+        const customers = await stripe.customers.list({
+          email: userEmail,
+          limit: 10,
+        })
+
+        if (customers.data.length > 0) {
+          // Finde aktive Subscription für diesen Customer
+          for (const customer of customers.data) {
+            const subscriptions = await stripe.subscriptions.list({
+              customer: customer.id,
+              status: 'all', // Suche auch nach canceled/past_due
+              limit: 10,
+            })
+
+            if (subscriptions.data.length > 0) {
+              // Verwende die neueste Subscription
+              const latestSubscription = subscriptions.data.sort(
+                (a, b) => b.created - a.created
+              )[0]
+              
+              subscriptionId = latestSubscription.id
+              customerId = customer.id
+              console.log('Customer Portal API: Found subscription in Stripe:', {
+                subscriptionId,
+                customerId,
+                status: latestSubscription.status,
+              })
+              break
+            }
+          }
+        }
+      }
     }
 
-    // Hole Subscription von Stripe, um Customer ID zu bekommen
-    const subscription = await stripe.subscriptions.retrieve(userAccess.stripe_subscription_id)
-    const customerId = subscription.customer as string
-
-    if (!customerId) {
-      console.error('Customer Portal API: No customer ID found in subscription')
+    if (!subscriptionId || !customerId) {
+      console.error('Customer Portal API: No subscription found for user:', userId, {
+        hasUserAccess: !!userAccess,
+        hasEmail: !!userEmail,
+      })
       return NextResponse.json({ 
-        error: 'Fehler beim Laden der Abo-Informationen.' 
-      }, { status: 500 })
+        error: 'Kein Abo gefunden. Bitte erstelle zuerst ein Abo.' 
+      }, { status: 404 })
     }
 
     console.log('Customer Portal API: Creating portal session for customer:', customerId)

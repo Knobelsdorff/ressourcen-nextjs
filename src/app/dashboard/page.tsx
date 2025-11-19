@@ -199,6 +199,13 @@ export default function Dashboard() {
       if (access) {
         setUserAccess(access);
         
+        console.log('[loadUserAccess] getUserAccess returned access:', {
+          planType: access.plan_type,
+          stripeSubscriptionId: (access as any).stripe_subscription_id,
+          subscriptionStatus: (access as any).subscription_status,
+          status: access.status,
+        });
+        
         // Prüfe ob es ein Subscription-Abo ist
         const isSubscription = access.plan_type === 'subscription';
         const hasActiveSubscription = isSubscription && 
@@ -207,13 +214,87 @@ export default function Dashboard() {
         
         setSubscriptionStatus({
           plan: isSubscription ? 'Monatliches Abo' : '3-Monats-Paket',
-          credits: isSubscription ? 999999 : (access.resources_limit - access.resources_created), // Unlimited für Subscription
+          credits: isSubscription ? 999999 : Math.max(0, access.resources_limit - access.resources_created), // Unlimited für Subscription, verhindere negative Werte
           expiresAt: isSubscription ? null : (access.access_expires_at ? new Date(access.access_expires_at) : null),
           isPro: hasActiveSubscription || (access.status === 'active' && (!access.access_expires_at || new Date(access.access_expires_at) > new Date())),
           subscriptionId: (access as any).stripe_subscription_id || null,
           subscriptionStatus: (access as any).subscription_status || null,
         });
-        return; // Erfolgreich geladen, keine weiteren Checks nötig
+        
+        console.log('[loadUserAccess] Set subscriptionStatus:', {
+          subscriptionId: (access as any).stripe_subscription_id || null,
+          plan: isSubscription ? 'Monatliches Abo' : '3-Monats-Paket',
+          isPro: hasActiveSubscription || (access.status === 'active' && (!access.access_expires_at || new Date(access.access_expires_at) > new Date())),
+          status: access.status,
+          expiresAt: access.access_expires_at,
+          hasActiveSubscription,
+        });
+        
+        // Prüfe zusätzlich, ob User ein Abo hat (auch wenn nicht in access gefunden)
+        // Dies ist wichtig, damit der "Abo verwalten" Button auch angezeigt wird, wenn das Abo inaktiv ist
+        try {
+          const { data: subscriptionData, error: subscriptionQueryError } = await supabase
+            .from('user_access')
+            .select('stripe_subscription_id, subscription_status, plan_type')
+            .eq('user_id', user.id)
+            .not('stripe_subscription_id', 'is', null)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          
+          console.log('[loadUserAccess] Subscription query result:', {
+            hasData: !!subscriptionData,
+            subscriptionId: subscriptionData ? (subscriptionData as any).stripe_subscription_id : null,
+            subscriptionStatus: subscriptionData ? (subscriptionData as any).subscription_status : null,
+            planType: subscriptionData ? (subscriptionData as any).plan_type : null,
+            fullData: subscriptionData,
+            error: subscriptionQueryError?.message,
+            errorCode: subscriptionQueryError?.code,
+          });
+          
+          if (subscriptionData && (subscriptionData as any).stripe_subscription_id) {
+            // User hat ein Abo (auch wenn inaktiv), setze subscriptionId
+            setSubscriptionStatus(prev => ({
+              ...prev,
+              subscriptionId: (subscriptionData as any).stripe_subscription_id,
+              subscriptionStatus: (subscriptionData as any).subscription_status || null,
+              plan: (subscriptionData as any).plan_type === 'subscription' ? 'Monatliches Abo' : prev.plan,
+              credits: (subscriptionData as any).plan_type === 'subscription' ? 999999 : prev.credits,
+              expiresAt: (subscriptionData as any).plan_type === 'subscription' ? null : prev.expiresAt,
+            }));
+          } else {
+            // Keine Subscription-ID in DB gefunden - prüfe direkt in Stripe
+            try {
+              const checkResponse = await fetch('/api/stripe/check-subscription', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id }),
+              });
+              
+              if (checkResponse.ok) {
+                const checkData = await checkResponse.json();
+                if (checkData.hasSubscription && checkData.subscriptionId) {
+                  // Subscription in Stripe gefunden - aktualisiere Status
+                  setSubscriptionStatus(prev => ({
+                    ...prev,
+                    subscriptionId: checkData.subscriptionId,
+                    subscriptionStatus: checkData.subscriptionStatus || 'active',
+                    plan: 'Monatliches Abo',
+                    credits: 999999,
+                    expiresAt: null,
+                  }));
+                  console.log('[loadUserAccess] Found subscription in Stripe:', checkData);
+                }
+              }
+            } catch (checkError) {
+              console.error('[loadUserAccess] Error checking Stripe subscription:', checkError);
+            }
+          }
+        } catch (subscriptionError) {
+          console.error('[loadUserAccess] Error checking for subscription:', subscriptionError);
+        }
+        
+        return; // Erfolgreich geladen
       }
       
       // Falls getUserAccess null zurückgibt (406 Error oder kein Zugang), prüfe direkt mit hasActiveAccess
@@ -239,6 +320,58 @@ export default function Dashboard() {
         // Kein Zugang vorhanden
         setUserAccess(null);
       }
+      
+      // Prüfe trotzdem, ob User ein Abo hat (auch wenn inaktiv/gekündigt)
+      // Dies ist wichtig, damit der "Abo verwalten" Button angezeigt wird
+      try {
+        const { data: subscriptionData } = await supabase
+          .from('user_access')
+          .select('stripe_subscription_id, subscription_status, plan_type')
+          .eq('user_id', user.id)
+          .not('stripe_subscription_id', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (subscriptionData && (subscriptionData as any).stripe_subscription_id) {
+          // User hat ein Abo (auch wenn inaktiv), setze subscriptionId
+          setSubscriptionStatus(prev => ({
+            ...prev,
+            subscriptionId: (subscriptionData as any).stripe_subscription_id,
+            subscriptionStatus: (subscriptionData as any).subscription_status || null,
+            plan: (subscriptionData as any).plan_type === 'subscription' ? 'Monatliches Abo' : prev.plan,
+            credits: (subscriptionData as any).plan_type === 'subscription' ? 999999 : prev.credits,
+            expiresAt: (subscriptionData as any).plan_type === 'subscription' ? null : prev.expiresAt,
+          }));
+        } else {
+          // Keine Subscription-ID in DB gefunden - prüfe direkt in Stripe
+          try {
+            const checkResponse = await fetch('/api/stripe/check-subscription', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: user.id }),
+            });
+            
+            if (checkResponse.ok) {
+              const checkData = await checkResponse.json();
+              if (checkData.hasSubscription && checkData.subscriptionId) {
+                setSubscriptionStatus(prev => ({
+                  ...prev,
+                  subscriptionId: checkData.subscriptionId,
+                  subscriptionStatus: checkData.subscriptionStatus || 'active',
+                  plan: 'Monatliches Abo',
+                  credits: 999999,
+                  expiresAt: null,
+                }));
+              }
+            }
+          } catch (checkError) {
+            console.error('[loadUserAccess] Error checking Stripe subscription:', checkError);
+          }
+        }
+      } catch (subscriptionError) {
+        console.error('[loadUserAccess] Error checking for subscription:', subscriptionError);
+      }
     } catch (error) {
       console.error('Error loading user access:', error);
       // Fallback: Prüfe direkt mit hasActiveAccess
@@ -258,6 +391,56 @@ export default function Dashboard() {
           } as any);
         } else {
           setUserAccess(null);
+        }
+        
+        // Prüfe auch hier nach subscriptionId
+        try {
+          const { data: subscriptionData } = await supabase
+            .from('user_access')
+            .select('stripe_subscription_id, subscription_status, plan_type')
+            .eq('user_id', user.id)
+            .not('stripe_subscription_id', 'is', null)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          
+          if (subscriptionData && (subscriptionData as any).stripe_subscription_id) {
+            setSubscriptionStatus(prev => ({
+              ...prev,
+              subscriptionId: (subscriptionData as any).stripe_subscription_id,
+              subscriptionStatus: (subscriptionData as any).subscription_status || null,
+              plan: (subscriptionData as any).plan_type === 'subscription' ? 'Monatliches Abo' : prev.plan,
+              credits: (subscriptionData as any).plan_type === 'subscription' ? 999999 : prev.credits,
+              expiresAt: (subscriptionData as any).plan_type === 'subscription' ? null : prev.expiresAt,
+            }));
+          } else {
+            // Keine Subscription-ID in DB gefunden - prüfe direkt in Stripe
+            try {
+              const checkResponse = await fetch('/api/stripe/check-subscription', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id }),
+              });
+              
+              if (checkResponse.ok) {
+                const checkData = await checkResponse.json();
+                if (checkData.hasSubscription && checkData.subscriptionId) {
+                  setSubscriptionStatus(prev => ({
+                    ...prev,
+                    subscriptionId: checkData.subscriptionId,
+                    subscriptionStatus: checkData.subscriptionStatus || 'active',
+                    plan: 'Monatliches Abo',
+                    credits: 999999,
+                    expiresAt: null,
+                  }));
+                }
+              }
+            } catch (checkError) {
+              console.error('[loadUserAccess] Error checking Stripe subscription in fallback:', checkError);
+            }
+          }
+        } catch (subscriptionError) {
+          console.error('[loadUserAccess] Error checking for subscription in fallback:', subscriptionError);
         }
       } catch (fallbackError) {
         console.error('Fallback hasActiveAccess also failed:', fallbackError);
@@ -2209,7 +2392,7 @@ ${story.content}
                     </p>
                   </div>
                 </div>
-                {subscriptionStatus.isPro && subscriptionStatus.subscriptionId && (
+                {(subscriptionStatus.subscriptionId || subscriptionStatus.isPro) && (
                   <div className="mt-4 text-center">
                     <button 
                       onClick={async () => {
@@ -2223,9 +2406,9 @@ ${story.content}
                           });
                           const data = await response.json();
                           if (data.url) {
-                            window.location.href = data.url;
+                            window.open(data.url, '_blank', 'noopener,noreferrer');
                           } else {
-                            alert('Fehler beim Öffnen des Abo-Verwaltungsbereichs. Bitte versuche es später erneut.');
+                            alert(data.error || 'Fehler beim Öffnen des Abo-Verwaltungsbereichs. Bitte versuche es später erneut.');
                           }
                         } catch (error) {
                           console.error('Error opening customer portal:', error);
