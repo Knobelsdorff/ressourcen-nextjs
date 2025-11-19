@@ -50,7 +50,11 @@ export async function POST(request: Request) {
 
     // Verwende Price-ID direkt (empfohlen für Production)
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
+      payment_method_types: [
+        'card',        // Kredit-/Debitkarten (universell, sofort)
+        'sepa_debit',  // SEPA Lastschrift (günstig, perfekt für Subscriptions)
+        'paypal',      // PayPal (sehr beliebt in DE, funktioniert gut für Abos)
+      ],
       line_items: [{ price: subscriptionPriceId, quantity: 1 }],
       mode: 'subscription',
       success_url: `${origin}/dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}`,
