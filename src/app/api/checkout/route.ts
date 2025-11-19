@@ -41,20 +41,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
     }
 
-    console.log('Checkout API: Creating subscription session with priceId', { 
+    const paymentMethodTypes: Stripe.Checkout.SessionCreateParams.PaymentMethodType[] = [
+      'card',        // Kredit-/Debitkarten (universell, sofort)
+      'sepa_debit',  // SEPA Lastschrift (günstig, perfekt für Subscriptions)
+      'paypal',      // PayPal (sehr beliebt in DE, funktioniert gut für Abos)
+    ]
+
+    console.log('Checkout API: Creating subscription session', { 
       userId, 
       planType,
       priceId: subscriptionPriceId,
-      source: priceId ? 'parameter' : 'environment'
+      source: priceId ? 'parameter' : 'environment',
+      paymentMethodTypes,
+      mode: 'subscription'
     })
 
     // Verwende Price-ID direkt (empfohlen für Production)
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: [
-        'card',        // Kredit-/Debitkarten (universell, sofort)
-        'sepa_debit',  // SEPA Lastschrift (günstig, perfekt für Subscriptions)
-        'paypal',      // PayPal (sehr beliebt in DE, funktioniert gut für Abos)
-      ],
+      payment_method_types: paymentMethodTypes,
+      payment_method_options: {
+        sepa_debit: {
+          // SEPA Direct Debit für Subscriptions
+        },
+      },
       line_items: [{ price: subscriptionPriceId, quantity: 1 }],
       mode: 'subscription',
       success_url: `${origin}/dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}`,
@@ -64,6 +73,12 @@ export async function POST(request: Request) {
         userId,
         planType: 'subscription',
       },
+    })
+
+    console.log('Checkout API: Session created successfully', {
+      sessionId: session.id,
+      paymentMethodTypes: session.payment_method_types,
+      url: session.url,
     })
 
     return NextResponse.json({ sessionId: session.id, url: session.url })
