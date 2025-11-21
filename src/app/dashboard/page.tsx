@@ -2392,7 +2392,7 @@ ${story.content}
                     </p>
                   </div>
                 </div>
-                {(subscriptionStatus.subscriptionId || subscriptionStatus.isPro) && (
+                {subscriptionStatus.subscriptionId ? (
                   <div className="mt-4 text-center">
                     <button 
                       onClick={async () => {
@@ -2426,8 +2426,41 @@ ${story.content}
                       Hier kannst du dein Abo kündigen, Zahlungsmethode ändern oder Rechnungen ansehen.
                     </p>
                   </div>
-                )}
-                {!subscriptionStatus.isPro && (
+                ) : subscriptionStatus.isPro ? (
+                  <div className="mt-4 text-center">
+                    <button 
+                      onClick={async () => {
+                        if (!user?.id) return;
+                        setLoadingCustomerPortal(true);
+                        try {
+                          const response = await fetch('/api/stripe/customer-portal', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ userId: user.id }),
+                          });
+                          const data = await response.json();
+                          if (data.url) {
+                            window.open(data.url, '_blank', 'noopener,noreferrer');
+                          } else {
+                            alert(data.error || 'Fehler beim Öffnen des Abo-Verwaltungsbereichs. Bitte versuche es später erneut.');
+                          }
+                        } catch (error) {
+                          console.error('Error opening customer portal:', error);
+                          alert('Fehler beim Öffnen des Abo-Verwaltungsbereichs. Bitte versuche es später erneut.');
+                        } finally {
+                          setLoadingCustomerPortal(false);
+                        }
+                      }}
+                      disabled={loadingCustomerPortal}
+                      className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loadingCustomerPortal ? 'Lädt...' : 'Abo verwalten'}
+                    </button>
+                    <p className="text-gray-600 text-sm mt-2">
+                      Hier kannst du dein Abo kündigen, Zahlungsmethode ändern oder Rechnungen ansehen.
+                    </p>
+                  </div>
+                ) : (
                   <div className="mt-4 text-center">
                     <button 
                       onClick={() => setShowPaywall(true)}
