@@ -41,41 +41,73 @@ export async function GET() {
 
 /**
  * Prüft Rate-Limiting für unauthenticated User
- * Max. 1 Ressource pro Browser-Fingerprint
+ * Max. 1 Ressource pro Browser-Fingerprint ODER pro IP-Adresse (OR-Logik)
+ * Blockiert wenn: Fingerprint bereits verwendet ODER IP bereits verwendet
  */
 async function checkRateLimit(
   browserFingerprint: string | null,
   ipAddress: string | null
 ): Promise<{ allowed: boolean; reason?: string }> {
-  if (!browserFingerprint) {
-    return { allowed: false, reason: 'Browser-Fingerprint fehlt' };
+  if (!browserFingerprint && !ipAddress) {
+    return { allowed: false, reason: 'Browser-Fingerprint oder IP-Adresse fehlt' };
   }
 
   try {
     const supabaseAdmin = await createServerAdminClient();
     
-    // Prüfe ob bereits eine Ressource für diesen Fingerprint existiert
-    const { data: existing, error } = await (supabaseAdmin as any)
-      .from('anonymous_resource_creations')
-      .select('id, created_at')
-      .eq('browser_fingerprint', browserFingerprint)
-      .maybeSingle();
+    // Prüfe beide Bedingungen parallel: Browser-Fingerprint ODER IP-Adresse
+    const queries = [];
+    
+    if (browserFingerprint) {
+      queries.push(
+        (supabaseAdmin as any)
+          .from('anonymous_resource_creations')
+          .select('id, created_at, browser_fingerprint')
+          .eq('browser_fingerprint', browserFingerprint)
+          .maybeSingle()
+      );
+    }
+    
+    if (ipAddress) {
+      queries.push(
+        (supabaseAdmin as any)
+          .from('anonymous_resource_creations')
+          .select('id, created_at, ip_address')
+          .eq('ip_address', ipAddress)
+          .maybeSingle()
+      );
+    }
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-      console.error('Rate limit check error:', error);
+    // Führe beide Queries aus
+    const results = await Promise.all(queries);
+    
+    // Prüfe ob eine der Bedingungen erfüllt ist (OR-Logik)
+    const existingByFingerprint = browserFingerprint ? results.find(r => r.data && !r.error && r.data.browser_fingerprint === browserFingerprint) : null;
+    const existingByIP = ipAddress ? results.find(r => r.data && !r.error && r.data.ip_address === ipAddress) : null;
+    
+    // Prüfe auf Fehler (außer "keine Zeilen gefunden")
+    const hasError = results.some(r => r.error && r.error.code !== 'PGRST116');
+    if (hasError) {
+      console.error('Rate limit check error:', results.find(r => r.error));
       // Bei Fehler: Erlaube (Fail-Open für bessere UX)
       return { allowed: true };
     }
 
-    if (existing) {
-      console.log('Rate limit exceeded for fingerprint:', browserFingerprint);
+    // Wenn Fingerprint ODER IP bereits verwendet wurde → blockieren
+    if (existingByFingerprint?.data || existingByIP?.data) {
+      console.log('Rate limit exceeded:', {
+        fingerprint: browserFingerprint,
+        ip: ipAddress,
+        existingByFingerprint: existingByFingerprint?.data,
+        existingByIP: existingByIP?.data
+      });
       return {
         allowed: false,
         reason: 'Du hast bereits eine kostenlose Ressource erstellt. Bitte erstelle einen Account für weitere Ressourcen.'
       };
     }
 
-    // Erste Ressource: Erlaube und speichere Fingerprint
+    // Erste Ressource: Erlaube und speichere Fingerprint + IP
     const { error: insertError } = await (supabaseAdmin as any)
       .from('anonymous_resource_creations')
       .insert({
@@ -84,7 +116,7 @@ async function checkRateLimit(
       });
 
     if (insertError) {
-      console.error('Error saving fingerprint:', insertError);
+      console.error('Error saving fingerprint/IP:', insertError);
       // Bei Fehler: Erlaube trotzdem (Fail-Open)
       return { allowed: true };
     }

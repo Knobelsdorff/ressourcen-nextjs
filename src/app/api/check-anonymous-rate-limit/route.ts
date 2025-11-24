@@ -13,23 +13,59 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Extrahiere IP-Adresse aus Headers
+    const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                     request.headers.get('x-real-ip') || 
+                     null;
+
     const supabaseAdmin = await createServerAdminClient();
     
-    // Prüfe ob bereits eine Ressource für diesen Fingerprint existiert
-    const { data: existing, error } = await (supabaseAdmin as any)
-      .from('anonymous_resource_creations')
-      .select('id, created_at')
-      .eq('browser_fingerprint', browserFingerprint)
-      .maybeSingle();
+    // Prüfe beide Bedingungen parallel: Browser-Fingerprint ODER IP-Adresse
+    const queries = [];
+    
+    if (browserFingerprint) {
+      queries.push(
+        (supabaseAdmin as any)
+          .from('anonymous_resource_creations')
+          .select('id, created_at, browser_fingerprint')
+          .eq('browser_fingerprint', browserFingerprint)
+          .maybeSingle()
+      );
+    }
+    
+    if (ipAddress) {
+      queries.push(
+        (supabaseAdmin as any)
+          .from('anonymous_resource_creations')
+          .select('id, created_at, ip_address')
+          .eq('ip_address', ipAddress)
+          .maybeSingle()
+      );
+    }
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-      console.error('Rate limit check error:', error);
+    // Führe beide Queries aus
+    const results = await Promise.all(queries);
+    
+    // Prüfe ob eine der Bedingungen erfüllt ist (OR-Logik)
+    const existingByFingerprint = browserFingerprint ? results.find(r => r.data && !r.error && r.data.browser_fingerprint === browserFingerprint) : null;
+    const existingByIP = ipAddress ? results.find(r => r.data && !r.error && r.data.ip_address === ipAddress) : null;
+    
+    // Prüfe auf Fehler (außer "keine Zeilen gefunden")
+    const hasError = results.some(r => r.error && r.error.code !== 'PGRST116');
+    if (hasError) {
+      console.error('Rate limit check error:', results.find(r => r.error));
       // Bei Fehler: Erlaube (Fail-Open für bessere UX)
       return NextResponse.json({ allowed: true });
     }
 
-    if (existing) {
-      console.log('Rate limit exceeded for fingerprint:', browserFingerprint);
+    // Wenn Fingerprint ODER IP bereits verwendet wurde → blockieren
+    if (existingByFingerprint?.data || existingByIP?.data) {
+      console.log('Rate limit exceeded:', {
+        fingerprint: browserFingerprint,
+        ip: ipAddress,
+        existingByFingerprint: existingByFingerprint?.data,
+        existingByIP: existingByIP?.data
+      });
       return NextResponse.json(
         {
           allowed: false,
