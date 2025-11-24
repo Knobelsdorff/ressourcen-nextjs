@@ -43,11 +43,40 @@ export async function GET() {
  * Prüft Rate-Limiting für unauthenticated User
  * Max. 1 Ressource pro Browser-Fingerprint ODER pro IP-Adresse (OR-Logik)
  * Blockiert wenn: Fingerprint bereits verwendet ODER IP bereits verwendet
+ * 
+ * Bypass-Optionen:
+ * - Admin-Bypass: Admins können Rate-Limiting umgehen
+ * - Development-Mode-Bypass: In Development wird Rate-Limiting deaktiviert
  */
 async function checkRateLimit(
   browserFingerprint: string | null,
-  ipAddress: string | null
+  ipAddress: string | null,
+  userEmail?: string | null
 ): Promise<{ allowed: boolean; reason?: string }> {
+  // Admin-Bypass: Admins können Rate-Limiting umgehen
+  if (userEmail) {
+    const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
+      .split(',')
+      .map(e => e.trim().toLowerCase())
+      .filter(Boolean);
+    const musicAdminEmails = (process.env.NEXT_PUBLIC_MUSIC_ADMIN_EMAILS || '')
+      .split(',')
+      .map(e => e.trim().toLowerCase())
+      .filter(Boolean);
+    
+    if (adminEmails.includes(userEmail.toLowerCase()) || 
+        musicAdminEmails.includes(userEmail.toLowerCase())) {
+      console.log('[Rate-Limit] Admin-Bypass: Rate-Limiting umgangen für', userEmail);
+      return { allowed: true };
+    }
+  }
+  
+  // Development-Mode-Bypass: In Development Rate-Limiting deaktivieren
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Rate-Limit] Development-Mode: Rate-Limiting deaktiviert');
+    return { allowed: true };
+  }
+  
   if (!browserFingerprint && !ipAddress) {
     return { allowed: false, reason: 'Browser-Fingerprint oder IP-Adresse fehlt' };
   }
@@ -161,18 +190,43 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     const isAuthenticated = !authError && !!user;
 
-    // Rate-Limiting für unauthenticated User
+    // Rate-Limiting für unauthenticated User (oder für alle, wenn nicht Admin)
+    const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                     request.headers.get('x-real-ip') || 
+                     null;
+    
+    // Prüfe Rate-Limit (auch für eingeloggte User, außer Admins)
+    const rateLimitCheck = await checkRateLimit(
+      browserFingerprint || null, 
+      ipAddress,
+      user?.email || null  // Admin-Email für Bypass
+    );
+    
     if (!isAuthenticated) {
-      const ipAddress = request.headers.get('x-forwarded-for') || 
-                       request.headers.get('x-real-ip') || 
-                       null;
-      
-      const rateLimitCheck = await checkRateLimit(browserFingerprint || null, ipAddress);
       
       if (!rateLimitCheck.allowed) {
         console.log('Rate limit exceeded:', {
           fingerprint: browserFingerprint,
           ip: ipAddress,
+          reason: rateLimitCheck.reason,
+        });
+        
+        return NextResponse.json(
+          { 
+            error: rateLimitCheck.reason || 'Rate limit exceeded',
+            requiresAuth: true,
+            code: 'RATE_LIMIT_EXCEEDED'
+          },
+          { status: 403 }
+        );
+      }
+    } else {
+      // Auch für eingeloggte User prüfen (außer Admins - die haben bereits Bypass)
+      if (!rateLimitCheck.allowed) {
+        console.log('Rate limit exceeded for authenticated user:', {
+          fingerprint: browserFingerprint,
+          ip: ipAddress,
+          userEmail: user?.email,
           reason: rateLimitCheck.reason,
         });
         

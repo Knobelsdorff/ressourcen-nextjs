@@ -18,6 +18,12 @@ export async function POST(request: NextRequest) {
                      request.headers.get('x-real-ip') || 
                      null;
 
+    // Development-Mode-Bypass: In Development Rate-Limiting deaktivieren
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Rate-Limit] Development-Mode: Rate-Limiting deaktiviert');
+      return NextResponse.json({ allowed: true });
+    }
+
     const supabaseAdmin = await createServerAdminClient();
     
     // Prüfe beide Bedingungen parallel: Browser-Fingerprint ODER IP-Adresse

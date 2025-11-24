@@ -507,6 +507,30 @@ export async function canCreateResource(userId: string): Promise<boolean> {
 
     const canCreate = data === true;
     console.log(`[canCreateResource] RPC result: ${canCreate} (user has ${aiResourceCount} AI resources)`);
+    
+    // ZUSÄTZLICHE SICHERHEITSPRÜFUNG: Falls RPC true zurückgibt, prüfe nochmal explizit
+    // ob User wirklich ein aktives Abo hat (falls RPC-Funktion fehlerhaft ist)
+    if (canCreate) {
+      const { data: accessData } = await supabase
+        .from('user_access')
+        .select('status, subscription_status, access_expires_at')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .single();
+      
+      const hasActiveSubscription = accessData && 
+        (accessData as any).status === 'active' &&
+        ((accessData as any).subscription_status === 'active' || (accessData as any).subscription_status === null) &&
+        (!(accessData as any).access_expires_at || new Date((accessData as any).access_expires_at) > new Date());
+      
+      console.log(`[canCreateResource] Additional check - hasActiveSubscription: ${hasActiveSubscription}`, accessData);
+      
+      if (!hasActiveSubscription) {
+        console.warn(`[canCreateResource] RPC returned true but user does NOT have active subscription - blocking creation`);
+        return false;
+      }
+    }
+    
     return canCreate;
   } catch (error: any) {
     console.error('[canCreateResource] Unexpected error:', error?.message || error);

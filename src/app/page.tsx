@@ -287,31 +287,40 @@ export default function RessourcenApp() {
     });
     
     if (isStep1Complete) {
-      // Paywall-Prüfung: Wenn User bereits 1 Ressource hat, prüfe Zugang BEVOR Step 2 startet
-      // Nur wenn Paywall-Feature aktiviert ist
-      const paywallEnabled = isEnabled('PAYWALL_ENABLED');
+      // Paywall-Prüfung: Wenn User bereits 1 KI-generierte Ressource hat, prüfe Zugang BEVOR Step 2 startet
+      // Paywall ist standardmäßig aktiviert (nur deaktiviert wenn PAYWALL_DISABLED explizit auf true gesetzt ist)
+      const paywallDisabled = isEnabled('PAYWALL_DISABLED');
+      const paywallEnabled = !paywallDisabled; // Standardmäßig aktiviert
+      
+      console.log(`[handleNextStep] Paywall check: disabled=${paywallDisabled}, enabled=${paywallEnabled}`);
       
       if (user && paywallEnabled) {
         console.log('[handleNextStep] Step 1 complete, checking if user can create resource...');
         
         const checkPaywall = async () => {
           try {
+            // WICHTIG: Zähle nur KI-generierte Ressourcen (ignoriere Audio-only)
+            // Gleiche Logik wie in canCreateResource
             const { data: existingStories } = await supabase
               .from('saved_stories')
-              .select('id')
+              .select('id, is_audio_only')
               .eq('user_id', user.id);
             
-            const resourceCount = existingStories?.length || 0;
-            console.log(`[handleNextStep] User has ${resourceCount} resource(s) in database`);
+            // Zähle nur KI-generierte Ressourcen (nicht Audio-only)
+            const aiResourceCount = existingStories?.filter((s: any) => !s.is_audio_only).length || 0;
+            const totalResourceCount = existingStories?.length || 0;
+            console.log(`[handleNextStep] User has ${totalResourceCount} total resource(s), ${aiResourceCount} AI-generated`);
             
-            // 1. Ressource ist gratis (immer erlaubt)
-            if (resourceCount === 0) {
-              console.log('[handleNextStep] First resource - allowing progression to step 2');
+            // 1. KI-Ressource ist gratis (immer erlaubt)
+            if (aiResourceCount === 0) {
+              console.log('[handleNextStep] First AI resource - allowing progression to step 2');
               setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
             } else {
-              // Ab der 2. Ressource: Prüfe Zugang
-              console.log(`[handleNextStep] User has ${resourceCount} resource(s), checking access...`);
+              // Ab der 2. KI-Ressource: Prüfe Zugang über canCreateResource
+              console.log(`[handleNextStep] User has ${aiResourceCount} AI-generated resource(s), checking access...`);
               const canCreate = await canCreateResource(user.id);
+              
+              console.log(`[handleNextStep] canCreateResource returned: ${canCreate} for user ${user.id}`);
               
               if (!canCreate) {
                 console.log('[handleNextStep] User cannot create more resources - showing paywall');
@@ -320,13 +329,25 @@ export default function RessourcenApp() {
                 return;
               } else {
                 console.log('[handleNextStep] User has access - allowing progression to step 2');
+                // WICHTIG: Prüfe nochmal explizit, ob User wirklich ein aktives Abo hat
+                // Falls canCreateResource fälschlicherweise true zurückgibt
+                const { hasActiveAccess } = await import('@/lib/access');
+                const hasAccess = await hasActiveAccess(user.id);
+                console.log(`[handleNextStep] hasActiveAccess check: ${hasAccess}`);
+                
+                if (!hasAccess) {
+                  console.log('[handleNextStep] User does NOT have active access - showing paywall despite canCreateResource=true');
+                  setShowPaywall(true);
+                  return;
+                }
+                
                 setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
               }
             }
           } catch (error) {
             console.error('[handleNextStep] Error checking paywall:', error);
-            // Bei Fehler: Erlaube Weiterleitung (Fail-Open für bessere UX)
-            setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
+            // Bei Fehler: Blockiere Weiterleitung (Fail-Closed für Sicherheit)
+            setShowPaywall(true);
           }
         };
         

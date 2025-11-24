@@ -99,7 +99,7 @@ export default function Dashboard() {
     subscriptionStatus: null as string | null,
   });
   const [loadingCustomerPortal, setLoadingCustomerPortal] = useState(false);
-  const [resourceAccessStatus, setResourceAccessStatus] = useState<Record<string, { canAccess: boolean; isFirst: boolean; trialExpired: boolean }>>({});
+  const [resourceAccessStatus, setResourceAccessStatus] = useState<Record<string, { canAccess: boolean; isFirst: boolean; trialExpired: boolean; daysRemaining?: number }>>({});
 
   // Funktion zur Bestimmung des Ressourcen-Typs
   const getResourceTypeLabel = (resourceFigure: any) => {
@@ -618,7 +618,7 @@ export default function Dashboard() {
         
         // Prüfe Zugangsstatus für jede Ressource BEVOR wir sie setzen
         if (user && uniqueStories.length > 0) {
-          const accessStatusMap: Record<string, { canAccess: boolean; isFirst: boolean; trialExpired: boolean }> = {};
+          const accessStatusMap: Record<string, { canAccess: boolean; isFirst: boolean; trialExpired: boolean; daysRemaining?: number }> = {};
           const sortedStories = [...uniqueStories].sort((a, b) => 
             new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
           );
@@ -703,13 +703,20 @@ export default function Dashboard() {
               const daysSinceFirst = (Date.now() - firstResourceDate.getTime()) / (1000 * 60 * 60 * 24);
               canAccess = daysSinceFirst < 3;
               trialExpired = daysSinceFirst >= 3;
+              
+              // Berechne verbleibende Tage für Trial
+              const daysRemaining = canAccess ? Math.max(0, Math.ceil(3 - daysSinceFirst)) : 0;
+              
               console.log(`[Dashboard] First normal resource ${story.id}:`, {
                 daysSinceFirst: daysSinceFirst.toFixed(2),
+                daysRemaining,
                 canAccess,
                 trialExpired,
                 totalNormalResources: normalStories.length,
                 totalAudioOnlyResources: audioOnlyStories.length
               });
+              
+              accessStatusMap[story.id] = { canAccess, isFirst, trialExpired, daysRemaining };
             } else {
               // Nicht die erste normale Ressource - benötigt aktiven Zugang
               canAccess = false;
@@ -719,9 +726,9 @@ export default function Dashboard() {
                 firstNormalResourceId: normalStories.length > 0 ? normalStories[0].id : 'none',
                 totalNormalResources: normalStories.length
               });
+              
+              accessStatusMap[story.id] = { canAccess, isFirst, trialExpired };
             }
-            
-            accessStatusMap[story.id] = { canAccess, isFirst, trialExpired };
           }
           
           setResourceAccessStatus(accessStatusMap);
@@ -1484,6 +1491,12 @@ ${story.content}
       return;
     }
     
+    // Stoppe vorheriges Fade-Out-Interval falls vorhanden
+    if ((musicAudio as any)._fadeOutInterval) {
+      clearInterval((musicAudio as any)._fadeOutInterval);
+      (musicAudio as any)._fadeOutInterval = null;
+    }
+    
     // Fade-Out mit volume (konsistente Methode für alle User)
     const startVolume = musicAudio.volume;
     const fadeOutInterval = 50; // Update alle 50ms
@@ -1496,6 +1509,7 @@ ${story.content}
     const fadeInterval = setInterval(() => {
       if (!musicAudio || musicAudio.paused) {
         clearInterval(fadeInterval);
+        (musicAudio as any)._fadeOutInterval = null;
         console.log(`[fadeOutMusic] Music already paused, stopping fade-out`);
         return;
       }
@@ -1506,12 +1520,16 @@ ${story.content}
       
       if (currentStep >= steps || newVolume <= 0) {
         clearInterval(fadeInterval);
+        (musicAudio as any)._fadeOutInterval = null;
         musicAudio.pause();
         musicAudio.currentTime = 0;
         musicAudio.volume = DEFAULT_MUSIC_VOLUME; // Reset für nächste Wiedergabe
         console.log(`[fadeOutMusic] Fade-out completed for story ${storyId}`);
       }
     }, fadeOutInterval);
+    
+    // Speichere Interval-Referenz für späteres Cleanup
+    (musicAudio as any)._fadeOutInterval = fadeInterval;
   }, []);
 
   const playAudio = useCallback(async (audioUrl: string, storyId: string) => {
@@ -1656,26 +1674,55 @@ ${story.content}
         }
       });
       
-      audio.addEventListener('ended', () => {
-        console.log(`[playAudio] Audio ended for story ${storyId}`);
+      // Funktion zum Stoppen der Musik (wird sowohl von 'ended' als auch von Polling verwendet)
+      const stopMusicForStory = () => {
+        console.log(`[playAudio] Stopping music for story ${storyId}`);
         setPlayingAudioId(null);
         
-        // Stoppe Hintergrundmusik endgültig wenn Stimme endet
+        // Stoppe Hintergrundmusik endgültig wenn Stimme endet (IMMER, auch wenn Fade-Out läuft)
         setBackgroundMusicElements(prev => {
           const musicAudio = prev[storyId];
           if (musicAudio) {
-            // Falls Fade-Out noch nicht gestartet wurde, stoppe sofort
-            if (!(musicAudio as any)._fadeOutStarted) {
-              console.log(`[playAudio] Stopping background music immediately`);
-              musicAudio.pause();
-              musicAudio.currentTime = 0;
-              musicAudio.volume = DEFAULT_MUSIC_VOLUME; // Reset für nächste Wiedergabe
+            // Stoppe Fade-Out-Interval falls vorhanden
+            if ((musicAudio as any)._fadeOutInterval) {
+              clearInterval((musicAudio as any)._fadeOutInterval);
+              (musicAudio as any)._fadeOutInterval = null;
             }
+            
+            // Stoppe Musik sofort (auch wenn Fade-Out läuft)
+            console.log(`[playAudio] Stopping background music immediately (audio ended)`);
+            musicAudio.pause();
+            musicAudio.currentTime = 0;
+            musicAudio.volume = DEFAULT_MUSIC_VOLUME; // Reset für nächste Wiedergabe
+            (musicAudio as any)._fadeOutStarted = false; // Reset Flag
           }
           return prev;
         });
-        
-        // Track vollständigen Audio-Play (nur wenn User eingeloggt ist UND eine gültige Session hat)
+      };
+      
+      audio.addEventListener('ended', stopMusicForStory);
+      
+      // Polling-Mechanismus für den Fall, dass 'ended' Event nicht feuert (z.B. wenn Tab im Hintergrund ist)
+      const checkAudioEnded = setInterval(() => {
+        if (audio.ended) {
+          clearInterval(checkAudioEnded);
+          stopMusicForStory();
+        }
+      }, 500); // Prüfe alle 500ms
+      
+      // Speichere Interval-Referenz für späteres Cleanup
+      (audio as any)._endedCheckInterval = checkAudioEnded;
+      
+      // Cleanup: Stoppe Polling wenn Audio-Element endet
+      audio.addEventListener('ended', () => {
+        if ((audio as any)._endedCheckInterval) {
+          clearInterval((audio as any)._endedCheckInterval);
+          (audio as any)._endedCheckInterval = null;
+        }
+      }, { once: true });
+      
+      // Track vollständigen Audio-Play (nur wenn User eingeloggt ist UND eine gültige Session hat)
+      audio.addEventListener('ended', () => {
         if (user && session && story && audio.duration) {
           trackEvent({
             eventType: 'audio_play_complete',
@@ -1690,7 +1737,7 @@ ${story.content}
             },
           }, { accessToken: session.access_token });
         }
-      });
+      }, { once: true });
       
       audio.addEventListener('error', (e) => {
         setPlayingAudioId(null);
@@ -2036,17 +2083,24 @@ ${story.content}
           // Keine speziellen Event Listener mehr nötig - Lautstärke ist statisch
         }
         
-        // Starte Musik ZUERST (bei Sekunde 0)
+        // Starte Musik ZUERST (bei Sekunde 0) - nur wenn sie nicht bereits läuft
         try {
-          musicAudio.currentTime = 0; // Starte von Anfang
-          await musicAudio.play();
-          console.log(`[playAudio] Background music started for story ${storyId} (at 0s)`);
-          
-          // Aktualisiere Button-Status sofort, wenn Musik startet
-          setPlayingAudioId(storyId);
-          
-          // Warte 3 Sekunden bevor die Stimme startet
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          // Prüfe ob Musik bereits läuft
+          if (musicAudio.paused) {
+            musicAudio.currentTime = 0; // Starte von Anfang
+            await musicAudio.play();
+            console.log(`[playAudio] Background music started for story ${storyId} (at 0s)`);
+            
+            // Aktualisiere Button-Status SOFORT, wenn Musik startet (vor der 3-Sekunden-Wartezeit)
+            setPlayingAudioId(storyId);
+            
+            // Warte 3 Sekunden bevor die Stimme startet
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          } else {
+            console.log(`[playAudio] Background music already playing for story ${storyId}, skipping start`);
+            // Aktualisiere Button-Status auch wenn Musik bereits läuft
+            setPlayingAudioId(storyId);
+          }
         } catch (musicError: any) {
           console.error('[playAudio] Failed to play background music:', musicError);
           // Musik-Fehler nicht anzeigen, nur loggen (nicht kritisch)
@@ -2111,9 +2165,15 @@ ${story.content}
       setPlayingAudioId(null);
     }
     
-    // Pausiere auch Hintergrundmusik
+    // Pausiere auch Hintergrundmusik (und stoppe Fade-Out falls aktiv)
     const musicAudio = backgroundMusicElements[storyId];
     if (musicAudio) {
+      // Stoppe Fade-Out-Interval falls vorhanden
+      if ((musicAudio as any)._fadeOutInterval) {
+        clearInterval((musicAudio as any)._fadeOutInterval);
+        (musicAudio as any)._fadeOutInterval = null;
+      }
+      
       musicAudio.pause();
       console.log(`[pauseAudio] Background music paused for story ${storyId}`);
     }
@@ -2132,6 +2192,42 @@ ${story.content}
     });
     
     setPlayingAudioId(null);
+  }, [audioElements, backgroundMusicElements]);
+
+  // Überwache Tab-Visibility, um sicherzustellen, dass Musik gestoppt wird, wenn Audio endet (auch wenn Tab im Hintergrund ist)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Tab wurde wieder aktiv - prüfe alle Audio-Elemente
+        Object.entries(audioElements).forEach(([storyId, audio]) => {
+          if (audio.ended) {
+            // Audio ist beendet - stoppe Musik
+            const musicAudio = backgroundMusicElements[storyId];
+            if (musicAudio) {
+              // Stoppe Fade-Out-Interval falls vorhanden
+              if ((musicAudio as any)._fadeOutInterval) {
+                clearInterval((musicAudio as any)._fadeOutInterval);
+                (musicAudio as any)._fadeOutInterval = null;
+              }
+              
+              // Stoppe Musik
+              musicAudio.pause();
+              musicAudio.currentTime = 0;
+              musicAudio.volume = DEFAULT_MUSIC_VOLUME;
+              (musicAudio as any)._fadeOutStarted = false;
+              
+              // Aktualisiere State
+              setPlayingAudioId(prev => prev === storyId ? null : prev);
+            }
+          }
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [audioElements, backgroundMusicElements]);
 
         return (
@@ -2772,11 +2868,16 @@ ${story.content}
                                     const canAccess = accessStatus?.canAccess ?? true;
                                     const isFirst = accessStatus?.isFirst ?? false;
                                     const trialExpired = accessStatus?.trialExpired ?? false;
+                                    const daysRemaining = accessStatus?.daysRemaining ?? 0;
                                     
                                     if (!canAccess && isFirst && trialExpired) {
                                       return '⏰ Deine 3-Tage-Trial-Periode ist abgelaufen. Aktiviere den Zugang, um Audio abzuspielen.';
                                     } else if (!canAccess) {
                                       return '🔒 Aktiviere den Zugang, um Audio abzuspielen.';
+                                    } else if (isFirst && daysRemaining > 0) {
+                                      // Zeige verbleibende Tage für erste Ressource
+                                      const daysText = daysRemaining === 1 ? 'Tag' : 'Tage';
+                                      return `⏰ Kostenloser Zugriff noch ${daysRemaining} ${daysText} verfügbar (3-Tage-Trial)`;
                                     }
                                     return '✓ Audio verfügbar - Klicke zum Abspielen';
                                   })()}

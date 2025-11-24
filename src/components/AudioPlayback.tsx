@@ -14,7 +14,6 @@ import { trackEvent } from "@/lib/analytics";
 import Paywall from "./Paywall";
 import { isEnabled } from "@/lib/featureFlags";
 import { getBackgroundMusicUrl, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
-import { EmailVerificationModal } from "./modals/email-verification-modal";
 import { getOrCreateBrowserFingerprint } from "@/lib/browser-fingerprint";
 import IdealFamilyIconFinal from "./IdealFamilyIconFinal";
 import JesusIconFinal from "./JesusIconFinal";
@@ -83,18 +82,13 @@ export default function AudioPlayback({
   const [backgroundMusicElement, setBackgroundMusicElement] = useState<HTMLAudioElement | null>(null);
   const [musicEnabled, setMusicEnabled] = useState(true);
   const [hasAutoSaved, setHasAutoSaved] = useState(false); // Track ob bereits automatisch gespeichert wurde
-  const [showEmailVerificationModal, setShowEmailVerificationModal] = useState(false);
   const [hasPlayedOnce, setHasPlayedOnce] = useState(false);
-  const [emailVerified, setEmailVerified] = useState(false);
   const { user, session, signIn, signUp } = useAuth();
   const router = useRouter();
 
-  // Prüfe Cookie-basiertes Trust beim Mount
+  // Prüfe Cookie-basiertes Trust beim Mount (für zukünftige Sessions)
   useEffect(() => {
-    if (typeof document !== 'undefined') {
-      const isVerified = document.cookie.includes('email_verified=true');
-      setEmailVerified(isVerified);
-    }
+    // Cookie wird nach erfolgreicher Registrierung/Login gesetzt
   }, []);
 
   // Lade Testmodus aus localStorage - nur nach Mount
@@ -462,7 +456,10 @@ export default function AudioPlayback({
             setAuthError(`Fehler: ${error.message}`);
           }
         } else {
-          // Erfolgreiche Registrierung - zeige AccountCreated Seite
+          // Erfolgreiche Registrierung: Setze Cookie für zukünftige Sessions
+          document.cookie = `email_verified=true; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
+          
+          // Zeige AccountCreated Seite
           setShowAuthModal(false);
           if (onShowAccountCreated) {
             onShowAccountCreated();
@@ -473,6 +470,9 @@ export default function AudioPlayback({
         if (error) {
           setAuthError(error.message);
         } else {
+          // Erfolgreiche Anmeldung: Setze Cookie für zukünftige Sessions
+          document.cookie = `email_verified=true; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
+          
           setAuthSuccess('Anmeldung erfolgreich!');
           // Speichere temporäre Ressource sofort nach Login
           setTimeout(() => {
@@ -494,9 +494,10 @@ export default function AudioPlayback({
   };
 
   const handleSaveStory = async () => {
-    // Variante 3C: Prüfe Email-Verification für Speichern (nur wenn nicht eingeloggt)
-    if (!user && !emailVerified) {
-      setShowEmailVerificationModal(true);
+    // Variante 3C: Prüfe Auth für Speichern (nur wenn nicht eingeloggt)
+    if (!user) {
+      setShowAuthModal(true);
+      setAuthMode('register'); // Zeige Registrierung mit Benefits
       return;
     }
     
@@ -860,38 +861,27 @@ export default function AudioPlayback({
       setCurrentTime(0);
       setHasPlayedOnce(true);
       
-      // Stoppe oder fade out Hintergrundmusik wenn Stimme endet
+      // Stoppe Hintergrundmusik endgültig wenn Stimme endet (IMMER, auch wenn Fade-Out läuft)
       if (backgroundMusicElement) {
-        // Fade-out über 3 Sekunden
-        const fadeOutDuration = 3000;
-        const startVolume = backgroundMusicElement.volume;
-        const fadeSteps = fadeOutDuration / 50; // Update alle 50ms
-        let currentStep = 0;
+        // Stoppe Fade-Out-Interval falls vorhanden
+        if ((backgroundMusicElement as any)._fadeOutInterval) {
+          clearInterval((backgroundMusicElement as any)._fadeOutInterval);
+          (backgroundMusicElement as any)._fadeOutInterval = null;
+        }
         
-        const fadeInterval = setInterval(() => {
-          if (!backgroundMusicElement || backgroundMusicElement.paused) {
-            clearInterval(fadeInterval);
-            return;
-          }
-          
-          currentStep++;
-          const newVolume = Math.max(0, startVolume * (1 - currentStep / fadeSteps));
-          backgroundMusicElement.volume = newVolume;
-          
-          if (currentStep >= fadeSteps || newVolume <= 0) {
-            clearInterval(fadeInterval);
-            backgroundMusicElement.pause();
-            backgroundMusicElement.currentTime = 0;
-            backgroundMusicElement.volume = DEFAULT_MUSIC_VOLUME; // Reset
-            console.log('[AudioPlayback] Background music faded out');
-          }
-        }, 50);
+        // Stoppe Musik sofort (auch wenn Fade-Out läuft)
+        console.log('[AudioPlayback] Stopping background music immediately (audio ended)');
+        backgroundMusicElement.pause();
+        backgroundMusicElement.currentTime = 0;
+        backgroundMusicElement.volume = DEFAULT_MUSIC_VOLUME; // Reset
+        (backgroundMusicElement as any)._fadeOutStarted = false; // Reset Flag
       }
       
-      // Variante 3C: Zeige Email-Verification-Modal nach 1x Anhören (nur wenn nicht eingeloggt und nicht verifiziert)
-      if (!user && !emailVerified && hasPlayedOnce) {
+      // Variante 3C: Zeige Auth-Modal nach 1x Anhören (nur wenn nicht eingeloggt)
+      if (!user && hasPlayedOnce) {
         setTimeout(() => {
-          setShowEmailVerificationModal(true);
+          setShowAuthModal(true);
+          setAuthMode('register'); // Zeige Registrierung mit Benefits
         }, 1000); // Kurze Verzögerung für bessere UX
       }
       
@@ -923,6 +913,13 @@ export default function AudioPlayback({
         // Starte Fade-Out
         if (!(backgroundMusicElement as any)._fadeOutStarted) {
           (backgroundMusicElement as any)._fadeOutStarted = true;
+          
+          // Stoppe vorheriges Fade-Out-Interval falls vorhanden
+          if ((backgroundMusicElement as any)._fadeOutInterval) {
+            clearInterval((backgroundMusicElement as any)._fadeOutInterval);
+            (backgroundMusicElement as any)._fadeOutInterval = null;
+          }
+          
           const fadeOutDuration = 3500;
           const startVolume = backgroundMusicElement.volume;
           const fadeSteps = fadeOutDuration / 50;
@@ -931,6 +928,7 @@ export default function AudioPlayback({
           const fadeInterval = setInterval(() => {
             if (!backgroundMusicElement || backgroundMusicElement.paused) {
               clearInterval(fadeInterval);
+              (backgroundMusicElement as any)._fadeOutInterval = null;
               return;
             }
             
@@ -940,11 +938,15 @@ export default function AudioPlayback({
             
             if (currentStep >= fadeSteps || newVolume <= 0) {
               clearInterval(fadeInterval);
+              (backgroundMusicElement as any)._fadeOutInterval = null;
               backgroundMusicElement.pause();
               backgroundMusicElement.currentTime = 0;
               backgroundMusicElement.volume = DEFAULT_MUSIC_VOLUME;
             }
           }, 50);
+          
+          // Speichere Interval-Referenz für späteres Cleanup
+          (backgroundMusicElement as any)._fadeOutInterval = fadeInterval;
         }
       }
     };
@@ -975,11 +977,25 @@ export default function AudioPlayback({
     if (isPlaying) {
       audio.pause();
       setIsPlaying(false);
-      // Pausiere auch Hintergrundmusik
+      // Pausiere auch Hintergrundmusik (und stoppe Fade-Out falls aktiv)
       if (backgroundMusicElement) {
+        // Stoppe Fade-Out-Interval falls vorhanden
+        if ((backgroundMusicElement as any)._fadeOutInterval) {
+          clearInterval((backgroundMusicElement as any)._fadeOutInterval);
+          (backgroundMusicElement as any)._fadeOutInterval = null;
+        }
+        
         backgroundMusicElement.pause();
         console.log('[AudioPlayback] Background music paused');
       }
+      return;
+    }
+    
+    // Variante 3C: Prüfe Auth für Replay (nur wenn komplett angehört und nicht eingeloggt)
+    if (!user && hasPlayedOnce) {
+      console.log('[AudioPlayback] Audio was already played completely - showing auth modal');
+      setShowAuthModal(true);
+      setAuthMode('register'); // Zeige Registrierung mit Benefits
       return;
     }
     
@@ -1074,13 +1090,17 @@ export default function AudioPlayback({
         
         setBackgroundMusicElement(musicAudio);
         
-        // Starte Musik
-        musicAudio.currentTime = 0;
-        await musicAudio.play();
-        console.log('[AudioPlayback] Background music started (at 0s)');
-        
-        // Warte 3 Sekunden bevor die Stimme startet
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        // Starte Musik (nur wenn sie pausiert ist)
+        if (musicAudio.paused) {
+          musicAudio.currentTime = 0;
+          await musicAudio.play();
+          console.log('[AudioPlayback] Background music started (at 0s)');
+          
+          // Warte 3 Sekunden bevor die Stimme startet
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        } else {
+          console.log('[AudioPlayback] Background music already playing, skipping start');
+        }
       } catch (musicError: any) {
         console.error('[AudioPlayback] Failed to play background music:', musicError);
         // Musik-Fehler nicht blockieren - spiele Stimme trotzdem
@@ -1109,9 +1129,10 @@ export default function AudioPlayback({
     const audio = audioRef.current;
     if (!audio) return;
     
-    // Variante 3C: Prüfe Email-Verification für Replay (nur wenn nicht eingeloggt)
-    if (!user && !emailVerified) {
-      setShowEmailVerificationModal(true);
+    // Variante 3C: Prüfe Auth für Replay (nur wenn komplett angehört und nicht eingeloggt)
+    if (!user && hasPlayedOnce) {
+      setShowAuthModal(true);
+      setAuthMode('register'); // Zeige Registrierung mit Benefits
       return;
     }
     
@@ -1717,15 +1738,6 @@ export default function AudioPlayback({
         />
       )}
 
-      {/* Email-Verification-Modal für Replay/Speichern (Variante 3C) */}
-      <EmailVerificationModal
-        isOpen={showEmailVerificationModal}
-        onClose={() => setShowEmailVerificationModal(false)}
-        onVerified={() => {
-          setEmailVerified(true);
-          setShowEmailVerificationModal(false);
-        }}
-      />
     </div>
   );
 }
