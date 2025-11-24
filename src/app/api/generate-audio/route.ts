@@ -1,5 +1,9 @@
 // app/api/generate-audio/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+import { Database } from '@/lib/types/database.types';
+import { createServerAdminClient } from '@/lib/supabase/serverAdminClient';
+
 interface VoiceConfig {
   stability: number;
   similarity_boost: number;
@@ -35,15 +39,120 @@ export async function GET() {
   }
 }
 
+/**
+ * Prüft Rate-Limiting für unauthenticated User
+ * Max. 1 Ressource pro Browser-Fingerprint
+ */
+async function checkRateLimit(
+  browserFingerprint: string | null,
+  ipAddress: string | null
+): Promise<{ allowed: boolean; reason?: string }> {
+  if (!browserFingerprint) {
+    return { allowed: false, reason: 'Browser-Fingerprint fehlt' };
+  }
+
+  try {
+    const supabaseAdmin = await createServerAdminClient();
+    
+    // Prüfe ob bereits eine Ressource für diesen Fingerprint existiert
+    const { data: existing, error } = await (supabaseAdmin as any)
+      .from('anonymous_resource_creations')
+      .select('id, created_at')
+      .eq('browser_fingerprint', browserFingerprint)
+      .maybeSingle();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      console.error('Rate limit check error:', error);
+      // Bei Fehler: Erlaube (Fail-Open für bessere UX)
+      return { allowed: true };
+    }
+
+    if (existing) {
+      console.log('Rate limit exceeded for fingerprint:', browserFingerprint);
+      return {
+        allowed: false,
+        reason: 'Du hast bereits eine kostenlose Ressource erstellt. Bitte erstelle einen Account für weitere Ressourcen.'
+      };
+    }
+
+    // Erste Ressource: Erlaube und speichere Fingerprint
+    const { error: insertError } = await (supabaseAdmin as any)
+      .from('anonymous_resource_creations')
+      .insert({
+        browser_fingerprint: browserFingerprint,
+        ip_address: ipAddress || null,
+      });
+
+    if (insertError) {
+      console.error('Error saving fingerprint:', insertError);
+      // Bei Fehler: Erlaube trotzdem (Fail-Open)
+      return { allowed: true };
+    }
+
+    return { allowed: true };
+  } catch (error) {
+    console.error('Rate limit check exception:', error);
+    // Bei Exception: Erlaube (Fail-Open)
+    return { allowed: true };
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { text, voiceId, adminPreview } = await request.json();
+    const { text, voiceId, adminPreview, browserFingerprint } = await request.json();
 
     if (!text || !voiceId) {
       return NextResponse.json(
         { error: 'Text and voiceId are required' },
         { status: 400 }
       );
+    }
+
+    // Prüfe Authentifizierung
+    const supabase = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              request.cookies.set(name, value);
+            });
+          },
+        },
+      }
+    );
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const isAuthenticated = !authError && !!user;
+
+    // Rate-Limiting für unauthenticated User
+    if (!isAuthenticated) {
+      const ipAddress = request.headers.get('x-forwarded-for') || 
+                       request.headers.get('x-real-ip') || 
+                       null;
+      
+      const rateLimitCheck = await checkRateLimit(browserFingerprint || null, ipAddress);
+      
+      if (!rateLimitCheck.allowed) {
+        console.log('Rate limit exceeded:', {
+          fingerprint: browserFingerprint,
+          ip: ipAddress,
+          reason: rateLimitCheck.reason,
+        });
+        
+        return NextResponse.json(
+          { 
+            error: rateLimitCheck.reason || 'Rate limit exceeded',
+            requiresAuth: true,
+            code: 'RATE_LIMIT_EXCEEDED'
+          },
+          { status: 403 }
+        );
+      }
     }
 
     // Verwende die übergebene voiceId direkt (keine Mapping nötig)

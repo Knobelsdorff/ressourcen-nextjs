@@ -16,6 +16,7 @@ import SavedStoriesModal from "@/components/SavedStoriesModal";
 import { useAppReset } from "@/components/providers/app-reset-provider";
 import Paywall from "@/components/Paywall";
 import { canCreateResource } from "@/lib/access";
+import { getOrCreateBrowserFingerprint } from "@/lib/browser-fingerprint";
 
 export interface ResourceFigure {
   id: string;
@@ -331,11 +332,50 @@ export default function RessourcenApp() {
         
         checkPaywall();
         return;
+      } else if (!user && paywallEnabled) {
+        // Unauthenticated User: Prüfe Browser-Fingerprint Rate-Limiting
+        console.log('[handleNextStep] Unauthenticated user - checking browser fingerprint rate limit...');
+        
+        const checkAnonymousRateLimit = async () => {
+          try {
+            const fingerprint = await getOrCreateBrowserFingerprint();
+            console.log('[handleNextStep] Browser fingerprint:', fingerprint);
+            
+            // Prüfe Rate-Limit über API
+            const response = await fetch('/api/check-anonymous-rate-limit', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                browserFingerprint: fingerprint,
+              }),
+            });
+            
+            if (!response.ok) {
+              const errorData = await response.json();
+              console.log('[handleNextStep] Rate limit exceeded:', errorData);
+              setShowPaywall(true);
+              return;
+            }
+            
+            // Rate-Limit OK: Erlaube Weiterleitung
+            console.log('[handleNextStep] Rate limit OK - allowing progression to step 2');
+            setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
+          } catch (error) {
+            console.error('[handleNextStep] Error checking anonymous rate limit:', error);
+            // Bei Fehler: Erlaube Weiterleitung (Fail-Open für bessere UX)
+            setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
+          }
+        };
+        
+        checkAnonymousRateLimit();
+        return;
       } else {
         // Paywall deaktiviert oder nicht eingeloggt: Erlaube Weiterleitung
-      console.log('Moving from step', appState.currentStep, 'to', appState.currentStep + 1);
-      setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
-      return;
+        console.log('Moving from step', appState.currentStep, 'to', appState.currentStep + 1);
+        setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
+        return;
       }
     }
 

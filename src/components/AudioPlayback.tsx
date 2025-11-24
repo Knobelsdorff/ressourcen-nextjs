@@ -14,6 +14,8 @@ import { trackEvent } from "@/lib/analytics";
 import Paywall from "./Paywall";
 import { isEnabled } from "@/lib/featureFlags";
 import { getBackgroundMusicUrl, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
+import { EmailVerificationModal } from "./modals/email-verification-modal";
+import { getOrCreateBrowserFingerprint } from "@/lib/browser-fingerprint";
 import IdealFamilyIconFinal from "./IdealFamilyIconFinal";
 import JesusIconFinal from "./JesusIconFinal";
 import ArchangelMichaelIconFinal from "./ArchangelMichaelIconFinal";
@@ -81,8 +83,19 @@ export default function AudioPlayback({
   const [backgroundMusicElement, setBackgroundMusicElement] = useState<HTMLAudioElement | null>(null);
   const [musicEnabled, setMusicEnabled] = useState(true);
   const [hasAutoSaved, setHasAutoSaved] = useState(false); // Track ob bereits automatisch gespeichert wurde
+  const [showEmailVerificationModal, setShowEmailVerificationModal] = useState(false);
+  const [hasPlayedOnce, setHasPlayedOnce] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
   const { user, session, signIn, signUp } = useAuth();
   const router = useRouter();
+
+  // Prüfe Cookie-basiertes Trust beim Mount
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      const isVerified = document.cookie.includes('email_verified=true');
+      setEmailVerified(isVerified);
+    }
+  }, []);
 
   // Lade Testmodus aus localStorage - nur nach Mount
   useEffect(() => {
@@ -481,6 +494,12 @@ export default function AudioPlayback({
   };
 
   const handleSaveStory = async () => {
+    // Variante 3C: Prüfe Email-Verification für Speichern (nur wenn nicht eingeloggt)
+    if (!user && !emailVerified) {
+      setShowEmailVerificationModal(true);
+      return;
+    }
+    
     // Speichere IMMER zuerst als temporäre Geschichte
     savePendingStory();
     
@@ -676,6 +695,9 @@ export default function AudioPlayback({
         });
       }, 15000);
 
+      // Generiere oder lade Browser-Fingerprint für Rate-Limiting
+      const browserFingerprint = await getOrCreateBrowserFingerprint();
+
       const response = await fetch('/api/generate-audio', {
         method: 'POST',
         headers: {
@@ -684,7 +706,8 @@ export default function AudioPlayback({
         body: JSON.stringify({
           text: text,
           voiceId: voiceId,
-          adminPreview: sparModus // Use sparModus setting
+          adminPreview: sparModus, // Use sparModus setting
+          browserFingerprint: browserFingerprint // Für Rate-Limiting
         }),
       });
 
@@ -835,6 +858,7 @@ export default function AudioPlayback({
     const handleEnded = () => {
       setIsPlaying(false);
       setCurrentTime(0);
+      setHasPlayedOnce(true);
       
       // Stoppe oder fade out Hintergrundmusik wenn Stimme endet
       if (backgroundMusicElement) {
@@ -862,6 +886,13 @@ export default function AudioPlayback({
             console.log('[AudioPlayback] Background music faded out');
           }
         }, 50);
+      }
+      
+      // Variante 3C: Zeige Email-Verification-Modal nach 1x Anhören (nur wenn nicht eingeloggt und nicht verifiziert)
+      if (!user && !emailVerified && hasPlayedOnce) {
+        setTimeout(() => {
+          setShowEmailVerificationModal(true);
+        }, 1000); // Kurze Verzögerung für bessere UX
       }
       
       // Track vollständigen Audio-Play (nur wenn User eingeloggt ist UND eine gültige Session hat)
@@ -1077,6 +1108,12 @@ export default function AudioPlayback({
   const restart = async () => {
     const audio = audioRef.current;
     if (!audio) return;
+    
+    // Variante 3C: Prüfe Email-Verification für Replay (nur wenn nicht eingeloggt)
+    if (!user && !emailVerified) {
+      setShowEmailVerificationModal(true);
+      return;
+    }
     
     // Prüfe Zugang auch beim Restart (gleiche Logik wie togglePlayPause)
     // Nur wenn Paywall-Feature aktiviert ist
@@ -1679,6 +1716,16 @@ export default function AudioPlayback({
           message="Deine kostenlose 3-Tage-Trial-Periode ist abgelaufen. Fühle dich jeden Tag sicher, geborgen und beschützt"
         />
       )}
+
+      {/* Email-Verification-Modal für Replay/Speichern (Variante 3C) */}
+      <EmailVerificationModal
+        isOpen={showEmailVerificationModal}
+        onClose={() => setShowEmailVerificationModal(false)}
+        onVerified={() => {
+          setEmailVerified(true);
+          setShowEmailVerificationModal(false);
+        }}
+      />
     </div>
   );
 }
