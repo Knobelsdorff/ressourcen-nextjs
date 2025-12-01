@@ -321,7 +321,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Verwende den vollen Text, außer bei Admin-Preview
-    let effectiveText = (adminPreview === true) ? shortenForPreview(text) : text;
+    const effectiveText = (adminPreview === true) ? shortenForPreview(text) : text;
     
     // Füge SSML Pausen-Tags hinzu
     const beforeSSML = effectiveText;
