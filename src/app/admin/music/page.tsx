@@ -548,7 +548,11 @@ export default function AdminMusicPage() {
           const recommendedVoiceId = 'SHTtk5n3RQvLx4dcvfGR'; // Sanft und beruhigend
           const testText = `Dies ist ein Test der Hintergrundmusik für ${track.figure_name || track.figure_id}. Die Musik sollte die Stimme unterstützen, ohne sie zu übertönen.`;
           
-          const response = await fetch('/api/generate-audio', {
+      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      
+      const edgeFunctionUrl = `${SUPABASE_URL}/functions/v1/generate-audio`;
+
+      const response = await fetch(edgeFunctionUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
