@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
 import { realFigures, fictionalFigures } from "@/data/figures";
@@ -71,15 +71,7 @@ export default function AdminMusicPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    if (selectedFigure) {
-      loadTracks();
-    } else {
-      setTracks([]);
-    }
-  }, [selectedFigure]);
-
-  const loadTracks = async () => {
+  const loadTracks = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("background_music_tracks")
@@ -109,7 +101,15 @@ export default function AdminMusicPage() {
       console.error("Error loading tracks:", error);
       alert("Fehler beim Laden der Tracks:\n\n" + error.message);
     }
-  };
+  }, [selectedFigure]);
+
+  useEffect(() => {
+    if (selectedFigure) {
+      loadTracks();
+    } else {
+      setTracks([]);
+    }
+  }, [selectedFigure, loadTracks]);
 
   const handleUpload = async () => {
     if (!uploadFile || !selectedFigure) {
@@ -120,6 +120,15 @@ export default function AdminMusicPage() {
     // Validierung
     if (!uploadFile.name.toLowerCase().endsWith(".mp3")) {
       alert("Bitte lade nur MP3-Dateien hoch.");
+      return;
+    }
+
+    // Dateigrößenprüfung (max 100MB)
+    const maxFileSize = 100 * 1024 * 1024; // 100MB in Bytes
+    const fileSizeMB = (uploadFile.size / 1024 / 1024).toFixed(2);
+    
+    if (uploadFile.size > maxFileSize) {
+      alert(`Die Datei ist zu groß (${fileSizeMB} MB). Maximale Dateigröße: 100 MB.\n\nBitte komprimiere die Datei oder verwende eine kleinere Version.`);
       return;
     }
 
@@ -155,8 +164,9 @@ export default function AdminMusicPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
-        throw new Error(errorData.error || `Upload failed with status ${response.status}`);
+        const errorData = await response.json().catch(() => ({ error: "Unbekannter Fehler" }));
+        const errorMessage = errorData.error || errorData.details || `Upload fehlgeschlagen (Status: ${response.status})`;
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
@@ -169,7 +179,10 @@ export default function AdminMusicPage() {
       loadTracks();
     } catch (error: any) {
       console.error("Upload error:", error);
-      alert("Fehler beim Hochladen: " + (error.message || "Unbekannter Fehler"));
+      const errorMessage = error.message || "Unbekannter Fehler beim Hochladen";
+      
+      // Zeige detaillierte Fehlermeldung
+      alert(`Fehler beim Hochladen:\n\n${errorMessage}\n\n${uploadFile ? `Datei: ${uploadFile.name} (${(uploadFile.size / 1024 / 1024).toFixed(2)} MB)` : ''}\n\nTipp: Falls die Datei zu groß ist, versuche sie zu komprimieren oder eine kleinere Version zu verwenden.`);
     } finally {
       setUploading(false);
     }
@@ -182,29 +195,28 @@ export default function AdminMusicPage() {
       const track = tracks.find((t) => t.id === trackId);
       if (!track) return;
 
-      // 1. Lösche aus Datenbank
-      const { error: dbError } = await supabase
-        .from("background_music_tracks")
-        .delete()
-        .eq("id", trackId);
+      // Verwende API-Endpoint für serverseitige Admin-Prüfung (umgeht RLS-Probleme)
+      const response = await fetch("/api/admin/music/delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          trackId,
+          trackUrl: track.track_url,
+        }),
+      });
 
-      if (dbError) throw dbError;
-
-      // 2. Versuche Datei aus Storage zu löschen (optional, kann fehlschlagen wenn RLS aktiv ist)
-      try {
-        const fileName = track.track_url.split("/").pop();
-        if (fileName) {
-          await supabase.storage.from("background-music").remove([fileName]);
-        }
-      } catch (storageError) {
-        console.warn("Could not delete file from storage (might need admin access):", storageError);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(errorData.error || `Delete failed with status ${response.status}`);
       }
 
       alert("Track erfolgreich gelöscht!");
       loadTracks();
     } catch (error: any) {
       console.error("Delete error:", error);
-      alert("Fehler beim Löschen: " + error.message);
+      alert("Fehler beim Löschen: " + (error.message || "Unbekannter Fehler"));
     }
   };
 

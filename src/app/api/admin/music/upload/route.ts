@@ -21,6 +21,8 @@ function isAdminUser(email: string | undefined): boolean {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('[API/admin/music/upload] POST request received');
+  
   try {
     // Erstelle Supabase Client für Session-Check
     const supabase = createServerClient<Database>(
@@ -66,6 +68,14 @@ export async function POST(request: NextRequest) {
     const sourceLink = formData.get('sourceLink') as string | null;
     const isDefault = formData.get('isDefault') === 'true';
 
+    console.log('[API/admin/music/upload] Upload request:', {
+      fileName: file?.name,
+      fileSize: file?.size ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : 'unknown',
+      figureId,
+      figureName,
+      isDefault
+    });
+
     // Validierung
     if (!file) {
       return NextResponse.json(
@@ -77,6 +87,24 @@ export async function POST(request: NextRequest) {
     if (!file.name.toLowerCase().endsWith('.mp3')) {
       return NextResponse.json(
         { error: 'Only MP3 files are allowed' },
+        { status: 400 }
+      );
+    }
+
+    // Dateigrößenprüfung (max 100MB)
+    const maxFileSize = 100 * 1024 * 1024; // 100MB in Bytes
+    const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
+    
+    console.log(`[API/admin/music/upload] File size check: ${fileSizeMB} MB (max: 100 MB)`);
+    
+    if (file.size > maxFileSize) {
+      console.warn(`[API/admin/music/upload] File too large: ${fileSizeMB}MB (max: 100MB)`);
+      return NextResponse.json(
+        { 
+          error: `Die Datei ist zu groß (${fileSizeMB} MB). Maximale Dateigröße: 100 MB. Bitte komprimiere die Datei oder verwende eine kleinere Version.`,
+          fileSize: file.size,
+          maxSize: maxFileSize
+        },
         { status: 400 }
       );
     }
@@ -109,6 +137,8 @@ export async function POST(request: NextRequest) {
     const randomId = Math.random().toString(36).substr(2, 9);
     const fileName = `${figureId}_${timestamp}_${randomId}.${fileExt}`;
 
+    console.log(`[API/admin/music/upload] Starting upload to storage: ${fileName}`);
+
     // Konvertiere File zu ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
 
@@ -123,8 +153,26 @@ export async function POST(request: NextRequest) {
 
     if (uploadError) {
       console.error('Storage upload error:', uploadError);
+      
+      // Spezielle Fehlermeldungen für häufige Probleme
+      let errorMessage = 'Fehler beim Hochladen der Datei';
+      if (uploadError.message?.includes('File size exceeds') || uploadError.message?.includes('too large')) {
+        errorMessage = `Die Datei ist zu groß (${fileSizeMB} MB). Bitte komprimiere die Datei oder verwende eine kleinere Version.`;
+      } else if (uploadError.message?.includes('quota') || uploadError.message?.includes('limit')) {
+        errorMessage = 'Speicherplatz-Limit erreicht. Bitte kontaktiere den Administrator.';
+      } else if (uploadError.message?.includes('permission') || uploadError.message?.includes('access')) {
+        errorMessage = 'Zugriff verweigert. Bitte stelle sicher, dass du als Admin eingeloggt bist.';
+      } else {
+        errorMessage = `Fehler beim Hochladen: ${uploadError.message || 'Unbekannter Fehler'}`;
+      }
+      
       return NextResponse.json(
-        { error: 'Failed to upload file to storage', details: uploadError.message },
+        { 
+          error: errorMessage,
+          details: uploadError.message,
+          fileSize: file.size,
+          fileName: file.name
+        },
         { status: 500 }
       );
     }
@@ -177,13 +225,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('[API/admin/music/upload] Upload successful:', {
+      trackId: dbData?.id,
+      fileName,
+      figureId
+    });
+
     return NextResponse.json({
       success: true,
       track: dbData,
       publicUrl,
     });
   } catch (error: any) {
-    console.error('Upload API error:', error);
+    console.error('[API/admin/music/upload] Unexpected error:', error);
     return NextResponse.json(
       { error: 'Internal server error', details: error.message },
       { status: 500 }
