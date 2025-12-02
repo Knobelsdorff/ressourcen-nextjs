@@ -321,11 +321,11 @@ export async function POST(request: NextRequest) {
     };
 
     // Verwende den vollen Text, außer bei Admin-Preview
-    let effectiveText = (adminPreview === true) ? shortenForPreview(text) : text;
+    const effectiveText = (adminPreview === true) ? shortenForPreview(text) : text;
     
     // Füge SSML Pausen-Tags hinzu
     const beforeSSML = effectiveText;
-    effectiveText = addSSMLPauses(effectiveText);
+    // effectiveText = addSSMLPauses(effectiveText);
     
     // Debug: Log SSML-Pausen-Erkennung
     // Pattern unterstützt sowohl altes Format (<break time="1.0s"/>) als auch neues Format (<break time="1.0s" />)

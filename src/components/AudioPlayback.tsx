@@ -43,6 +43,7 @@ interface AudioPlaybackProps {
   sparModus?: boolean;
   questionAnswers?: any[];
   onShowAccountCreated?: () => void;
+  storyGenerationError?: string | null;
 }
 
 // Voices will be loaded dynamically from API
@@ -56,7 +57,8 @@ export default function AudioPlayback({
   selectedVoiceId,
   sparModus = false,
   questionAnswers = [],
-  onShowAccountCreated
+  onShowAccountCreated,
+  storyGenerationError = null
 }: AudioPlaybackProps) {
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
   const [availableVoices, setAvailableVoices] = useState<Voice[]>([]);
@@ -696,19 +698,23 @@ export default function AudioPlayback({
         });
       }, 15000);
 
-      // Generiere oder lade Browser-Fingerprint für Rate-Limiting
-      const browserFingerprint = await getOrCreateBrowserFingerprint();
+      // Use Supabase Edge Function (no timeout limits, cheaper than Vercel)
+      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-      const response = await fetch('/api/generate-audio', {
+      const edgeFunctionUrl = `${SUPABASE_URL}/functions/v1/generate-audio`;
+
+      const response = await fetch(edgeFunctionUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
           text: text,
           voiceId: voiceId,
           adminPreview: sparModus, // Use sparModus setting
-          browserFingerprint: browserFingerprint // Für Rate-Limiting
+          // browserFingerprint: browserFingerprint // Für Rate-Limiting
         }),
       });
 
@@ -767,6 +773,13 @@ export default function AudioPlayback({
 
   // Load audio on component mount or when needed
   useEffect(() => {
+    // Don't try to generate audio if there's a story generation error or if story is empty
+    if (storyGenerationError || !generatedStory || generatedStory.trim().length === 0) {
+      setIsGenerating(false);
+      setError(null);
+      return;
+    }
+
     if (selectedVoice && generatedStory.trim().length > 0) {
       if (needsNewAudio()) {
         // Sofortiger Ladebildschirm für bessere UX
@@ -778,7 +791,7 @@ export default function AudioPlayback({
         setError(null);
       }
     }
-  }, [needsNewAudio, selectedVoice, generatedStory, audioState?.audioUrl]);
+  }, [needsNewAudio, selectedVoice, generatedStory, audioState?.audioUrl, storyGenerationError]);
 
   // Regeneriere Audio nur wenn nötig, wenn der Admin-Sparmodus umgeschaltet wird
   useEffect(() => {

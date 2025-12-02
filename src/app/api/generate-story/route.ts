@@ -153,25 +153,61 @@ Bearbeitete Geschichte:`;
       sparModus: sparModus
     });
     
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: storyPrompt }
-      ],
-      max_tokens: maxTokens,
-      temperature: 0.7,
-    });
+    let story: string;
 
-    let story = completion.choices[0]?.message?.content;
-    if (!story) throw new Error('No story returned');
+    try {
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: storyPrompt }
+        ],
+        max_tokens: maxTokens,
+        temperature: 0.7,
+      });
 
-    // Im Sparmodus: Stelle sicher, dass nur der erste Satz zurückgegeben wird
+      story = completion.choices[0]?.message?.content || '';
+       // Im Sparmodus: Stelle sicher, dass nur der erste Satz zurückgegeben wird
     if (sparModus) {
       const firstSentence = story.match(/^[^.!?]*[.!?]/);
       story = firstSentence ? firstSentence[0] : story.split('.')[0] + '.';
       console.log('Sparmodus applied - original length:', completion.choices[0]?.message?.content?.length, 'final length:', story.length);
     }
+      if (!story) throw new Error('No story returned');
+    } catch (openaiError: any) {
+      // If OpenAI quota is exceeded, use a fallback template story
+      if (openaiError.status === 429 || openaiError.code === 'insufficient_quota') {
+        console.warn('⚠️ OpenAI quota exceeded, using fallback template story');
+
+        // Simple template story as fallback
+        const figureName = selectedFigure.name;
+        const pronouns = selectedFigure.pronouns?.toLowerCase() || 'sie/ihr';
+        const pronoun = pronouns.startsWith('er') ? 'er' : pronouns.startsWith('sie') ? 'sie' : 'sie';
+        const possessive = pronouns.startsWith('er') ? 'sein' : 'ihr';
+
+        story = `Du spürst die warme Präsenz von ${figureName}. ${pronoun.charAt(0).toUpperCase() + pronoun.slice(1)} ist bei dir.
+
+${figureName} sitzt neben dir. Du fühlst dich sicher und geborgen. ${pronoun.charAt(0).toUpperCase() + pronoun.slice(1)} ist ruhig und stabil.
+
+In schwierigen Momenten bleibt ${figureName} bei dir. ${pronoun.charAt(0).toUpperCase() + pronoun.slice(1)} hält deine Hand und spricht sanft mit dir.
+
+Du bittest ${figureName}: "Kannst du bitte immer für mich da sein?"
+
+Und ${figureName} sagt zu dir:
+
+"Ich bin immer für dich da. Du bist genau richtig, so wie du bist. Auf mich kannst du dich jederzeit verlassen."
+
+Du weißt, dass ${pronoun} immer bei dir ist. Du spürst, wie ${pronoun} dich trägt. ${figureName} ist und bleibt für dich da.`;
+
+        // Log the fallback usage for monitoring
+        console.log('📝 Fallback story generated for:', figureName);
+      } else {
+        // Re-throw other errors
+        throw openaiError;
+      }
+    }
+
+   
 
     console.log('Final story result:', {
       sparModus: sparModus,

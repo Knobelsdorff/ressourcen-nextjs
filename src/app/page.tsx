@@ -102,6 +102,7 @@ export default function RessourcenApp() {
   const [userPronunciationHint, setUserPronunciationHint] = useState<string | null>(null);
   const [sparModus, setSparModus] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [storyGenerationError, setStoryGenerationError] = useState<string | null>(null);
   
   // Debug: Log current state
   console.log('Current user state:', { 
@@ -488,15 +489,16 @@ export default function RessourcenApp() {
       if (!appState.resourceFigure) return;
       if (appState.currentStep >= 4 && appState.selectedVoice && !isGeneratingStory && !appState.generatedStory.trim()) {
         setIsGeneratingStory(true);
+        setStoryGenerationError(null); // Clear previous errors
         try {
-          const requestBody = { 
-            selectedFigure: appState.resourceFigure, 
+          const requestBody = {
+            selectedFigure: appState.resourceFigure,
             questionAnswers: appState.questionAnswers,
             userName: isEnabled('FEATURE_USER_NAME') ? userFullName || undefined : undefined,
             userPronunciationHint: isEnabled('FEATURE_USER_NAME') ? userPronunciationHint || undefined : undefined,
             sparModus: sparModus
           };
-          
+
       console.log('Story generation request:', {
         featureEnabled: isEnabled('FEATURE_USER_NAME'),
         userFullName: userFullName,
@@ -504,9 +506,9 @@ export default function RessourcenApp() {
         sparModus: sparModus,
         requestBody: JSON.stringify(requestBody, null, 2)
       });
-      
+
       console.log('Detailed request body:', JSON.stringify(requestBody, null, 2));
-          
+
       console.log('Story generation details:', {
         userName: requestBody.userName,
         userPronunciationHint: requestBody.userPronunciationHint,
@@ -516,7 +518,7 @@ export default function RessourcenApp() {
         selectedFigure: requestBody.selectedFigure?.name,
         questionAnswersCount: requestBody.questionAnswers?.length
       });
-      
+
       console.log('User state check:', {
         isLoggedIn: !!user,
         userEmail: user?.email,
@@ -526,25 +528,37 @@ export default function RessourcenApp() {
         willSendUserName: isEnabled('FEATURE_USER_NAME') ? userFullName || undefined : undefined,
         willSendPronunciationHint: isEnabled('FEATURE_USER_NAME') ? userPronunciationHint || undefined : undefined
       });
-          
+
           console.log('SparModus check:', {
             sparModus: sparModus,
             requestBodySparModus: requestBody.sparModus,
             isTrue: sparModus === true,
             isFalse: sparModus === false
           });
-          
+
           const response = await fetch('/api/generate-story', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestBody)
           });
+
           if (response.ok) {
             const { story } = await response.json();
-            handleStoryGenerated(story);
+            if (story && story.trim().length > 0) {
+              handleStoryGenerated(story);
+              setStoryGenerationError(null);
+            } else {
+              throw new Error('Empty story received from API');
+            }
+          } else {
+            const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+            throw new Error(errorData.message || `HTTP ${response.status}: Failed to generate story`);
           }
-        } catch {
-          // ignore background errors
+        } catch (error: any) {
+          console.error('Story generation failed:', error);
+          const errorMessage = error.message || 'Failed to generate story. Please try again.';
+          setStoryGenerationError(errorMessage);
+          // Don't proceed to audio generation if story failed
         } finally {
           setIsGeneratingStory(false);
         }
@@ -669,17 +683,44 @@ export default function RessourcenApp() {
                 )}
 
                 {appState.currentStep === 4 && appState.resourceFigure && appState.selectedVoice && (
-                  <AudioPlayback
-                    selectedFigure={appState.resourceFigure}
-                    generatedStory={appState.generatedStory}
-                    onNext={handleNextStep}
-                    audioState={appState.audioState}
-                    onAudioStateChange={handleAudioStateChange}
-                    selectedVoiceId={appState.selectedVoice}
-                    sparModus={sparModus}
-                    questionAnswers={appState.questionAnswers}
-                    onShowAccountCreated={() => setShowAccountCreated(true)}
-                  />
+                  <>
+                    {storyGenerationError && (
+                      <div className="max-w-4xl mx-auto mb-6 p-6 bg-red-50 border border-red-200 rounded-2xl">
+                        <div className="flex items-start gap-4">
+                          <div className="flex-shrink-0 text-3xl">⚠️</div>
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold text-red-900 mb-2">
+                              Fehler bei der Story-Generierung
+                            </h3>
+                            <p className="text-red-700 mb-4">
+                              {storyGenerationError}
+                            </p>
+                            <button
+                              onClick={() => {
+                                setStoryGenerationError(null);
+                                setAppState(prev => ({ ...prev, generatedStory: '' }));
+                              }}
+                              className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                            >
+                              Erneut versuchen
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <AudioPlayback
+                      selectedFigure={appState.resourceFigure}
+                      generatedStory={appState.generatedStory}
+                      onNext={handleNextStep}
+                      audioState={appState.audioState}
+                      onAudioStateChange={handleAudioStateChange}
+                      selectedVoiceId={appState.selectedVoice}
+                      sparModus={sparModus}
+                      questionAnswers={appState.questionAnswers}
+                      onShowAccountCreated={() => setShowAccountCreated(true)}
+                      storyGenerationError={storyGenerationError}
+                    />
+                  </>
                 )}
 
             </motion.div>
