@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
+import { createSPAClient } from "@/lib/supabase/client";
 import { realFigures, fictionalFigures } from "@/data/figures";
 import { motion } from "framer-motion";
 import { Music, Upload, Trash2, Play, Pause, CheckCircle, XCircle, ArrowLeft, Edit2, Save, X, Volume2, TestTube } from "lucide-react";
@@ -157,16 +158,119 @@ export default function AdminMusicPage() {
       }
       formData.append("isDefault", isDefault.toString());
 
-      // Upload über API-Endpoint (serverseitig)
+      // Für große Dateien (> 4 MB): Versuche direkten Upload zu Supabase Storage
+      // Dies umgeht das Body-Size-Limit von Next.js/Vercel (4.5 MB)
+      const LARGE_FILE_THRESHOLD = 4 * 1024 * 1024; // 4 MB
+      const useDirectUpload = uploadFile.size > LARGE_FILE_THRESHOLD;
+
+      if (useDirectUpload) {
+        console.log(`[handleUpload] Using direct upload for large file: ${fileSizeMB} MB`);
+        
+        // Generiere Dateinamen
+        const fileExt = uploadFile.name.split('.').pop();
+        const timestamp = Date.now();
+        const randomId = Math.random().toString(36).substr(2, 9);
+        const storageFileName = `${selectedFigure}_${timestamp}_${randomId}.${fileExt}`;
+
+        // Versuche direkten Upload zu Supabase Storage
+        const supabaseClient = createSPAClient();
+        const { data: uploadData, error: uploadError } = await supabaseClient.storage
+          .from('background-music')
+          .upload(storageFileName, uploadFile, {
+            contentType: 'audio/mpeg',
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (uploadError) {
+          // Falls direkter Upload fehlschlägt, zeige detaillierte Fehlermeldung
+          console.error('[handleUpload] Direct upload failed:', uploadError);
+          console.error('[handleUpload] Upload error details:', {
+            message: uploadError.message,
+            error: (uploadError as any).error,
+            statusCode: (uploadError as any).statusCode,
+            fileName: storageFileName,
+            fileSize: uploadFile.size,
+            userEmail: user?.email
+          });
+          
+          // Prüfe spezifische Fehler
+          let errorMessage = 'Fehler beim direkten Upload zu Storage';
+          const errorMessageLower = uploadError.message?.toLowerCase() || '';
+          const statusCode = (uploadError as any).statusCode;
+          
+          if (errorMessageLower.includes('new row violates row-level security') || 
+              errorMessageLower.includes('rls') ||
+              errorMessageLower.includes('permission') ||
+              errorMessageLower.includes('forbidden') ||
+              statusCode === '403' ||
+              statusCode === 403) {
+            errorMessage = `Zugriff verweigert. Bitte stelle sicher, dass deine Email (${user?.email}) in der music_admins Tabelle eingetragen ist und du dich neu eingeloggt hast.`;
+          } else if (errorMessageLower.includes('bucket not found') || 
+                     errorMessageLower.includes('bucket')) {
+            errorMessage = 'Der Storage-Bucket "background-music" existiert nicht. Bitte kontaktiere den Administrator.';
+          } else {
+            errorMessage = `Upload-Fehler: ${uploadError.message || 'Unbekannter Fehler'}`;
+          }
+          
+          throw new Error(errorMessage);
+        } else {
+          // Direkter Upload erfolgreich - speichere Metadaten in DB
+          const { data: { publicUrl } } = supabaseClient.storage
+            .from('background-music')
+            .getPublicUrl(storageFileName);
+
+          // Speichere Metadaten über API
+          const saveResponse = await fetch("/api/admin/music/save-track-metadata", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              figureId: selectedFigure,
+              figureName: figures.find((f) => f.id === selectedFigure)?.name,
+              trackUrl: publicUrl,
+              storageFileName,
+              sourceLink,
+              isDefault,
+            }),
+          });
+
+          if (!saveResponse.ok) {
+            const errorData = await saveResponse.json().catch(() => ({ error: "Unbekannter Fehler" }));
+            throw new Error(errorData.error || "Fehler beim Speichern der Track-Metadaten");
+          }
+
+          alert("Track erfolgreich hochgeladen!");
+          setUploadFile(null);
+          setSourceLink("");
+          setIsDefault(false);
+          loadTracks();
+          return;
+        }
+      }
+
+      // Standard-Upload über API-Endpoint (serverseitig)
       const response = await fetch("/api/admin/music/upload", {
         method: "POST",
         body: formData,
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Unbekannter Fehler" }));
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (jsonError) {
+          // Wenn JSON-Parsing fehlschlägt, könnte es ein Body-Size-Limit-Problem sein
+          if (response.status === 413 || response.status === 0) {
+            throw new Error(`Die Datei ist zu groß (${fileSizeMB} MB) für den Standard-Upload über die API-Route. Bitte versuche es erneut - das System sollte automatisch einen direkten Upload verwenden.`);
+          }
+          errorData = { error: `Upload fehlgeschlagen (Status: ${response.status})` };
+        }
+        
         const errorMessage = errorData.error || errorData.details || `Upload fehlgeschlagen (Status: ${response.status})`;
-        throw new Error(errorMessage);
+        const suggestion = errorData.suggestion ? `\n\n${errorData.suggestion}` : '';
+        throw new Error(errorMessage + suggestion);
       }
 
       const result = await response.json();

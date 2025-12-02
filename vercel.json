@@ -5,6 +5,10 @@
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 60
+    },
+    "src/app/api/admin/music/upload/route.ts": {
+      "maxDuration": 120,
+      "memory": 1024
     }
   }
 }

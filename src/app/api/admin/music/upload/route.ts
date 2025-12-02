@@ -3,6 +3,11 @@ import { createServerClient } from '@supabase/ssr';
 import { Database } from '@/lib/types/database.types';
 import { createServerAdminClient } from '@/lib/supabase/serverAdminClient';
 
+// Für große Dateien: Verwende Node.js Runtime (nicht Edge)
+// Edge Runtime hat ein Body-Size-Limit von 4.5 MB
+export const runtime = 'nodejs';
+export const maxDuration = 120;
+
 /**
  * Prüft ob der aktuelle User ein Admin ist (Full Admin oder Music Admin)
  */
@@ -24,6 +29,12 @@ export async function POST(request: NextRequest) {
   console.log('[API/admin/music/upload] POST request received');
   
   try {
+    // Prüfe Content-Length Header für Body-Size-Limit
+    const contentLength = request.headers.get('content-length');
+    if (contentLength) {
+      const sizeMB = (parseInt(contentLength) / 1024 / 1024).toFixed(2);
+      console.log(`[API/admin/music/upload] Request body size: ${sizeMB} MB`);
+    }
     // Erstelle Supabase Client für Session-Check
     const supabase = createServerClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -61,12 +72,35 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse FormData
-    const formData = await request.formData();
-    const file = formData.get('file') as File;
-    const figureId = formData.get('figureId') as string;
-    const figureName = formData.get('figureName') as string | null;
-    const sourceLink = formData.get('sourceLink') as string | null;
-    const isDefault = formData.get('isDefault') === 'true';
+    let formData: FormData;
+    let file: File;
+    let figureId: string;
+    let figureName: string | null;
+    let sourceLink: string | null;
+    let isDefault: boolean;
+
+    try {
+      formData = await request.formData();
+      file = formData.get('file') as File;
+      figureId = formData.get('figureId') as string;
+      figureName = formData.get('figureName') as string | null;
+      sourceLink = formData.get('sourceLink') as string | null;
+      isDefault = formData.get('isDefault') === 'true';
+    } catch (parseError: any) {
+      console.error('[API/admin/music/upload] FormData parse error:', parseError);
+      // Prüfe ob es ein Body-Size-Limit-Problem ist
+      if (parseError.message?.includes('body') || parseError.message?.includes('size') || parseError.message?.includes('limit')) {
+        return NextResponse.json(
+          { 
+            error: 'Die Datei ist zu groß für den Standard-Upload. Bitte verwende eine kleinere Datei oder kontaktiere den Administrator.',
+            details: parseError.message,
+            suggestion: 'Für Dateien über 6 MB empfiehlt Supabase Resumable Uploads.'
+          },
+          { status: 413 } // Payload Too Large
+        );
+      }
+      throw parseError;
+    }
 
     console.log('[API/admin/music/upload] Upload request:', {
       fileName: file?.name,
@@ -238,8 +272,25 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[API/admin/music/upload] Unexpected error:', error);
+    
+    // Prüfe auf Body-Size-Limit-Fehler
+    if (error.message?.includes('body') || error.message?.includes('size') || error.message?.includes('limit') || error.message?.includes('413')) {
+      return NextResponse.json(
+        { 
+          error: 'Die Datei ist zu groß für den Standard-Upload. Bitte verwende eine kleinere Datei oder kontaktiere den Administrator.',
+          details: error.message,
+          suggestion: 'Für Dateien über 6 MB empfiehlt Supabase Resumable Uploads.'
+        },
+        { status: 413 } // Payload Too Large
+      );
+    }
+    
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { 
+        error: 'Internal server error', 
+        details: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     );
   }
