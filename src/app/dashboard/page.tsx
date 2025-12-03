@@ -1523,8 +1523,10 @@ ${story.content}
         (musicAudio as any)._fadeOutInterval = null;
         musicAudio.pause();
         musicAudio.currentTime = 0;
-        musicAudio.volume = DEFAULT_MUSIC_VOLUME; // Reset für nächste Wiedergabe
-        console.log(`[fadeOutMusic] Fade-out completed for story ${storyId}`);
+        // Verwende die ursprüngliche track-spezifische Lautstärke statt DEFAULT_MUSIC_VOLUME
+        const originalVolume = (musicAudio as any)._originalVolume || DEFAULT_MUSIC_VOLUME;
+        musicAudio.volume = originalVolume;
+        console.log(`[fadeOutMusic] Fade-out completed for story ${storyId}, reset volume to ${originalVolume * 100}%`);
       }
     }, fadeOutInterval);
     
@@ -1693,7 +1695,9 @@ ${story.content}
             console.log(`[playAudio] Stopping background music immediately (audio ended)`);
             musicAudio.pause();
             musicAudio.currentTime = 0;
-            musicAudio.volume = DEFAULT_MUSIC_VOLUME; // Reset für nächste Wiedergabe
+            // Verwende die ursprüngliche track-spezifische Lautstärke statt DEFAULT_MUSIC_VOLUME
+            const originalVolume = (musicAudio as any)._originalVolume || DEFAULT_MUSIC_VOLUME;
+            musicAudio.volume = originalVolume;
             (musicAudio as any)._fadeOutStarted = false; // Reset Flag
           }
           return prev;
@@ -1863,7 +1867,9 @@ ${story.content}
               console.log(`[playAudio] Stopping background music immediately`);
               musicAudio.pause();
               musicAudio.currentTime = 0;
-              musicAudio.volume = DEFAULT_MUSIC_VOLUME; // Reset für nächste Wiedergabe
+              // Verwende die ursprüngliche track-spezifische Lautstärke statt DEFAULT_MUSIC_VOLUME
+              const originalVolume = (musicAudio as any)._originalVolume || DEFAULT_MUSIC_VOLUME;
+              musicAudio.volume = originalVolume;
             }
           }
           return prev;
@@ -2062,10 +2068,11 @@ ${story.content}
           musicAudio.loop = true; // Wiederholt sich
           musicAudio.volume = musicVolume; // Track-spezifische Lautstärke
           
+          // Speichere die ursprüngliche track-spezifische Lautstärke für späteres Reset
+          (musicAudio as any)._originalVolume = musicVolume;
+          
           // Verwende track-spezifische Lautstärke (falls vorhanden), sonst Standard-Lautstärke
           console.log(`[playAudio] Background music initialized with volume: ${musicVolume * 100}% (track-specific: ${musicTrack?.volume ? 'yes' : 'no'}) for story ${storyId}`);
-          
-          setBackgroundMusicElements(prev => ({ ...prev, [storyId]: musicAudio }));
           
           musicAudio.addEventListener('error', (e) => {
             console.error('[playAudio] Background music error:', e);
@@ -2080,16 +2087,38 @@ ${story.content}
             console.log(`[playAudio] Background music ready for story ${storyId}`);
           });
           
-          // Keine speziellen Event Listener mehr nötig - Lautstärke ist statisch
+          setBackgroundMusicElements(prev => ({ ...prev, [storyId]: musicAudio }));
+        } else {
+          // Audio-Element existiert bereits - aktualisiere Lautstärke falls sie sich geändert hat
+          const originalVolume = (musicAudio as any)._originalVolume || DEFAULT_MUSIC_VOLUME;
+          if (Math.abs(originalVolume - musicVolume) > 0.001) {
+            console.log(`[playAudio] Updating music volume from ${originalVolume * 100}% to ${musicVolume * 100}% for story ${storyId}`);
+            musicAudio.volume = musicVolume;
+            (musicAudio as any)._originalVolume = musicVolume;
+          } else {
+            // Stelle sicher, dass die Lautstärke korrekt ist (falls sie durch Fade-Out geändert wurde)
+            const currentVolume = musicAudio.volume;
+            if (Math.abs(currentVolume - originalVolume) > 0.001) {
+              console.log(`[playAudio] Resetting music volume from ${currentVolume * 100}% to ${originalVolume * 100}% for story ${storyId}`);
+              musicAudio.volume = originalVolume;
+            }
+          }
         }
         
         // Starte Musik ZUERST (bei Sekunde 0) - nur wenn sie nicht bereits läuft
         try {
+          // Stelle sicher, dass die Lautstärke korrekt ist (falls sie durch Fade-Out geändert wurde)
+          const originalVolume = (musicAudio as any)._originalVolume || musicVolume;
+          if (Math.abs(musicAudio.volume - originalVolume) > 0.001) {
+            console.log(`[playAudio] Resetting music volume from ${musicAudio.volume * 100}% to ${originalVolume * 100}% for story ${storyId}`);
+            musicAudio.volume = originalVolume;
+          }
+          
           // Prüfe ob Musik bereits läuft
           if (musicAudio.paused) {
             musicAudio.currentTime = 0; // Starte von Anfang
             await musicAudio.play();
-            console.log(`[playAudio] Background music started for story ${storyId} (at 0s)`);
+            console.log(`[playAudio] Background music started for story ${storyId} (at 0s) with volume ${musicAudio.volume * 100}%`);
             
             // Aktualisiere Button-Status SOFORT, wenn Musik startet (vor der 3-Sekunden-Wartezeit)
             setPlayingAudioId(storyId);
@@ -2213,7 +2242,9 @@ ${story.content}
               // Stoppe Musik
               musicAudio.pause();
               musicAudio.currentTime = 0;
-              musicAudio.volume = DEFAULT_MUSIC_VOLUME;
+              // Verwende die ursprüngliche track-spezifische Lautstärke statt DEFAULT_MUSIC_VOLUME
+              const originalVolume = (musicAudio as any)._originalVolume || DEFAULT_MUSIC_VOLUME;
+              musicAudio.volume = originalVolume;
               (musicAudio as any)._fadeOutStarted = false;
               
               // Aktualisiere State
