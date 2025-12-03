@@ -2087,6 +2087,47 @@ ${story.content}
             console.log(`[playAudio] Background music ready for story ${storyId}`);
           });
           
+          // Mobile Browser: Stelle sicher, dass Lautstärke auch nach play() gesetzt bleibt
+          const ensureVolumeOnPlay = () => {
+            const targetVolume = (musicAudio as any)._originalVolume || musicVolume;
+            if (Math.abs(musicAudio.volume - targetVolume) > 0.001) {
+              console.log(`[playAudio] Mobile: Correcting volume from ${musicAudio.volume * 100}% to ${targetVolume * 100}% after play`);
+              musicAudio.volume = targetVolume;
+            }
+          };
+          
+          // Überwache Lautstärke nach play() für mobile Geräte
+          musicAudio.addEventListener('play', () => {
+            // Setze Lautstärke sofort nach play()
+            ensureVolumeOnPlay();
+            // Und nochmal nach kurzer Verzögerung (mobile Browser brauchen manchmal Zeit)
+            setTimeout(ensureVolumeOnPlay, 100);
+            setTimeout(ensureVolumeOnPlay, 500);
+          });
+          
+          // Überwache Lautstärke während der Wiedergabe (für mobile Geräte)
+          const volumeCheckInterval = setInterval(() => {
+            if (!musicAudio.paused) {
+              const targetVolume = (musicAudio as any)._originalVolume || musicVolume;
+              if (Math.abs(musicAudio.volume - targetVolume) > 0.001) {
+                console.log(`[playAudio] Mobile: Correcting volume from ${musicAudio.volume * 100}% to ${targetVolume * 100}% during playback`);
+                musicAudio.volume = targetVolume;
+              }
+            }
+          }, 500); // Prüfe alle 500ms
+          
+          // Cleanup beim Pausieren/Stoppen
+          musicAudio.addEventListener('pause', () => {
+            clearInterval(volumeCheckInterval);
+          }, { once: true });
+          
+          musicAudio.addEventListener('ended', () => {
+            clearInterval(volumeCheckInterval);
+          }, { once: true });
+          
+          // Speichere Interval-Referenz für späteres Cleanup
+          (musicAudio as any)._volumeCheckInterval = volumeCheckInterval;
+          
           setBackgroundMusicElements(prev => ({ ...prev, [storyId]: musicAudio }));
         } else {
           // Audio-Element existiert bereits - aktualisiere Lautstärke falls sie sich geändert hat
@@ -2103,6 +2144,46 @@ ${story.content}
               musicAudio.volume = originalVolume;
             }
           }
+          
+          // Stelle sicher, dass Lautstärke-Überwachung aktiviert ist (falls sie noch nicht existiert)
+          if (!(musicAudio as any)._volumeCheckInterval) {
+            const ensureVolumeOnPlay = () => {
+              const targetVolume = (musicAudio as any)._originalVolume || musicVolume;
+              if (Math.abs(musicAudio.volume - targetVolume) > 0.001) {
+                console.log(`[playAudio] Mobile: Correcting volume from ${musicAudio.volume * 100}% to ${targetVolume * 100}% after play`);
+                musicAudio.volume = targetVolume;
+              }
+            };
+            
+            // Überwache Lautstärke nach play() für mobile Geräte
+            musicAudio.addEventListener('play', () => {
+              ensureVolumeOnPlay();
+              setTimeout(ensureVolumeOnPlay, 100);
+              setTimeout(ensureVolumeOnPlay, 500);
+            });
+            
+            // Überwache Lautstärke während der Wiedergabe (für mobile Geräte)
+            const volumeCheckInterval = setInterval(() => {
+              if (!musicAudio.paused) {
+                const targetVolume = (musicAudio as any)._originalVolume || musicVolume;
+                if (Math.abs(musicAudio.volume - targetVolume) > 0.001) {
+                  console.log(`[playAudio] Mobile: Correcting volume from ${musicAudio.volume * 100}% to ${targetVolume * 100}% during playback`);
+                  musicAudio.volume = targetVolume;
+                }
+              }
+            }, 500);
+            
+            // Cleanup beim Pausieren/Stoppen
+            musicAudio.addEventListener('pause', () => {
+              clearInterval(volumeCheckInterval);
+            }, { once: true });
+            
+            musicAudio.addEventListener('ended', () => {
+              clearInterval(volumeCheckInterval);
+            }, { once: true });
+            
+            (musicAudio as any)._volumeCheckInterval = volumeCheckInterval;
+          }
         }
         
         // Starte Musik ZUERST (bei Sekunde 0) - nur wenn sie nicht bereits läuft
@@ -2117,7 +2198,29 @@ ${story.content}
           // Prüfe ob Musik bereits läuft
           if (musicAudio.paused) {
             musicAudio.currentTime = 0; // Starte von Anfang
+            
+            // Stelle sicher, dass Lautstärke vor play() gesetzt ist
+            const targetVolume = (musicAudio as any)._originalVolume || musicVolume;
+            musicAudio.volume = targetVolume;
+            
             await musicAudio.play();
+            
+            // Mobile Browser: Setze Lautstärke NACH play() nochmal (wichtig für mobile Geräte)
+            const targetVolumeAfterPlay = (musicAudio as any)._originalVolume || musicVolume;
+            musicAudio.volume = targetVolumeAfterPlay;
+            
+            // Und nochmal nach kurzer Verzögerung (mobile Browser brauchen manchmal Zeit)
+            setTimeout(() => {
+              if (!musicAudio.paused) {
+                musicAudio.volume = targetVolumeAfterPlay;
+              }
+            }, 100);
+            setTimeout(() => {
+              if (!musicAudio.paused) {
+                musicAudio.volume = targetVolumeAfterPlay;
+              }
+            }, 500);
+            
             console.log(`[playAudio] Background music started for story ${storyId} (at 0s) with volume ${musicAudio.volume * 100}%`);
             
             // Aktualisiere Button-Status SOFORT, wenn Musik startet (vor der 3-Sekunden-Wartezeit)
@@ -2127,6 +2230,11 @@ ${story.content}
             await new Promise(resolve => setTimeout(resolve, 3000));
           } else {
             console.log(`[playAudio] Background music already playing for story ${storyId}, skipping start`);
+            // Stelle sicher, dass Lautstärke auch bei bereits laufender Musik korrekt ist
+            const targetVolume = (musicAudio as any)._originalVolume || musicVolume;
+            if (Math.abs(musicAudio.volume - targetVolume) > 0.001) {
+              musicAudio.volume = targetVolume;
+            }
             // Aktualisiere Button-Status auch wenn Musik bereits läuft
             setPlayingAudioId(storyId);
           }
