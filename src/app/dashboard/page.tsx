@@ -1484,6 +1484,43 @@ ${story.content}
     }
   };
 
+  // Hilfsfunktion zum Setzen der Lautstärke (unterstützt Web Audio API für iOS)
+  const setMusicVolume = useCallback((musicAudio: HTMLAudioElement, volume: number) => {
+    if ((musicAudio as any)._useWebAudio && (musicAudio as any)._gainNode) {
+      // iOS (Safari & Chrome): Verwende Web Audio API GainNode
+      try {
+        const gainNode = (musicAudio as any)._gainNode;
+        const audioContext = (musicAudio as any)._audioContext;
+        
+        // Stelle sicher, dass AudioContext aktiv ist
+        if (audioContext && audioContext.state === 'suspended') {
+          audioContext.resume().catch((err: any) => {
+            console.warn('[setMusicVolume] Failed to resume AudioContext:', err);
+          });
+        }
+        
+        gainNode.gain.value = volume;
+      } catch (error) {
+        console.warn('[setMusicVolume] Failed to set volume via GainNode, falling back to HTMLAudioElement:', error);
+        musicAudio.volume = volume;
+      }
+    } else {
+      // Android/Desktop: Verwende normale volume Property
+      musicAudio.volume = volume;
+    }
+  }, []);
+
+  // Hilfsfunktion zum Abrufen der aktuellen Lautstärke
+  const getMusicVolume = useCallback((musicAudio: HTMLAudioElement): number => {
+    if ((musicAudio as any)._useWebAudio && (musicAudio as any)._gainNode) {
+      // iOS: Verwende Web Audio API GainNode
+      return (musicAudio as any)._gainNode.gain.value;
+    } else {
+      // Android/Desktop: Verwende normale volume Property
+      return musicAudio.volume;
+    }
+  }, []);
+
   // Fade-Out-Funktion für Hintergrundmusik
   const fadeOutMusic = useCallback((musicAudio: HTMLAudioElement | null | undefined, storyId: string, duration: number = 2000) => {
     if (!musicAudio) {
@@ -1498,7 +1535,7 @@ ${story.content}
     }
     
     // Fade-Out mit volume (konsistente Methode für alle User)
-    const startVolume = musicAudio.volume;
+    const startVolume = getMusicVolume(musicAudio);
     const fadeOutInterval = 50; // Update alle 50ms
     const steps = duration / fadeOutInterval;
     const volumeStep = startVolume / steps;
@@ -1516,7 +1553,7 @@ ${story.content}
       
       currentStep++;
       const newVolume = Math.max(0, startVolume - (volumeStep * currentStep));
-      musicAudio.volume = newVolume;
+      setMusicVolume(musicAudio, newVolume);
       
       if (currentStep >= steps || newVolume <= 0) {
         clearInterval(fadeInterval);
@@ -1525,14 +1562,14 @@ ${story.content}
         musicAudio.currentTime = 0;
         // Verwende die ursprüngliche track-spezifische Lautstärke statt DEFAULT_MUSIC_VOLUME
         const originalVolume = (musicAudio as any)._originalVolume || DEFAULT_MUSIC_VOLUME;
-        musicAudio.volume = originalVolume;
+        setMusicVolume(musicAudio, originalVolume);
         console.log(`[fadeOutMusic] Fade-out completed for story ${storyId}, reset volume to ${originalVolume * 100}%`);
       }
     }, fadeOutInterval);
     
     // Speichere Interval-Referenz für späteres Cleanup
     (musicAudio as any)._fadeOutInterval = fadeInterval;
-  }, []);
+  }, [setMusicVolume, getMusicVolume]);
 
   const playAudio = useCallback(async (audioUrl: string, storyId: string) => {
     // VALIDIERUNG: Prüfe ob audioUrl gültig ist
@@ -1697,7 +1734,7 @@ ${story.content}
             musicAudio.currentTime = 0;
             // Verwende die ursprüngliche track-spezifische Lautstärke statt DEFAULT_MUSIC_VOLUME
             const originalVolume = (musicAudio as any)._originalVolume || DEFAULT_MUSIC_VOLUME;
-            musicAudio.volume = originalVolume;
+            setMusicVolume(musicAudio, originalVolume);
             (musicAudio as any)._fadeOutStarted = false; // Reset Flag
           }
           return prev;
@@ -1869,7 +1906,7 @@ ${story.content}
               musicAudio.currentTime = 0;
               // Verwende die ursprüngliche track-spezifische Lautstärke statt DEFAULT_MUSIC_VOLUME
               const originalVolume = (musicAudio as any)._originalVolume || DEFAULT_MUSIC_VOLUME;
-              musicAudio.volume = originalVolume;
+              setMusicVolume(musicAudio, originalVolume);
             }
           }
           return prev;
@@ -2066,13 +2103,59 @@ ${story.content}
           musicAudio = new Audio(musicUrl);
           musicAudio.crossOrigin = 'anonymous'; // Für mögliche zukünftige Features
           musicAudio.loop = true; // Wiederholt sich
-          musicAudio.volume = musicVolume; // Track-spezifische Lautstärke
           
           // Speichere die ursprüngliche track-spezifische Lautstärke für späteres Reset
           (musicAudio as any)._originalVolume = musicVolume;
           
+          // iOS (Safari & Chrome): Verwende Web Audio API für Lautstärkekontrolle
+          // iOS erlaubt keine programmatische Änderung der volume Property
+          // Chrome auf iPhone verwendet auch WebKit und hat die gleichen Einschränkungen
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+                       // Chrome auf iPhone erkennt
+                       (navigator.userAgent.includes('CriOS') && /iPad|iPhone|iPod/.test(navigator.userAgent));
+          
+          if (isIOS && typeof AudioContext !== 'undefined') {
+            try {
+              // Erstelle AudioContext (kann im suspended Zustand starten)
+              const audioContext = new AudioContext();
+              
+              // Aktiviere AudioContext falls nötig (iOS erfordert manchmal Benutzerinteraktion)
+              if (audioContext.state === 'suspended') {
+                audioContext.resume().catch(err => {
+                  console.warn('[playAudio] Failed to resume AudioContext:', err);
+                });
+              }
+              
+              const source = audioContext.createMediaElementSource(musicAudio);
+              const gainNode = audioContext.createGain();
+              
+              // Verbinde Source -> GainNode -> Destination
+              source.connect(gainNode);
+              gainNode.connect(audioContext.destination);
+              
+              // Setze Lautstärke über GainNode (funktioniert auf iOS, auch in Chrome)
+              gainNode.gain.value = musicVolume;
+              
+              // Speichere Referenzen für späteres Update
+              (musicAudio as any)._audioContext = audioContext;
+              (musicAudio as any)._gainNode = gainNode;
+              (musicAudio as any)._useWebAudio = true;
+              
+              console.log(`[playAudio] iOS detected (${navigator.userAgent.includes('CriOS') ? 'Chrome' : 'Safari'}): Using Web Audio API with GainNode for volume control (${musicVolume * 100}%)`);
+            } catch (error) {
+              console.warn('[playAudio] Failed to create Web Audio API context, falling back to HTMLAudioElement:', error);
+              musicAudio.volume = musicVolume;
+              (musicAudio as any)._useWebAudio = false;
+            }
+          } else {
+            // Android und Desktop: Verwende normale volume Property
+            musicAudio.volume = musicVolume;
+            (musicAudio as any)._useWebAudio = false;
+          }
+          
           // Verwende track-spezifische Lautstärke (falls vorhanden), sonst Standard-Lautstärke
-          console.log(`[playAudio] Background music initialized with volume: ${musicVolume * 100}% (track-specific: ${musicTrack?.volume ? 'yes' : 'no'}) for story ${storyId}`);
+          console.log(`[playAudio] Background music initialized with volume: ${musicVolume * 100}% (track-specific: ${musicTrack?.volume ? 'yes' : 'no'}, iOS: ${isIOS}) for story ${storyId}`);
           
           musicAudio.addEventListener('error', (e) => {
             console.error('[playAudio] Background music error:', e);
@@ -2087,102 +2170,21 @@ ${story.content}
             console.log(`[playAudio] Background music ready for story ${storyId}`);
           });
           
-          // Mobile Browser: Stelle sicher, dass Lautstärke auch nach play() gesetzt bleibt
-          const ensureVolumeOnPlay = () => {
-            const targetVolume = (musicAudio as any)._originalVolume || musicVolume;
-            if (Math.abs(musicAudio.volume - targetVolume) > 0.001) {
-              console.log(`[playAudio] Mobile: Correcting volume from ${musicAudio.volume * 100}% to ${targetVolume * 100}% after play`);
-              musicAudio.volume = targetVolume;
-            }
-          };
-          
-          // Überwache Lautstärke nach play() für mobile Geräte
-          musicAudio.addEventListener('play', () => {
-            // Setze Lautstärke sofort nach play()
-            ensureVolumeOnPlay();
-            // Und nochmal nach kurzer Verzögerung (mobile Browser brauchen manchmal Zeit)
-            setTimeout(ensureVolumeOnPlay, 100);
-            setTimeout(ensureVolumeOnPlay, 500);
-          });
-          
-          // Überwache Lautstärke während der Wiedergabe (für mobile Geräte)
-          const volumeCheckInterval = setInterval(() => {
-            if (!musicAudio.paused) {
-              const targetVolume = (musicAudio as any)._originalVolume || musicVolume;
-              if (Math.abs(musicAudio.volume - targetVolume) > 0.001) {
-                console.log(`[playAudio] Mobile: Correcting volume from ${musicAudio.volume * 100}% to ${targetVolume * 100}% during playback`);
-                musicAudio.volume = targetVolume;
-              }
-            }
-          }, 500); // Prüfe alle 500ms
-          
-          // Cleanup beim Pausieren/Stoppen
-          musicAudio.addEventListener('pause', () => {
-            clearInterval(volumeCheckInterval);
-          }, { once: true });
-          
-          musicAudio.addEventListener('ended', () => {
-            clearInterval(volumeCheckInterval);
-          }, { once: true });
-          
-          // Speichere Interval-Referenz für späteres Cleanup
-          (musicAudio as any)._volumeCheckInterval = volumeCheckInterval;
-          
           setBackgroundMusicElements(prev => ({ ...prev, [storyId]: musicAudio }));
         } else {
           // Audio-Element existiert bereits - aktualisiere Lautstärke falls sie sich geändert hat
           const originalVolume = (musicAudio as any)._originalVolume || DEFAULT_MUSIC_VOLUME;
           if (Math.abs(originalVolume - musicVolume) > 0.001) {
             console.log(`[playAudio] Updating music volume from ${originalVolume * 100}% to ${musicVolume * 100}% for story ${storyId}`);
-            musicAudio.volume = musicVolume;
+            setMusicVolume(musicAudio, musicVolume);
             (musicAudio as any)._originalVolume = musicVolume;
           } else {
             // Stelle sicher, dass die Lautstärke korrekt ist (falls sie durch Fade-Out geändert wurde)
-            const currentVolume = musicAudio.volume;
+            const currentVolume = getMusicVolume(musicAudio);
             if (Math.abs(currentVolume - originalVolume) > 0.001) {
               console.log(`[playAudio] Resetting music volume from ${currentVolume * 100}% to ${originalVolume * 100}% for story ${storyId}`);
-              musicAudio.volume = originalVolume;
+              setMusicVolume(musicAudio, originalVolume);
             }
-          }
-          
-          // Stelle sicher, dass Lautstärke-Überwachung aktiviert ist (falls sie noch nicht existiert)
-          if (!(musicAudio as any)._volumeCheckInterval) {
-            const ensureVolumeOnPlay = () => {
-              const targetVolume = (musicAudio as any)._originalVolume || musicVolume;
-              if (Math.abs(musicAudio.volume - targetVolume) > 0.001) {
-                console.log(`[playAudio] Mobile: Correcting volume from ${musicAudio.volume * 100}% to ${targetVolume * 100}% after play`);
-                musicAudio.volume = targetVolume;
-              }
-            };
-            
-            // Überwache Lautstärke nach play() für mobile Geräte
-            musicAudio.addEventListener('play', () => {
-              ensureVolumeOnPlay();
-              setTimeout(ensureVolumeOnPlay, 100);
-              setTimeout(ensureVolumeOnPlay, 500);
-            });
-            
-            // Überwache Lautstärke während der Wiedergabe (für mobile Geräte)
-            const volumeCheckInterval = setInterval(() => {
-              if (!musicAudio.paused) {
-                const targetVolume = (musicAudio as any)._originalVolume || musicVolume;
-                if (Math.abs(musicAudio.volume - targetVolume) > 0.001) {
-                  console.log(`[playAudio] Mobile: Correcting volume from ${musicAudio.volume * 100}% to ${targetVolume * 100}% during playback`);
-                  musicAudio.volume = targetVolume;
-                }
-              }
-            }, 500);
-            
-            // Cleanup beim Pausieren/Stoppen
-            musicAudio.addEventListener('pause', () => {
-              clearInterval(volumeCheckInterval);
-            }, { once: true });
-            
-            musicAudio.addEventListener('ended', () => {
-              clearInterval(volumeCheckInterval);
-            }, { once: true });
-            
-            (musicAudio as any)._volumeCheckInterval = volumeCheckInterval;
           }
         }
         
@@ -2190,9 +2192,10 @@ ${story.content}
         try {
           // Stelle sicher, dass die Lautstärke korrekt ist (falls sie durch Fade-Out geändert wurde)
           const originalVolume = (musicAudio as any)._originalVolume || musicVolume;
-          if (Math.abs(musicAudio.volume - originalVolume) > 0.001) {
-            console.log(`[playAudio] Resetting music volume from ${musicAudio.volume * 100}% to ${originalVolume * 100}% for story ${storyId}`);
-            musicAudio.volume = originalVolume;
+          const currentVolume = getMusicVolume(musicAudio);
+          if (Math.abs(currentVolume - originalVolume) > 0.001) {
+            console.log(`[playAudio] Resetting music volume from ${currentVolume * 100}% to ${originalVolume * 100}% for story ${storyId}`);
+            setMusicVolume(musicAudio, originalVolume);
           }
           
           // Prüfe ob Musik bereits läuft
@@ -2201,27 +2204,28 @@ ${story.content}
             
             // Stelle sicher, dass Lautstärke vor play() gesetzt ist
             const targetVolume = (musicAudio as any)._originalVolume || musicVolume;
-            musicAudio.volume = targetVolume;
+            setMusicVolume(musicAudio, targetVolume);
             
             await musicAudio.play();
             
-            // Mobile Browser: Setze Lautstärke NACH play() nochmal (wichtig für mobile Geräte)
+            // Setze Lautstärke NACH play() nochmal (wichtig für alle Geräte, besonders iOS)
             const targetVolumeAfterPlay = (musicAudio as any)._originalVolume || musicVolume;
-            musicAudio.volume = targetVolumeAfterPlay;
+            setMusicVolume(musicAudio, targetVolumeAfterPlay);
             
-            // Und nochmal nach kurzer Verzögerung (mobile Browser brauchen manchmal Zeit)
+            // Und nochmal nach kurzer Verzögerung (Browser brauchen manchmal Zeit)
             setTimeout(() => {
               if (!musicAudio.paused) {
-                musicAudio.volume = targetVolumeAfterPlay;
+                setMusicVolume(musicAudio, targetVolumeAfterPlay);
               }
             }, 100);
             setTimeout(() => {
               if (!musicAudio.paused) {
-                musicAudio.volume = targetVolumeAfterPlay;
+                setMusicVolume(musicAudio, targetVolumeAfterPlay);
               }
             }, 500);
             
-            console.log(`[playAudio] Background music started for story ${storyId} (at 0s) with volume ${musicAudio.volume * 100}%`);
+            const finalVolume = getMusicVolume(musicAudio);
+            console.log(`[playAudio] Background music started for story ${storyId} (at 0s) with volume ${finalVolume * 100}%`);
             
             // Aktualisiere Button-Status SOFORT, wenn Musik startet (vor der 3-Sekunden-Wartezeit)
             setPlayingAudioId(storyId);
@@ -2232,8 +2236,9 @@ ${story.content}
             console.log(`[playAudio] Background music already playing for story ${storyId}, skipping start`);
             // Stelle sicher, dass Lautstärke auch bei bereits laufender Musik korrekt ist
             const targetVolume = (musicAudio as any)._originalVolume || musicVolume;
-            if (Math.abs(musicAudio.volume - targetVolume) > 0.001) {
-              musicAudio.volume = targetVolume;
+            const currentVol = getMusicVolume(musicAudio);
+            if (Math.abs(currentVol - targetVolume) > 0.001) {
+              setMusicVolume(musicAudio, targetVolume);
             }
             // Aktualisiere Button-Status auch wenn Musik bereits läuft
             setPlayingAudioId(storyId);
@@ -2352,7 +2357,7 @@ ${story.content}
               musicAudio.currentTime = 0;
               // Verwende die ursprüngliche track-spezifische Lautstärke statt DEFAULT_MUSIC_VOLUME
               const originalVolume = (musicAudio as any)._originalVolume || DEFAULT_MUSIC_VOLUME;
-              musicAudio.volume = originalVolume;
+              setMusicVolume(musicAudio, originalVolume);
               (musicAudio as any)._fadeOutStarted = false;
               
               // Aktualisiere State
