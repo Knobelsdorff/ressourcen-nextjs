@@ -1579,6 +1579,14 @@ ${story.content}
       return;
     }
     
+    // Prüfe ob URL ein gültiges Format hat
+    const isValidUrl = audioUrl.startsWith('http://') || audioUrl.startsWith('https://') || audioUrl.startsWith('blob:') || audioUrl.startsWith('data:');
+    if (!isValidUrl) {
+      console.error(`[playAudio] Invalid audio URL format for story ${storyId}:`, audioUrl);
+      alert('Fehler: Audio-URL hat ein ungültiges Format. Bitte kontaktiere den Support.');
+      return;
+    }
+    
     console.log(`[playAudio] ===== STARTING PLAYBACK =====`);
     console.log(`[playAudio] Story ID: ${storyId}`);
     console.log(`[playAudio] Audio URL: ${audioUrl}`);
@@ -1781,14 +1789,40 @@ ${story.content}
       }, { once: true });
       
       audio.addEventListener('error', (e) => {
-        setPlayingAudioId(null);
         const error = audio.error;
-        console.error('Audio playback error:', {
-          code: error?.code,
-          message: error?.message,
-          storyId,
-          audioUrl
-        });
+        // Prüfe ob Audio noch im Loading-Prozess ist (readyState 0 oder 1)
+        // Ignoriere Fehler während des Ladens, da diese vom Promise-Handler behandelt werden
+        const isDuringLoading = (audio.readyState === 0 || audio.readyState === 1) && 
+                                (error?.code === 4 || error?.code === undefined);
+        
+        // Ignoriere temporäre Loading-Fehler (werden von onError im Promise behandelt)
+        if (isDuringLoading) {
+          // Temporärer Loading-Fehler - wird ignoriert, da onError im Promise ihn behandelt
+          return;
+        }
+        
+        // Echter Fehler - nur loggen wenn Audio nicht erfolgreich geladen wurde
+        if (audio.readyState < 2) {
+          setPlayingAudioId(null);
+          console.error('Audio playback error:', {
+            code: error?.code,
+            message: error?.message,
+            storyId,
+            audioUrl,
+            readyState: audio.readyState,
+            networkState: audio.networkState
+          });
+        } else {
+          // Audio wurde bereits erfolgreich geladen, Fehler kann ignoriert werden
+          console.warn('Audio error after successful load (ignoring):', {
+            code: error?.code,
+            message: error?.message,
+            storyId,
+            readyState: audio.readyState
+          });
+          return; // Keine weitere Behandlung nötig
+        }
+        
         // Zeige benutzerfreundliche Fehlermeldung nur wenn es wirklich ein Audio-Fehler ist
         // (nicht wenn Paywall angezeigt werden sollte)
         // Prüfe ob Paywall-Feature aktiviert ist und ob User Zugang hat
@@ -1843,8 +1877,104 @@ ${story.content}
       const newAudio = new Audio();
       newAudio.preload = 'auto';
       
+      // VALIDIERUNG: Prüfe ob URL gültig ist bevor wir sie setzen
+      if (!audioUrl || audioUrl.trim() === '') {
+        console.error(`[playAudio] Cannot set audio src: URL is empty for story ${storyId}`);
+        alert('Fehler: Audio-URL ist leer. Bitte kontaktiere den Support.');
+        setPlayingAudioId(null);
+        return;
+      }
+      
+      const isValidUrl = audioUrl.startsWith('http://') || audioUrl.startsWith('https://') || audioUrl.startsWith('blob:') || audioUrl.startsWith('data:');
+      if (!isValidUrl) {
+        console.error(`[playAudio] Cannot set audio src: Invalid URL format for story ${storyId}:`, audioUrl);
+        alert('Fehler: Audio-URL hat ein ungültiges Format. Bitte kontaktiere den Support.');
+        setPlayingAudioId(null);
+        return;
+      }
+      
+      // DEBUG: Prüfe ob Datei über HTTP erreichbar ist (nur für Diagnose)
+      try {
+        const testResponse = await fetch(audioUrl, { method: 'HEAD', cache: 'no-cache' });
+        console.log(`[playAudio] HTTP HEAD request for audio URL:`, {
+          url: audioUrl,
+          status: testResponse.status,
+          statusText: testResponse.statusText,
+          contentType: testResponse.headers.get('content-type'),
+          contentLength: testResponse.headers.get('content-length'),
+          accessible: testResponse.ok
+        });
+        
+        if (!testResponse.ok) {
+          console.warn(`[playAudio] Audio file not accessible via HTTP HEAD: ${testResponse.status} ${testResponse.statusText}`);
+        }
+      } catch (fetchError: any) {
+        console.warn(`[playAudio] HTTP HEAD request failed (may be CORS issue):`, fetchError.message);
+        // CORS-Fehler sind normal bei HEAD-Requests, nicht kritisch
+      }
+      
+      // DEBUG: Logge Browser-Informationen für Diagnose
+      console.log(`[playAudio] Browser/Device info for debugging:`, {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        vendor: navigator.vendor,
+        language: navigator.language,
+        cookieEnabled: navigator.cookieEnabled,
+        onLine: navigator.onLine,
+        audioUrl: audioUrl
+      });
+      
+      // Setze crossOrigin für CORS
+      newAudio.crossOrigin = 'anonymous';
+      
       // Setze URL explizit
       newAudio.src = audioUrl;
+      
+      // WICHTIG: Rufe load() auf, um das Laden zu starten
+      // Das ist besonders wichtig für einige Browser
+      try {
+        newAudio.load();
+      } catch (loadError: any) {
+        console.warn(`[playAudio] load() call failed (may be normal):`, loadError.message);
+      }
+      
+      // DEBUG: Prüfe Audio-Element nach src-Setzung und load()
+      setTimeout(() => {
+        console.log(`[playAudio] Audio element after src set and load():`, {
+          src: newAudio.src,
+          currentSrc: newAudio.currentSrc,
+          networkState: newAudio.networkState,
+          readyState: newAudio.readyState,
+          error: newAudio.error ? {
+            code: newAudio.error.code,
+            message: newAudio.error.message
+          } : null
+        });
+        
+        // FALLBACK: Wenn currentSrc immer noch leer ist, versuche Blob-URL
+        if (!newAudio.currentSrc && newAudio.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
+          console.warn(`[playAudio] Audio element has no currentSrc after load(), trying blob fallback for story ${storyId}`);
+          
+          // Lade Datei als Blob und erstelle Blob-URL
+          fetch(audioUrl, { mode: 'cors', cache: 'no-cache' })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+              }
+              return response.blob();
+            })
+            .then(blob => {
+              const blobUrl = URL.createObjectURL(blob);
+              console.log(`[playAudio] Created blob URL for fallback:`, blobUrl);
+              newAudio.src = blobUrl;
+              newAudio.crossOrigin = null; // Blob-URLs brauchen kein CORS
+              newAudio.load(); // Lade neu mit Blob-URL
+            })
+            .catch(error => {
+              console.error(`[playAudio] Blob fallback failed for story ${storyId}:`, error);
+            });
+        }
+      }, 200); // Prüfe nach 200ms
       
       // WICHTIG: Prüfe sofort ob URL gesetzt wurde
       if (!newAudio.src || newAudio.src === '' || newAudio.src === window.location.href) {
@@ -1999,15 +2129,20 @@ ${story.content}
       try {
         await new Promise<void>((resolve, reject) => {
           let resolved = false;
+          // timeoutId wird später zugewiesen, daher let (nicht const)
+          // eslint-disable-next-line prefer-const
+          let timeoutId: NodeJS.Timeout | undefined;
           
-          const cleanup = (timeoutIdToClear?: NodeJS.Timeout) => {
+          // Basis cleanup-Funktion
+          let cleanup = (timeoutIdToClear?: NodeJS.Timeout) => {
             if (timeoutIdToClear) {
               clearTimeout(timeoutIdToClear);
             }
             audio.removeEventListener('canplay', onCanPlay);
             audio.removeEventListener('canplaythrough', onCanPlay);
-            audio.removeEventListener('error', onError);
+            audio.removeEventListener('error', onError); // Wichtig: auch entfernen wenn nicht once:true
             audio.removeEventListener('loadstart', onLoadStart);
+            audio.removeEventListener('emptied', checkNetworkState);
           };
           
           const onCanPlay = () => {
@@ -2019,12 +2154,84 @@ ${story.content}
           
           const onError = (e: Event) => {
             if (resolved) return;
+            const error = audio.error;
+            const networkState = audio.networkState;
+            
+            // NETWORK_NO_SOURCE (3) bedeutet definitiv, dass die Datei nicht geladen werden kann
+            // Das ist KEIN Loading-Fehler, sondern ein echter Fehler
+            if (networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
+              resolved = true;
+              cleanup(timeoutId);
+              console.error(`[playAudio] Audio source not found (NETWORK_NO_SOURCE) for story ${storyId}:`, {
+                code: error?.code,
+                message: error?.message,
+                readyState: audio.readyState,
+                networkState: networkState,
+                audioSrc: audio.src,
+                audioUrl: audioUrl
+              });
+              
+              // Prüfe spezifische Fehlertypen
+              if (error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED || 
+                  error?.message?.includes('Format error') ||
+                  error?.message?.includes('Failed to load because no supported source was found')) {
+                reject(new Error(`Audio-Format wird nicht unterstützt oder Datei ist nicht zugänglich. Bitte prüfe die Datei in Supabase Storage. URL: ${audioUrl}`));
+              } else {
+                reject(new Error(`Audio-Datei konnte nicht gefunden werden oder ist nicht zugänglich. Bitte prüfe die Datei in Supabase Storage. URL: ${audioUrl}`));
+              }
+              return;
+            }
+            
+            const isDuringLoading = error?.code === 4 && (audio.readyState === 0 || audio.readyState === 1);
+            
+            // Prüfe ob es ein echter Fehler ist (nicht nur ein Loading-Event)
+            // Error-Code 4 = MEDIA_ELEMENT_ERROR, aber das kann auch während des Ladens auftreten
+            if (isDuringLoading && networkState !== HTMLMediaElement.NETWORK_NO_SOURCE) {
+              // Audio ist noch im Loading-Zustand - warte auf canplay event
+              // Logge nur als debug, nicht als error
+              console.log(`[playAudio] Audio error during loading (ignoring, waiting for canplay) for story ${storyId}:`, {
+                code: error?.code,
+                message: error?.message,
+                readyState: audio.readyState,
+                networkState: networkState,
+                audioSrc: audio.src,
+                audioUrl: audioUrl
+              });
+              // Nicht rejecten - warte auf canplay
+              return;
+            }
+            
+            // Prüfe ob es ein Format-Fehler ist
+            const isFormatError = error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED || 
+                                 error?.message?.includes('FFmpegDemuxer') ||
+                                 error?.message?.includes('DEMUXER_ERROR') ||
+                                 error?.message?.includes('Format error') ||
+                                 error?.message?.includes('Failed to load because no supported source was found');
+            
+            if (isFormatError) {
+              // Format-Fehler - sofortiger Fehler
+              resolved = true;
+              cleanup(timeoutId);
+              console.error(`[playAudio] Audio format error for story ${storyId}:`, {
+                code: error?.code,
+                message: error?.message,
+                readyState: audio.readyState,
+                networkState: networkState,
+                audioSrc: audio.src,
+                audioUrl: audioUrl
+              });
+              reject(new Error(`Audio-Format wird nicht unterstützt oder Datei ist beschädigt. URL: ${audioUrl}`));
+              return;
+            }
+            
+            // Echter Fehler - reject
             resolved = true;
             cleanup(timeoutId);
-            const error = audio.error;
             console.error(`[playAudio] Audio error during load for story ${storyId}:`, {
               code: error?.code,
               message: error?.message,
+              readyState: audio.readyState,
+              networkState: networkState,
               audioSrc: audio.src,
               audioUrl: audioUrl
             });
@@ -2055,22 +2262,96 @@ ${story.content}
             audio.src = audioUrl;
           }
           
+          // DEBUG: Logge Browser-Informationen für Diagnose
+          console.log(`[playAudio] Browser/Device info for debugging:`, {
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            vendor: navigator.vendor,
+            language: navigator.language,
+            cookieEnabled: navigator.cookieEnabled,
+            onLine: navigator.onLine,
+            audioUrl: audioUrl
+          });
+          
+          // Überwache networkState Änderungen (wichtig für frühe Erkennung von NETWORK_NO_SOURCE)
+          const checkNetworkState = () => {
+            if (audio.networkState === HTMLMediaElement.NETWORK_NO_SOURCE && !resolved) {
+              // Prüfe ob Audio bereits geladen ist oder im Loading-Prozess
+              // Wenn readyState > 0 oder currentSrc gesetzt ist, ist es kein echter Fehler
+              if (audio.readyState > 0 || audio.currentSrc) {
+                // Audio ist im Loading-Prozess, kein echter Fehler
+                return;
+              }
+              
+              // Prüfe ob es ein echter Fehler ist (nur wenn auch ein Error-Objekt vorhanden ist)
+              if (audio.error) {
+                console.warn(`[playAudio] Network state is NETWORK_NO_SOURCE for story ${storyId}`, {
+                  readyState: audio.readyState,
+                  networkState: audio.networkState,
+                  currentSrc: audio.currentSrc,
+                  audioSrc: audio.src,
+                  audioUrl: audioUrl,
+                  error: audio.error ? {
+                    code: audio.error.code,
+                    message: audio.error.message
+                  } : null
+                });
+                // Trigger error handler nur wenn es ein echter Fehler ist
+                onError(new Event('error'));
+              }
+            }
+          };
+          
+          // Prüfe networkState regelmäßig während des Ladens
+          const networkStateCheckInterval = setInterval(() => {
+            if (resolved) {
+              clearInterval(networkStateCheckInterval);
+              return;
+            }
+            checkNetworkState();
+          }, 500); // Prüfe alle 500ms
+          
+          // Cleanup für networkState-Check
+          const originalCleanup = cleanup;
+          cleanup = (timeoutIdToClear?: NodeJS.Timeout) => {
+            clearInterval(networkStateCheckInterval);
+            originalCleanup(timeoutIdToClear);
+          };
+          
           audio.addEventListener('canplay', onCanPlay, { once: true });
           audio.addEventListener('canplaythrough', onCanPlay, { once: true }); // Auch auf canplaythrough warten
-          audio.addEventListener('error', onError, { once: true });
+          // Error-Handler nicht als once:true, da wir Loading-Fehler ignorieren wollen
+          audio.addEventListener('error', onError);
           audio.addEventListener('loadstart', onLoadStart, { once: true });
+          audio.addEventListener('emptied', checkNetworkState); // Wird ausgelöst wenn networkState zu NO_SOURCE wechselt
           
           // Timeout nach 15 Sekunden (länger für langsamere Verbindungen)
-          const timeoutId: NodeJS.Timeout = setTimeout(() => {
+          timeoutId = setTimeout(() => {
             if (resolved) return;
             resolved = true;
             cleanup(timeoutId);
-            console.error(`[playAudio] Timeout: Audio did not load within 15 seconds for story ${storyId}`, {
+            
+            const errorDetails = {
               readyState: audio.readyState,
               audioSrc: audio.src,
-              audioUrl: audioUrl
-            });
-            reject(new Error('Audio-Laden hat zu lange gedauert'));
+              audioUrl: audioUrl,
+              networkState: audio.networkState,
+              error: audio.error ? {
+                code: audio.error.code,
+                message: audio.error.message
+              } : null
+            };
+            
+            console.error(`[playAudio] Timeout: Audio did not load within 15 seconds for story ${storyId}`, errorDetails);
+            
+            // Prüfe ob es ein Format-Fehler ist
+            if (audio.error && audio.error.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
+              reject(new Error(`Audio-Format wird nicht unterstützt. URL: ${audioUrl}`));
+            } else if (audio.error && audio.error.code === MediaError.MEDIA_ERR_NETWORK) {
+              reject(new Error(`Netzwerkfehler beim Laden des Audios. URL: ${audioUrl}`));
+            } else {
+              reject(new Error(`Audio-Laden hat zu lange gedauert. URL: ${audioUrl}`));
+            }
           }, 15000);
         });
         console.log(`[playAudio] Audio loaded successfully for story ${storyId}`);
@@ -2095,14 +2376,77 @@ ${story.content}
       audio.volume = 1.0;
       
       // Starte Hintergrundmusik ZUERST (wenn verfügbar und aktiviert)
-      if (musicUrl && musicEnabled) {
+      // Prüfe ob Musik-URL gültig ist
+      const isValidMusicUrl = musicUrl && 
+                              musicUrl.trim() !== '' && 
+                              (musicUrl.startsWith('http://') || musicUrl.startsWith('https://'));
+      
+      if (musicUrl && !isValidMusicUrl) {
+        console.warn(`[playAudio] Invalid music URL for story ${storyId}:`, musicUrl);
+      }
+      
+      if (isValidMusicUrl && musicEnabled) {
         let musicAudio = backgroundMusicElements[storyId];
         
         if (!musicAudio) {
           console.log(`[playAudio] Creating background music element for story ${storyId}`);
-          musicAudio = new Audio(musicUrl);
-          musicAudio.crossOrigin = 'anonymous'; // Für mögliche zukünftige Features
+          // Erstelle Audio-Element ohne URL, dann setze src explizit (wie bei Voice-Audio)
+          musicAudio = new Audio();
+          musicAudio.crossOrigin = 'anonymous'; // Für CORS
           musicAudio.loop = true; // Wiederholt sich
+          musicAudio.preload = 'auto';
+          
+          // Versuche zuerst direkt mit URL, aber bereite Blob-Fallback vor
+          // Da die Datei direkt im Browser funktioniert, aber nicht im Audio-Element,
+          // verwenden wir direkt den Blob-Fallback für bessere Kompatibilität
+          console.log(`[playAudio] Loading background music as blob for better compatibility...`);
+          
+          // Lade Datei als Blob und erstelle Blob-URL (umgeht mögliche CORS/Format-Probleme)
+          fetch(musicUrl, { mode: 'cors', cache: 'no-cache' })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+              }
+              return response.blob();
+            })
+            .then(blob => {
+              const blobUrl = URL.createObjectURL(blob);
+              console.log(`[playAudio] Created blob URL for background music:`, blobUrl);
+              musicAudio.src = blobUrl;
+              musicAudio.crossOrigin = null; // Blob-URLs brauchen kein CORS
+              
+              // WICHTIG: Rufe load() auf, um das Laden zu starten
+              try {
+                musicAudio.load();
+              } catch (loadError: any) {
+                console.warn(`[playAudio] Background music load() call failed (may be normal):`, loadError.message);
+              }
+              
+              // DEBUG: Prüfe Audio-Element nach src-Setzung und load()
+              setTimeout(() => {
+                console.log(`[playAudio] Background music element after blob URL set and load():`, {
+                  src: musicAudio.src,
+                  currentSrc: musicAudio.currentSrc,
+                  networkState: musicAudio.networkState,
+                  readyState: musicAudio.readyState,
+                  error: musicAudio.error ? {
+                    code: musicAudio.error.code,
+                    message: musicAudio.error.message
+                  } : null
+                });
+              }, 200);
+            })
+            .catch(error => {
+              console.error(`[playAudio] Failed to load background music as blob, trying direct URL:`, error);
+              // Fallback: Versuche direkte URL
+              musicAudio.src = musicUrl;
+              musicAudio.crossOrigin = 'anonymous';
+              try {
+                musicAudio.load();
+              } catch (loadError: any) {
+                console.warn(`[playAudio] Background music load() call failed:`, loadError.message);
+              }
+            });
           
           // Speichere die ursprüngliche track-spezifische Lautstärke für späteres Reset
           (musicAudio as any)._originalVolume = musicVolume;
@@ -2115,60 +2459,151 @@ ${story.content}
                        // Chrome auf iPhone erkennt
                        (navigator.userAgent.includes('CriOS') && /iPad|iPhone|iPod/.test(navigator.userAgent));
           
-          if (isIOS && typeof AudioContext !== 'undefined') {
-            try {
-              // Erstelle AudioContext (kann im suspended Zustand starten)
-              const audioContext = new AudioContext();
-              
-              // Aktiviere AudioContext falls nötig (iOS erfordert manchmal Benutzerinteraktion)
-              if (audioContext.state === 'suspended') {
-                audioContext.resume().catch(err => {
-                  console.warn('[playAudio] Failed to resume AudioContext:', err);
-                });
-              }
-              
-              const source = audioContext.createMediaElementSource(musicAudio);
-              const gainNode = audioContext.createGain();
-              
-              // Verbinde Source -> GainNode -> Destination
-              source.connect(gainNode);
-              gainNode.connect(audioContext.destination);
-              
-              // Setze Lautstärke über GainNode (funktioniert auf iOS, auch in Chrome)
-              gainNode.gain.value = musicVolume;
-              
-              // Speichere Referenzen für späteres Update
-              (musicAudio as any)._audioContext = audioContext;
-              (musicAudio as any)._gainNode = gainNode;
-              (musicAudio as any)._useWebAudio = true;
-              
-              console.log(`[playAudio] iOS detected (${navigator.userAgent.includes('CriOS') ? 'Chrome' : 'Safari'}): Using Web Audio API with GainNode for volume control (${musicVolume * 100}%)`);
-            } catch (error) {
-              console.warn('[playAudio] Failed to create Web Audio API context, falling back to HTMLAudioElement:', error);
-              musicAudio.volume = musicVolume;
-              (musicAudio as any)._useWebAudio = false;
-            }
-          } else {
-            // Android und Desktop: Verwende normale volume Property
-            musicAudio.volume = musicVolume;
-            (musicAudio as any)._useWebAudio = false;
-          }
+          // Setze initiale Lautstärke (wird später für iOS überschrieben)
+          musicAudio.volume = musicVolume;
+          (musicAudio as any)._useWebAudio = false;
           
           // Verwende track-spezifische Lautstärke (falls vorhanden), sonst Standard-Lautstärke
           console.log(`[playAudio] Background music initialized with volume: ${musicVolume * 100}% (track-specific: ${musicTrack?.volume ? 'yes' : 'no'}, iOS: ${isIOS}) for story ${storyId}`);
           
           musicAudio.addEventListener('error', (e) => {
-            console.error('[playAudio] Background music error:', e);
-            // Musik-Fehler nicht anzeigen, nur loggen (nicht kritisch)
+            const error = musicAudio.error;
+            const errorDetails = {
+              error: error,
+              errorCode: error?.code,
+              errorMessage: error?.message,
+              src: musicAudio.src,
+              currentSrc: musicAudio.currentSrc,
+              readyState: musicAudio.readyState,
+              networkState: musicAudio.networkState,
+              musicUrl: musicUrl
+            };
+            
+            // Prüfe ob es ein Loading-Fehler ist (kann ignoriert werden)
+            const isDuringLoading = error?.code === 4 && (musicAudio.readyState === 0 || musicAudio.readyState === 1);
+            
+            // Prüfe ob es ein Format-Fehler ist (FFmpegDemuxer)
+            const isFormatError = error?.message?.includes('FFmpegDemuxer') || 
+                                 error?.message?.includes('DEMUXER_ERROR') ||
+                                 error?.message?.includes('Format error') ||
+                                 error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED;
+            
+            if (isDuringLoading && !isFormatError) {
+              console.log('[playAudio] Background music error during loading (ignoring, waiting for canplay):', errorDetails);
+              // Nicht kritisch - warte auf canplay
+            } else if (isFormatError && musicAudio.src.startsWith('blob:')) {
+              // Format-Fehler mit Blob-URL - Datei ist möglicherweise beschädigt
+              console.error('[playAudio] Background music format error even with blob URL - file may be corrupted:', errorDetails);
+            } else if (isFormatError && !musicAudio.src.startsWith('blob:')) {
+              // Format-Fehler mit direkter URL - versuche Blob-Fallback
+              console.warn('[playAudio] Background music format error with direct URL, trying blob fallback:', errorDetails);
+              
+              // Versuche Blob-Fallback
+              fetch(musicUrl, { mode: 'cors', cache: 'no-cache' })
+                .then(response => {
+                  if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                  }
+                  return response.blob();
+                })
+                .then(blob => {
+                  const blobUrl = URL.createObjectURL(blob);
+                  console.log(`[playAudio] Created blob URL for background music error fallback:`, blobUrl);
+                  musicAudio!.src = blobUrl;
+                  musicAudio!.crossOrigin = null; // Blob-URLs brauchen kein CORS
+                  musicAudio!.load(); // Lade neu mit Blob-URL
+                })
+                .catch(fetchError => {
+                  console.error(`[playAudio] Background music blob fallback failed:`, fetchError);
+                });
+            } else {
+              // Echter Fehler - logge als Warnung (nicht kritisch für Voice-Wiedergabe)
+              console.warn('[playAudio] Background music error:', errorDetails);
+              
+              // Prüfe spezifische Fehlertypen
+              if (error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
+                console.warn('[playAudio] Background music format not supported. URL:', musicUrl);
+              } else if (error?.code === MediaError.MEDIA_ERR_NETWORK) {
+                console.warn('[playAudio] Background music network error. URL:', musicUrl);
+              } else if (error?.message?.includes('FFmpegDemuxer') || error?.message?.includes('DEMUXER_ERROR')) {
+                console.warn('[playAudio] Background music file may be corrupted or invalid format. URL:', musicUrl);
+              }
+              
+              // Prüfe ob URL gültig ist
+              if (!musicUrl || musicUrl.trim() === '') {
+                console.warn('[playAudio] Background music URL is empty!');
+              } else if (!musicUrl.startsWith('http://') && !musicUrl.startsWith('https://')) {
+                console.warn('[playAudio] Background music URL is not a valid HTTP(S) URL:', musicUrl);
+              }
+              
+              // Entferne das fehlerhafte Audio-Element aus dem State, damit es nicht wiederverwendet wird
+              setBackgroundMusicElements(prev => {
+                const updated = { ...prev };
+                delete updated[storyId];
+                return updated;
+              });
+            }
+            // Musik-Fehler blockieren nicht die Voice-Wiedergabe (nicht kritisch)
           });
           
           musicAudio.addEventListener('loadstart', () => {
             console.log(`[playAudio] Background music loading for story ${storyId}`);
           });
           
-          musicAudio.addEventListener('canplay', () => {
+          // Warte auf canplay Event bevor play() aufgerufen wird
+          // Das verhindert "AbortError: The play() request was interrupted by a new load request"
+          const playMusicWhenReady = () => {
             console.log(`[playAudio] Background music ready for story ${storyId}`);
-          });
+            
+            // Verbinde Web Audio API für iOS erst nachdem Audio geladen ist
+            if (isIOS && typeof AudioContext !== 'undefined' && !(musicAudio as any)._useWebAudio) {
+              try {
+                // Prüfe ob bereits verbunden (verhindert doppelte Verbindung)
+                if ((musicAudio as any)._audioContext) {
+                  console.log('[playAudio] Web Audio API already connected, skipping');
+                  return;
+                }
+                
+                // Erstelle AudioContext (kann im suspended Zustand starten)
+                const audioContext = new AudioContext();
+                
+                // Aktiviere AudioContext falls nötig (iOS erfordert manchmal Benutzerinteraktion)
+                if (audioContext.state === 'suspended') {
+                  audioContext.resume().catch(err => {
+                    console.warn('[playAudio] Failed to resume AudioContext:', err);
+                  });
+                }
+                
+                const source = audioContext.createMediaElementSource(musicAudio);
+                const gainNode = audioContext.createGain();
+                
+                // Verbinde Source -> GainNode -> Destination
+                source.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                // Setze Lautstärke über GainNode (funktioniert auf iOS, auch in Chrome)
+                const targetVolume = (musicAudio as any)._originalVolume || musicVolume;
+                gainNode.gain.value = targetVolume;
+                
+                // Speichere Referenzen für späteres Update
+                (musicAudio as any)._audioContext = audioContext;
+                (musicAudio as any)._gainNode = gainNode;
+                (musicAudio as any)._useWebAudio = true;
+                
+                console.log(`[playAudio] iOS detected (${navigator.userAgent.includes('CriOS') ? 'Chrome' : 'Safari'}): Web Audio API connected with GainNode for volume control (${targetVolume * 100}%)`);
+              } catch (error: any) {
+                console.warn('[playAudio] Failed to create Web Audio API context after canplay, keeping HTMLAudioElement:', error);
+                // Behalte normale volume Property bei Fehler
+                (musicAudio as any)._useWebAudio = false;
+              }
+            }
+            
+            // Markiere dass Audio bereit ist zum Abspielen
+            (musicAudio as any)._readyToPlay = true;
+          };
+          
+          musicAudio.addEventListener('canplay', playMusicWhenReady, { once: true });
+          musicAudio.addEventListener('canplaythrough', playMusicWhenReady, { once: true });
           
           setBackgroundMusicElements(prev => ({ ...prev, [storyId]: musicAudio }));
         } else {
@@ -2206,7 +2641,24 @@ ${story.content}
             const targetVolume = (musicAudio as any)._originalVolume || musicVolume;
             setMusicVolume(musicAudio, targetVolume);
             
-            await musicAudio.play();
+            // Warte auf canplay Event bevor play() aufgerufen wird
+            // Das verhindert "AbortError: The play() request was interrupted by a new load request"
+            if (musicAudio.readyState >= 4 || (musicAudio as any)._readyToPlay) {
+              // Audio ist bereits bereit
+              await musicAudio.play();
+            } else {
+              // Warte auf canplay Event
+              await new Promise<void>((resolve) => {
+                const onCanPlay = () => {
+                  musicAudio.removeEventListener('canplay', onCanPlay);
+                  musicAudio.removeEventListener('canplaythrough', onCanPlay);
+                  resolve();
+                };
+                musicAudio.addEventListener('canplay', onCanPlay, { once: true });
+                musicAudio.addEventListener('canplaythrough', onCanPlay, { once: true });
+              });
+              await musicAudio.play();
+            }
             
             // Setze Lautstärke NACH play() nochmal (wichtig für alle Geräte, besonders iOS)
             const targetVolumeAfterPlay = (musicAudio as any)._originalVolume || musicVolume;

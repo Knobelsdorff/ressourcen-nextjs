@@ -639,11 +639,44 @@ export default function AdminMusicPage() {
         music = new Audio(track.track_url);
         music.loop = true;
         music.volume = testMusicVolume;
+        music.crossOrigin = 'anonymous'; // Für CORS-Probleme
         
         // Warte bis Musik geladen ist
         await new Promise<void>((resolve, reject) => {
-          music!.addEventListener('canplay', () => resolve(), { once: true });
-          music!.addEventListener('error', () => reject(new Error('Musik konnte nicht geladen werden')), { once: true });
+          const timeout = setTimeout(() => {
+            reject(new Error(`Musik konnte nicht geladen werden: Timeout nach 10 Sekunden. URL: ${track.track_url}`));
+          }, 10000); // 10 Sekunden Timeout
+          
+          music!.addEventListener('canplay', () => {
+            clearTimeout(timeout);
+            resolve();
+          }, { once: true });
+          
+          music!.addEventListener('error', (e) => {
+            clearTimeout(timeout);
+            const error = music!.error;
+            let errorMessage = 'Musik konnte nicht geladen werden';
+            if (error) {
+              switch (error.code) {
+                case MediaError.MEDIA_ERR_ABORTED:
+                  errorMessage = 'Musik-Laden wurde abgebrochen';
+                  break;
+                case MediaError.MEDIA_ERR_NETWORK:
+                  errorMessage = 'Netzwerkfehler beim Laden der Musik';
+                  break;
+                case MediaError.MEDIA_ERR_DECODE:
+                  errorMessage = 'Musik-Datei konnte nicht dekodiert werden';
+                  break;
+                case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                  errorMessage = 'Musik-Format wird nicht unterstützt';
+                  break;
+                default:
+                  errorMessage = `Musik-Fehler (Code: ${error.code})`;
+              }
+            }
+            reject(new Error(`${errorMessage}. URL: ${track.track_url}`));
+          }, { once: true });
+          
           music!.load();
         });
         
