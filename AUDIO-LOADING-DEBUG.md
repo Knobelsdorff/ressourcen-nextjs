@@ -70,3 +70,4 @@ Wenn es bei der Schwester funktioniert:
 3. **Netzwerk-Einstellungen vergleichen**
 4. **Browser-Einstellungen vergleichen**
 
+

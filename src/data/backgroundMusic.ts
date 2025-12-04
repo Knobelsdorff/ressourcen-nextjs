@@ -27,8 +27,12 @@ export async function getBackgroundMusicTrack(figureIdOrName: string | undefined
 
   try {
     const normalizedId = figureIdOrName.toLowerCase();
-    console.log('[getBackgroundMusicTrack] ===== SEARCHING FOR MUSIC =====');
-    console.log('[getBackgroundMusicTrack] Input:', { figureIdOrName, normalizedId });
+    // Reduzierte Logs - nur wenn Debug-Modus aktiviert
+    const DEBUG_MUSIC = false; // Setze auf true für detaillierte Logs
+    if (DEBUG_MUSIC) {
+      console.log('[getBackgroundMusicTrack] ===== SEARCHING FOR MUSIC =====');
+      console.log('[getBackgroundMusicTrack] Input:', { figureIdOrName, normalizedId });
+    }
 
     // Versuche zuerst aus Datenbank zu laden (nach figure_id)
     const { data: dataById, error: errorById } = await (supabase as any)
@@ -38,12 +42,14 @@ export async function getBackgroundMusicTrack(figureIdOrName: string | undefined
       .eq('is_default', true)
       .maybeSingle();
 
-    console.log('[getBackgroundMusicTrack] Query by figure_id result:', {
-      found: !!dataById,
-      track_url: dataById?.track_url,
-      volume: dataById?.volume,
-      error: errorById?.message,
-    });
+    if (DEBUG_MUSIC) {
+      console.log('[getBackgroundMusicTrack] Query by figure_id result:', {
+        found: !!dataById,
+        track_url: dataById?.track_url,
+        volume: dataById?.volume,
+        error: errorById?.message,
+      });
+    }
 
     if (!errorById && dataById?.track_url) {
       const volume = dataById.volume != null ? parseFloat(dataById.volume) : DEFAULT_MUSIC_VOLUME;
@@ -59,16 +65,20 @@ export async function getBackgroundMusicTrack(figureIdOrName: string | undefined
       .eq('is_default', true)
       .maybeSingle();
 
-    console.log('[getBackgroundMusicTrack] Query by figure_name result:', {
-      found: !!dataByName,
-      track_url: dataByName?.track_url,
-      volume: dataByName?.volume,
-      error: errorByName?.message,
-    });
+    if (DEBUG_MUSIC) {
+      console.log('[getBackgroundMusicTrack] Query by figure_name result:', {
+        found: !!dataByName,
+        track_url: dataByName?.track_url,
+        volume: dataByName?.volume,
+        error: errorByName?.message,
+      });
+    }
 
     if (!errorByName && dataByName?.track_url) {
       const volume = dataByName.volume != null ? parseFloat(dataByName.volume) : DEFAULT_MUSIC_VOLUME;
-      console.log('[getBackgroundMusicTrack] Found track by figure_name:', { track_url: dataByName.track_url, volume });
+      if (DEBUG_MUSIC) {
+        console.log('[getBackgroundMusicTrack] Found track by figure_name:', { track_url: dataByName.track_url, volume });
+      }
       return { track_url: dataByName.track_url, volume };
     }
 
@@ -79,7 +89,9 @@ export async function getBackgroundMusicTrack(figureIdOrName: string | undefined
     );
 
     if (figure) {
-      console.log('[getBackgroundMusicTrack] Found figure in allFigures:', { id: figure.id, name: figure.name });
+      if (DEBUG_MUSIC) {
+        console.log('[getBackgroundMusicTrack] Found figure in allFigures:', { id: figure.id, name: figure.name });
+      }
       
       // Versuche mit figure.id
       const { data: dataByFigureId, error: errorByFigureId } = await (supabase as any)
@@ -91,7 +103,9 @@ export async function getBackgroundMusicTrack(figureIdOrName: string | undefined
 
       if (!errorByFigureId && dataByFigureId?.track_url) {
         const volume = dataByFigureId.volume != null ? parseFloat(dataByFigureId.volume) : DEFAULT_MUSIC_VOLUME;
-        console.log('[getBackgroundMusicTrack] Found track by figure.id:', { track_url: dataByFigureId.track_url, volume });
+        if (DEBUG_MUSIC) {
+          console.log('[getBackgroundMusicTrack] Found track by figure.id:', { track_url: dataByFigureId.track_url, volume });
+        }
         return { track_url: dataByFigureId.track_url, volume };
       }
 
@@ -105,7 +119,9 @@ export async function getBackgroundMusicTrack(figureIdOrName: string | undefined
 
       if (!errorByFigureName && dataByFigureName?.track_url) {
         const volume = dataByFigureName.volume != null ? parseFloat(dataByFigureName.volume) : DEFAULT_MUSIC_VOLUME;
-        console.log('[getBackgroundMusicTrack] Found track by figure.name:', { track_url: dataByFigureName.track_url, volume });
+        if (DEBUG_MUSIC) {
+          console.log('[getBackgroundMusicTrack] Found track by figure.name:', { track_url: dataByFigureName.track_url, volume });
+        }
         return { track_url: dataByFigureName.track_url, volume };
       }
     }
@@ -127,7 +143,10 @@ export async function getBackgroundMusicTrack(figureIdOrName: string | undefined
       }
     }
 
-    console.warn('[getBackgroundMusicTrack] No music track found for:', figureIdOrName);
+    // Keine Warnung mehr - es ist normal, dass nicht alle Ressourcen Musik haben
+    if (DEBUG_MUSIC) {
+      console.log('[getBackgroundMusicTrack] No music track found for:', figureIdOrName);
+    }
     return null;
   } catch (error) {
     console.error('[getBackgroundMusicTrack] Error loading from database:', error);

@@ -1645,34 +1645,14 @@ ${story.content}
       figureIdOrName = story.resource_figure.name; // Name als Fallback
     }
     
-    console.log(`[playAudio] ===== FIGURE ID/NAME FOR BACKGROUND MUSIC =====`);
-    console.log(`[playAudio] Story ID: ${storyId}`);
-    console.log(`[playAudio] Figure ID/Name: ${figureIdOrName}`);
-    console.log(`[playAudio] Resource Figure:`, story?.resource_figure);
-    console.log(`[playAudio] Resource Figure Type:`, typeof story?.resource_figure);
-    
     // Hole Hintergrundmusik-URL für diese Figur (unterstützt ID und Name)
-    console.log(`[playAudio] Calling getBackgroundMusicTrack with: ${figureIdOrName}`);
     const musicTrack = await getBackgroundMusicTrack(figureIdOrName);
     const musicUrl = musicTrack?.track_url || null;
     const musicVolume = musicTrack?.volume || DEFAULT_MUSIC_VOLUME;
-    console.log(`[playAudio] getBackgroundMusicTrack returned:`, { musicUrl, musicVolume });
     
-    console.log(`[playAudio] Background music check:`, {
-      storyId,
-      figureIdOrName,
-      musicUrl,
-      musicEnabled,
-      hasMusic: !!musicUrl,
-      resourceFigure: story?.resource_figure
-    });
-    
-    if (!musicUrl && figureIdOrName) {
-      console.warn(`[playAudio] No background music found for figure: ${figureIdOrName}`);
-      console.warn(`[playAudio] Please check:`);
-      console.warn(`  1. Is there a track in /admin/music for this figure?`);
-      console.warn(`  2. Is the track marked as "is_default: true"?`);
-      console.warn(`  3. Does figure_id match? (expected: "${figureIdOrName.toLowerCase()}")`);
+    // Nur loggen wenn Musik gefunden wurde (für Debugging)
+    if (musicUrl) {
+      console.log(`[playAudio] Background music found for ${figureIdOrName}:`, { musicUrl, musicVolume });
     }
     
       // Erstelle oder verwende existierendes Audio-Element
@@ -2158,28 +2138,74 @@ ${story.content}
             const networkState = audio.networkState;
             
             // NETWORK_NO_SOURCE (3) bedeutet definitiv, dass die Datei nicht geladen werden kann
-            // Das ist KEIN Loading-Fehler, sondern ein echter Fehler
+            // Versuche Blob-Fallback bevor wir aufgeben
             if (networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
-              resolved = true;
-              cleanup(timeoutId);
-              console.error(`[playAudio] Audio source not found (NETWORK_NO_SOURCE) for story ${storyId}:`, {
-                code: error?.code,
-                message: error?.message,
-                readyState: audio.readyState,
-                networkState: networkState,
-                audioSrc: audio.src,
-                audioUrl: audioUrl
-              });
-              
-              // Prüfe spezifische Fehlertypen
-              if (error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED || 
-                  error?.message?.includes('Format error') ||
-                  error?.message?.includes('Failed to load because no supported source was found')) {
-                reject(new Error(`Audio-Format wird nicht unterstützt oder Datei ist nicht zugänglich. Bitte prüfe die Datei in Supabase Storage. URL: ${audioUrl}`));
+              // Versuche Blob-Fallback wenn noch nicht verwendet
+              if (!audio.src.startsWith('blob:')) {
+                console.warn(`[playAudio] Audio source not found (NETWORK_NO_SOURCE), trying blob fallback for story ${storyId}:`, {
+                  code: error?.code,
+                  message: error?.message,
+                  readyState: audio.readyState,
+                  networkState: networkState,
+                  audioSrc: audio.src,
+                  audioUrl: audioUrl
+                });
+                
+                // Versuche Blob-Fallback
+                fetch(audioUrl, { mode: 'cors', cache: 'no-cache' })
+                  .then(response => {
+                    if (!response.ok) {
+                      throw new Error(`HTTP ${response.status}`);
+                    }
+                    return response.blob();
+                  })
+                  .then(blob => {
+                    const blobUrl = URL.createObjectURL(blob);
+                    console.log(`[playAudio] Created blob URL for NETWORK_NO_SOURCE fallback:`, blobUrl);
+                    audio.src = blobUrl;
+                    audio.crossOrigin = null; // Blob-URLs brauchen kein CORS
+                    audio.load(); // Lade neu mit Blob-URL
+                    // Nicht rejecten - warte auf canplay mit Blob-URL
+                  })
+                  .catch(fetchError => {
+                    console.error(`[playAudio] Audio blob fallback failed for NETWORK_NO_SOURCE:`, fetchError);
+                    // Blob-Fallback fehlgeschlagen - jetzt wirklich rejecten
+                    resolved = true;
+                    cleanup(timeoutId);
+                    
+                    // Prüfe spezifische Fehlertypen
+                    if (error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED || 
+                        error?.message?.includes('Format error') ||
+                        error?.message?.includes('Failed to load because no supported source was found')) {
+                      reject(new Error(`Audio-Format wird nicht unterstützt oder Datei ist nicht zugänglich. Bitte prüfe die Datei in Supabase Storage. URL: ${audioUrl}`));
+                    } else {
+                      reject(new Error(`Audio-Datei konnte nicht gefunden werden oder ist nicht zugänglich. Bitte prüfe die Datei in Supabase Storage. URL: ${audioUrl}`));
+                    }
+                  });
+                return; // Warte auf Blob-Fallback
               } else {
-                reject(new Error(`Audio-Datei konnte nicht gefunden werden oder ist nicht zugänglich. Bitte prüfe die Datei in Supabase Storage. URL: ${audioUrl}`));
+                // NETWORK_NO_SOURCE mit Blob-URL - Datei ist wirklich nicht zugänglich
+                resolved = true;
+                cleanup(timeoutId);
+                console.error(`[playAudio] Audio source not found (NETWORK_NO_SOURCE) even with blob URL for story ${storyId}:`, {
+                  code: error?.code,
+                  message: error?.message,
+                  readyState: audio.readyState,
+                  networkState: networkState,
+                  audioSrc: audio.src,
+                  audioUrl: audioUrl
+                });
+                
+                // Prüfe spezifische Fehlertypen
+                if (error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED || 
+                    error?.message?.includes('Format error') ||
+                    error?.message?.includes('Failed to load because no supported source was found')) {
+                  reject(new Error(`Audio-Format wird nicht unterstützt oder Datei ist nicht zugänglich. Bitte prüfe die Datei in Supabase Storage. URL: ${audioUrl}`));
+                } else {
+                  reject(new Error(`Audio-Datei konnte nicht gefunden werden oder ist nicht zugänglich. Bitte prüfe die Datei in Supabase Storage. URL: ${audioUrl}`));
+                }
+                return;
               }
-              return;
             }
             
             const isDuringLoading = error?.code === 4 && (audio.readyState === 0 || audio.readyState === 1);
@@ -2209,19 +2235,54 @@ ${story.content}
                                  error?.message?.includes('Failed to load because no supported source was found');
             
             if (isFormatError) {
-              // Format-Fehler - sofortiger Fehler
-              resolved = true;
-              cleanup(timeoutId);
-              console.error(`[playAudio] Audio format error for story ${storyId}:`, {
-                code: error?.code,
-                message: error?.message,
-                readyState: audio.readyState,
-                networkState: networkState,
-                audioSrc: audio.src,
-                audioUrl: audioUrl
-              });
-              reject(new Error(`Audio-Format wird nicht unterstützt oder Datei ist beschädigt. URL: ${audioUrl}`));
-              return;
+              // Format-Fehler - versuche Blob-URL-Fallback wenn noch nicht verwendet
+              if (!audio.src.startsWith('blob:')) {
+                console.warn(`[playAudio] Audio format error with direct URL, trying blob fallback for story ${storyId}:`, {
+                  code: error?.code,
+                  message: error?.message,
+                  audioSrc: audio.src,
+                  audioUrl: audioUrl
+                });
+                
+                // Versuche Blob-Fallback
+                fetch(audioUrl, { mode: 'cors', cache: 'no-cache' })
+                  .then(response => {
+                    if (!response.ok) {
+                      throw new Error(`HTTP ${response.status}`);
+                    }
+                    return response.blob();
+                  })
+                  .then(blob => {
+                    const blobUrl = URL.createObjectURL(blob);
+                    console.log(`[playAudio] Created blob URL for audio error fallback:`, blobUrl);
+                    audio.src = blobUrl;
+                    audio.crossOrigin = null; // Blob-URLs brauchen kein CORS
+                    audio.load(); // Lade neu mit Blob-URL
+                    // Nicht rejecten - warte auf canplay mit Blob-URL
+                  })
+                  .catch(fetchError => {
+                    console.error(`[playAudio] Audio blob fallback failed for story ${storyId}:`, fetchError);
+                    // Blob-Fallback fehlgeschlagen - jetzt wirklich rejecten
+                    resolved = true;
+                    cleanup(timeoutId);
+                    reject(new Error(`Audio-Format wird nicht unterstützt oder Datei ist beschädigt. URL: ${audioUrl}`));
+                  });
+                return; // Warte auf Blob-Fallback
+              } else {
+                // Format-Fehler mit Blob-URL - Datei ist möglicherweise beschädigt
+                resolved = true;
+                cleanup(timeoutId);
+                console.error(`[playAudio] Audio format error even with blob URL - file may be corrupted for story ${storyId}:`, {
+                  code: error?.code,
+                  message: error?.message,
+                  readyState: audio.readyState,
+                  networkState: networkState,
+                  audioSrc: audio.src,
+                  audioUrl: audioUrl
+                });
+                reject(new Error(`Audio-Format wird nicht unterstützt oder Datei ist beschädigt. URL: ${audioUrl}`));
+                return;
+              }
             }
             
             // Echter Fehler - reject
