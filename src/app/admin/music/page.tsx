@@ -515,8 +515,20 @@ export default function AdminMusicPage() {
       console.log('[loadTestResource] Resources:', resources?.map((r: any) => ({
         id: r.id,
         title: r.title,
-        resource_figure: r.resource_figure
+        resource_figure: r.resource_figure,
+        audio_url: !!r.audio_url
       })));
+      
+      // Debug: Zeige alle Ressourcen mit ihren figure-IDs/Names
+      console.log('[loadTestResource] All resource figures:', resources?.map((r: any) => {
+        const rf = r.resource_figure;
+        if (typeof rf === 'string') {
+          return { resourceId: r.id, figure: rf };
+        } else if (rf && typeof rf === 'object') {
+          return { resourceId: r.id, figureId: rf.id, figureName: rf.name };
+        }
+        return { resourceId: r.id, figure: 'unknown' };
+      }));
 
       // Finde Ressource mit passender figure_id oder figure_name
       type ResourceType = {
@@ -540,9 +552,26 @@ export default function AdminMusicPage() {
 
         // Fall 1: resource_figure ist ein String
         if (typeof resourceFigure === 'string') {
-          const matches = resourceFigure.toLowerCase() === figureId || 
-                         resourceFigure.toLowerCase() === figureName;
-          console.log('[loadTestResource] String match:', matches);
+          const resourceFigureLower = resourceFigure.toLowerCase();
+          // Normalisiere auch Leerzeichen und Bindestriche für besseres Matching
+          const normalizedResourceFigure = resourceFigureLower.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+          const normalizedFigureId = figureId.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+          const normalizedFigureName = figureName?.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || '';
+          
+          const matches = resourceFigureLower === figureId || 
+                         (figureName && resourceFigureLower === figureName) ||
+                         normalizedResourceFigure === normalizedFigureId ||
+                         (normalizedFigureName && normalizedResourceFigure === normalizedFigureName);
+          console.log('[loadTestResource] String match:', {
+            resourceFigure,
+            resourceFigureLower,
+            normalizedResourceFigure,
+            figureId,
+            figureName,
+            normalizedFigureId,
+            normalizedFigureName,
+            matches
+          });
           return matches;
         }
 
@@ -551,13 +580,33 @@ export default function AdminMusicPage() {
           const resourceId = resourceFigure.id?.toLowerCase();
           const resourceName = resourceFigure.name?.toLowerCase();
           
-          const matches = 
-            (resourceId && (resourceId === figureId || resourceId === figureName)) ||
-            (resourceName && (resourceName === figureId || resourceName === figureName));
+          // Normalisiere auch für Objekt-Matching
+          const normalizedResourceId = resourceId?.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+          const normalizedResourceName = resourceName?.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+          const normalizedFigureId = figureId.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+          const normalizedFigureName = figureName?.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || '';
+          
+          // Exakte Übereinstimmungen (ohne Normalisierung)
+          const exactMatch = 
+            (resourceId && (resourceId === figureId || (figureName && resourceId === figureName))) ||
+            (resourceName && (resourceName === figureId || (figureName && resourceName === figureName)));
+          
+          // Normalisierte Übereinstimmungen (mit Normalisierung)
+          const normalizedMatch = 
+            (normalizedResourceId && (normalizedResourceId === normalizedFigureId || (normalizedFigureName && normalizedResourceId === normalizedFigureName))) ||
+            (normalizedResourceName && (normalizedResourceName === normalizedFigureId || (normalizedFigureName && normalizedResourceName === normalizedFigureName)));
+          
+          const matches = exactMatch || normalizedMatch;
           
           console.log('[loadTestResource] Object match:', {
             resourceId,
             resourceName,
+            normalizedResourceId,
+            normalizedResourceName,
+            figureId,
+            figureName,
+            normalizedFigureId,
+            normalizedFigureName,
             matches
           });
           return matches;
@@ -575,8 +624,37 @@ export default function AdminMusicPage() {
           title: matchingResource.title || 'Test-Ressource'
         });
       } else {
-        // Fallback: Verwende generische Test-Stimme
-        console.log('[loadTestResource] No matching resource found, using generic test voice');
+        // Spezieller Fallback: Wenn "Engel" nicht gefunden wird, verwende "Erzengel Michael"
+        if (figureId === 'angel' || figureName === 'engel') {
+          const archangelResource = (resources as ResourceType[] | null)?.find((r: ResourceType) => {
+            if (!r.audio_url) return false;
+            const resourceFigure = r.resource_figure;
+            
+            if (typeof resourceFigure === 'string') {
+              return resourceFigure.toLowerCase().includes('erzengel michael') || 
+                     resourceFigure.toLowerCase().includes('archangel');
+            } else if (resourceFigure && typeof resourceFigure === 'object') {
+              const resourceId = resourceFigure.id?.toLowerCase();
+              const resourceName = resourceFigure.name?.toLowerCase();
+              return resourceId === 'archangel-michael' || 
+                     resourceName?.includes('erzengel michael') ||
+                     resourceName?.includes('archangel');
+            }
+            return false;
+          });
+          
+          if (archangelResource) {
+            console.log('[loadTestResource] No exact match for "Engel", using "Erzengel Michael" as fallback:', archangelResource.title);
+            setTestResource({
+              audioUrl: archangelResource.audio_url!,
+              title: archangelResource.title || 'Test-Ressource'
+            });
+            return;
+          }
+        }
+        
+        // Keine exakte Übereinstimmung gefunden - verwende generische Test-Stimme
+        console.log('[loadTestResource] No exact match found, using generic test voice');
         setTestResource({
           audioUrl: '', // Wird generiert
           title: `Test für ${track.figure_name || figureId}`
@@ -641,6 +719,24 @@ export default function AdminMusicPage() {
         music.volume = testMusicVolume;
         music.crossOrigin = 'anonymous'; // Für CORS-Probleme
         
+        // Lade Musik als Blob für bessere Kompatibilität (wie im Dashboard)
+        console.log('[handleTestPlay] Loading background music as blob for better compatibility...');
+        try {
+          const response = await fetch(track.track_url, { mode: 'cors', cache: 'no-cache' });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          console.log('[handleTestPlay] Created blob URL for background music:', blobUrl);
+          music.src = blobUrl;
+          music.crossOrigin = null; // Blob-URLs brauchen kein CORS
+        } catch (fetchError) {
+          console.warn('[handleTestPlay] Failed to load as blob, using direct URL:', fetchError);
+          music.src = track.track_url;
+          music.crossOrigin = 'anonymous';
+        }
+        
         // Warte bis Musik geladen ist
         await new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(() => {
@@ -653,28 +749,93 @@ export default function AdminMusicPage() {
           }, { once: true });
           
           music!.addEventListener('error', (e) => {
-            clearTimeout(timeout);
             const error = music!.error;
-            let errorMessage = 'Musik konnte nicht geladen werden';
-            if (error) {
-              switch (error.code) {
-                case MediaError.MEDIA_ERR_ABORTED:
-                  errorMessage = 'Musik-Laden wurde abgebrochen';
-                  break;
-                case MediaError.MEDIA_ERR_NETWORK:
-                  errorMessage = 'Netzwerkfehler beim Laden der Musik';
-                  break;
-                case MediaError.MEDIA_ERR_DECODE:
-                  errorMessage = 'Musik-Datei konnte nicht dekodiert werden';
-                  break;
-                case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-                  errorMessage = 'Musik-Format wird nicht unterstützt';
-                  break;
-                default:
-                  errorMessage = `Musik-Fehler (Code: ${error.code})`;
-              }
+            const networkState = music!.networkState;
+            const readyState = music!.readyState;
+            
+            // Prüfe ob es ein temporärer Loading-Fehler ist
+            const isDuringLoading = (readyState === 0 || readyState === 1) && 
+                                   (error?.code === 4 || error?.code === undefined);
+            
+            // Ignoriere temporäre Loading-Fehler
+            if (isDuringLoading && networkState !== HTMLMediaElement.NETWORK_NO_SOURCE) {
+              console.log('[handleTestPlay] Musik-Fehler während des Ladens (ignoriere, warte auf canplay):', {
+                code: error?.code,
+                message: error?.message,
+                readyState,
+                networkState
+              });
+              return; // Nicht rejecten - warte auf canplay
             }
-            reject(new Error(`${errorMessage}. URL: ${track.track_url}`));
+            
+            // Prüfe ob es ein Format-Fehler ist
+            const isFormatError = error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED ||
+                                 error?.message?.includes('FFmpegDemuxer') ||
+                                 error?.message?.includes('DEMUXER_ERROR') ||
+                                 error?.message?.includes('Format error');
+            
+            // Bei Format-Fehler mit Blob-URL: Datei ist möglicherweise beschädigt
+            if (isFormatError && music!.src.startsWith('blob:')) {
+              clearTimeout(timeout);
+              console.error('[handleTestPlay] Musik-Format-Fehler auch mit Blob-URL - Datei möglicherweise beschädigt:', {
+                code: error?.code,
+                message: error?.message,
+                url: track.track_url
+              });
+              reject(new Error(`Musik-Format wird nicht unterstützt oder Datei ist beschädigt. URL: ${track.track_url}`));
+              return;
+            }
+            
+            // Bei Format-Fehler mit direkter URL: Versuche Blob-Fallback
+            if (isFormatError && !music!.src.startsWith('blob:')) {
+              console.warn('[handleTestPlay] Musik-Format-Fehler mit direkter URL, versuche Blob-Fallback');
+              fetch(track.track_url, { mode: 'cors', cache: 'no-cache' })
+                .then(response => {
+                  if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                  }
+                  return response.blob();
+                })
+                .then(blob => {
+                  const blobUrl = URL.createObjectURL(blob);
+                  console.log('[handleTestPlay] Erstelle Blob-URL für Musik-Fallback:', blobUrl);
+                  music!.src = blobUrl;
+                  music!.crossOrigin = null;
+                  music!.load();
+                  // Nicht rejecten - warte auf canplay mit Blob-URL
+                })
+                .catch(fetchError => {
+                  console.error('[handleTestPlay] Blob-Fallback fehlgeschlagen:', fetchError);
+                  clearTimeout(timeout);
+                  reject(new Error(`Musik-Format wird nicht unterstützt. URL: ${track.track_url}`));
+                });
+              return; // Warte auf Blob-Fallback
+            }
+            
+            // Echter Fehler - nur rejecten wenn nicht während des Ladens
+            if (!isDuringLoading) {
+              clearTimeout(timeout);
+              let errorMessage = 'Musik konnte nicht geladen werden';
+              if (error) {
+                switch (error.code) {
+                  case MediaError.MEDIA_ERR_ABORTED:
+                    errorMessage = 'Musik-Laden wurde abgebrochen';
+                    break;
+                  case MediaError.MEDIA_ERR_NETWORK:
+                    errorMessage = 'Netzwerkfehler beim Laden der Musik';
+                    break;
+                  case MediaError.MEDIA_ERR_DECODE:
+                    errorMessage = 'Musik-Datei konnte nicht dekodiert werden';
+                    break;
+                  case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                    errorMessage = 'Musik-Format wird nicht unterstützt';
+                    break;
+                  default:
+                    errorMessage = `Musik-Fehler (Code: ${error.code})`;
+                }
+              }
+              reject(new Error(`${errorMessage}. URL: ${track.track_url}`));
+            }
           }, { once: true });
           
           music!.load();
@@ -733,13 +894,81 @@ export default function AdminMusicPage() {
         // Hole aktuelle Musik-Referenz aus State (falls State noch nicht aktualisiert wurde, verwende lokale Variable)
         const currentMusic = testMusicAudio || music;
         
-        const voice = new Audio(voiceUrl);
+        const voice = new Audio();
         voice.volume = 1.0;
+        
+        // Lade Stimme als Blob für bessere Kompatibilität (wie bei Musik)
+        console.log('[handleTestPlay] Loading voice as blob for better compatibility...');
+        try {
+          const response = await fetch(voiceUrl, { mode: 'cors', cache: 'no-cache' });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          console.log('[handleTestPlay] Created blob URL for voice:', blobUrl);
+          voice.src = blobUrl;
+          voice.crossOrigin = null; // Blob-URLs brauchen kein CORS
+        } catch (fetchError) {
+          console.warn('[handleTestPlay] Failed to load as blob, using direct URL:', fetchError);
+          voice.src = voiceUrl;
+          voice.crossOrigin = 'anonymous';
+        }
         
         // Warte bis Stimme geladen ist
         await new Promise<void>((resolve, reject) => {
-          voice.addEventListener('canplay', () => resolve(), { once: true });
-          voice.addEventListener('error', () => reject(new Error('Stimme konnte nicht geladen werden')), { once: true });
+          const timeout = setTimeout(() => {
+            reject(new Error(`Stimme konnte nicht geladen werden: Timeout nach 10 Sekunden. URL: ${voiceUrl}`));
+          }, 10000);
+          
+          voice.addEventListener('canplay', () => {
+            clearTimeout(timeout);
+            resolve();
+          }, { once: true });
+          
+          voice.addEventListener('error', (e) => {
+            const error = voice.error;
+            const networkState = voice.networkState;
+            const readyState = voice.readyState;
+            
+            // Prüfe ob es ein temporärer Loading-Fehler ist
+            const isDuringLoading = (readyState === 0 || readyState === 1) && 
+                                   (error?.code === 4 || error?.code === undefined);
+            
+            // Ignoriere temporäre Loading-Fehler
+            if (isDuringLoading && networkState !== HTMLMediaElement.NETWORK_NO_SOURCE) {
+              console.log('[handleTestPlay] Voice error during loading (ignoring, waiting for canplay):', {
+                code: error?.code,
+                message: error?.message,
+                readyState,
+                networkState
+              });
+              return; // Nicht rejecten - warte auf canplay
+            }
+            
+            clearTimeout(timeout);
+            let errorMessage = 'Stimme konnte nicht geladen werden';
+            if (error) {
+              switch (error.code) {
+                case MediaError.MEDIA_ERR_ABORTED:
+                  errorMessage = 'Stimmen-Laden wurde abgebrochen';
+                  break;
+                case MediaError.MEDIA_ERR_NETWORK:
+                  errorMessage = 'Netzwerkfehler beim Laden der Stimme';
+                  break;
+                case MediaError.MEDIA_ERR_DECODE:
+                  errorMessage = 'Stimmen-Datei konnte nicht dekodiert werden';
+                  break;
+                case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                  errorMessage = 'Stimmen-Format wird nicht unterstützt';
+                  break;
+                default:
+                  errorMessage = `Stimmen-Fehler (Code: ${error.code})`;
+              }
+            }
+            reject(new Error(`${errorMessage}. URL: ${voiceUrl}`));
+          }, { once: true });
+          
           voice.load();
         });
         
