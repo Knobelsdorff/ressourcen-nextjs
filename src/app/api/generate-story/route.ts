@@ -156,6 +156,18 @@ Bearbeitete Geschichte:`;
     let story: string;
 
     try {
+      // Debug: Prüfe, ob userNameWithPronunciation SSML-Tags enthält
+      const storyPromptText = storyPrompt;
+      const ssmlInPrompt = storyPromptText.match(/<phoneme[^>]*>([^<]+)<\/phoneme>/g);
+      if (ssmlInPrompt) {
+        console.log('✓ SSML-Tags im Story-Prompt gefunden:', ssmlInPrompt.length);
+        ssmlInPrompt.forEach((tag, index) => {
+          console.log(`  Tag ${index + 1}: ${tag}`);
+        });
+      } else {
+        console.log('⚠ Keine SSML-Tags im Story-Prompt gefunden');
+      }
+      
       const completion = await openai.chat.completions.create({
         model: 'gpt-4o',
         messages: [
@@ -167,6 +179,57 @@ Bearbeitete Geschichte:`;
       });
 
       story = completion.choices[0]?.message?.content || '';
+      
+      // Debug: Prüfe, ob SSML-Tags in der generierten Story enthalten sind
+      const ssmlInStory = story.match(/<phoneme[^>]*>([^<]+)<\/phoneme>/g);
+      if (ssmlInStory) {
+        console.log('✓ SSML-Tags in generierter Story gefunden:', ssmlInStory.length);
+        ssmlInStory.forEach((tag, index) => {
+          console.log(`  Tag ${index + 1}: ${tag}`);
+        });
+      } else {
+        console.log('⚠ Keine SSML-Tags in generierter Story gefunden - verwende einfachen Namensersatz');
+        
+        // Vereinfachte Lösung: Wenn ein pronunciation_hint vorhanden ist, verwende ihn als einfachen Ersatz für den Namen
+        // Beispiel: Wenn userName="Andy" und pronunciation_hint="Andi", dann ersetze "Andy" durch "Andi"
+        if (userName && userPronunciationHint && userPronunciationHint.trim().length > 0) {
+          const hintParts = userPronunciationHint.trim().split('|');
+          const simpleName = hintParts[0].trim();
+          
+          // Wenn der pronunciation_hint wie ein normaler Name aussieht (keine Leerzeichen, keine komplexe Formatierung),
+          // ersetze den ursprünglichen Namen durch diesen einfachen Namen
+          if (simpleName.length > 0 && !simpleName.includes(' ') && /^[A-Za-zÄÖÜäöüß-]+$/.test(simpleName)) {
+            // Ersetze den Namen in der Anrede (z.B. "Lieber Andy" -> "Lieber Andi")
+            const greetingPatterns = [
+              new RegExp(`(Lieber\\s+)${userName}([,\\s])`, 'gi'),
+              new RegExp(`(Liebe\\s+)${userName}([,\\s])`, 'gi'),
+              new RegExp(`(\\b)${userName}([,\\s\\.\\!\\?])`, 'gi'), // Allgemeiner Fall mit Satzzeichen
+            ];
+            
+            let replacementCount = 0;
+            for (const pattern of greetingPatterns) {
+              story = story.replace(pattern, (match, prefix, suffix) => {
+                // Prüfe, ob bereits ein SSML-Tag vorhanden ist
+                if (match.includes('<phoneme') || match.includes('</phoneme>')) {
+                  return match;
+                }
+                replacementCount++;
+                return `${prefix || ''}${simpleName}${suffix || ''}`;
+              });
+            }
+            
+            if (replacementCount > 0) {
+              console.log(`✓ Einfacher Namensersatz: "${userName}" -> "${simpleName}" (${replacementCount} Ersetzungen)`);
+              console.log(`  Story-Vorschau (erste 300 Zeichen): ${story.substring(0, 300)}...`);
+            } else {
+              console.warn(`⚠ Keine Ersetzungen gefunden für "${userName}" - Name möglicherweise nicht in Story enthalten`);
+            }
+          } else {
+            console.log(`⚠ pronunciation_hint "${simpleName}" sieht nicht wie ein einfacher Name aus - keine Ersetzung`);
+          }
+        }
+      }
+      
        // Im Sparmodus: Stelle sicher, dass nur der erste Satz zurückgegeben wird
     if (sparModus) {
       const firstSentence = story.match(/^[^.!?]*[.!?]/);

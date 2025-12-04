@@ -861,11 +861,18 @@ export default function AdminMusicPage() {
       const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
       
       const edgeFunctionUrl = `${SUPABASE_URL}/functions/v1/generate-audio`;
+      const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+      if (!SUPABASE_ANON_KEY) {
+        throw new Error('SUPABASE_ANON_KEY ist nicht definiert');
+      }
 
       const response = await fetch(edgeFunctionUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+              'apikey': SUPABASE_ANON_KEY, // Supabase Edge Functions benötigen auch den apikey Header
             },
             body: JSON.stringify({
               text: testText,

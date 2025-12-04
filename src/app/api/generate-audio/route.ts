@@ -384,7 +384,7 @@ export async function POST(request: NextRequest) {
     // Request payload
     const requestPayload: TextToSpeechRequest = {
       text: effectiveText,
-      model_id: 'eleven_multilingual_v2',
+      model_id: 'eleven_flash_v2',
       voice_settings: voiceSettings,
       output_format: 'mp3_44100_128'
     };
@@ -393,6 +393,18 @@ export async function POST(request: NextRequest) {
     console.log('Making request with voice ID:', elevenlabsVoiceId);
     console.log('Text length:', text.length, '->', effectiveText.length);
     console.log('Text preview:', effectiveText.slice(0, 100) + '...');
+    
+    // Debug: Prüfe, ob SSML-Phonem-Tags im Text enthalten sind
+    const phonemeMatches = effectiveText.match(/<phoneme[^>]*>([^<]+)<\/phoneme>/g);
+    if (phonemeMatches) {
+      console.log('✓ SSML-Phonem-Tags gefunden:', phonemeMatches.length);
+      phonemeMatches.forEach((match: string, index: number) => {
+        console.log(`  Tag ${index + 1}: ${match}`);
+      });
+    } else {
+      console.log('⚠ Keine SSML-Phonem-Tags im Text gefunden');
+    }
+    
     console.log('Environment check:', {
       hasElevenLabsKey: !!process.env.ELEVENLABS_API_KEY,
       hasSupabaseKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY

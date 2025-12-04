@@ -91,7 +91,7 @@ serve(async (req) => {
     // Request payload for ElevenLabs
     const requestPayload: TextToSpeechRequest = {
       text: effectiveText,
-      model_id: 'eleven_multilingual_v2',
+      model_id: 'eleven_flash_v2', // Unterstützt SSML-Phonem-Tags
       voice_settings: voiceSettings,
       output_format: 'mp3_44100_128'
     };

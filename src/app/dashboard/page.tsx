@@ -78,6 +78,9 @@ export default function Dashboard() {
   // Profil-spezifische States
   const [fullName, setFullName] = useState('');
   const [pronunciationHint, setPronunciationHint] = useState('');
+  const [pronunciationStress, setPronunciationStress] = useState<number>(1); // Standard: erste Silbe betont
+  const [pronunciationStressLetter, setPronunciationStressLetter] = useState<number>(1); // Standard: erster Buchstabe der betonten Silbe
+  const [pronunciationShortVowel, setPronunciationShortVowel] = useState<boolean>(false); // Standard: Vokal ist lang
   const [fullNameLoading, setFullNameLoading] = useState(false);
   const [fullNameError, setFullNameError] = useState('');
   const [fullNameSuccess, setFullNameSuccess] = useState('');
@@ -776,7 +779,31 @@ export default function Dashboard() {
       } else if (data) {
         const profileData = data as { full_name?: string | null; pronunciation_hint?: string | null };
         setFullName(profileData.full_name || '');
-        setPronunciationHint(profileData.pronunciation_hint || '');
+        // Parse pronunciation_hint: Format kann sein "AN DI" oder "AN DI|1" oder "AN DI|1|2" oder "AN DI|1|2|true" (mit Betonung, Buchstabenposition und Vokal-Länge)
+        if (profileData.pronunciation_hint) {
+          const hintParts = profileData.pronunciation_hint.split('|');
+          setPronunciationHint(hintParts[0] || '');
+          if (hintParts[1]) {
+            const stress = parseInt(hintParts[1], 10);
+            if (!isNaN(stress) && stress > 0) {
+              setPronunciationStress(stress);
+            }
+          }
+          if (hintParts[2]) {
+            const stressLetter = parseInt(hintParts[2], 10);
+            if (!isNaN(stressLetter) && stressLetter > 0) {
+              setPronunciationStressLetter(stressLetter);
+            }
+          }
+          if (hintParts[3]) {
+            setPronunciationShortVowel(hintParts[3] === 'true');
+          }
+        } else {
+          setPronunciationHint('');
+          setPronunciationStress(1);
+          setPronunciationStressLetter(1);
+          setPronunciationShortVowel(false);
+        }
       }
     } catch (err) {
       console.error('Error loading full name:', err);
@@ -1055,9 +1082,17 @@ export default function Dashboard() {
     setFullNameSuccess('');
 
     try {
+      // Speichere pronunciation_hint mit Betonung im Format "SILBEN|BETONUNG|BUCHSTABENPOSITION|VOKAL_KURZ"
+      const pronunciationHintWithStress = pronunciationHint.trim() 
+        ? `${pronunciationHint.trim()}|${pronunciationStress}|${pronunciationStressLetter}|${pronunciationShortVowel}`
+        : null;
+      
       const { error } = await (supabase as any)
         .from('profiles')
-        .update({ full_name: fullName, pronunciation_hint: pronunciationHint })
+        .update({ 
+          full_name: fullName, 
+          pronunciation_hint: pronunciationHintWithStress 
+        })
         .eq('id', user.id);
 
       if (error) {
@@ -3028,10 +3063,14 @@ ${story.content}
                               value={pronunciationHint}
                               onChange={(e) => setPronunciationHint(e.target.value)}
                               className="w-full px-3 py-2.5 border border-blue-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all"
-                              placeholder="z.B. An-ge-la, Mi-cha-el"
+                              placeholder="z.B. Andi (statt Andy)"
                             />
-                            <p className="text-blue-600 text-xs mt-1.5">
-                              Für korrekte Audio-Aussprache
+                            <p className="mt-1 text-xs text-blue-600">
+                              Gib hier einfach den Namen ein, wie er ausgesprochen werden soll. 
+                              <span className="font-semibold"> Beispiel: Wenn dein Name "Andy" ist, aber als "Andi" ausgesprochen werden soll, gib hier "Andi" ein.</span>
+                            </p>
+                            <p className="text-blue-600 text-xs mt-1">
+                              Der Name wird dann automatisch in der Geschichte durch diese Schreibweise ersetzt.
                             </p>
                           </div>
                         </div>

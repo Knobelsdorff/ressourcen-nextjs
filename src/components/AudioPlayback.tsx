@@ -702,6 +702,10 @@ export default function AudioPlayback({
       const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+      if (!SUPABASE_ANON_KEY) {
+        throw new Error('SUPABASE_ANON_KEY ist nicht definiert');
+      }
+
       const edgeFunctionUrl = `${SUPABASE_URL}/functions/v1/generate-audio`;
 
       const response = await fetch(edgeFunctionUrl, {
@@ -709,6 +713,7 @@ export default function AudioPlayback({
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': SUPABASE_ANON_KEY, // Supabase Edge Functions benötigen auch den apikey Header
         },
         body: JSON.stringify({
           text: text,
@@ -853,10 +858,70 @@ export default function AudioPlayback({
     };
   }, [backgroundMusicElement]);
 
+  // Hilfsfunktion zum Setzen der Lautstärke (unterstützt Web Audio API für iOS)
+  const setMusicVolume = useCallback((musicAudio: HTMLAudioElement, volume: number) => {
+    if ((musicAudio as any)._useWebAudio && (musicAudio as any)._gainNode) {
+      // iOS (Safari & Chrome): Verwende Web Audio API GainNode
+      try {
+        const gainNode = (musicAudio as any)._gainNode;
+        const audioContext = (musicAudio as any)._audioContext;
+        
+        // Stelle sicher, dass AudioContext aktiv ist
+        if (audioContext && audioContext.state === 'suspended') {
+          audioContext.resume().catch((err: any) => {
+            console.warn('[AudioPlayback] Failed to resume AudioContext:', err);
+          });
+        }
+        
+        gainNode.gain.value = volume;
+      } catch (error) {
+        console.warn('[AudioPlayback] Failed to set volume via GainNode, falling back to HTMLAudioElement:', error);
+        musicAudio.volume = volume;
+      }
+    } else {
+      // Android/Desktop: Verwende normale volume Property
+      musicAudio.volume = volume;
+    }
+  }, []);
+
+  // Hilfsfunktion zum Abrufen der aktuellen Lautstärke
+  const getMusicVolume = useCallback((musicAudio: HTMLAudioElement): number => {
+    if ((musicAudio as any)._useWebAudio && (musicAudio as any)._gainNode) {
+      // iOS: Verwende Web Audio API GainNode
+      return (musicAudio as any)._gainNode.gain.value;
+    } else {
+      // Android/Desktop: Verwende normale volume Property
+      return musicAudio.volume;
+    }
+  }, []);
+
   // Audio event handlers
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !audioState?.audioUrl) return;
+
+    // Lade Audio als Blob für bessere Kompatibilität (wie im Dashboard)
+    const loadAudioAsBlob = async () => {
+      try {
+        const response = await fetch(audioState.audioUrl!, { mode: 'cors', cache: 'no-cache' });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        console.log('[AudioPlayback] Created blob URL for audio:', blobUrl);
+        audio.src = blobUrl;
+        audio.crossOrigin = null; // Blob-URLs brauchen kein CORS
+        audio.load();
+      } catch (fetchError) {
+        console.warn('[AudioPlayback] Failed to load as blob, using direct URL:', fetchError);
+        audio.src = audioState.audioUrl!;
+        audio.crossOrigin = 'anonymous';
+        audio.load();
+      }
+    };
+
+    loadAudioAsBlob();
 
     const updateTime = () => setCurrentTime(audio.currentTime);
     const updateDuration = () => {
@@ -886,7 +951,7 @@ export default function AudioPlayback({
         console.log('[AudioPlayback] Stopping background music immediately (audio ended)');
         backgroundMusicElement.pause();
         backgroundMusicElement.currentTime = 0;
-        backgroundMusicElement.volume = DEFAULT_MUSIC_VOLUME; // Reset
+        setMusicVolume(backgroundMusicElement, DEFAULT_MUSIC_VOLUME); // Reset (iOS-kompatibel)
         (backgroundMusicElement as any)._fadeOutStarted = false; // Reset Flag
       }
       
@@ -934,7 +999,7 @@ export default function AudioPlayback({
           }
           
           const fadeOutDuration = 3500;
-          const startVolume = backgroundMusicElement.volume;
+          const startVolume = getMusicVolume(backgroundMusicElement); // iOS-kompatibel
           const fadeSteps = fadeOutDuration / 50;
           let currentStep = 0;
           
@@ -947,14 +1012,14 @@ export default function AudioPlayback({
             
             currentStep++;
             const newVolume = Math.max(0, startVolume * (1 - currentStep / fadeSteps));
-            backgroundMusicElement.volume = newVolume;
+            setMusicVolume(backgroundMusicElement, newVolume); // iOS-kompatibel
             
             if (currentStep >= fadeSteps || newVolume <= 0) {
               clearInterval(fadeInterval);
               (backgroundMusicElement as any)._fadeOutInterval = null;
               backgroundMusicElement.pause();
               backgroundMusicElement.currentTime = 0;
-              backgroundMusicElement.volume = DEFAULT_MUSIC_VOLUME;
+              setMusicVolume(backgroundMusicElement, DEFAULT_MUSIC_VOLUME); // iOS-kompatibel
             }
           }, 50);
           
@@ -1071,6 +1136,9 @@ export default function AudioPlayback({
       }
     }
 
+    // Setze isPlaying sofort auf true, damit der Button sofort zu Pause wechselt
+    setIsPlaying(true);
+    
     // Hole Hintergrundmusik-URL für diese Figur
     const figureIdOrName = selectedFigure?.id || selectedFigure?.name;
     console.log('[AudioPlayback] ===== LOADING BACKGROUND MUSIC =====');
@@ -1095,19 +1163,75 @@ export default function AudioPlayback({
           backgroundMusicElement.currentTime = 0;
         }
 
-        // Erstelle neues Musik-Element
-        const musicAudio = new Audio(musicUrl);
-        musicAudio.crossOrigin = 'anonymous';
+        // Erstelle neues Musik-Element - lade als Blob für bessere Kompatibilität
+        const musicAudio = new Audio();
         musicAudio.loop = true;
         musicAudio.volume = DEFAULT_MUSIC_VOLUME;
         
+        // iOS-Erkennung für Web Audio API
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+                     (navigator.userAgent.includes('CriOS') && /iPad|iPhone|iPod/.test(navigator.userAgent));
+        
+        // Lade Musik als Blob für bessere Kompatibilität (funktioniert auf iOS, Android, Desktop)
+        try {
+          const response = await fetch(musicUrl, { mode: 'cors', cache: 'no-cache' });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          console.log('[AudioPlayback] Created blob URL for background music (iOS-compatible):', blobUrl);
+          musicAudio.src = blobUrl;
+          musicAudio.crossOrigin = null; // Blob-URLs brauchen kein CORS
+        } catch (fetchError) {
+          console.warn('[AudioPlayback] Failed to load as blob, using direct URL:', fetchError);
+          musicAudio.src = musicUrl;
+          musicAudio.crossOrigin = 'anonymous';
+        }
+        
+        // Speichere iOS-Flag für späteres Web Audio API Setup
+        (musicAudio as any)._isIOS = isIOS;
+        (musicAudio as any)._useWebAudio = false;
+        (musicAudio as any)._originalVolume = DEFAULT_MUSIC_VOLUME;
+        
         setBackgroundMusicElement(musicAudio);
+        
+        // iOS: Setup Web Audio API für Lautstärkekontrolle nach canplay
+        if (isIOS && typeof AudioContext !== 'undefined') {
+          musicAudio.addEventListener('canplay', () => {
+            if ((musicAudio as any)._useWebAudio) {
+              console.log('[AudioPlayback] Web Audio API already connected, skipping');
+              return;
+            }
+            
+            try {
+              const audioContext = new AudioContext();
+              const source = audioContext.createMediaElementSource(musicAudio);
+              const gainNode = audioContext.createGain();
+              
+              source.connect(gainNode);
+              gainNode.connect(audioContext.destination);
+              
+              gainNode.gain.value = DEFAULT_MUSIC_VOLUME;
+              
+              (musicAudio as any)._audioContext = audioContext;
+              (musicAudio as any)._gainNode = gainNode;
+              (musicAudio as any)._useWebAudio = true;
+              
+              console.log('[AudioPlayback] iOS detected: Web Audio API connected for volume control');
+            } catch (error: any) {
+              console.warn('[AudioPlayback] Failed to setup Web Audio API, using HTMLAudioElement:', error);
+              (musicAudio as any)._useWebAudio = false;
+            }
+          }, { once: true });
+        }
         
         // Starte Musik (nur wenn sie pausiert ist)
         if (musicAudio.paused) {
           musicAudio.currentTime = 0;
           await musicAudio.play();
-          console.log('[AudioPlayback] Background music started (at 0s)');
+          console.log('[AudioPlayback] Background music started (at 0s, iOS: ' + isIOS + ')');
           
           // Warte 3 Sekunden bevor die Stimme startet
           await new Promise(resolve => setTimeout(resolve, 3000));
@@ -1121,8 +1245,8 @@ export default function AudioPlayback({
     }
 
     // Spiele Stimme ab (nach 3 Sekunden Verzögerung, wenn Musik läuft)
+    // setIsPlaying(true) wurde bereits oben gesetzt, damit der Button sofort wechselt
     audio.play().then(() => {
-      setIsPlaying(true);
       // Track Audio-Play Event (nur wenn User eingeloggt ist UND eine gültige Session hat)
       if (user && session) {
         trackEvent({
@@ -1134,7 +1258,7 @@ export default function AudioPlayback({
     }).catch((err) => {
         console.error('Audio play failed:', err);
         setError('Failed to play audio. Please try again.');
-      setIsPlaying(false);
+        setIsPlaying(false); // Setze zurück auf false bei Fehler
       });
   };
 
@@ -1473,9 +1597,7 @@ export default function AudioPlayback({
                 {/* Hidden Audio Element */}
                 <audio 
                   ref={audioRef} 
-                  src={audioState.audioUrl} 
                   preload="metadata"
-                  crossOrigin="anonymous"
                   onLoadedData={() => setIsLoading(false)}
                 />
 

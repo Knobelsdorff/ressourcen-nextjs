@@ -8,10 +8,19 @@ interface StoryPromptParams {
 }
 
 // Funktion zur Bestimmung der geschlechtsspezifischen Anrede
+// name kann SSML-Tags enthalten (z.B. <phoneme alphabet="ipa" ph="Andie">Andy</phoneme>)
+// Die Funktion extrahiert den Namen für die Geschlechtsbestimmung, gibt aber die Anrede mit dem ursprünglichen Namen zurück
 function getGenderSpecificGreeting(name: string): string | null {
   if (!name || name.trim().length === 0) return 'Liebe/r';
   
-  const cleanName = name.trim();
+  const originalName = name.trim();
+  
+  // Extrahiere den Namen aus SSML-Tags, falls vorhanden (für Geschlechtsbestimmung)
+  let nameForGenderCheck = originalName;
+  const ssmlMatch = originalName.match(/<phoneme[^>]*>([^<]+)<\/phoneme>/);
+  if (ssmlMatch) {
+    nameForGenderCheck = ssmlMatch[1].trim(); // Extrahiere den Namen aus den SSML-Tags
+  }
   
   // Liste von typisch weiblichen Namen
   const femaleNames = [
@@ -33,18 +42,20 @@ function getGenderSpecificGreeting(name: string): string | null {
     'Emil', 'Anton', 'Theo', 'Leo'
   ];
   
-  // Prüfe auf exakte Übereinstimmung (case-insensitive)
-  const lowerName = cleanName.toLowerCase();
+  // Prüfe auf exakte Übereinstimmung (case-insensitive) mit dem extrahierten Namen
+  const lowerName = nameForGenderCheck.toLowerCase();
   
   for (const femaleName of femaleNames) {
     if (femaleName.toLowerCase() === lowerName) {
-      return `Liebe ${cleanName}`;
+      // Verwende den ursprünglichen Namen (mit SSML-Tags, falls vorhanden) für die Anrede
+      return `Liebe ${originalName}`;
     }
   }
   
   for (const maleName of maleNames) {
     if (maleName.toLowerCase() === lowerName) {
-      return `Lieber ${cleanName}`;
+      // Verwende den ursprünglichen Namen (mit SSML-Tags, falls vorhanden) für die Anrede
+      return `Lieber ${originalName}`;
     }
   }
   
@@ -236,6 +247,38 @@ function getNaturalNameForm(figureName: string, pronouns: string, context: 'geni
   return figureName;
 }
 
+// Funktion, die bestimmt, ob eine Figur einen Possessivartikel benötigt (z.B. "dein Superheld" statt "Superheld")
+function needsPossessiveArticle(figureName: string): boolean {
+  // Rollenbezeichnungen, die einen Possessivartikel benötigen
+  const rolesNeedingArticle = [
+    'Superheld',
+    'Drache',
+    'Sanfter Riese',
+    'Weise Eule',
+    'Ozeangeist',
+    'Krafttier',
+    'Göttliche Mutter'
+  ];
+  
+  return rolesNeedingArticle.includes(figureName);
+}
+
+// Funktion, die den richtigen Possessivartikel für eine Figur zurückgibt
+function getPossessiveArticle(figureName: string, pronouns: string, context: 'nominative' | 'accusative' = 'nominative'): string {
+  const primaryPronoun = pronouns.split('/')[0];
+  
+  if (primaryPronoun === 'er' || primaryPronoun === 'es') {
+    // Maskulin: "dein" (Nominativ) oder "deinen" (Akkusativ)
+    return context === 'accusative' ? 'deinen' : 'dein';
+  } else if (primaryPronoun === 'sie') {
+    // Feminin: "deine"
+    return 'deine';
+  } else {
+    // Plural oder andere: "deine"
+    return 'deine';
+  }
+}
+
 export function generateStoryPrompt({ selectedFigure, connectionDetails, userName, userPronunciationHint }: StoryPromptParams): string {
   const primaryPronoun = selectedFigure.pronouns.split('/')[0];
   const objectPronoun = selectedFigure.pronouns.split('/')[1];
@@ -249,10 +292,27 @@ export function generateStoryPrompt({ selectedFigure, connectionDetails, userNam
   // Spezielle Behandlung für Engel (grammatikalisch maskulin, aber weibliche Pronomen)
   const isAngel = selectedFigure.id === 'angel' || selectedFigure.name === 'Engel';
 
-  // Füge Aussprache-Hilfe für den Namen hinzu
+  // Vereinfachte Lösung: Verwende einfach den Namen so, wie er eingegeben wird
+  // Wenn ein pronunciation_hint vorhanden ist, verwende ihn als alternativen Namen (z.B. "Andi" statt "Andy")
   let userNameWithPronunciation = userName ? addPronunciationHelp(userName) : undefined;
+  
+  // Wenn ein pronunciation_hint vorhanden ist, verwende ihn als einfachen Ersatz für den Namen
+  // Beispiel: Wenn userName="Andy" und pronunciation_hint="Andi", dann verwende "Andi"
   if (userName && userPronunciationHint && userPronunciationHint.trim().length > 0) {
-    userNameWithPronunciation = `${userName} (${userPronunciationHint.trim()})`;
+    // Parse pronunciation_hint: Format kann sein "Andi" (einfacher Name) oder "AN DI|..." (alte komplexe Format)
+    const hintParts = userPronunciationHint.trim().split('|');
+    const simpleName = hintParts[0].trim();
+    
+    // Wenn der pronunciation_hint wie ein normaler Name aussieht (keine Leerzeichen, keine komplexe Formatierung),
+    // verwende ihn direkt als Ersatz für den ursprünglichen Namen
+    if (simpleName.length > 0 && !simpleName.includes(' ') && /^[A-Za-zÄÖÜäöüß-]+$/.test(simpleName)) {
+      userNameWithPronunciation = simpleName;
+      console.log(`[story-generation] Using simple name replacement: "${userName}" -> "${simpleName}"`);
+    } else {
+      // Falls der pronunciation_hint nicht wie ein einfacher Name aussieht, verwende den ursprünglichen Namen
+      console.log(`[story-generation] pronunciation_hint doesn't look like a simple name, using original name: "${userName}"`);
+      userNameWithPronunciation = userName;
+    }
   }
 
   if (isPlace) {
@@ -302,6 +362,16 @@ Du darfst **nichts direkt aus den Antworten übernehmen**. Stattdessen:
 
 **WICHTIG:** Wenn du über die Ressourcenfigur sprichst, verwende die richtigen Pronomen: ${selectedFigure.pronouns}
 
+**WICHTIG - POSSESSIVARTIKEL FÜR ROLLENBEZEICHNUNGEN:**
+${needsPossessiveArticle(selectedFigure.name) ? `
+- Wenn du über ${selectedFigure.name} sprichst, verwende IMMER den Possessivartikel "${getPossessiveArticle(selectedFigure.name, selectedFigure.pronouns)}" vor dem Namen.
+- Beispiele:
+  - "Vor dir steht ${getPossessiveArticle(selectedFigure.name, selectedFigure.pronouns)} ${selectedFigure.name} ..." (NICHT "Vor dir steht ${selectedFigure.name} ...")
+  - "${getPossessiveArticle(selectedFigure.name, selectedFigure.pronouns)} ${selectedFigure.name} sagt dir, dass ..." (NICHT "${selectedFigure.name} sagt dir, dass ...")
+  - "Du bittest ${getPossessiveArticle(selectedFigure.name, selectedFigure.pronouns, 'accusative')} ${selectedFigure.name}:" (NICHT "Du bittest ${selectedFigure.name}:")
+- Verwende den Possessivartikel konsequent durch die gesamte Geschichte.
+` : ''}
+
 ${userName ? `
 Zusatz: Wenn es natürlich und sanft passt, verwende den Namen "${userName}" ein- bis zweimal im Verlauf der Geschichte (nicht mehr), z. B. in einer beruhigenden Ansprache.` : ''}
 
@@ -318,12 +388,22 @@ Zusatz: Wenn es natürlich und sanft passt, verwende den Namen "${userName}" ein
        - "Ideal-Vater" → "die Präsenz von deinem idealen Vater" oder "du spürst die warme Präsenz deines idealen Vaters"
        - "Ideal-Mutter" → "die Präsenz von deiner idealen Mutter" oder "du spürst die warme Präsenz deiner idealen Mutter"
      - Vermeide unbedingt Formulierungen wie "von Ideal-Großfamilie" oder "Ideal-Großfamilie ist" – verwende IMMER die natürliche deutsche Formulierung mit Artikel ("deine/deiner/deinem") und Adjektiv ("ideale/idealer").
+     ${needsPossessiveArticle(selectedFigure.name) ? `
+     - **WICHTIG - POSSESSIVARTIKEL FÜR ROLLENBEZEICHNUNGEN:**
+       - Für "${selectedFigure.name}" verwende IMMER den Possessivartikel "${getPossessiveArticle(selectedFigure.name, selectedFigure.pronouns)}" vor dem Namen.
+       - Beispiele:
+         - "Vor dir steht ${getPossessiveArticle(selectedFigure.name, selectedFigure.pronouns)} ${selectedFigure.name} ..." (NICHT "Vor dir steht ${selectedFigure.name} ...")
+         - "${getPossessiveArticle(selectedFigure.name, selectedFigure.pronouns)} ${selectedFigure.name} ist bei dir" (NICHT "${selectedFigure.name} ist bei dir")
+         - "Du sitzt mit ${getPossessiveArticle(selectedFigure.name, selectedFigure.pronouns)} ${selectedFigure.name} zusammen" (NICHT "Du sitzt mit ${selectedFigure.name} zusammen")
+     ` : ''}
    - **WICHTIG - TATSÄCHLICHE ANWESENHEIT FÜR ALLE RESSOURCENFIGUREN:**
      - Beschreibe ${selectedFigure.name} als **tatsächlich anwesend und real**, nicht nur als mentale Vorstellung oder Einbildung.
      - **VERMEIDE** Formulierungen wie "in deinem Herzen", "nur in deiner Vorstellung", "dir vorstellst", "gedanklich" oder ähnliche, die suggerieren, dass die Figur nur gedanklich existiert.
      - Stattdessen beschreibe die Figur so, als wäre ${primaryPronoun} wirklich da und anwesend:
        - Für "Ideal-Großfamilie": "Deine ideale Großfamilie ist bei dir", "Du sitzt mit deiner idealen Großfamilie zusammen", "Deine ideale Großfamilie umgibt dich"
-       - Für andere Figuren: "${selectedFigure.name} ist bei dir", "Du sitzt mit ${selectedFigure.name} zusammen", "${selectedFigure.name} umgibt dich", etc.
+       ${needsPossessiveArticle(selectedFigure.name) ? `
+       - Für "${selectedFigure.name}": "${getPossessiveArticle(selectedFigure.name, selectedFigure.pronouns)} ${selectedFigure.name} ist bei dir", "Du sitzt mit ${getPossessiveArticle(selectedFigure.name, selectedFigure.pronouns)} ${selectedFigure.name} zusammen", "${getPossessiveArticle(selectedFigure.name, selectedFigure.pronouns)} ${selectedFigure.name} umgibt dich"` : `
+       - Für andere Figuren: "${selectedFigure.name} ist bei dir", "Du sitzt mit ${selectedFigure.name} zusammen", "${selectedFigure.name} umgibt dich", etc.`}
      - Die Figur soll als **real, anwesend und präsent** wahrgenommen werden, nicht als bloße Einbildung oder nur als Gedanke.
    - Lass die lesende Person sich bei dieser Figur sicher fühlen.
    - Nutze Q1 & Q2, aber **beschreibe nicht einfach die Antworten – fang das emotionale Gefühl ein**.
@@ -351,10 +431,12 @@ Zusatz: Wenn es natürlich und sanft passt, verwende den Namen "${userName}" ein
        - "Ideal-Großfamilie" → "Du bittest deine ideale Großfamilie:"
        - "Ideal-Vater" → "Du bittest deinen idealen Vater:"
        - "Ideal-Mutter" → "Du bittest deine ideale Mutter:"
-     - Für normale Namen (Oma, Opa, etc.) verwende einfach: "Du bittest ${selectedFigure.name}:"
+     ${needsPossessiveArticle(selectedFigure.name) ? `
+     - Für Rollenbezeichnungen wie "${selectedFigure.name}" verwende IMMER den Possessivartikel: "Du bittest ${getPossessiveArticle(selectedFigure.name, selectedFigure.pronouns, 'accusative')} ${selectedFigure.name}:"` : `
+     - Für normale Namen (Oma, Opa, etc.) verwende einfach: "Du bittest ${selectedFigure.name}:"`}
    - Formatiere es genau so (mit Pause nach dem Doppelpunkt):
    
-     > "${selectedFigure.name.startsWith('Ideal-') ? 'Du bittest ' + getNaturalNameForm(selectedFigure.name, selectedFigure.pronouns, 'accusative') + ':' : 'Du bittest ' + selectedFigure.name + ':'}
+     > "${selectedFigure.name.startsWith('Ideal-') ? 'Du bittest ' + getNaturalNameForm(selectedFigure.name, selectedFigure.pronouns, 'accusative') + ':' : needsPossessiveArticle(selectedFigure.name) ? 'Du bittest ' + getPossessiveArticle(selectedFigure.name, selectedFigure.pronouns, 'accusative') + ' ' + selectedFigure.name + ':' : 'Du bittest ' + selectedFigure.name + ':'}
    
      [Deine ressourcenspezifische Bitte hier]"
    
@@ -380,10 +462,12 @@ Zusatz: Wenn es natürlich und sanft passt, verwende den Namen "${userName}" ein
        - "Ideal-Großfamilie" → "Und deine ideale Großfamilie sagt zu dir:"
        - "Ideal-Vater" → "Und dein idealer Vater sagt zu dir:"
        - "Ideal-Mutter" → "Und deine ideale Mutter sagt zu dir:"
-     - Für normale Namen (Oma, Opa, etc.) verwende einfach: "Und ${selectedFigure.name} sagt zu dir:"
+     ${needsPossessiveArticle(selectedFigure.name) ? `
+     - Für Rollenbezeichnungen wie "${selectedFigure.name}" verwende IMMER den Possessivartikel: "Und ${getPossessiveArticle(selectedFigure.name, selectedFigure.pronouns)} ${selectedFigure.name} sagt zu dir:"` : `
+     - Für normale Namen (Oma, Opa, etc.) verwende einfach: "Und ${selectedFigure.name} sagt zu dir:"`}
    - Formatiere es genau so (mit Pause nach dem Doppelpunkt):
    
-     > "${selectedFigure.name.startsWith('Ideal-') ? 'Und ' + getNaturalNameForm(selectedFigure.name, selectedFigure.pronouns, 'nominative') + ' sagt zu dir:' : 'Und ' + selectedFigure.name + ' sagt zu dir:'} "${userName ? (getGenderSpecificGreeting(userName) || '') : ''}",
+     > "${selectedFigure.name.startsWith('Ideal-') ? 'Und ' + getNaturalNameForm(selectedFigure.name, selectedFigure.pronouns, 'nominative') + ' sagt zu dir:' : needsPossessiveArticle(selectedFigure.name) ? 'Und ' + getPossessiveArticle(selectedFigure.name, selectedFigure.pronouns) + ' ' + selectedFigure.name + ' sagt zu dir:' : 'Und ' + selectedFigure.name + ' sagt zu dir:'} "${userName ? (getGenderSpecificGreeting(userName) || '') : ''}",
    
      [Die ressourcenspezifische Antwort hier]"
    
