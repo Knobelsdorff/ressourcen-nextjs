@@ -25,7 +25,7 @@ BEGIN
   -- Hole Email des aktuellen Users
   SELECT email INTO user_email
   FROM auth.users
-  WHERE id = user_id;
+  WHERE id = user_id; 
   
   -- Wenn keine Email gefunden, gibt false zurück
   IF user_email IS NULL THEN
