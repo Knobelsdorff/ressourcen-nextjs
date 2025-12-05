@@ -449,6 +449,53 @@ export default function AdminMusicPage() {
   const [loadingTestResource, setLoadingTestResource] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // iOS-Erkennung für Web Audio API
+  const isIOS = typeof window !== 'undefined' && (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  );
+
+  // Hilfsfunktion zum Setzen der Lautstärke (unterstützt Web Audio API für iOS)
+  const setMusicVolume = useCallback((musicAudio: HTMLAudioElement | null, volume: number) => {
+    if (!musicAudio) return;
+    
+    if (isIOS && (musicAudio as any)._useWebAudio && (musicAudio as any)._gainNode) {
+      // iOS (Safari & Chrome): Verwende Web Audio API GainNode
+      try {
+        const gainNode = (musicAudio as any)._gainNode;
+        const audioContext = (musicAudio as any)._audioContext;
+        
+        // Stelle sicher, dass AudioContext aktiv ist
+        if (audioContext && audioContext.state === 'suspended') {
+          audioContext.resume().catch((err: any) => {
+            console.warn('[setMusicVolume] Failed to resume AudioContext:', err);
+          });
+        }
+        
+        gainNode.gain.value = volume;
+      } catch (error) {
+        console.warn('[setMusicVolume] Failed to set volume via GainNode, falling back to HTMLAudioElement:', error);
+        musicAudio.volume = volume;
+      }
+    } else {
+      // Desktop/Android: Verwende HTMLAudioElement.volume
+      musicAudio.volume = volume;
+    }
+  }, [isIOS]);
+
+  // Hilfsfunktion zum Abrufen der Lautstärke
+  const getMusicVolume = useCallback((musicAudio: HTMLAudioElement | null): number => {
+    if (!musicAudio) return 0.12;
+    
+    if (isIOS && (musicAudio as any)._useWebAudio && (musicAudio as any)._gainNode) {
+      // iOS: Verwende Web Audio API GainNode
+      return (musicAudio as any)._gainNode.gain.value;
+    } else {
+      // Desktop/Android: Verwende HTMLAudioElement.volume
+      return musicAudio.volume;
+    }
+  }, [isIOS]);
+
   // Cleanup beim Unmount
   useEffect(() => {
     return () => {
@@ -716,8 +763,40 @@ export default function AdminMusicPage() {
       if (track.track_url) {
         music = new Audio(track.track_url);
         music.loop = true;
-        music.volume = testMusicVolume;
         music.crossOrigin = 'anonymous'; // Für CORS-Probleme
+        
+        // iOS: Verwende Web Audio API für Lautstärke-Kontrolle
+        if (isIOS) {
+          try {
+            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const source = audioContext.createMediaElementSource(music);
+            const gainNode = audioContext.createGain();
+            
+            source.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Speichere Referenzen für späteren Zugriff
+            (music as any)._useWebAudio = true;
+            (music as any)._gainNode = gainNode;
+            (music as any)._audioContext = audioContext;
+            
+            // Setze Lautstärke über GainNode
+            gainNode.gain.value = testMusicVolume;
+            
+            // Aktiviere AudioContext bei User-Interaktion
+            if (audioContext.state === 'suspended') {
+              audioContext.resume().catch((err: any) => {
+                console.warn('[handleTestPlay] Failed to resume AudioContext:', err);
+              });
+            }
+          } catch (error) {
+            console.warn('[handleTestPlay] Web Audio API setup failed, falling back to HTMLAudioElement:', error);
+            music.volume = testMusicVolume;
+          }
+        } else {
+          // Desktop/Android: Verwende HTMLAudioElement.volume
+          music.volume = testMusicVolume;
+        }
         
         // Lade Musik als Blob für bessere Kompatibilität (wie im Dashboard)
         console.log('[handleTestPlay] Loading background music as blob for better compatibility...');
@@ -1072,9 +1151,9 @@ export default function AdminMusicPage() {
         t.id === track.id ? { ...t, volume: testMusicVolume } : t
       ));
 
-      // Aktualisiere Musik-Lautstärke während Wiedergabe
+      // Aktualisiere Musik-Lautstärke während Wiedergabe (unterstützt iOS Web Audio API)
       if (testMusicAudio) {
-        testMusicAudio.volume = testMusicVolume;
+        setMusicVolume(testMusicAudio, testMusicVolume);
       }
 
       // Zeige Success-Meldung und schließe Modal nach kurzer Verzögerung
@@ -1503,9 +1582,9 @@ export default function AdminMusicPage() {
                       onChange={(e) => {
                         const newVolume = parseFloat(e.target.value);
                         setTestMusicVolume(newVolume);
-                        // Aktualisiere während Wiedergabe
+                        // Aktualisiere während Wiedergabe (unterstützt iOS Web Audio API)
                         if (testMusicAudio) {
-                          testMusicAudio.volume = newVolume;
+                          setMusicVolume(testMusicAudio, newVolume);
                         }
                       }}
                       className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
