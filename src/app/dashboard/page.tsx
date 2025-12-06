@@ -1661,6 +1661,10 @@ ${story.content}
     // Stoppe alle anderen Hintergrundmusik-Tracks
     Object.entries(backgroundMusicElements).forEach(([id, music]) => {
       if (id !== storyId) {
+        // Entferne pause-Event-Listener vor dem Stoppen
+        if ((music as any)._pauseHandler) {
+          music.removeEventListener('pause', (music as any)._pauseHandler);
+        }
         music.pause();
         music.currentTime = 0;
       }
@@ -1697,6 +1701,16 @@ ${story.content}
         audio = new Audio();
         audio.preload = 'auto';
         audio.volume = 1.0; // Stelle sicher, dass Stimme immer auf 100% ist
+        
+        // iOS: Konfiguriere Audio-Session für Hintergrundwiedergabe
+        if (typeof window !== 'undefined' && 'audioSession' in navigator) {
+          try {
+            (navigator as any).audioSession.type = 'playback';
+            console.log('[playAudio] iOS AudioSession configured for background playback');
+          } catch (error) {
+            console.warn('[playAudio] Failed to configure AudioSession:', error);
+          }
+        }
         
         // Überwache Lautstärke und stelle sicher, dass sie immer auf 100% bleibt
         const volumeCheckInterval = setInterval(() => {
@@ -1749,6 +1763,11 @@ ${story.content}
             if ((musicAudio as any)._fadeOutInterval) {
               clearInterval((musicAudio as any)._fadeOutInterval);
               (musicAudio as any)._fadeOutInterval = null;
+            }
+            
+            // Entferne pause-Event-Listener vor dem Stoppen
+            if ((musicAudio as any)._pauseHandler) {
+              musicAudio.removeEventListener('pause', (musicAudio as any)._pauseHandler);
             }
             
             // Stoppe Musik sofort (auch wenn Fade-Out läuft)
@@ -2486,11 +2505,28 @@ ${story.content}
         
         if (!musicAudio) {
           console.log(`[playAudio] Creating background music element for story ${storyId}`);
+          
+          // iOS-Erkennung (muss VOR der Verwendung deklariert werden)
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+                       // Chrome auf iPhone erkennt
+                       (navigator.userAgent.includes('CriOS') && /iPad|iPhone|iPod/.test(navigator.userAgent));
+          
           // Erstelle Audio-Element ohne URL, dann setze src explizit (wie bei Voice-Audio)
           musicAudio = new Audio();
           musicAudio.crossOrigin = 'anonymous'; // Für CORS
           musicAudio.loop = true; // Wiederholt sich
           musicAudio.preload = 'auto';
+          
+          // iOS: WICHTIG für Hintergrundwiedergabe - setze playsInline Attribut
+          // Dies verhindert, dass iOS die Musik pausiert, wenn der Bildschirm ausgeht
+          if (isIOS) {
+            (musicAudio as any).playsInline = true;
+            // Setze auch das HTML-Attribut falls möglich
+            if (musicAudio.setAttribute) {
+              musicAudio.setAttribute('playsinline', 'true');
+            }
+          }
           
           // Versuche zuerst direkt mit URL, aber bereite Blob-Fallback vor
           // Da die Datei direkt im Browser funktioniert, aber nicht im Audio-Element,
@@ -2547,19 +2583,12 @@ ${story.content}
           // Speichere die ursprüngliche track-spezifische Lautstärke für späteres Reset
           (musicAudio as any)._originalVolume = musicVolume;
           
-          // iOS (Safari & Chrome): Verwende Web Audio API für Lautstärkekontrolle
-          // iOS erlaubt keine programmatische Änderung der volume Property
-          // Chrome auf iPhone verwendet auch WebKit und hat die gleichen Einschränkungen
-          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
-                       // Chrome auf iPhone erkennt
-                       (navigator.userAgent.includes('CriOS') && /iPad|iPhone|iPod/.test(navigator.userAgent));
-          
           // Setze initiale Lautstärke (wird später für iOS überschrieben)
           musicAudio.volume = musicVolume;
           (musicAudio as any)._useWebAudio = false;
           
           // Verwende track-spezifische Lautstärke (falls vorhanden), sonst Standard-Lautstärke
+          // Hinweis: isIOS wurde bereits oben deklariert
           console.log(`[playAudio] Background music initialized with volume: ${musicVolume * 100}% (track-specific: ${musicTrack?.volume ? 'yes' : 'no'}, iOS: ${isIOS}) for story ${storyId}`);
           
           musicAudio.addEventListener('error', (e) => {
@@ -2692,6 +2721,26 @@ ${story.content}
                 // Behalte normale volume Property bei Fehler
                 (musicAudio as any)._useWebAudio = false;
               }
+            }
+            
+            // iOS: Verhindere, dass Musik pausiert wird, wenn der Bildschirm ausgeht
+            if (isIOS) {
+              // Event-Listener für pause Events - starte Musik automatisch wieder, wenn sie unerwartet pausiert wird
+              const handlePause = () => {
+                // Prüfe ob die Stimme noch läuft (dann sollte Musik auch laufen)
+                const voiceAudio = audioElements[storyId];
+                if (voiceAudio && !voiceAudio.paused && !voiceAudio.ended) {
+                  console.log(`[playAudio] Background music was paused unexpectedly on iOS, restarting...`);
+                  musicAudio.play().catch((err: any) => {
+                    console.warn('[playAudio] Failed to restart background music after pause:', err);
+                  });
+                }
+              };
+              
+              musicAudio.addEventListener('pause', handlePause);
+              
+              // Cleanup beim Entfernen des Audio-Elements
+              (musicAudio as any)._pauseHandler = handlePause;
             }
             
             // Markiere dass Audio bereit ist zum Abspielen
@@ -2877,6 +2926,10 @@ ${story.content}
     
     // Stoppe auch alle Hintergrundmusik-Tracks
     Object.values(backgroundMusicElements).forEach(music => {
+      // Entferne pause-Event-Listener vor dem Stoppen
+      if ((music as any)._pauseHandler) {
+        music.removeEventListener('pause', (music as any)._pauseHandler);
+      }
       music.pause();
       music.currentTime = 0;
     });

@@ -852,6 +852,10 @@ export default function AudioPlayback({
   useEffect(() => {
     return () => {
       if (backgroundMusicElement) {
+        // Entferne pause-Event-Listener vor dem Cleanup
+        if ((backgroundMusicElement as any)._pauseHandler) {
+          backgroundMusicElement.removeEventListener('pause', (backgroundMusicElement as any)._pauseHandler);
+        }
         backgroundMusicElement.pause();
         backgroundMusicElement.currentTime = 0;
       }
@@ -1167,11 +1171,22 @@ export default function AudioPlayback({
         const musicAudio = new Audio();
         musicAudio.loop = true;
         musicAudio.volume = DEFAULT_MUSIC_VOLUME;
+        musicAudio.preload = 'auto';
         
         // iOS-Erkennung für Web Audio API
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
                      (navigator.userAgent.includes('CriOS') && /iPad|iPhone|iPod/.test(navigator.userAgent));
+        
+        // iOS: WICHTIG für Hintergrundwiedergabe - setze playsInline Attribut
+        // Dies verhindert, dass iOS die Musik pausiert, wenn der Bildschirm ausgeht
+        if (isIOS) {
+          (musicAudio as any).playsInline = true;
+          // Setze auch das HTML-Attribut falls möglich
+          if (musicAudio.setAttribute) {
+            musicAudio.setAttribute('playsinline', 'true');
+          }
+        }
         
         // Lade Musik als Blob für bessere Kompatibilität (funktioniert auf iOS, Android, Desktop)
         try {
@@ -1225,6 +1240,26 @@ export default function AudioPlayback({
               (musicAudio as any)._useWebAudio = false;
             }
           }, { once: true });
+          
+          // iOS: Verhindere, dass Musik pausiert wird, wenn der Bildschirm ausgeht
+          if (isIOS) {
+            // Event-Listener für pause Events - starte Musik automatisch wieder, wenn sie unerwartet pausiert wird
+            const handlePause = () => {
+              // Prüfe ob die Stimme noch läuft (dann sollte Musik auch laufen)
+              const audio = audioRef.current;
+              if (audio && !audio.paused && !audio.ended) {
+                console.log('[AudioPlayback] Background music was paused unexpectedly on iOS, restarting...');
+                musicAudio.play().catch((err: any) => {
+                  console.warn('[AudioPlayback] Failed to restart background music after pause:', err);
+                });
+              }
+            };
+            
+            musicAudio.addEventListener('pause', handlePause);
+            
+            // Cleanup beim Entfernen des Audio-Elements
+            (musicAudio as any)._pauseHandler = handlePause;
+          }
         }
         
         // Starte Musik (nur wenn sie pausiert ist)
