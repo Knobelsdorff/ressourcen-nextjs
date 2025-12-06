@@ -854,7 +854,14 @@ export default function AudioPlayback({
       if (backgroundMusicElement) {
         // Entferne pause-Event-Listener vor dem Cleanup
         if ((backgroundMusicElement as any)._pauseHandler) {
-          backgroundMusicElement.removeEventListener('pause', (backgroundMusicElement as any)._pauseHandler);
+          // Entferne alle iOS Event-Listener
+          if ((backgroundMusicElement as any)._pauseHandler) {
+            backgroundMusicElement.removeEventListener('pause', (backgroundMusicElement as any)._pauseHandler);
+            backgroundMusicElement.removeEventListener('suspend', (backgroundMusicElement as any)._pauseHandler);
+          }
+          if ((backgroundMusicElement as any)._timeupdateHandler) {
+            backgroundMusicElement.removeEventListener('timeupdate', (backgroundMusicElement as any)._timeupdateHandler);
+          }
         }
         backgroundMusicElement.pause();
         backgroundMusicElement.currentTime = 0;
@@ -1212,6 +1219,19 @@ export default function AudioPlayback({
         
         setBackgroundMusicElement(musicAudio);
         
+        // iOS: Konfiguriere Audio Session für Hintergrundwiedergabe
+        if (isIOS) {
+          // iOS Audio Session API (iOS 16.4+) - konfiguriere für Hintergrundwiedergabe
+          if (typeof (navigator as any).audioSession !== 'undefined') {
+            try {
+              (navigator as any).audioSession.type = 'playback';
+              console.log('[AudioPlayback] iOS Audio Session configured for background playback');
+            } catch (audioSessionError: any) {
+              console.warn('[AudioPlayback] Failed to configure iOS Audio Session:', audioSessionError);
+            }
+          }
+        }
+        
         // iOS: Setup Web Audio API für Lautstärkekontrolle nach canplay
         if (isIOS && typeof AudioContext !== 'undefined') {
           musicAudio.addEventListener('canplay', () => {
@@ -1249,16 +1269,39 @@ export default function AudioPlayback({
               const audio = audioRef.current;
               if (audio && !audio.paused && !audio.ended) {
                 console.log('[AudioPlayback] Background music was paused unexpectedly on iOS, restarting...');
-                musicAudio.play().catch((err: any) => {
-                  console.warn('[AudioPlayback] Failed to restart background music after pause:', err);
-                });
+                // Verwende setTimeout, um sicherzustellen, dass der Play-Befehl nach dem Pause-Event ausgeführt wird
+                setTimeout(() => {
+                  musicAudio.play().catch((err: any) => {
+                    console.warn('[AudioPlayback] Failed to restart background music after pause:', err);
+                  });
+                }, 100);
               }
             };
             
+            // Mehrere Event-Listener für verschiedene Szenarien
             musicAudio.addEventListener('pause', handlePause);
+            musicAudio.addEventListener('suspend', handlePause); // iOS suspend Event
+            
+            // Timeupdate-Listener: Prüfe regelmäßig, ob Musik pausiert wurde, während Stimme läuft
+            const checkMusicPlaying = () => {
+              const audio = audioRef.current;
+              if (audio && !audio.paused && !audio.ended) {
+                // Stimme läuft noch
+                if (musicAudio.paused && !musicAudio.ended) {
+                  // Musik wurde pausiert, obwohl Stimme läuft - starte wieder
+                  console.log('[AudioPlayback] Background music paused while voice is playing, restarting...');
+                  musicAudio.play().catch((err: any) => {
+                    console.warn('[AudioPlayback] Failed to restart background music in timeupdate:', err);
+                  });
+                }
+              }
+            };
+            
+            musicAudio.addEventListener('timeupdate', checkMusicPlaying);
             
             // Cleanup beim Entfernen des Audio-Elements
             (musicAudio as any)._pauseHandler = handlePause;
+            (musicAudio as any)._timeupdateHandler = checkMusicPlaying;
           }
         }
         

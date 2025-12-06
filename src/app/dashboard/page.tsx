@@ -1663,7 +1663,14 @@ ${story.content}
       if (id !== storyId) {
         // Entferne pause-Event-Listener vor dem Stoppen
         if ((music as any)._pauseHandler) {
-          music.removeEventListener('pause', (music as any)._pauseHandler);
+          // Entferne alle iOS Event-Listener
+          if ((music as any)._pauseHandler) {
+            music.removeEventListener('pause', (music as any)._pauseHandler);
+            music.removeEventListener('suspend', (music as any)._pauseHandler);
+          }
+          if ((music as any)._timeupdateHandler) {
+            music.removeEventListener('timeupdate', (music as any)._timeupdateHandler);
+          }
         }
         music.pause();
         music.currentTime = 0;
@@ -2526,6 +2533,16 @@ ${story.content}
             if (musicAudio.setAttribute) {
               musicAudio.setAttribute('playsinline', 'true');
             }
+            
+            // iOS Audio Session API (iOS 16.4+) - konfiguriere für Hintergrundwiedergabe
+            if (typeof (navigator as any).audioSession !== 'undefined') {
+              try {
+                (navigator as any).audioSession.type = 'playback';
+                console.log('[playAudio] iOS Audio Session configured for background playback');
+              } catch (audioSessionError: any) {
+                console.warn('[playAudio] Failed to configure iOS Audio Session:', audioSessionError);
+              }
+            }
           }
           
           // Versuche zuerst direkt mit URL, aber bereite Blob-Fallback vor
@@ -2731,16 +2748,39 @@ ${story.content}
                 const voiceAudio = audioElements[storyId];
                 if (voiceAudio && !voiceAudio.paused && !voiceAudio.ended) {
                   console.log(`[playAudio] Background music was paused unexpectedly on iOS, restarting...`);
-                  musicAudio.play().catch((err: any) => {
-                    console.warn('[playAudio] Failed to restart background music after pause:', err);
-                  });
+                  // Verwende setTimeout, um sicherzustellen, dass der Play-Befehl nach dem Pause-Event ausgeführt wird
+                  setTimeout(() => {
+                    musicAudio.play().catch((err: any) => {
+                      console.warn('[playAudio] Failed to restart background music after pause:', err);
+                    });
+                  }, 100);
                 }
               };
               
+              // Mehrere Event-Listener für verschiedene Szenarien
               musicAudio.addEventListener('pause', handlePause);
+              musicAudio.addEventListener('suspend', handlePause); // iOS suspend Event
+              
+              // Timeupdate-Listener: Prüfe regelmäßig, ob Musik pausiert wurde, während Stimme läuft
+              const checkMusicPlaying = () => {
+                const voiceAudio = audioElements[storyId];
+                if (voiceAudio && !voiceAudio.paused && !voiceAudio.ended) {
+                  // Stimme läuft noch
+                  if (musicAudio.paused && !musicAudio.ended) {
+                    // Musik wurde pausiert, obwohl Stimme läuft - starte wieder
+                    console.log(`[playAudio] Background music paused while voice is playing, restarting...`);
+                    musicAudio.play().catch((err: any) => {
+                      console.warn('[playAudio] Failed to restart background music in timeupdate:', err);
+                    });
+                  }
+                }
+              };
+              
+              musicAudio.addEventListener('timeupdate', checkMusicPlaying);
               
               // Cleanup beim Entfernen des Audio-Elements
               (musicAudio as any)._pauseHandler = handlePause;
+              (musicAudio as any)._timeupdateHandler = checkMusicPlaying;
             }
             
             // Markiere dass Audio bereit ist zum Abspielen
