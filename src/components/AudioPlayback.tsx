@@ -1142,7 +1142,7 @@ export default function AudioPlayback({
 
     // Setze isPlaying sofort auf true, damit der Button sofort zu Pause wechselt
     setIsPlaying(true);
-    
+
     // Hole Hintergrundmusik-URL für diese Figur
     const figureIdOrName = selectedFigure?.id || selectedFigure?.name;
     console.log('[AudioPlayback] ===== LOADING BACKGROUND MUSIC =====');

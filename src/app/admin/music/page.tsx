@@ -791,7 +791,7 @@ export default function AdminMusicPage() {
             }
           } catch (error) {
             console.warn('[handleTestPlay] Web Audio API setup failed, falling back to HTMLAudioElement:', error);
-            music.volume = testMusicVolume;
+        music.volume = testMusicVolume;
           }
         } else {
           // Desktop/Android: Verwende HTMLAudioElement.volume
@@ -880,7 +880,7 @@ export default function AdminMusicPage() {
                   console.log('[handleTestPlay] Erstelle Blob-URL für Musik-Fallback:', blobUrl);
                   music!.src = blobUrl;
                   music!.crossOrigin = null;
-                  music!.load();
+          music!.load();
                   // Nicht rejecten - warte auf canplay mit Blob-URL
                 })
                 .catch(fetchError => {

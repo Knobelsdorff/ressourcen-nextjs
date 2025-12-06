@@ -1838,10 +1838,10 @@ ${story.content}
         // Echter Fehler - nur loggen wenn Audio nicht erfolgreich geladen wurde
         if (audio.readyState < 2) {
           setPlayingAudioId(null);
-          console.error('Audio playback error:', {
-            code: error?.code,
-            message: error?.message,
-            storyId,
+        console.error('Audio playback error:', {
+          code: error?.code,
+          message: error?.message,
+          storyId,
             audioUrl,
             readyState: audio.readyState,
             networkState: audio.networkState
@@ -2224,8 +2224,8 @@ ${story.content}
                   .catch(fetchError => {
                     console.error(`[playAudio] Audio blob fallback failed for NETWORK_NO_SOURCE:`, fetchError);
                     // Blob-Fallback fehlgeschlagen - jetzt wirklich rejecten
-                    resolved = true;
-                    cleanup(timeoutId);
+            resolved = true;
+            cleanup(timeoutId);
                     
                     // Prüfe spezifische Fehlertypen
                     if (error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED || 
@@ -2691,7 +2691,7 @@ ${story.content}
                 
                 // Erstelle AudioContext (kann im suspended Zustand starten)
                 const audioContext = new AudioContext();
-                
+          
                 // Aktiviere AudioContext falls nötig (iOS erfordert manchmal Benutzerinteraktion)
                 if (audioContext.state === 'suspended') {
                   audioContext.resume().catch(err => {
@@ -2790,7 +2790,7 @@ ${story.content}
             // Das verhindert "AbortError: The play() request was interrupted by a new load request"
             if (musicAudio.readyState >= 4 || (musicAudio as any)._readyToPlay) {
               // Audio ist bereits bereit
-              await musicAudio.play();
+            await musicAudio.play();
             } else {
               // Warte auf canplay Event
               await new Promise<void>((resolve) => {
