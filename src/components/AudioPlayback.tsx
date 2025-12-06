@@ -952,11 +952,26 @@ export default function AudioPlayback({
       
       // Stoppe Hintergrundmusik endgültig wenn Stimme endet (IMMER, auch wenn Fade-Out läuft)
       if (backgroundMusicElement) {
+        // Markiere dass Musik gestoppt werden soll (verhindert iOS Auto-Restart)
+        (backgroundMusicElement as any)._shouldStop = true;
+        
         // Stoppe Fade-Out-Interval falls vorhanden
         if ((backgroundMusicElement as any)._fadeOutInterval) {
           clearInterval((backgroundMusicElement as any)._fadeOutInterval);
           (backgroundMusicElement as any)._fadeOutInterval = null;
         }
+        
+        // Entferne ALLE iOS Event-Listener vor dem Stoppen (wichtig für iPhone)
+        if ((backgroundMusicElement as any)._pauseHandler) {
+          backgroundMusicElement.removeEventListener('pause', (backgroundMusicElement as any)._pauseHandler);
+          backgroundMusicElement.removeEventListener('suspend', (backgroundMusicElement as any)._pauseHandler);
+        }
+        if ((backgroundMusicElement as any)._timeupdateHandler) {
+          backgroundMusicElement.removeEventListener('timeupdate', (backgroundMusicElement as any)._timeupdateHandler);
+        }
+        
+        // Deaktiviere Loop, damit Musik nicht automatisch wieder startet
+        backgroundMusicElement.loop = false;
         
         // Stoppe Musik sofort (auch wenn Fade-Out läuft)
         console.log('[AudioPlayback] Stopping background music immediately (audio ended)');
@@ -1265,15 +1280,24 @@ export default function AudioPlayback({
           if (isIOS) {
             // Event-Listener für pause Events - starte Musik automatisch wieder, wenn sie unerwartet pausiert wird
             const handlePause = () => {
+              // Prüfe ob Musik gestoppt werden soll (z.B. wenn Audio endet)
+              if ((musicAudio as any)._shouldStop) {
+                console.log('[AudioPlayback] Background music pause ignored - music should stop');
+                return;
+              }
+              
               // Prüfe ob die Stimme noch läuft (dann sollte Musik auch laufen)
               const audio = audioRef.current;
               if (audio && !audio.paused && !audio.ended) {
                 console.log('[AudioPlayback] Background music was paused unexpectedly on iOS, restarting...');
                 // Verwende setTimeout, um sicherzustellen, dass der Play-Befehl nach dem Pause-Event ausgeführt wird
                 setTimeout(() => {
-                  musicAudio.play().catch((err: any) => {
-                    console.warn('[AudioPlayback] Failed to restart background music after pause:', err);
-                  });
+                  // Prüfe nochmal, ob Musik gestoppt werden soll
+                  if (!(musicAudio as any)._shouldStop) {
+                    musicAudio.play().catch((err: any) => {
+                      console.warn('[AudioPlayback] Failed to restart background music after pause:', err);
+                    });
+                  }
                 }, 100);
               }
             };
@@ -1284,6 +1308,11 @@ export default function AudioPlayback({
             
             // Timeupdate-Listener: Prüfe regelmäßig, ob Musik pausiert wurde, während Stimme läuft
             const checkMusicPlaying = () => {
+              // Prüfe ob Musik gestoppt werden soll (z.B. wenn Audio endet)
+              if ((musicAudio as any)._shouldStop) {
+                return;
+              }
+              
               const audio = audioRef.current;
               if (audio && !audio.paused && !audio.ended) {
                 // Stimme läuft noch
@@ -1302,6 +1331,7 @@ export default function AudioPlayback({
             // Cleanup beim Entfernen des Audio-Elements
             (musicAudio as any)._pauseHandler = handlePause;
             (musicAudio as any)._timeupdateHandler = checkMusicPlaying;
+            (musicAudio as any)._shouldStop = false; // Initialisiere Flag
           }
         }
         
