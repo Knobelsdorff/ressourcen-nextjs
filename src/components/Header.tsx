@@ -124,18 +124,56 @@ export default function Header() {
       console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
       
       // Bestimme Redirect-URL und hänge die E-Mail als Fallback-Parameter an
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.ressourcen.app';
-      const redirectTo = `${origin}/auth/reset?email=${encodeURIComponent(email)}`;
+      let origin: string;
+      if (typeof window !== 'undefined') {
+        const currentOrigin = window.location.origin;
+        // Für localhost: Immer Port 3000 verwenden
+        if (currentOrigin.includes('localhost')) {
+          origin = 'http://localhost:3000';
+        } else {
+          origin = currentOrigin;
+        }
+      } else {
+        // Server-side: Verwende Production URL
+        origin = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.ressourcen.app';
+      }
+      // Füge einen Parameter hinzu, der angibt, ob es sich um einen Development-Test handelt
+      const isDevelopment = origin.includes('localhost');
+      const redirectTo = `${origin}/auth/reset?email=${encodeURIComponent(email)}${isDevelopment ? '&dev=true' : ''}`;
+
+      // Detailliertes Logging VOR dem Request
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('[Password Reset] 📧 Sending password reset email');
+      console.log('[Password Reset] Origin:', origin);
+      console.log('[Password Reset] Redirect URL:', redirectTo);
+      console.log('[Password Reset] Email:', email);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
       // Sende Reset-Mail mit explizitem redirectTo (inkl. email)
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-      console.log('Reset email response:', { data, error });
+      
+      // Response Logging
+      console.log('[Password Reset] Request details:', {
+        email,
+        redirectTo,
+        origin,
+        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      });
+      console.log('[Password Reset] Response:', { 
+        data: JSON.stringify(data, null, 2), 
+        error: error ? {
+          message: error.message,
+          status: error.status,
+          name: error.name,
+        } : null
+      });
       
       if (error) {
         setError(error.message);
-        console.error('Reset email error:', error);
+        console.error('[Password Reset] Error:', error);
       } else {
         setSuccess('Reset-Link wurde per E-Mail gesendet. Bitte öffne den Link aus der E-Mail.');
+        console.log('[Password Reset] ✅ Email sent successfully');
       }
     } catch (e) {
       setError('Senden des Reset-Links ist fehlgeschlagen.');

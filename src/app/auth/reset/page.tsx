@@ -27,6 +27,16 @@ function ResetPasswordInner() {
               const errorCode = searchParams.get("error_code");
               const errorDescription = searchParams.get("error_description");
               
+              // Debug-Logging
+              console.log('[Reset Page] URL Parameters:', {
+                code: code ? `${code.substring(0, 20)}...` : null,
+                tokenHash: tokenHash ? `${tokenHash.substring(0, 20)}...` : null,
+                email,
+                errorCode,
+                errorDescription,
+                fullUrl: typeof window !== 'undefined' ? window.location.href : 'N/A'
+              });
+              
               try {
                 // Explizite Fehler aus Query anzeigen
                 if (errorCode) {
@@ -43,73 +53,100 @@ function ResetPasswordInner() {
                   let success = false;
                   let lastError = '';
                   
-                  console.log('Reset code found:', code);
-                  console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+                  console.log('[Reset] Code found:', code);
+                  console.log('[Reset] Email from URL:', email);
+                  console.log('[Reset] Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
                   
-                  // Methode 1: exchangeCodeForSession (funktioniert oft mit ConfirmationURL)
-                  try {
-                    console.log('Trying exchangeCodeForSession...');
-                    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-                    if (!error) {
-                      success = true;
-                      console.log('exchangeCodeForSession succeeded:', data);
-                    } else {
-                      lastError = error.message;
-                      console.log('exchangeCodeForSession failed:', error.message, error);
+                  // WICHTIG: Für Passwort-Reset sollte verifyOtp zuerst versucht werden
+                  // Methode 1: verifyOtp mit token (benötigt Email) - FUNKTIONIERT AM BESTEN FÜR RESET-LINKS
+                  if (email) {
+                    try {
+                      console.log('[Reset] Trying verifyOtp with token and email...');
+                      console.log('[Reset] Parameters:', { type: 'recovery', token: code.substring(0, 20) + '...', email });
+                      const { data, error } = await supabase.auth.verifyOtp({ 
+                        type: 'recovery', 
+                        token: code, 
+                        email 
+                      });
+                      if (!error) {
+                        success = true;
+                        console.log('[Reset] ✅ verifyOtp with token+email succeeded', data);
+                      } else {
+                        lastError = error.message;
+                        console.log('[Reset] ❌ verifyOtp with token+email failed:', {
+                          message: error.message,
+                          status: error.status,
+                          name: error.name
+                        });
+                      }
+                    } catch (e) {
+                      lastError = e instanceof Error ? e.message : 'Unknown error';
+                      console.log('[Reset] ❌ verifyOtp with token+email error:', e);
                     }
-                  } catch (e) {
-                    lastError = e instanceof Error ? e.message : 'Unknown error';
-                    console.log('exchangeCodeForSession error:', e);
                   }
                   
-                  // Methode 2: verifyOtp als Fallback
+                  // Methode 2: verifyOtp mit token_hash (falls kein Email-Parameter)
                   if (!success) {
                     try {
-                      console.log('Trying verifyOtp with token_hash...');
-                      const { error } = await supabase.auth.verifyOtp({ 
+                      console.log('[Reset] Trying verifyOtp with token_hash...');
+                      console.log('[Reset] Parameters:', { type: 'recovery', token_hash: code.substring(0, 20) + '...' });
+                      const { data, error } = await supabase.auth.verifyOtp({ 
                         type: 'recovery', 
                         token_hash: code 
                       });
                       if (!error) {
                         success = true;
-                        console.log('verifyOtp with token_hash succeeded');
+                        console.log('[Reset] ✅ verifyOtp with token_hash succeeded', data);
                       } else {
                         lastError = error.message;
-                        console.log('verifyOtp with token_hash failed:', error.message);
+                        console.log('[Reset] ❌ verifyOtp with token_hash failed:', {
+                          message: error.message,
+                          status: error.status,
+                          name: error.name
+                        });
                       }
                     } catch (e) {
                       lastError = e instanceof Error ? e.message : 'Unknown error';
-                      console.log('verifyOtp with token_hash error:', e);
+                      console.log('[Reset] ❌ verifyOtp with token_hash error:', e);
                     }
                   }
                   
-                  // Methode 3: verifyOtp mit token (benötigt Email)
-                  if (!success && email) {
+                  // Methode 3: exchangeCodeForSession (nur als letzter Fallback - benötigt Code-Verifier)
+                  // Diese Methode funktioniert nur, wenn der Code mit PKCE generiert wurde
+                  if (!success) {
                     try {
-                      console.log('Trying verifyOtp with token and email...');
-                      const { error } = await supabase.auth.verifyOtp({ type: 'recovery', token: code, email });
+                      console.log('[Reset] Trying exchangeCodeForSession as fallback...');
+                      console.log('[Reset] ⚠️ Diese Methode benötigt einen Code-Verifier und funktioniert möglicherweise nicht für Reset-Links');
+                      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
                       if (!error) {
                         success = true;
-                        console.log('verifyOtp with token+email succeeded');
+                        console.log('[Reset] ✅ exchangeCodeForSession succeeded:', data);
                       } else {
                         lastError = error.message;
-                        console.log('verifyOtp with token+email failed:', error.message);
+                        console.log('[Reset] ❌ exchangeCodeForSession failed:', {
+                          message: error.message,
+                          status: error.status,
+                          name: error.name
+                        });
                       }
                     } catch (e) {
                       lastError = e instanceof Error ? e.message : 'Unknown error';
-                      console.log('verifyOtp with token+email error:', e);
+                      console.log('[Reset] ❌ exchangeCodeForSession error:', e);
                     }
                   }
                   
                   if (!success) {
                     // Zeige spezifische Fehlermeldung
+                    console.log('[Reset] ❌ All verification methods failed. Last error:', lastError);
                     if (lastError.includes('code verifier')) {
-                      setError('Der Reset-Link ist nicht kompatibel. Bitte öffne den Link im selben Browser, in dem du den Reset angefordert hast.');
-                    } else if (lastError.includes('expired') || lastError.includes('invalid')) {
+                      setError('Der Reset-Link funktioniert nicht in diesem Browser. Bitte öffne den Link direkt aus der E-Mail oder fordere einen neuen Link an.');
+                    } else if (lastError.includes('expired') || lastError.includes('invalid') || lastError.includes('expired')) {
                       setError('Der Reset-Link ist abgelaufen oder ungültig. Bitte fordere einen neuen Link an.');
                     } else {
                       setError(`Reset-Link konnte nicht verifiziert werden: ${lastError}`);
                     }
+                  } else {
+                    console.log('[Reset] ✅ Successfully verified reset link');
                   }
                 } else if (tokenHash) {
                   const { error } = await supabase.auth.verifyOtp({ type: 'recovery', token_hash: tokenHash });

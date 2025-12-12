@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
 import { isEnabled } from "@/lib/featureFlags";
@@ -91,7 +92,9 @@ const initialAppState: AppState = {
   currentQuestionIndex: 0
 };
 
-export default function RessourcenApp() {
+function RessourcenAppContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [appState, setAppState] = useState<AppState>(initialAppState);
   const [showSavedStories, setShowSavedStories] = useState(false);
   const [showAccountCreated, setShowAccountCreated] = useState(false);
@@ -103,6 +106,68 @@ export default function RessourcenApp() {
   const [sparModus, setSparModus] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [storyGenerationError, setStoryGenerationError] = useState<string | null>(null);
+  
+  // Prüfe auf Reset-Code in URL und leite zur Reset-Seite weiter
+  useEffect(() => {
+    const code = searchParams.get('code');
+    if (code && typeof window !== 'undefined') {
+      // Wenn ein Code vorhanden ist, könnte es ein Reset-Code sein
+      // Leite zur Reset-Seite weiter (die Seite prüft dann, ob es ein gültiger Reset-Code ist)
+      const currentUrl = new URL(window.location.href);
+      const email = currentUrl.searchParams.get('email');
+      const isDev = currentUrl.searchParams.get('dev') === 'true';
+      
+      // Automatische Erkennung: Bestimme die richtige Origin
+      let origin = window.location.origin;
+      
+      // Prüfe, ob wir auf localhost sind
+      const isLocalhost = window.location.hostname === 'localhost' || 
+                         window.location.hostname === '127.0.0.1';
+      
+      // Prüfe, ob wir auf Production sind
+      const isProductionUrl = window.location.hostname.includes('ressourcen.app');
+      
+      // Intelligente Erkennung für Development-Tests:
+      // Wenn dev=true Parameter vorhanden ist ODER wir auf localhost sind, verwende localhost:3000
+      // Wenn wir auf Production sind, aber der Benutzer möglicherweise auf localhost testet,
+      // prüfe ob localhost erreichbar ist (durch Prüfung, ob wir in einem Development-Kontext sind)
+      if (isDev || isLocalhost) {
+        origin = 'http://localhost:3000';
+        console.log('[Root Page] 🔍 Development-Modus erkannt (dev=' + isDev + ', localhost=' + isLocalhost + '), verwende localhost:3000');
+      } 
+      // Wenn wir auf Production sind, aber möglicherweise in Development testen,
+      // können wir versuchen, zu localhost weiterzuleiten, wenn localhost erreichbar ist
+      else if (isProductionUrl) {
+        // Prüfe, ob wir möglicherweise in Development sind (durch Prüfung der Referrer oder andere Hinweise)
+        // Für jetzt: Verwende Production-URL, aber der Benutzer kann den Link manuell ändern
+        origin = window.location.origin;
+        console.log('[Root Page] 🔍 Production-URL erkannt, verwende Production-URL');
+        console.log('[Root Page] 💡 Tipp: Wenn du auf localhost testest, ändere die Domain im Link von "ressourcen.app" zu "localhost:3000"');
+      }
+      
+      // Erstelle Reset-URL mit Code und Email (falls vorhanden)
+      const resetUrl = new URL('/auth/reset', origin);
+      resetUrl.searchParams.set('code', code);
+      if (email) {
+        resetUrl.searchParams.set('email', email);
+      }
+      
+      console.log('[Root Page] 🔄 Code parameter detected, redirecting to reset page:', {
+        code: code.substring(0, 20) + '...',
+        email: email || 'not provided',
+        isDev,
+        currentOrigin: window.location.origin,
+        currentHostname: window.location.hostname,
+        isLocalhost,
+        isProductionUrl,
+        targetOrigin: origin,
+        resetUrl: resetUrl.toString()
+      });
+      
+      // Verwende window.location.replace für sofortige Weiterleitung
+      window.location.replace(resetUrl.toString());
+    }
+  }, [searchParams]);
   
   // Debug: Log current state
   console.log('Current user state:', { 
@@ -754,5 +819,13 @@ export default function RessourcenApp() {
         />
       )}
     </div>
+  );
+}
+
+export default function RessourcenApp() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Laden...</div>}>
+      <RessourcenAppContent />
+    </Suspense>
   );
 }

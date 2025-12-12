@@ -158,9 +158,10 @@ export default function AdminMusicPage() {
       }
       formData.append("isDefault", isDefault.toString());
 
-      // Für große Dateien (> 4 MB): Versuche direkten Upload zu Supabase Storage
+      // Für Dateien > 2 MB: Verwende direkten Upload zu Supabase Storage
       // Dies umgeht das Body-Size-Limit von Next.js/Vercel (4.5 MB)
-      const LARGE_FILE_THRESHOLD = 4 * 1024 * 1024; // 4 MB
+      // Threshold von 2 MB gibt genug Puffer, bevor das Limit erreicht wird
+      const LARGE_FILE_THRESHOLD = 2 * 1024 * 1024; // 2 MB (sicherer als 4 MB)
       const useDirectUpload = uploadFile.size > LARGE_FILE_THRESHOLD;
 
       if (useDirectUpload) {
@@ -191,6 +192,7 @@ export default function AdminMusicPage() {
             statusCode: (uploadError as any).statusCode,
             fileName: storageFileName,
             fileSize: uploadFile.size,
+            fileSizeMB: fileSizeMB,
             userEmail: user?.email
           });
           
@@ -205,12 +207,16 @@ export default function AdminMusicPage() {
               errorMessageLower.includes('forbidden') ||
               statusCode === '403' ||
               statusCode === 403) {
-            errorMessage = `Zugriff verweigert. Bitte stelle sicher, dass deine Email (${user?.email}) in der music_admins Tabelle eingetragen ist und du dich neu eingeloggt hast.`;
+            errorMessage = `Zugriff verweigert (403). Bitte stelle sicher, dass:\n\n1. Deine Email (${user?.email}) in der music_admins Tabelle eingetragen ist\n2. Du dich neu eingeloggt hast\n3. Die Storage Policies korrekt eingerichtet sind\n\nFalls das Problem weiterhin besteht, kontaktiere den Administrator.`;
           } else if (errorMessageLower.includes('bucket not found') || 
                      errorMessageLower.includes('bucket')) {
             errorMessage = 'Der Storage-Bucket "background-music" existiert nicht. Bitte kontaktiere den Administrator.';
+          } else if (errorMessageLower.includes('file size') || 
+                     errorMessageLower.includes('too large') ||
+                     errorMessageLower.includes('exceeds')) {
+            errorMessage = `Die Datei ist zu groß (${fileSizeMB} MB). Bitte komprimiere die Datei oder verwende eine kleinere Version.`;
           } else {
-            errorMessage = `Upload-Fehler: ${uploadError.message || 'Unbekannter Fehler'}`;
+            errorMessage = `Upload-Fehler: ${uploadError.message || 'Unbekannter Fehler'}\n\nDatei: ${uploadFile.name} (${fileSizeMB} MB)\nStatus-Code: ${statusCode || 'unbekannt'}`;
           }
           
           throw new Error(errorMessage);

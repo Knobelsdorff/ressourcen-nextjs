@@ -174,6 +174,14 @@ export async function POST(request: NextRequest) {
     const origin = headersList.get('origin') || headersList.get('referer') || 'http://localhost:3000';
     const redirectUrl = `${origin}/api/auth/callback?next=/dashboard?confirmed=true`;
     
+    // Logge wichtige Informationen für Debugging
+    console.log('[Multi-Account] SignUp configuration:', {
+      origin,
+      redirectUrl,
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    });
+    
     // Verwende normalen Supabase Client für signUp (sendet automatisch Bestätigungs-Email)
     const publicSupabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -191,10 +199,26 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    const createdUser = (authData as any)?.user as { id: string; email: string | null } | null;
+    const createdUser = (authData as any)?.user as { id: string; email: string | null; email_confirmed_at: string | null } | null;
+    
+    // Logge detaillierte Informationen über die Registrierung
+    console.log('[Multi-Account] SignUp response:', {
+      hasUser: !!createdUser,
+      userId: createdUser?.id,
+      email: createdUser?.email,
+      emailConfirmed: !!createdUser?.email_confirmed_at,
+      hasError: !!authError,
+      errorMessage: authError?.message,
+      session: !!authData?.session,
+    });
     
     if (authError) {
       console.error('[Multi-Account] Error creating user:', authError);
+      console.error('[Multi-Account] Error details:', {
+        message: authError.message,
+        status: authError.status,
+        name: authError.name,
+      });
       
       // Bekannte Fehler behandeln
       if (authError.message.includes('already registered') || 
@@ -207,7 +231,8 @@ export async function POST(request: NextRequest) {
       
       // Wenn nur Email-Versand fehlschlägt, aber User erstellt wurde
       if (authError.message.includes('confirmation email') || 
-          authError.message.includes('Error sending')) {
+          authError.message.includes('Error sending') ||
+          authError.message.includes('email') && authError.message.includes('send')) {
         // Prüfe ob User trotzdem erstellt wurde
         if (createdUser) {
           console.warn('[Multi-Account] User created but email confirmation failed:', authError.message);
@@ -238,6 +263,22 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Prüfe ob E-Mail-Bestätigung erforderlich ist und ob E-Mail versendet wurde
+    // Wenn email_confirmed_at null ist, wurde die E-Mail noch nicht bestätigt
+    // Das bedeutet nicht unbedingt, dass die E-Mail nicht versendet wurde,
+    // aber wir sollten prüfen, ob SMTP konfiguriert ist
+    const emailNeedsConfirmation = !createdUser.email_confirmed_at;
+    
+    if (emailNeedsConfirmation) {
+      console.log('[Multi-Account] User created, email confirmation required');
+      console.log('[Multi-Account] ⚠️ WICHTIG: Stelle sicher, dass SMTP in Supabase konfiguriert ist!');
+      console.log('[Multi-Account] E-Mail-Adresse:', email);
+      console.log('[Multi-Account] Bestätigungs-Link kann im Supabase Dashboard gefunden werden:');
+      console.log('[Multi-Account] Authentication → Users → User-ID:', createdUser.id);
+    } else {
+      console.log('[Multi-Account] User created and email already confirmed');
+    }
+    
     // 5. Logge erfolgreichen Registrierungsversuch
     try {
       await (adminSupabase as any)
@@ -254,13 +295,19 @@ export async function POST(request: NextRequest) {
       console.error('[Multi-Account] Failed to log registration attempt:', logError);
     }
 
+    // Wenn E-Mail-Bestätigung erforderlich ist, aber möglicherweise nicht versendet wurde
+    const responseMessage = emailNeedsConfirmation 
+      ? 'Registrierung erfolgreich! Bitte bestätigen Sie Ihre E-Mail-Adresse. Falls keine E-Mail angekommen ist, prüfen Sie bitte Ihren Spam-Ordner oder kontaktieren Sie den Support.'
+      : 'Registrierung erfolgreich! Sie können sich jetzt anmelden.';
+
     return NextResponse.json({
       success: true,
       user: {
         id: createdUser.id,
         email: createdUser.email,
       },
-      message: 'Registrierung erfolgreich! Bitte bestätigen Sie Ihre E-Mail-Adresse.',
+      message: responseMessage,
+      emailConfirmationRequired: emailNeedsConfirmation,
     });
     
   } catch (error: any) {
