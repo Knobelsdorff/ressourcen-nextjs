@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, BookOpen, Heart } from "lucide-react";
 import ResourceFigureSelection from "@/components/ResourceFigureSelection";
 import RelationshipSelection, { QuestionAnswer } from "@/components/RelationshipSelection";
+import NamePronunciationForm from "@/components/NamePronunciationForm";
 import StoryGeneration from "@/components/StoryGeneration";
 import VoiceSelection from "@/components/VoiceSelection";
 import AudioPlayback from "@/components/AudioPlayback";
@@ -197,12 +198,16 @@ function RessourcenAppContent() {
     setMounted(true);
   }, []);
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
+  const [userDataLoaded, setUserDataLoaded] = useState(false);
+
   // Fetch user's full name from profiles (optional)
   useEffect(() => {
     const loadFullName = async () => {
       try {
+        setUserDataLoaded(false);
         if (!user) {
           setUserFullName(null);
+          setUserDataLoaded(true);
           return;
         }
         const { data, error } = await supabase
@@ -214,17 +219,25 @@ function RessourcenAppContent() {
           console.warn('Could not fetch full_name:', error.message);
           setUserFullName(null);
           setUserPronunciationHint(null);
+          setUserDataLoaded(true);
           return;
         }
         setUserFullName((data as any)?.full_name || null);
-        setUserPronunciationHint((data as any)?.pronunciation_hint || null);
-        console.log('Loaded user data:', { 
-          fullName: (data as any)?.full_name, 
-          pronunciationHint: (data as any)?.pronunciation_hint 
+        // Parse pronunciation hint to extract just the simple text (format: "hint|stress|stressLetter|shortVowel")
+        const rawHint = (data as any)?.pronunciation_hint;
+        const parsedHint = rawHint ? rawHint.split('|')[0] : null;
+        setUserPronunciationHint(parsedHint);
+        setUserDataLoaded(true);
+        console.log('Loaded user data:', {
+          fullName: (data as any)?.full_name,
+          pronunciationHint: rawHint,
+          parsedHint: parsedHint,
+          userDataLoaded: true
         });
       } catch (e) {
         console.warn('Failed loading user full name');
         setUserFullName(null);
+        setUserDataLoaded(true);
       }
     };
     loadFullName();
@@ -312,16 +325,17 @@ function RessourcenAppContent() {
       
       return hasEnoughAnswers;
     })()) ||
-    (appState.currentStep === 3 && appState.selectedVoice) ||
+    (appState.currentStep === 3) || // NamePronunciationForm (always can proceed)
     (appState.currentStep === 4 && appState.selectedVoice) ||
-    (appState.currentStep === 5 && appState.selectedVoice);
+    (appState.currentStep === 5 && appState.selectedVoice) ||
+    (appState.currentStep === 6 && appState.selectedVoice);
 
   console.log('canProceed calculation:', {
     currentStep: appState.currentStep,
     resourceFigure: appState.resourceFigure,
     canProceed,
     step1Check: appState.currentStep === 1 && appState.resourceFigure,
-    step3Check: appState.currentStep === 3 && appState.generatedStory.trim().length > 0,
+    step4Check: appState.currentStep === 4 && appState.generatedStory.trim().length > 0,
     generatedStoryLength: appState.generatedStory?.length || 0
   });
 
@@ -337,19 +351,22 @@ function RessourcenAppContent() {
     // Bestimme die erwartete Anzahl von Fragen basierend auf der Ressource
     const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6;
     
-    const isStep2Complete = appState.currentStep === 2 && 
-      appState.questionAnswers.length === expectedQuestionCount && 
+    const isStep2Complete = appState.currentStep === 2 &&
+      appState.questionAnswers.length === expectedQuestionCount &&
       appState.questionAnswers.every(a => a.answer.trim().length > 0 || a.selectedBlocks.length > 0);
-    const isStep3Complete = appState.currentStep === 3 && appState.selectedVoice;
+    // Step 3 is NamePronunciationForm (conditionally shown)
+    const isStep3Complete = appState.currentStep === 3;
     const isStep4Complete = appState.currentStep === 4 && appState.selectedVoice;
     const isStep5Complete = appState.currentStep === 5 && appState.selectedVoice;
-    
-    console.log('Step completion checks:', { 
-      isStep1Complete, 
-      isStep2Complete, 
-      isStep3Complete, 
-      isStep4Complete, 
-      isStep5Complete 
+    const isStep6Complete = appState.currentStep === 6 && appState.selectedVoice;
+
+    console.log('Step completion checks:', {
+      isStep1Complete,
+      isStep2Complete,
+      isStep3Complete,
+      isStep4Complete,
+      isStep5Complete,
+      isStep6Complete
     });
     
     if (isStep1Complete) {
@@ -466,31 +483,43 @@ function RessourcenAppContent() {
       }
     }
 
-    if (isStep2Complete) {
-      console.log('Moving from step 2 to 3');
-      setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
-      return;
-    }
-
         // In Schritt 2: Erlaube Navigation zwischen Fragen oder zum nächsten Schritt
         if (appState.currentStep === 2) {
           console.log('In step 2 - checking if we can proceed to next step');
-          
+
           // Prüfe, ob die aktuelle Frage mindestens 2 Antworten hat
           const currentAnswer = appState.questionAnswers[appState.currentQuestionIndex];
           if (!currentAnswer || currentAnswer.selectedBlocks.length < 2) {
             console.log('Current question needs at least 2 answers');
             return;
           }
-          
+
           // Prüfe, ob alle Fragen beantwortet sind
           const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6;
-          const allQuestionsAnswered = appState.questionAnswers.length === expectedQuestionCount && 
+          const allQuestionsAnswered = appState.questionAnswers.length === expectedQuestionCount &&
             appState.questionAnswers.every(a => a.answer.trim().length > 0 || a.selectedBlocks.length >= 2);
-          
+
           if (allQuestionsAnswered) {
-            console.log('All questions answered, moving directly to step 4 (voice selection)');
-            setAppState(prev => ({ ...prev, currentStep: 4, currentQuestionIndex: 0 }));
+            // Wait for user data to load before deciding
+            if (!userDataLoaded) {
+              console.log('User data not loaded yet, waiting...');
+              return;
+            }
+
+            // Check if user already has a name stored - if yes, skip to voice selection (step 4)
+            console.log('Checking name data:', {
+              userFullName,
+              userPronunciationHint,
+              userDataLoaded,
+              hasName: !!(userFullName && userFullName.trim() !== '')
+            });
+            if (!userFullName || userFullName.trim() === '') {
+              console.log('All questions answered, no user name, moving to step 3 (name form)');
+              setAppState(prev => ({ ...prev, currentStep: 3, currentQuestionIndex: 0 }));
+            } else {
+              console.log('All questions answered, user has name, skipping name form and going directly to step 4 (voice selection)');
+              setAppState(prev => ({ ...prev, currentStep: 4, currentQuestionIndex: 0 }));
+            }
           } else {
             console.log('Moving to next question');
             // Navigiere zur nächsten Frage
@@ -500,22 +529,30 @@ function RessourcenAppContent() {
           return;
         }
 
-    if (isStep3Complete || isStep4Complete || isStep5Complete) {
+    // Step 3 (NamePronunciationForm) is handled by the form's onNext callback
+    if (appState.currentStep === 3) {
+      console.log('Step 3 complete, moving to step 4 (voice selection)');
+      setAppState(prev => ({ ...prev, currentStep: 4 }));
+      return;
+    }
+
+    if (isStep4Complete || isStep5Complete || isStep6Complete) {
       console.log('Moving to next step');
       setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
     }
-  }, [appState.currentStep, appState.resourceFigure, appState.questionAnswers, appState.generatedStory, appState.selectedVoice]);
+  }, [appState.currentStep, appState.resourceFigure, appState.questionAnswers, appState.generatedStory, appState.selectedVoice, userFullName, userDataLoaded]);
 
   const handlePreviousStep = useCallback(() => {
     setAppState(prev => {
       let newStep = Math.max(1, prev.currentStep - 1);
-      
-      // Wenn wir von Schritt 4 (VoiceSelection) zurückgehen, sollten wir zu Schritt 2 (RelationshipSelection) gehen
-      // da Schritt 3 (StoryGeneration) übersprungen wird
+
+      // When going back from Step 4 (VoiceSelection)
+      // If user has a name, go back to Step 2 (skipping name form)
+      // If user doesn't have a name, go back to Step 3 (name form)
       if (prev.currentStep === 4) {
-        newStep = 2;
+        newStep = (userFullName && userFullName.trim() !== '') ? 2 : 3;
       }
-      
+
       return {
         ...prev,
         currentStep: newStep,
@@ -523,19 +560,25 @@ function RessourcenAppContent() {
         currentQuestionIndex: newStep === 2 ? 0 : prev.currentQuestionIndex
       };
     });
+  }, [userFullName]);
+
+  const handleUserDataUpdate = useCallback((fullName: string, pronunciationHint: string | null) => {
+    setUserFullName(fullName || null);
+    setUserPronunciationHint(pronunciationHint || null);
   }, []);
 
   const handleStepClick = useCallback((stepNumber: number) => {
     // Bestimme die erwartete Anzahl von Fragen basierend auf der Ressource
     const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6;
-    
-    const canNavigate = 
+
+    const canNavigate =
       stepNumber === 1 ||
       (stepNumber === 2 && appState.resourceFigure) ||
       (stepNumber === 3 && appState.resourceFigure && appState.questionAnswers.length === expectedQuestionCount) ||
-      (stepNumber === 4 && appState.resourceFigure && appState.questionAnswers.length === expectedQuestionCount && appState.selectedVoice) ||
-      (stepNumber === 5 && appState.resourceFigure && appState.questionAnswers.length === expectedQuestionCount && appState.selectedVoice);
-    
+      (stepNumber === 4 && appState.resourceFigure && appState.questionAnswers.length === expectedQuestionCount) ||
+      (stepNumber === 5 && appState.resourceFigure && appState.questionAnswers.length === expectedQuestionCount && appState.selectedVoice) ||
+      (stepNumber === 6 && appState.resourceFigure && appState.questionAnswers.length === expectedQuestionCount && appState.selectedVoice);
+
     if (canNavigate) {
       setAppState(prev => ({
         ...prev,
@@ -546,13 +589,13 @@ function RessourcenAppContent() {
     }
   }, [appState.resourceFigure, appState.questionAnswers, appState.generatedStory, appState.selectedVoice]);
 
-  const showNavigation = appState.currentStep > 1 || (canProceed && appState.currentStep <= 5);
+  const showNavigation = appState.currentStep > 1 || (canProceed && appState.currentStep <= 6);
 
-  // Starte Story-Erzeugung im Hintergrund ab Schritt 4 (Audio Playback), wenn noch leer UND eine Stimme ausgewählt wurde
+  // Starte Story-Erzeugung im Hintergrund ab Schritt 5 (Audio Playback), wenn noch leer UND eine Stimme ausgewählt wurde
   useEffect(() => {
     const run = async () => {
       if (!appState.resourceFigure) return;
-      if (appState.currentStep >= 4 && appState.selectedVoice && !isGeneratingStory && !appState.generatedStory.trim()) {
+      if (appState.currentStep >= 5 && appState.selectedVoice && !isGeneratingStory && !appState.generatedStory.trim()) {
         setIsGeneratingStory(true);
         setStoryGenerationError(null); // Clear previous errors
         try {
@@ -735,6 +778,17 @@ function RessourcenAppContent() {
                 )}
 
                 {appState.currentStep === 3 && appState.resourceFigure && (
+                  <NamePronunciationForm
+                    onNext={handleNextStep}
+                    onBack={handlePreviousStep}
+                    selectedFigure={appState.resourceFigure}
+                    userFullName={userFullName}
+                    userPronunciationHint={userPronunciationHint}
+                    onUserDataUpdate={handleUserDataUpdate}
+                  />
+                )}
+
+                {appState.currentStep === 4 && appState.resourceFigure && (
                   <VoiceSelection
                     onVoiceSelect={(voiceId) => {
                       setAppState(prev => ({ ...prev, selectedVoice: voiceId }));
@@ -747,7 +801,7 @@ function RessourcenAppContent() {
                   />
                 )}
 
-                {appState.currentStep === 4 && appState.resourceFigure && appState.selectedVoice && (
+                {appState.currentStep === 5 && appState.resourceFigure && appState.selectedVoice && (
                   <>
                     {storyGenerationError && (
                       <div className="max-w-4xl mx-auto mb-6 p-6 bg-red-50 border border-red-200 rounded-2xl">
