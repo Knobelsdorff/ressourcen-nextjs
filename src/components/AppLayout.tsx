@@ -87,7 +87,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Hauptinhalt ohne Sidebar-Offset */}
-            <main className="p-4">
+            <main>
                 {children}
             </main>
         </div>

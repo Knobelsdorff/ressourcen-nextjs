@@ -1,6 +1,4 @@
-// components/AudioPlayback.tsx
 "use client";
-
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, Volume2, Heart, ChevronRight, Loader2, Save } from "lucide-react";
@@ -869,39 +867,41 @@ export default function AudioPlayback({
     };
   }, [backgroundMusicElement]);
 
-  // Hilfsfunktion zum Setzen der Lautstärke (unterstützt Web Audio API für iOS)
+  // Hilfsfunktion zum Setzen der Lautstärke (unterstützt Web Audio API für alle Geräte)
   const setMusicVolume = useCallback((musicAudio: HTMLAudioElement, volume: number) => {
     if ((musicAudio as any)._useWebAudio && (musicAudio as any)._gainNode) {
-      // iOS (Safari & Chrome): Verwende Web Audio API GainNode
+      // Alle Geräte: Verwende Web Audio API GainNode für konsistente Lautstärke
       try {
         const gainNode = (musicAudio as any)._gainNode;
         const audioContext = (musicAudio as any)._audioContext;
-        
+
         // Stelle sicher, dass AudioContext aktiv ist
         if (audioContext && audioContext.state === 'suspended') {
           audioContext.resume().catch((err: any) => {
             console.warn('[AudioPlayback] Failed to resume AudioContext:', err);
           });
         }
-        
+
         gainNode.gain.value = volume;
+        console.log('[AudioPlayback] Volume set via GainNode:', volume);
       } catch (error) {
         console.warn('[AudioPlayback] Failed to set volume via GainNode, falling back to HTMLAudioElement:', error);
         musicAudio.volume = volume;
       }
     } else {
-      // Android/Desktop: Verwende normale volume Property
+      // Fallback: Verwende normale volume Property (nur wenn Web Audio API nicht verfügbar)
       musicAudio.volume = volume;
+      console.log('[AudioPlayback] Volume set via HTMLAudioElement.volume:', volume);
     }
   }, []);
 
   // Hilfsfunktion zum Abrufen der aktuellen Lautstärke
   const getMusicVolume = useCallback((musicAudio: HTMLAudioElement): number => {
     if ((musicAudio as any)._useWebAudio && (musicAudio as any)._gainNode) {
-      // iOS: Verwende Web Audio API GainNode
+      // Alle Geräte: Verwende Web Audio API GainNode
       return (musicAudio as any)._gainNode.gain.value;
     } else {
-      // Android/Desktop: Verwende normale volume Property
+      // Fallback: Verwende normale volume Property
       return musicAudio.volume;
     }
   }, []);
@@ -977,7 +977,8 @@ export default function AudioPlayback({
         console.log('[AudioPlayback] Stopping background music immediately (audio ended)');
         backgroundMusicElement.pause();
         backgroundMusicElement.currentTime = 0;
-        setMusicVolume(backgroundMusicElement, DEFAULT_MUSIC_VOLUME); // Reset (iOS-kompatibel)
+        const resetVolume = (backgroundMusicElement as any)._originalVolume || DEFAULT_MUSIC_VOLUME;
+        setMusicVolume(backgroundMusicElement, resetVolume); // Reset (iOS-kompatibel)
         (backgroundMusicElement as any)._fadeOutStarted = false; // Reset Flag
       }
       
@@ -1045,7 +1046,8 @@ export default function AudioPlayback({
               (backgroundMusicElement as any)._fadeOutInterval = null;
               backgroundMusicElement.pause();
               backgroundMusicElement.currentTime = 0;
-              setMusicVolume(backgroundMusicElement, DEFAULT_MUSIC_VOLUME); // iOS-kompatibel
+              const resetVolume = (backgroundMusicElement as any)._originalVolume || DEFAULT_MUSIC_VOLUME;
+              setMusicVolume(backgroundMusicElement, resetVolume); // iOS-kompatibel
             }
           }, 50);
           
@@ -1165,16 +1167,20 @@ export default function AudioPlayback({
     // Setze isPlaying sofort auf true, damit der Button sofort zu Pause wechselt
     setIsPlaying(true);
 
-    // Hole Hintergrundmusik-URL für diese Figur
+    // Hole Hintergrundmusik-URL und Lautstärke für diese Figur
     const figureIdOrName = selectedFigure?.id || selectedFigure?.name;
     console.log('[AudioPlayback] ===== LOADING BACKGROUND MUSIC =====');
     console.log('[AudioPlayback] Figure ID/Name:', figureIdOrName);
-    
+
     let musicUrl: string | null = null;
+    let musicVolume: number = DEFAULT_MUSIC_VOLUME;
     if (figureIdOrName && musicEnabled) {
       try {
-        musicUrl = await getBackgroundMusicUrl(figureIdOrName);
-        console.log('[AudioPlayback] Background music URL:', musicUrl);
+        const { getBackgroundMusicTrack } = await import('@/data/backgroundMusic');
+        const track = await getBackgroundMusicTrack(figureIdOrName);
+        musicUrl = track?.track_url || null;
+        musicVolume = track?.volume || DEFAULT_MUSIC_VOLUME;
+        console.log('[AudioPlayback] Background music loaded:', { url: musicUrl, volume: musicVolume });
       } catch (error) {
         console.error('[AudioPlayback] Error loading background music:', error);
       }
@@ -1192,14 +1198,17 @@ export default function AudioPlayback({
         // Erstelle neues Musik-Element - lade als Blob für bessere Kompatibilität
         const musicAudio = new Audio();
         musicAudio.loop = true;
-        musicAudio.volume = DEFAULT_MUSIC_VOLUME;
+        musicAudio.volume = 1.0; // Set to max, will control via Web Audio API GainNode
         musicAudio.preload = 'auto';
-        
-        // iOS-Erkennung für Web Audio API
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+
+        // Speichere die track-spezifische Lautstärke
+        (musicAudio as any)._targetVolume = musicVolume;
+
+        // Geräte-Erkennung für optimale Kompatibilität
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                     (navigator.userAgent.includes('Mac') && navigator.maxTouchPoints > 1) ||
                      (navigator.userAgent.includes('CriOS') && /iPad|iPhone|iPod/.test(navigator.userAgent));
-        
+
         // iOS: WICHTIG für Hintergrundwiedergabe - setze playsInline Attribut
         // Dies verhindert, dass iOS die Musik pausiert, wenn der Bildschirm ausgeht
         if (isIOS) {
@@ -1227,13 +1236,13 @@ export default function AudioPlayback({
           musicAudio.crossOrigin = 'anonymous';
         }
         
-        // Speichere iOS-Flag für späteres Web Audio API Setup
+        // Speichere Geräte-Flags für späteres Web Audio API Setup
         (musicAudio as any)._isIOS = isIOS;
         (musicAudio as any)._useWebAudio = false;
-        (musicAudio as any)._originalVolume = DEFAULT_MUSIC_VOLUME;
-        
+        (musicAudio as any)._originalVolume = musicVolume;
+
         setBackgroundMusicElement(musicAudio);
-        
+
         // iOS: Konfiguriere Audio Session für Hintergrundwiedergabe
         if (isIOS) {
           // iOS Audio Session API (iOS 16.4+) - konfiguriere für Hintergrundwiedergabe
@@ -1246,33 +1255,51 @@ export default function AudioPlayback({
             }
           }
         }
-        
-        // iOS: Setup Web Audio API für Lautstärkekontrolle nach canplay
-        if (isIOS && typeof AudioContext !== 'undefined') {
+
+        // ALLE GERÄTE: Setup Web Audio API für konsistente Lautstärkekontrolle + Dynamic Range Compression
+        if (typeof AudioContext !== 'undefined' || typeof (window as any).webkitAudioContext !== 'undefined') {
           musicAudio.addEventListener('canplay', () => {
             if ((musicAudio as any)._useWebAudio) {
               console.log('[AudioPlayback] Web Audio API already connected, skipping');
               return;
             }
-            
+
             try {
-              const audioContext = new AudioContext();
+              // Verwende AudioContext oder webkitAudioContext (Safari)
+              const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+              const audioContext = new AudioContextClass();
               const source = audioContext.createMediaElementSource(musicAudio);
+
+              // Erstelle Dynamic Range Compressor für konsistente Lautstärke über alle Geräte
+              const compressor = audioContext.createDynamicsCompressor();
+              compressor.threshold.setValueAtTime(-24, audioContext.currentTime);
+              compressor.knee.setValueAtTime(30, audioContext.currentTime);
+              compressor.ratio.setValueAtTime(12, audioContext.currentTime);
+              compressor.attack.setValueAtTime(0.003, audioContext.currentTime);
+              compressor.release.setValueAtTime(0.25, audioContext.currentTime);
+
+              // Erstelle GainNode für Lautstärkekontrolle
               const gainNode = audioContext.createGain();
-              
-              source.connect(gainNode);
+              const targetVolume = (musicAudio as any)._targetVolume || DEFAULT_MUSIC_VOLUME;
+              gainNode.gain.value = targetVolume;
+
+              // Audio Chain: Source -> Compressor -> Gain -> Destination
+              source.connect(compressor);
+              compressor.connect(gainNode);
               gainNode.connect(audioContext.destination);
-              
-              gainNode.gain.value = DEFAULT_MUSIC_VOLUME;
-              
+
               (musicAudio as any)._audioContext = audioContext;
+              (musicAudio as any)._compressor = compressor;
               (musicAudio as any)._gainNode = gainNode;
               (musicAudio as any)._useWebAudio = true;
-              
-              console.log('[AudioPlayback] iOS detected: Web Audio API connected for volume control');
+
+              console.log('[AudioPlayback] Web Audio API connected with compressor for consistent volume (Device: ' + (isIOS ? 'iOS' : 'Desktop/Android') + ', Volume: ' + targetVolume + ')');
             } catch (error: any) {
               console.warn('[AudioPlayback] Failed to setup Web Audio API, using HTMLAudioElement:', error);
               (musicAudio as any)._useWebAudio = false;
+              // Fallback: setze normale volume (track-spezifisch)
+              const fallbackVolume = (musicAudio as any)._targetVolume || DEFAULT_MUSIC_VOLUME;
+              musicAudio.volume = fallbackVolume;
             }
           }, { once: true });
           
@@ -1453,7 +1480,7 @@ export default function AudioPlayback({
               animate={{ opacity: 1 }}
               className="text-center py-8"
             >
-              <div className="flex justify-center mb-6">
+              <div className="flex justify-center sm:mb-6 mb-5">
                 <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
               </div>
               
@@ -1547,14 +1574,14 @@ export default function AudioPlayback({
         <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="text-center mb-8"
+          className="text-center sm:mb-8 mb-5"
         >
-          <div className="text-5xl mb-4">💎</div>
-          <h2 className="text-2xl lg:text-3xl font-light text-amber-900 mb-2">
+          <div className="sm:text-5xl text-4xl mb-4">💎</div>
+          <h2 className="sm:text-2xl text-xl lg:text-3xl font-light text-amber-900 mb-2">
             Deine Ressource
           </h2>
-          <p className="text-amber-700">
-            Lass <span className="font-medium">{selectedFigure.name}</span> dich zu innerer Sicherheit führen
+          <p className="text-amber-700 max-sm:text-sm">
+            Lass <span className="font-medium">{selectedFigure.name === "Geschwister" ? (selectedFigure.pronouns.split('/')[0] == "er" ? "Bruder" : "Schwester" ) : selectedFigure.name }</span> dich zu innerer Sicherheit führen
           </p>
         </motion.div>
 
@@ -1563,10 +1590,10 @@ export default function AudioPlayback({
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-3xl p-6 lg:p-8 shadow-xl border border-orange-100 mb-6"
+          className="bg-white rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl border border-orange-100 mb-6"
         >
           {/* Resource Figure Display */}
-          <div className="text-center mb-8">
+          <div className="text-center sm:mb-8 mb-5">
             <div className="text-4xl mb-3 flex justify-center">
               {selectedFigure.id === 'ideal-family' ? (
                 <IdealFamilyIconFinal size={60} className="w-12 h-12" />
@@ -1626,7 +1653,7 @@ export default function AudioPlayback({
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="space-y-6"
+                className="sm:space-y-6 space-y-4"
               >
                 {/* Beautiful Progress Bar */}
                 <div className="space-y-3">
@@ -1674,12 +1701,12 @@ export default function AudioPlayback({
                 </div>
 
                 {/* Enhanced Control Buttons */}
-                <div className="flex items-center justify-center space-x-6">
+                <div className="flex items-center justify-center sm:space-x-6 space-x-4">
                   <motion.button
                     whileHover={{ scale: 1.1, rotate: -15 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={restart}
-                    className="p-4 bg-gradient-to-br from-orange-100 to-amber-100 text-amber-700 rounded-full hover:from-orange-200 hover:to-amber-200 transition-all duration-300 shadow-lg hover:shadow-xl"
+                    className="sm:p-4 p-3 bg-gradient-to-br from-orange-100 to-amber-100 text-amber-700 rounded-full hover:from-orange-200 hover:to-amber-200 transition-all duration-300 shadow-lg hover:shadow-xl"
                   >
                     <RotateCcw className="w-5 h-5" />
                   </motion.button>
@@ -1689,7 +1716,7 @@ export default function AudioPlayback({
                     whileTap={{ scale: 0.95 }}
                     onClick={togglePlayPause}
                     disabled={isLoading}
-                    className="p-6 bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 text-white rounded-full shadow-xl hover:shadow-2xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="sm:p-6 p-5 max-sm:w-[72px] max-sm:h-[72px] bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 text-white rounded-full shadow-xl hover:shadow-2xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? (
                       <Loader2 className="w-7 h-7 animate-spin" />
@@ -1718,8 +1745,8 @@ export default function AudioPlayback({
                     transition={{ delay: 0.3 }}
                     className="mt-6 flex justify-center"
                   >
-                    <div className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-xl shadow-lg flex items-center gap-2">
-                      <span className="text-lg">✅</span>
+                    <div className="sm:px-8 px-3 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-xl shadow-lg flex items-center gap-2 max-sm:text-sm">
+                      <span className="text-lg max-sm:text-sm">✅</span>
                       Ressource wurde automatisch gespeichert
                     </div>
                   </motion.div>
@@ -1748,9 +1775,9 @@ export default function AudioPlayback({
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.5 }}
-                  className="mt-8 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100"
+                  className="mt-8 sm:p-6 p-4 max-sm:px-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100"
                 >
-                  <div className="text-center mb-6">
+                  <div className="text-center sm:mb-6 mb-5">
                     <h3 className="text-xl font-semibold text-blue-900 mb-2">
                       Bilaterale Stimulation
                     </h3>
@@ -1780,7 +1807,7 @@ export default function AudioPlayback({
               </div>
                   
                   <div className="text-center">
-                    <p className="text-blue-600 text-base">
+                    <p className="text-blue-600 sm:text-base text-sm">
                       <span className="text-xl">💡</span> Dies hilft deinem Gehirn, die Geschichte besser zu verarbeiten und zu integrieren
                     </p>
                   </div>

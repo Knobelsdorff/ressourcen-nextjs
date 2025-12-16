@@ -107,17 +107,17 @@ export default function NamePronunciationForm({
   };
 
   return (
-    <div className="min-h-screen bg-amber-50">
-      <div className="flex items-start justify-center p-4 pt-8">
+    <div className="bg-amber-50">
+      <div className="flex items-start justify-center p-4 sm:pt-8 pt-5">
         <div className="w-full max-w-[851px]">
           <motion.div
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="bg-white rounded-[20px] shadow-[0px_5px_10px_0px_rgba(0,0,0,0.25)] p-8"
+            className="bg-white rounded-[20px] shadow-[0px_5px_10px_0px_rgba(0,0,0,0.25)] sm:p-8 max-sm:px-4 max-sm:py-4"
           >
             {/* Header with Emoji and Figure Name */}
-            <div className="flex items-center justify-center gap-3 mb-8">
+            <div className="flex items-center justify-center gap-3 sm:mb-8 mb-5">
               <div className="text-4xl">
                 {selectedFigure.id === 'ideal-family' ? (
                   <IdealFamilyIconFinal size={48} className="w-12 h-12" />
@@ -137,8 +137,8 @@ export default function NamePronunciationForm({
             </div>
 
             {/* Title */}
-            <div className="text-center mb-8">
-              <h2 className="text-2xl text-gray-800 font-normal mb-2">
+            <div className="text-center sm:mb-8 mb-5">
+              <h2 className="sm:text-2xl text-xl text-gray-800 font-normal mb-2">
                 Personalisiere deine Geschichte
               </h2>
               <p className="text-sm text-gray-600">
@@ -148,7 +148,7 @@ export default function NamePronunciationForm({
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 sm:gap-4 gap-3">
                 <div>
                   <label htmlFor="fullName" className="block text-sm font-semibold text-blue-900 mb-2">
                     Vorname/Spitzname
@@ -161,7 +161,7 @@ export default function NamePronunciationForm({
                     className="w-full px-3 py-2.5 border border-blue-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all"
                     placeholder="z.B. Andy, Maria, Tom"
                   />
-                  <p className="text-blue-600 text-xs mt-1.5">
+                  <p className="text-blue-600 text-xs mt-1">
                     Wird in deinen Geschichten verwendet
                   </p>
                 </div>
@@ -201,28 +201,14 @@ export default function NamePronunciationForm({
                 </div>
               )}
 
-              {/* Mobile Back Button */}
-              <div className="lg:hidden mt-4">
-                <motion.button
-                  type="button"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={onBack}
-                  className="w-full px-4 py-3 text-gray-700 border border-gray-300 rounded-lg transition-all text-base font-medium flex items-center justify-center gap-2 hover:bg-gray-50 active:bg-gray-100"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                  Zurück
-                </motion.button>
-              </div>
-
-              {/* Navigation - Desktop */}
-              <div className="hidden lg:flex justify-between items-center">
+              {/* Navigation */}
+              <div className="flex max-sm:flex-col max-sm:gap-3 justify-between">
                 <motion.button
                   type="button"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={onBack}
-                  className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm font-medium"
+                  className="sm:px-6 px-4 sm:py-3 py-2 border text-black border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 max-sm:w-full max-sm:justify-center"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   Zurück
@@ -231,22 +217,10 @@ export default function NamePronunciationForm({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-7 py-3 bg-[#f0fdf4] text-black border border-[#22c55e] rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-base font-normal shadow-sm"
+                  className="sm:px-6 px-4 sm:py-3 py-2 bg-[#f0fdf4] text-black border border-[#22c55e] rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-base font-normal shadow-sm max-sm:w-full max-sm:justify-center"
                 >
                   {loading ? 'Speichern...' : 'Weiter'}
                   <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Mobile Continue Button */}
-              <div className="lg:hidden mt-4">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full px-4 py-3 bg-[#f0fdf4] text-black border border-[#22c55e] rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base font-medium"
-                >
-                  {loading ? 'Speichern...' : 'Weiter'}
-                  <ArrowRight className="w-5 h-5" />
                 </button>
               </div>
             </form>

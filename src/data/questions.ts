@@ -117,6 +117,30 @@ export const questions = [
 export function getQuestionsWithPronouns(selectedFigure: ResourceFigure) {
   const primaryPronoun = selectedFigure.pronouns.split('/')[0];
   const objectPronoun = selectedFigure.pronouns.split('/')[1];
+  const siblingRelation = primaryPronoun === "er" ? "bruder" : "schwester";
+
+  const capitalize = (word: string) =>
+    word.charAt(0).toUpperCase() + word.slice(1);
+
+  const fixPronouns = (text: string) => {
+    if (!text) return text;
+
+    return text
+      // lowercase
+      .replaceAll("er/sie", primaryPronoun)
+      .replaceAll("ihm/ihr", objectPronoun)
+
+      // uppercase
+      .replaceAll("Er/sie", capitalize(primaryPronoun))
+      .replaceAll("Ihm/ihr", capitalize(objectPronoun))
+
+      // sibling
+      .replaceAll("geschwister", siblingRelation)
+      .replaceAll("Geschwister", capitalize(siblingRelation))
+
+      // case swap
+      .replaceAll("ihn/sie", siblingRelation === "bruder" ? "ihn" : "sie");
+  };
   
   // Alle Fragen sind für alle Kategorien verfügbar
   const filteredQuestions = questions;
@@ -132,7 +156,7 @@ export function getQuestionsWithPronouns(selectedFigure: ResourceFigure) {
     
     // Verwende figurspezifische Antworten oder kombiniere mit Standard-Antworten
     if (figureSpecificBlocks.length > 0) {
-      adjustedQuestion.blocks = figureSpecificBlocks;
+      adjustedQuestion.blocks = figureSpecificBlocks.map(block=>fixPronouns(block));
     } else {
       // Fallback: Kombiniere figurspezifische Antworten mit Standard-Antworten
       const combinedBlocks = [
@@ -145,7 +169,7 @@ export function getQuestionsWithPronouns(selectedFigure: ResourceFigure) {
     
     // Verwende figurspezifische Fragen, Prompts und Beispiele wenn verfügbar
     if (figureSpecificQuestion) {
-      adjustedQuestion.question = figureSpecificQuestion;
+      adjustedQuestion.question = fixPronouns(figureSpecificQuestion);
     } else {
       // Fallback: Anpasse die Frage basierend auf der Figur
       switch (question.id) {

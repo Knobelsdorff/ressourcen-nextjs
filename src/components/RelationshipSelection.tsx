@@ -172,54 +172,49 @@ export default function RelationshipSelection({
 
   const currentAnswer = getCurrentAnswer();
 
+  const windowWidth = typeof window !== "undefined" ? window.innerWidth : 0;
+
   return (
     <>
       <div ref={containerRef} className="min-h-screen bg-amber-50">
-        <div className="flex items-start justify-center p-4 pt-8">
-          <div className="w-full max-w-[851px]">
+        <div className="flex items-start justify-center sm:p-4 p-3 sm:pt-8 pt-5">
+          <div className="w-full max-w-[851px] max-sm:flex max-sm:flex-col-reverse max-sm: gap-5">
             {/* Main Card */}
             <motion.div
               initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="bg-white rounded-[20px] shadow-[0px_5px_10px_0px_rgba(0,0,0,0.25)] p-8"
+              className="bg-white rounded-[20px] shadow-[0px_5px_10px_0px_rgba(0,0,0,0.25)] sm:p-8 py-3 px-4"
             >
               {/* Header with Emoji and Figure Name */}
-              <div className="flex items-center justify-center gap-3 mb-8">
-                <div className="text-4xl">
+              <div className="flex items-center justify-center gap-1 sm:mb-5 mb-2">
+                <div className="sm:text-4xl text-3xl ">
                   {selectedFigure.id === 'ideal-family' ? (
-                    <IdealFamilyIconFinal size={48} className="w-12 h-12" />
+                    <IdealFamilyIconFinal size={windowWidth > 599 ? 48 : 24} className="sm:w-12 sm:h-12 w-8 h-8" />
                   ) : selectedFigure.id === 'jesus' ? (
-                    <JesusIconFinal size={48} className="w-12 h-12" />
+                    <JesusIconFinal size={windowWidth > 599 ? 48 : 24} className="sm:w-12 sm:h-12 w-8 h-8" />
                   ) : selectedFigure.id === 'archangel-michael' ? (
-                    <ArchangelMichaelIconFinal size={48} className="w-12 h-12" />
+                    <ArchangelMichaelIconFinal size={windowWidth > 599 ? 48 : 24} className="sm:w-12 sm:h-12 w-8 h-8" />
                   ) : selectedFigure.id === 'angel' ? (
-                    <AngelIconFinal size={48} className="w-12 h-12" />
+                    <AngelIconFinal size={windowWidth > 599 ? 48 : 24} className="sm:w-12 sm:h-12 w-8 h-8" />
                   ) : selectedFigure.id === 'superhero' ? (
-                    <SuperheroIconFinal size={48} className="w-12 h-12" />
+                    <SuperheroIconFinal size={windowWidth > 599 ? 48 : 24} className="sm:w-12 sm:h-12 w-8 h-8" />
                   ) : (
-                    <span className="text-4xl">{selectedFigure.emoji}</span>
+                    <span>{selectedFigure.emoji}</span>
                   )}
                 </div>
-                <div className="text-2xl text-gray-900 font-normal">{selectedFigure.name}</div>
-              </div>
-
-              {/* Mobile Question Counter */}
-              <div className="lg:hidden text-center mb-4">
-                <p className="text-gray-600 text-sm mb-1">
-                  Frage {currentQuestionIndex + 1} von {questionsToUse.length}
-                </p>
+                <div className="sm:text-2xl text-xl text-gray-900 font-normal">{selectedFigure.name}</div>
               </div>
 
               {/* Question */}
-              <div className="text-center mb-8">
-                <h2 className="text-2xl text-gray-800 font-normal">
+              <div className="text-center sm:mb-8 mb-5">
+                <h2 className="sm:text-2xl text-base text-gray-800 font-normal">
                   {currentQuestion.question}
                 </h2>
                 {useCounterChip && (
-                  <div className="mt-3">
+                  <div className="mt-2">
                     <span
-                      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-medium ${
+                      className={`inline-flex items-center gap-2 px-3 sm:py-1 py-[2px] rounded-full border text-xs font-medium ${
                         currentAnswer.selectedBlocks.length === 0
                           ? 'bg-gray-100 text-gray-800 border-gray-200'
                           : currentAnswer.selectedBlocks.length === 2
@@ -230,9 +225,13 @@ export default function RelationshipSelection({
                       }`}
                     >
                       {currentAnswer.selectedBlocks.length === 2 && (
-                        <Check className="w-3.5 h-3.5" />
+                        <span className="w-3.5 h-3.5 inline-flex items-center justify-center">
+                            <Check className="w-3.5 h-3.5" />
+                        </span>
                       )}
-                      {currentAnswer.selectedBlocks.length}/2 ausgewählt
+                      <span>
+                        {currentAnswer.selectedBlocks.length}/2 ausgewählt
+                      </span>
                     </span>
                   </div>
                 )}
@@ -264,7 +263,7 @@ export default function RelationshipSelection({
                 const isTestModeActive = (typeof window !== 'undefined' ? localStorage.getItem('test_sparmodus') === '1' : false);
                 
                 return (
-                  <div className="flex items-center justify-center mb-6">
+                  <div className="flex items-center justify-center sm:mb-6 mb-4">
                     <label className="inline-flex items-center gap-2 text-gray-800">
                       <input
                         type="checkbox"
@@ -288,7 +287,7 @@ export default function RelationshipSelection({
               })()}
 
               {/* Answer Blocks - 2 Column Layout (inkl. eigene Snippets) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 sm:gap-4 gap-3 mb-6">
                 {[...currentQuestion.blocks, ...(currentAnswer.customBlocks || [])].map((block, index) => {
                   const personalizedBlock = block;
                   return (
@@ -300,7 +299,7 @@ export default function RelationshipSelection({
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => handleBlockToggle(block)}
-                    className={`w-full h-11 rounded-[30px] border flex items-center gap-3 px-4 transition-all ${
+                    className={`w-full sm:h-11 max-sm:py-[7px] sm:rounded-[30px] rounded-[20px] border flex items-center gap-3 px-4 transition-all ${
                       currentAnswer.selectedBlocks.includes(block)
                         ? (currentAnswer.selectedBlocks.length === 2
                             ? 'border-green-500 bg-green-50'
@@ -328,7 +327,7 @@ export default function RelationshipSelection({
                      </div>
                      
                      {/* Text */}
-                     <span className={`text-sm font-normal flex-1 text-left leading-tight ${
+                     <span className={`sm:text-sm text-xs font-normal flex-1 text-left leading-tight ${
                        currentAnswer.selectedBlocks.length >= 2 && !currentAnswer.selectedBlocks.includes(block)
                          ? 'text-gray-500'
                          : 'text-black'
@@ -361,13 +360,13 @@ export default function RelationshipSelection({
                       }
                     }}
                     placeholder="Deine Formulierung"
-                    className="flex-1 h-11 px-4 rounded-[12px] border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-amber-300 text-sm text-amber-900"
+                    className="flex-1 sm:h-11 max-sm:py-1 sm:px-4 px-3 sm:rounded-[12px] rounded-[8px] border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-amber-300 text-sm text-amber-900 leading-none w-[70%]"
                     maxLength={120}
                   />
                   <Button
                     type="button"
                     onClick={addCustomSnippet}
-                    className="h-11 px-4 bg-white text-gray-700 border border-gray-300 rounded-[12px] hover:bg-gray-50"
+                    className="sm:h-11 max-sm:py-1 sm:px-4 px-3 bg-white text-gray-700 border border-gray-300 sm:rounded-[12px] rounded-[8px] hover:bg-gray-50 leading-none" 
                   >
                     Hinzufügen
                   </Button>
@@ -381,7 +380,7 @@ export default function RelationshipSelection({
                   whileTap={{ scale: 0.98 }}
                   onClick={handlePreviousQuestion}
                   disabled={currentQuestionIndex === 0}
-                  className={`w-full px-4 py-3 text-gray-700 border border-gray-300 rounded-lg transition-all text-base font-medium flex items-center justify-center gap-2 ${
+                  className={`w-full px-4 max-sm:text-sm sm:py-3 py-2 text-gray-700 border border-gray-300 rounded-lg transition-all text-base font-medium flex items-center justify-center gap-2 ${
                     currentQuestionIndex === 0 
                       ? 'opacity-50 cursor-not-allowed' 
                       : 'hover:bg-gray-50 active:bg-gray-100'
@@ -434,12 +433,12 @@ export default function RelationshipSelection({
             </motion.div>
 
             {/* Progress Bar */}
-            <div className="mt-6">
+            <div className="sm:mt-6">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-gray-700 font-medium">
+                <span className="sm:text-sm text-xs text-gray-700 font-medium">
                   Fortschritt: {currentQuestionIndex + 1} von {questionsToUse.length}
                 </span>
-                <span className="text-sm text-gray-600">
+                <span className="sm:text-sm text-xs text-gray-600">
                   {Math.round(((currentQuestionIndex + 1) / questionsToUse.length) * 100)}%
                 </span>
               </div>

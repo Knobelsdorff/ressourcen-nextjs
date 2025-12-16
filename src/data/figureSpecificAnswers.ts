@@ -644,9 +644,9 @@ export const figureSpecificData: FigureSpecificData = {
 
   'pet-cat': {
     1: {
-      question: "Wie wirkt sie und was strahlt sie aus?",
+      question: "Wie wirkt er/sie und was strahlt er/sie aus?",
       prompt: "Beschreibe das Aussehen und die Ausstrahlung deiner Katze.",
-      example: "Sie hat sanfte, grüne Augen und strahlt eine ruhige Gelassenheit aus.",
+      example: "Er/sie hat sanfte, grüne Augen und strahlt eine ruhige Gelassenheit aus.",
       blocks: [
         "Sanfte, grüne Augen voller Weisheit",
         "Weiches, warmes Fell",
@@ -658,7 +658,7 @@ export const figureSpecificData: FigureSpecificData = {
       ]
     },
     2: {
-      question: "Wie fühlst du dich, wenn sie nah bei dir ist?",
+      question: "Wie fühlst du dich, wenn er/sie nah bei dir ist?",
       prompt: "Beschreibe deine inneren Gefühle in der Nähe deiner Katze.",
       example: "Ich fühle mich ruhig und entspannt.",
       blocks: [
@@ -672,35 +672,35 @@ export const figureSpecificData: FigureSpecificData = {
       ]
     },
     3: {
-      question: "Was macht sie, wenn es dir mal nicht gut geht?",
+      question: "Was macht er/sie, wenn es dir mal nicht gut geht?",
       prompt: "Beschreibe, wie deine Katze dich in schwierigen Momenten tröstet.",
-      example: "Sie kommt zu mir und schnurrt sanft in meiner Nähe.",
+      example: "Er/sie kommt zu mir und schnurrt sanft in meiner Nähe.",
       blocks: [
-        "Sie kommt zu mir und schnurrt sanft",
-        "Sie liegt eng an mir und wärmt mich",
-        "Sie reibt sich sanft an mir",
-        "Sie schaut mich mit verständnisvollen Augen an",
-        "Sie sitzt einfach neben mir",
-        "Sie lässt mich sie streicheln",
-        "Sie ist einfach da und gibt mir Ruhe"
+        "Er/sie kommt zu mir und schnurrt sanft",
+        "Er/sie liegt eng an mir und wärmt mich",
+        "Er/sie reibt sich sanft an mir",
+        "Er/sie schaut mich mit verständnisvollen Augen an",
+        "Er/sie sitzt einfach neben mir",
+        "Er/sie lässt mich er/sie streicheln",
+        "Er/sie ist einfach da und gibt mir Ruhe"
       ]
     },
     4: {
-      question: "Durch was würdest du dich von ihr geliebt fühlen?",
+      question: "Durch was würdest du dich von ihm/ihr geliebt fühlen?",
       prompt: "Beschreibe, was deine Katze tut, um dir ihre Liebe zu zeigen.",
-      example: "Sie vertraut mir vollkommen und zeigt es mir jeden Tag.",
+      example: "Er/sie vertraut mir vollkommen und zeigt es mir jeden Tag.",
       blocks: [
-        "Sie vertraut mir vollkommen und zeigt es mir jeden Tag",
-        "Sie kommt zu mir, wenn ich traurig bin",
-        "Sie lässt mich sie streicheln und schnurrt dabei",
-        "Sie erinnert mich an die wichtigen Dinge im Leben",
-        "Sie macht sich Sorgen um mich und kümmert sich",
-        "Sie ist stolz darauf, meine Katze zu sein",
-        "Sie akzeptiert mich so, wie ich bin"
+        "Er/sie vertraut mir vollkommen und zeigt es mir jeden Tag",
+        "Er/sie kommt zu mir, wenn ich traurig bin",
+        "Er/sie lässt mich er/sie streicheln und schnurrt dabei",
+        "Er/sie erinnert mich an die wichtigen Dinge im Leben",
+        "Er/sie macht sich Sorgen um mich und kümmert sich",
+        "Er/sie ist stolz darauf, meine Katze zu sein",
+        "Er/sie akzeptiert mich so, wie ich bin"
       ]
     },
     5: {
-      question: "Um was würdest du sie bitten?",
+      question: "Um was würdest du ihn/sie bitten?",
       prompt: "Formuliere, was du dir von deiner Katze wünschst.",
       example: "Bleib immer so ruhig und tröstend.",
       blocks: [
@@ -714,7 +714,7 @@ export const figureSpecificData: FigureSpecificData = {
       ]
     },
     6: {
-      question: "Was würde sie dir idealerweise sagen?",
+      question: "Was würde er/sie dir idealerweise sagen?",
       prompt: "Stelle dir vor, was deine Katze dir sagen würde.",
       example: "Du bist mein Mensch und ich vertraue dir vollkommen.",
       blocks: [
@@ -811,7 +811,7 @@ export const figureSpecificData: FigureSpecificData = {
         "Ich bin immer für dich da",
         "Du bist mein größtes Glück",
         "Ich traue dir zu, deinen Weg zu gehen – und ich begleite dich.",
-        "Du bist mein Geschwister"
+        "Ich bin dein Geschwister und ich liebe dich sehr."
       ]
     }
   },
@@ -1080,9 +1080,9 @@ export const figureSpecificData: FigureSpecificData = {
 
   'pet-dog': {
     1: {
-      question: "Wie wirkt er und was strahlt er aus?",
+      question: "Wie wirkt er/sie und was strahlt er/sie aus?",
       prompt: "Beschreibe das Aussehen und die Ausstrahlung deines Hundes.",
-      example: "Er hat treue Augen und strahlt eine bedingungslose Liebe aus.",
+      example: "Er/sie hat treue Augen und strahlt eine bedingungslose Liebe aus.",
       blocks: [
         "Treue Augen, die mich lieben",
         "Weiches, warmes Fell",
@@ -1094,7 +1094,7 @@ export const figureSpecificData: FigureSpecificData = {
       ]
     },
     2: {
-      question: "Wie fühlst du dich, wenn er nah bei dir ist?",
+      question: "Wie fühlst du dich, wenn er/sie nah bei dir ist?",
       prompt: "Beschreibe deine inneren Gefühle in der Nähe deines Hundes.",
       example: "Ich fühle mich geborgen und geliebt.",
       blocks: [
@@ -1108,35 +1108,35 @@ export const figureSpecificData: FigureSpecificData = {
       ]
     },
     3: {
-      question: "Was macht er, wenn es dir mal nicht gut geht?",
+      question: "Was macht er/sie, wenn es dir mal nicht gut geht?",
       prompt: "Beschreibe, wie dein Hund dich in schwierigen Momenten unterstützt.",
-      example: "Er wedelt mit dem Schwanz und leckt sanft meine Hand.",
+      example: "Er/sie wedelt mit dem Schwanz und leckt sanft meine Hand.",
       blocks: [
-        "Er wedelt mit dem Schwanz und leckt sanft meine Hand",
-        "Er bringt mir sein Lieblingsspielzeug",
-        "Er liegt eng an mir und wärmt mich",
-        "Er folgt mir überall hin",
-        "Er schaut mich mit treuen Augen an",
-        "Er springt freudig auf, wenn ich komme",
-        "Er beschützt mich vor Gefahren"
+        "Er/sie wedelt mit dem Schwanz und leckt sanft meine Hand",
+        "Er/sie bringt mir sein Lieblingsspielzeug",
+        "Er/sie liegt eng an mir und wärmt mich",
+        "Er/sie folgt mir überall hin",
+        "Er/sie schaut mich mit treuen Augen an",
+        "Er/sie springt freudig auf, wenn ich komme",
+        "Er/sie beschützt mich vor Gefahren"
       ]
     },
     4: {
-      question: "Durch was würdest du dich von ihm geliebt fühlen?",
+      question: "Durch was würdest du dich von ihm/ihr geliebt fühlen?",
       prompt: "Beschreibe, was dein Hund tut, um dir seine bedingungslose Liebe zu zeigen.",
-      example: "Er glaubt an mich und zeigt es mir jeden Tag.",
+      example: "Er/sie glaubt an mich und zeigt es mir jeden Tag.",
       blocks: [
-        "Er glaubt an mich und zeigt es mir jeden Tag",
-        "Er lehrt mich seine treuen Geheimnisse",
-        "Er beschützt mich vor allen Gefahren",
-        "Er erinnert mich an meine liebevollen Fähigkeiten",
-        "Er macht sich Sorgen um mich und kümmert sich",
-        "Er ist stolz auf mich, egal was ich tue",
-        "Er akzeptiert mich so, wie ich bin"
+        "Er/sie glaubt an mich und zeigt es mir jeden Tag",
+        "Er/sie lehrt mich seine treuen Geheimnisse",
+        "Er/sie beschützt mich vor allen Gefahren",
+        "Er/sie erinnert mich an meine liebevollen Fähigkeiten",
+        "Er/sie macht sich Sorgen um mich und kümmert sich",
+        "Er/sie ist stolz auf mich, egal was ich tue",
+        "Er/sie akzeptiert mich so, wie ich bin"
       ]
     },
     5: {
-      question: "Um was würdest du ihn bitten?",
+      question: "Um was würdest du ihn/sie bitten?",
       prompt: "Formuliere, was du dir von deinem Hund wünschst.",
       example: "Bleib immer so treu und liebevoll.",
       blocks: [
@@ -1150,7 +1150,7 @@ export const figureSpecificData: FigureSpecificData = {
       ]
     },
     6: {
-      question: "Was würde er dir idealerweise sagen?",
+      question: "Was würde er/sie dir idealerweise sagen?",
       prompt: "Stelle dir vor, was dein Hund dir sagen würde.",
       example: "Du bist mein bester Freund und ich liebe dich bedingungslos.",
       blocks: [

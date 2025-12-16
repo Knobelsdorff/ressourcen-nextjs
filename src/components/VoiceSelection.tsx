@@ -312,16 +312,16 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
   if (!mounted || loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="text-amber-600">Lade verfügbare Stimmen...</div>
+        <div className="text-amber-600 max-sm:text-sm">Lade verfügbare Stimmen...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto sm:pt-8 pt-5 px-4 pb-10">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-amber-900 mb-2">Stimme auswählen</h2>
-        <p className="text-amber-700">
+        <h2 className="sm:text-2xl text-xl font-bold text-amber-900 mb-2">Stimme auswählen</h2>
+        <p className="text-amber-700 max-sm:text-sm">
           {resourceFigure ? 
             `Höre dir die passenden Stimmen für ${resourceFigure.name} an und wähle die, die am besten zu deiner Ressourcenfigur passt.` :
             'Höre dir die verschiedenen Stimmen an und wähle die passende für deine Ressourcenfigur.'
@@ -363,7 +363,7 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
 
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg text-amber-900">
+                <CardTitle className="sm:text-lg text-base text-amber-900">
                   {(() => {
                     // Extrahiere nur den Vornamen (alles vor dem ersten Leerzeichen)
                     const firstName = voice.name.split(' ')[0];
@@ -482,11 +482,8 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
                 : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
             }`}
           >
-            {showAllVoices ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
-            )}
+            <ChevronUp className={`w-4 h-4 ${showAllVoices ? 'block' : 'hidden'}`} />
+            <ChevronDown className={`w-4 h-4 ${showAllVoices ? 'hidden' : 'block'}`} />
             {showAllVoices ? 'Weniger anzeigen' : `Weitere ${filteredVoices.length - 3} Stimmen anzeigen`}
           </motion.button>
         </div>
@@ -515,7 +512,7 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
       </div>
 
       {/* Navigation Buttons (nur Desktop) */}
-      <div className="hidden lg:flex justify-center items-center mt-6 gap-4">
+      <div className="flex justify-center items-center mt-6 gap-4">
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -531,7 +528,7 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
           whileTap={{ scale: 0.98 }}
           onClick={onNext}
           disabled={!selectedVoiceId}
-          className={`px-8 py-3 rounded-xl text-white shadow-lg transition-all flex items-center gap-2 text-lg font-medium ${
+          className={`px-8 py-3 rounded-lg text-white shadow-lg transition-all flex items-center gap-2 text-base font-medium ${
             selectedVoiceId
               ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600'
               : 'bg-amber-300 cursor-not-allowed opacity-60'

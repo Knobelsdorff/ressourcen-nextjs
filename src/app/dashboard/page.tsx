@@ -3052,14 +3052,14 @@ ${story.content}
 
         return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:py-8 py-5">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
+          className="text-center sm:mb-8 mb-5"
         >
-          <h1 className="text-4xl font-bold text-amber-900 mb-2">
+          <h1 className="sm:text-4xl text-2xl font-bold text-amber-900 mb-2">
             Dashboard
           </h1>
         </motion.div>
@@ -3070,7 +3070,7 @@ ${story.content}
           animate={{ opacity: 1, y: 0 }}
           className="flex justify-center mb-8"
         >
-          <div className="bg-white rounded-2xl shadow-lg p-2 flex space-x-2">
+          <div className="bg-white w-full rounded-2xl shadow-lg p-2 lg:flex grid sm:grid-cols-2 grid-cols-1 gap-3 space-x-2 ">
             <button
               onClick={() => setActiveTab('profile')}
               className={`flex items-center space-x-2 px-6 py-3 rounded-xl font-medium transition-all duration-300 ${

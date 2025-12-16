@@ -33,7 +33,7 @@ export default function ResourceFigureSelection({
   onFigureSelect,
   onNext
 }: ResourceFigureSelectionProps) {
-  const [activeSection, setActiveSection] = useState<'real' | 'fictional' | 'custom'>('real');
+  const [activeSection, setActiveSection] = useState<'real' | 'fictional' | 'custom'>('fictional');
   const [showCustomForm, setShowCustomForm] = useState(false);
   const [showPronounSelection, setShowPronounSelection] = useState(false);
   const [pendingFigure, setPendingFigure] = useState<ResourceFigure | null>(null);
@@ -102,7 +102,7 @@ export default function ResourceFigureSelection({
           transition={{ duration: 0.8 }}
         >
           {/* Main Image */}
-          <div className="mb-8">
+          <div className="sm:mb-8 mb-4">
             <div className="relative max-w-2xl mx-auto">
               {/* Main Image */}
             <img 
@@ -113,10 +113,10 @@ export default function ResourceFigureSelection({
             </div>
           </div>
           
-          <h2 className="text-2xl lg:text-3xl font-light text-amber-800 mb-4">
+          <h2 className="sm:text-2xl text-xl lg:text-3xl font-light text-amber-800 sm:mb-4 mb-2 px-3">
             Erschaffe deine innere Ressource
           </h2>
-          <p className="text-amber-700 text-lg lg:text-xl leading-relaxed max-w-3xl mx-auto mb-8">
+          <p className="text-amber-700 sm:text-lg text-sm lg:text-xl sm:leading-relaxed leading-normal max-w-3xl mx-auto mb-8 px-3">
             Ob schützende Figur oder sicherer Ort - finde das, was dir in deinem Inneren Geborgenheit, Kraft und Ruhe schenkt.
           </p>
         </motion.div>
@@ -124,34 +124,34 @@ export default function ResourceFigureSelection({
 
       {/* Section Tabs - Exakt wie in Figma */}
       <div className="bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
-        <div className="flex justify-center pt-8 pb-0">
-          <div className="w-96 h-16 relative">
-            <div className="w-96 h-16 left-0 top-0 absolute bg-amber-50 rounded-[45px]" />
-            <div className={`w-28 h-16 left-[8px] top-0 absolute bg-amber-500 rounded-tl-2xl rounded-tr-2xl transition-all duration-300 ${
+        <div className="flex justify-center sm:pt-8 pb-0">
+          <div className="sm:w-96 w-80 sm:h-16 h-12 relative">
+            <div className="sm:w-96 w-80 sm:h-16 h-12 left-0 top-0 absolute bg-amber-50 rounded-[45px]" />
+            <div className={`sm:w-28 w-[86px] sm:h-16 h-12 sm:left-[128px] left-[116px] top-0 absolute bg-amber-500 rounded-tl-2xl rounded-tr-2xl transition-all duration-300 ${
               activeSection === 'real' ? 'opacity-100' : 'opacity-0'
             }`} style={{boxShadow: 'var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), 2px -3px 6px 0px rgba(0, 0, 0, 0.25)'}} />
-            <div className={`w-28 h-16 left-[128px] top-0 absolute bg-amber-500 rounded-tl-2xl rounded-tr-2xl transition-all duration-300 ${
+            <div className={`sm:w-28 w-[86px] sm:h-16 h-12 sm:left-[8px] left-[20px] top-0 absolute bg-amber-500 rounded-tl-2xl rounded-tr-2xl transition-all duration-300 ${
               activeSection === 'fictional' ? 'opacity-100' : 'opacity-0'
             }`} style={{boxShadow: 'var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), 2px -3px 6px 0px rgba(0, 0, 0, 0.25)'}} />
-            <div className={`w-28 h-16 left-[248px] top-0 absolute bg-amber-500 rounded-tl-2xl rounded-tr-2xl transition-all duration-300 ${
+            <div className={`sm:w-28 w-[86px] sm:h-16 h-12 sm:left-[248px] left-[212px] top-0 absolute bg-amber-500 rounded-tl-2xl rounded-tr-2xl transition-all duration-300 ${
               activeSection === 'custom' ? 'opacity-100' : 'opacity-0'
             }`} style={{boxShadow: 'var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), 2px -3px 6px 0px rgba(0, 0, 0, 0.25)'}} />
-            <div className={`w-28 h-16 left-[8px] top-0 absolute rounded-tl-2xl rounded-tr-2xl transition-all duration-300 cursor-pointer ${
+            <div className={`sm:w-28 w-[86px] sm:h-16 h-12  sm:left-[128px] left-[116px] top-0 absolute rounded-tl-2xl rounded-tr-2xl transition-all duration-300 cursor-pointer ${
               activeSection === 'real' ? 'opacity-0' : 'opacity-100'
             }`} style={{backgroundColor: '#EEEEF0'}} onClick={() => handleSectionChange('real')} />
-            <div className={`w-28 h-16 left-[128px] top-0 absolute rounded-tl-2xl rounded-tr-2xl transition-all duration-300 cursor-pointer ${
+            <div className={`sm:w-28 w-[86px] sm:h-16 h-12 sm:left-[8px] left-[20px] top-0 absolute rounded-tl-2xl rounded-tr-2xl transition-all duration-300 cursor-pointer ${
               activeSection === 'fictional' ? 'opacity-0' : 'opacity-100'
             }`} style={{backgroundColor: '#EEEEF0'}} onClick={() => handleSectionChange('fictional')} />
-            <div className={`w-28 h-16 left-[248px] top-0 absolute rounded-tl-2xl rounded-tr-2xl transition-all duration-300 cursor-pointer ${
+            <div className={`sm:w-28 w-[86px] sm:h-16 h-12 sm:left-[248px] left-[212px] top-0 absolute rounded-tl-2xl rounded-tr-2xl transition-all duration-300 cursor-pointer ${
               activeSection === 'custom' ? 'opacity-0' : 'opacity-100'
             }`} style={{backgroundColor: '#EEEEF0'}} onClick={() => handleSectionChange('custom')} />
-            <div className={`w-28 h-16 left-[8px] top-0 absolute flex items-center justify-center text-lg font-bold cursor-pointer transition-all duration-300 ${
+            <div className={`sm:w-28 w-[86px] sm:h-16 h-12 sm:left-[128px] left-[116px] top-0 absolute flex items-center justify-center sm:text-lg text-sm font-bold cursor-pointer transition-all duration-300 ${
               activeSection === 'real' ? 'opacity-100' : 'opacity-100'
             }`} style={{color: activeSection === 'real' ? 'white' : '#B6B5B6'}} onClick={() => handleSectionChange('real')}>Real</div>
-            <div className={`w-28 h-16 left-[128px] top-0 absolute flex items-center justify-center text-lg font-bold cursor-pointer transition-all duration-300 ${
+            <div className={`sm:w-28 w-[86px] sm:h-16 h-12 sm:left-[8px] left-[20px] top-0 absolute flex items-center justify-center sm:text-lg text-sm font-bold cursor-pointer transition-all duration-300 ${
               activeSection === 'fictional' ? 'text-white opacity-100' : 'opacity-100'
             }`} style={{color: activeSection === 'fictional' ? 'white' : '#B6B5B6'}} onClick={() => handleSectionChange('fictional')}>Fiktiv</div>
-            <div className={`w-28 h-16 left-[248px] top-0 absolute flex items-center justify-center text-lg font-bold cursor-pointer transition-all duration-300 ${
+            <div className={`sm:w-28 w-24 sm:h-16 h-12 sm:left-[248px] left-[204px] top-0 absolute flex items-center justify-center sm:text-lg text-sm font-bold cursor-pointer transition-all duration-300 ${
               activeSection === 'custom' ? 'text-white opacity-100' : 'opacity-100'
             }`} style={{color: activeSection === 'custom' ? 'white' : '#B6B5B6'}} onClick={() => handleSectionChange('custom')}>Orte</div>
           </div>
@@ -162,7 +162,7 @@ export default function ResourceFigureSelection({
       </div>
 
       {/* Content Area */}
-      <div className="bg-white pt-8 px-6 pb-8">
+      <div className="bg-white pt-8 sm:px-6 px-4 pb-8">
         <AnimatePresence mode="wait">
           {/* Custom Form - wird angezeigt, wenn showCustomForm true ist */}
           {showCustomForm && (
@@ -173,10 +173,10 @@ export default function ResourceFigureSelection({
               transition={{ duration: 0.3 }}
               className="text-center mb-8"
             >
-              <h2 className="text-2xl font-light text-amber-900 mb-4">
+              <h2 className="text-xl sm:text-2xl font-light text-amber-900 sm:mb-4 mb-2">
                 {activeSection === 'custom' ? 'Eigenen sicheren Ort erstellen' : 'Eigene Ressourcenfigur erstellen'}
               </h2>
-              <p className="text-amber-700 text-lg leading-relaxed max-w-3xl mx-auto mb-8">
+              <p className="text-amber-700 sm:text-lg text-sm leading-relaxed max-w-3xl mx-auto mb-8">
                 {activeSection === 'custom' 
                   ? 'Erstelle deinen eigenen sicheren Ort mit Name, Beschreibung und besonderen Eigenschaften.'
                   : 'Erstelle deine eigene, personalisierte Ressource mit Name, Pronomen und Beschreibung.'
@@ -194,7 +194,7 @@ export default function ResourceFigureSelection({
                   placeholder={activeSection === 'custom' ? "Name des Ortes" : "Name der Ressource"}
                   value={customFigure.name}
                   onChange={(e) => setCustomFigure(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-4 py-3 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full sm:px-4 px-3 sm:py-2 py-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent max-sm:text-sm"
                   required
                 />
                 
@@ -202,7 +202,7 @@ export default function ResourceFigureSelection({
                   <select
                     value={customFigure.pronouns}
                     onChange={(e) => setCustomFigure(prev => ({ ...prev, pronouns: e.target.value }))}
-                    className="w-full px-4 py-3 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full sm:px-4 px-3 sm:py-2 py-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent max-sm:text-sm"
                     required
                   >
                     <option value="">Pronomen auswählen</option>
@@ -218,7 +218,7 @@ export default function ResourceFigureSelection({
                     placeholder="Art des Ortes (z.B. Strand, Berg, Garten)"
                     value={customFigure.placeType || ''}
                     onChange={(e) => setCustomFigure(prev => ({ ...prev, placeType: e.target.value }))}
-                    className="w-full px-4 py-3 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full sm:px-4 px-3 sm:py-2 py-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent max-sm:text-sm"
                     required
                   />
                 )}
@@ -227,7 +227,7 @@ export default function ResourceFigureSelection({
                   placeholder={activeSection === 'custom' ? "Beschreibung des Ortes (optional)" : "Beschreibung (optional)"}
                   value={customFigure.description}
                   onChange={(e) => setCustomFigure(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full px-4 py-3 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent h-24"
+                  className="w-full sm:px-4 px-3 sm:py-2 py-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent max-sm:text-sm h-24"
                 />
                 
                 {activeSection === 'custom' && (
@@ -235,21 +235,21 @@ export default function ResourceFigureSelection({
                     placeholder="Was macht diesen Ort besonders sicher für dich? (optional)"
                     value={customFigure.safetyFeatures || ''}
                     onChange={(e) => setCustomFigure(prev => ({ ...prev, safetyFeatures: e.target.value }))}
-                    className="w-full px-4 py-3 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent h-24"
+                    className="w-full sm:px-4 px-3 sm:py-2 py-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent max-sm:text-sm h-24"
                   />
                 )}
                 
                 <div className="flex gap-3">
                   <button
                     type="submit"
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg font-medium hover:from-amber-600 hover:to-orange-600 transition-all duration-300"
+                    className="flex-1 px-6 sm:py-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg font-medium hover:from-amber-600 hover:to-orange-600 transition-all duration-300 text-sm"
                   >
                     Erstellen
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowCustomForm(false)}
-                    className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-all duration-300"
+                    className="px-6 max-sm:py-3 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-all duration-300"
                   >
                     Abbrechen
                   </button>
@@ -270,25 +270,25 @@ export default function ResourceFigureSelection({
             >
               {activeSection === 'real' && (
                 <>
-                  <h2 className="text-2xl font-light text-amber-900 mb-4">
+                  <h2 className="sm:text-2xl text-xl font-light text-amber-900 sm:mb-4 mb-2">
                     Echte Menschen & Haustiere
                   </h2>
-                  <p className="text-amber-700 text-lg leading-relaxed max-w-3xl mx-auto mb-8">
+                  <p className="text-amber-700 sm:text-lg text-sm leading-relaxed max-w-3xl mx-auto mb-8">
                     Wähle eine vertraute Person oder ein geliebtes Tier, das dir einmal Sicherheit, Liebe oder Unterstützung gegeben hat.
                   </p>
                   
                   {/* Resource Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 max-w-7xl mx-auto px-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 max-w-7xl mx-auto sm:px-4">
                     {realFigures.map((figure) => (
                       <motion.div
                         key={figure.id}
                         whileHover={{ scale: 1.02, y: -2 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => handleFigureClick(figure)}
-                        className="w-full h-56 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
+                        className="w-full h-48 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
                       >
                         <div className="w-full h-full left-0 top-0 absolute rounded-2xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50">
-                          <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-2 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
+                          <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
                   {figure.id === 'ideal-family' ? (
                     <IdealFamilyIconFinal size={60} className="w-full h-full" />
                   ) : figure.id === 'jesus' ? (
@@ -303,10 +303,10 @@ export default function ResourceFigureSelection({
                     <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">{figure.emoji}</span>
                   )}
                           </div>
-                          <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-xs sm:text-base md:text-sm lg:text-base font-bold">
+                          <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-[60%] sm:top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-base sm:text-base md:text-sm lg:text-base font-bold">
                             {figure.name}
                           </div>
-                          <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-xs leading-tight">
+                          <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-sm leading-tight">
                             {figure.description}
                           </div>
                         </div>
@@ -318,16 +318,16 @@ export default function ResourceFigureSelection({
                       whileHover={{ scale: 1.02, y: -2 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setShowCustomForm(true)}
-                      className="w-full h-56 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
+                      className="w-full h-48 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
                     >
                       <div className="w-full h-full left-0 top-0 absolute rounded-2xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] border-2 border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50">
-                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-2 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
+                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
                           <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">➕</span>
                         </div>
-                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-blue-900 text-xs sm:text-base md:text-sm lg:text-base font-bold">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-[60%] sm:top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-blue-900 text-base sm:text-base md:text-sm lg:text-base font-bold">
                           Custom
                         </div>
-                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-blue-800 text-xs leading-tight">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-blue-800 text-sm leading-tight">
                           Erstelle deine eigene, personalisierte Ressource
                         </div>
                       </div>
@@ -338,25 +338,25 @@ export default function ResourceFigureSelection({
 
               {activeSection === 'fictional' && (
                 <>
-                                     <h2 className="text-2xl font-light text-amber-900 mb-4">
+                                     <h2 className="text-xl sm:text-2xl font-light text-amber-900 sm:mb-4 mb-2">
                      Fiktive Figuren
                    </h2>
-                  <p className="text-amber-700 text-lg leading-relaxed max-w-3xl mx-auto mb-8">
+                  <p className="text-amber-700 sm:text-lg text-sm leading-relaxed max-w-3xl mx-auto mb-8">
                     Entdecke imaginäre Wesen, die dir in deiner Fantasie Kraft und Schutz geben können.
                   </p>
                   
                   {/* Resource Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 max-w-7xl mx-auto px-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 max-w-7xl mx-auto sm:px-4">
                     {fictionalFigures.map((figure) => (
                       <motion.div
                         key={figure.id}
                         whileHover={{ scale: 1.02, y: -2 }}
           whileTap={{ scale: 0.98 }}
                         onClick={() => handleFigureClick(figure)}
-                        className="w-full h-56 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
+                        className="w-full h-48 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
                       >
                         <div className="w-full h-full left-0 top-0 absolute rounded-2xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50">
-                          <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-2 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
+                          <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
                   {figure.id === 'ideal-family' ? (
                     <IdealFamilyIconFinal size={60} className="w-full h-full" />
                   ) : figure.id === 'jesus' ? (
@@ -371,10 +371,10 @@ export default function ResourceFigureSelection({
                     <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">{figure.emoji}</span>
                   )}
                           </div>
-                          <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-xs sm:text-base md:text-sm lg:text-base font-bold">
+                          <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-[60%] sm:top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-base sm:text-base md:text-sm lg:text-base font-bold">
                             {figure.name}
                           </div>
-                          <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-xs leading-tight">
+                          <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-sm leading-tight">
                             {figure.description}
                           </div>
                         </div>
@@ -386,16 +386,16 @@ export default function ResourceFigureSelection({
                       whileHover={{ scale: 1.02, y: -2 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setShowCustomForm(true)}
-                      className="w-full h-56 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
+                      className="w-full h-48 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
                     >
                       <div className="w-full h-full left-0 top-0 absolute rounded-2xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] border-2 border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50">
-                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-2 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
+                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
                           <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">➕</span>
                         </div>
-                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-blue-900 text-xs sm:text-base md:text-sm lg:text-base font-bold">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-[60%] sm:top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-blue-900 text-base sm:text-base md:text-sm lg:text-base font-bold">
                           Custom
                         </div>
-                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-blue-800 text-xs leading-tight">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-blue-800 text-sm leading-tight">
                           Erstelle deine eigene, personalisierte Ressource
                         </div>
                       </div>
@@ -406,14 +406,14 @@ export default function ResourceFigureSelection({
 
               {activeSection === 'custom' && (
                 <>
-                  <h2 className="text-2xl font-light text-amber-900 mb-4">
+                  <h2 className="text-xl sm:text-2xl font-light text-amber-900 sm:mb-4 mb-2">
                     Sichere Orte
                   </h2>
-                  <p className="text-amber-700 text-lg leading-relaxed max-w-3xl mx-auto mb-8">
+                  <p className="text-amber-700 sm:text-lg text-sm leading-relaxed max-w-3xl mx-auto mb-8">
                     Finde deinen inneren Zufluchtsort, wo du dich geborgen und sicher fühlst.
                   </p>
                   
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 max-w-7xl mx-auto px-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 max-w-7xl mx-auto sm:px-4">
                     <motion.div
                       whileHover={{ scale: 1.02, y: -2 }}
                       whileTap={{ scale: 0.98 }}
@@ -426,16 +426,16 @@ export default function ResourceFigureSelection({
                         pronouns: 'es/sein',
                         isCustom: false
                       })}
-                      className="w-full h-56 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
+                      className="w-full h-48 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
                     >
                       <div className="w-full h-full left-0 top-0 absolute rounded-2xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50">
-                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-2 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
+                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
                           <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">🏠</span>
                         </div>
-                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-xs sm:text-base md:text-sm lg:text-base font-bold">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-[60%] sm:top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-base sm:text-base md:text-sm lg:text-base font-bold">
                           Sicherer Ort
                         </div>
-                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-xs leading-tight">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-sm leading-tight">
                           Ein Ort voller Geborgenheit und Schutz
                         </div>
                       </div>
@@ -453,16 +453,16 @@ export default function ResourceFigureSelection({
                         pronouns: 'es/sein',
                         isCustom: false
                       })}
-                      className="w-full h-56 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
+                      className="w-full h-48 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
                     >
                       <div className="w-full h-full left-0 top-0 absolute rounded-2xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50">
-                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-2 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
+                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
                           <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">✨</span>
                         </div>
-                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-xs sm:text-base md:text-sm lg:text-base font-bold">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-[60%] sm:top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-base sm:text-base md:text-sm lg:text-base font-bold">
                           Heilungsraum
                         </div>
-                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-xs leading-tight">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-sm leading-tight">
                           Ein Raum für Heilung und Regeneration
                         </div>
                       </div>
@@ -480,16 +480,16 @@ export default function ResourceFigureSelection({
                         pronouns: 'es/sein',
                         isCustom: false
                       })}
-                      className="w-full h-56 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
+                      className="w-full h-48 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
                     >
                       <div className="w-full h-full left-0 top-0 absolute rounded-2xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50">
-                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-2 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
+                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
                           <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">🌱</span>
                         </div>
-                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-xs sm:text-base md:text-sm lg:text-base font-bold">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-[60%] sm:top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-base sm:text-base md:text-sm lg:text-base font-bold">
                           Innerer Garten
                         </div>
-                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-xs leading-tight">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-sm leading-tight">
                           Ein Garten voller Wachstum und Leben
                         </div>
                       </div>
@@ -507,16 +507,16 @@ export default function ResourceFigureSelection({
                         pronouns: 'es/sein',
                         isCustom: false
                       })}
-                      className="w-full h-56 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
+                      className="w-full h-48 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
                     >
                       <div className="w-full h-full left-0 top-0 absolute rounded-2xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50">
-                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-2 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
+                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
                           <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">⚡</span>
                         </div>
-                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-xs sm:text-base md:text-sm lg:text-base font-bold">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-[60%] sm:top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-base sm:text-base md:text-sm lg:text-base font-bold">
                           Kraftplatz
                         </div>
-                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-xs leading-tight">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-sm leading-tight">
                           Ein Ort voller Energie und Stärke
                         </div>
                       </div>
@@ -534,16 +534,16 @@ export default function ResourceFigureSelection({
                         pronouns: 'es/sein',
                         isCustom: false
                       })}
-                      className="w-full h-56 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
+                      className="w-full h-48 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
                     >
                       <div className="w-full h-full left-0 top-0 absolute rounded-2xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50">
-                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-2 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
+                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
                           <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">🕍</span>
                         </div>
-                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-xs sm:text-base md:text-sm lg:text-base font-bold">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-[60%] sm:top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-base sm:text-base md:text-sm lg:text-base font-bold">
                           Innerer Tempel
                         </div>
-                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-xs leading-tight">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-sm leading-tight">
                           Ein heiliger Raum der Stille
                         </div>
                       </div>
@@ -561,16 +561,16 @@ export default function ResourceFigureSelection({
                         pronouns: 'es/sein',
                         isCustom: false
                       })}
-                      className="w-full h-56 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
+                      className="w-full h-48 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
                     >
                       <div className="w-full h-full left-0 top-0 absolute rounded-2xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50">
-                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-2 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
+                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
                           <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">⚓</span>
                         </div>
-                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-xs sm:text-base md:text-sm lg:text-base font-bold">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-[60%] sm:top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-base sm:text-base md:text-sm lg:text-base font-bold">
                           Mein sicherer Hafen
                         </div>
-                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-xs leading-tight">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-sm leading-tight">
                           Ein sicherer Ankerplatz für deine Seele
                         </div>
                       </div>
@@ -588,16 +588,16 @@ export default function ResourceFigureSelection({
                         pronouns: 'es/sein',
                         isCustom: false
                       })}
-                      className="w-full h-56 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
+                      className="w-full h-48 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
                     >
                       <div className="w-full h-full left-0 top-0 absolute rounded-2xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50">
-                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-2 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
+                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
                           <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">💫</span>
                         </div>
-                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-xs sm:text-base md:text-sm lg:text-base font-bold">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-[60%] sm:top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-yellow-900 text-base sm:text-base md:text-sm lg:text-base font-bold">
                           Mein Seelenplatz
                         </div>
-                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-xs leading-tight">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-yellow-800 text-sm leading-tight">
                           Ein Ort der tiefen Verbindung
                         </div>
                       </div>
@@ -608,16 +608,16 @@ export default function ResourceFigureSelection({
                       whileHover={{ scale: 1.02, y: -2 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setShowCustomForm(true)}
-                      className="w-full h-56 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
+                      className="w-full h-48 sm:h-64 md:h-64 lg:h-64 relative cursor-pointer"
                     >
                       <div className="w-full h-full left-0 top-0 absolute rounded-2xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] border-2 border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50">
-                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-2 sm:top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
+                        <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 left-1/2 top-4 md:top-5 lg:top-6 transform -translate-x-1/2 absolute flex items-center justify-center">
                           <span className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl">➕</span>
                         </div>
-                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-blue-900 text-xs sm:text-base md:text-sm lg:text-base font-bold">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 pt-0 sm:pt-8 md:pt-9 lg:pt-10 pb-20 sm:pb-5 md:pb-6 lg:pb-7 left-0 top-[60%] sm:top-1/2 transform -translate-y-1/2 absolute text-center justify-start text-blue-900 text-base sm:text-base md:text-sm lg:text-base font-bold">
                           Custom
                         </div>
-                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-blue-800 text-xs leading-tight">
+                        <div className="w-full px-2 sm:px-4 md:px-5 lg:px-6 left-0 top-24 sm:top-36 md:top-40 lg:top-44 absolute text-center justify-start text-blue-800 text-sm leading-tight">
                           Erstelle deinen eigenen sicheren Ort
                         </div>
                       </div>
@@ -638,31 +638,31 @@ export default function ResourceFigureSelection({
               animate={{ y: 0, opacity: 1, scale: 1 }}
               exit={{ y: -30, opacity: 0, scale: 0.9 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="fixed bottom-2 sm:bottom-4 left-2 right-2 sm:left-4 sm:right-4 lg:left-0 lg:right-0 lg:mx-auto z-30 w-auto max-w-2xl px-3 sm:px-6"
+            className="fixed bottom-0 max-w-2xl left-0 right-0 z-30 w-full m-auto pb-2 sm:px-6 px-2"
             >
               <Card className="bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50 border-green-200 shadow-lg rounded-2xl lg:rounded-3xl overflow-hidden">
-              <CardContent className="p-6 lg:p-8">
+              <CardContent className="p-2 lg:p-4 ">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0">
                     <motion.div
                       animate={{ 
                         scale: [1, 1.1, 1],
                         rotate: [0, 5, -5, 0]
                       }}
                       transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                      className="w-12 h-12 lg:w-16 lg:h-16 bg-green-500 rounded-full flex items-center justify-center shadow-lg flex-shrink-0"
+                      className="w-8 h-8 sm:w-12 sm:h-12 lg:w-16 lg:h-16 bg-green-500 rounded-full flex items-center justify-center shadow-lg flex-shrink-0"
                     >
                       <Check className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
                     </motion.div>
-                    <div className="flex-1 min-w-0">
+                    <div className="">
                       <motion.span 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="text-green-800 font-medium block mb-2 text-sm lg:text-base"
+                        className="text-green-800 font-medium block sm:mb-2 sm:text-sm text-xs lg:text-base"
                       >
                         ✨ Deine Ressource:
                       </motion.span>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center sm:gap-3 gap-1">
                         <motion.span 
                           animate={{ rotate: [0, 10, -10, 0] }}
                           transition={{ duration: 2, repeat: Infinity, repeatDelay: 4 }}
@@ -683,7 +683,7 @@ export default function ResourceFigureSelection({
                           )}
                         </motion.span>
                         <div className="min-w-0 flex-1">
-                          <h3 className="text-lg lg:text-2xl font-semibold text-amber-900 leading-tight">
+                          <h3 className="text-base sm:text-lg lg:text-2xl font-semibold text-amber-900 leading-tight">
                             {selectedFigure.name}
                           </h3>
                         </div>
@@ -696,7 +696,7 @@ export default function ResourceFigureSelection({
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={onNext}
-                    className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-medium hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-2 flex-shrink-0"
+                    className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-medium hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-2 max-sm:text-sm"
                   >
                     Weiter
                     <span className="text-white">→</span>
@@ -725,12 +725,12 @@ export default function ResourceFigureSelection({
               className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="text-center mb-6">
+              <div className="text-center sm:mb-6 mb-4">
                 <div className="text-4xl mb-3">{pendingFigure.emoji}</div>
                 <h3 className="text-xl font-semibold text-amber-900 mb-2">
                   {pendingFigure.name}
                 </h3>
-                <p className="text-amber-700">
+                <p className="text-amber-700 max-sm:text-sm">
                   Wähle die Pronomen für {pendingFigure.id === 'pet-dog' ? 'deinen' : pendingFigure.id === 'pet-cat' ? 'deine' : 'deine'} {pendingFigure.name}:
                 </p>
               </div>
@@ -738,24 +738,24 @@ export default function ResourceFigureSelection({
               <div className="space-y-3">
                 <button
                   onClick={() => handlePronounSelection('sie/ihr')}
-                  className="w-full p-4 border-2 border-amber-200 rounded-xl hover:border-amber-400 hover:bg-amber-50 transition-all duration-200 text-left"
+                  className="w-full sm:p-4 max-sm:py-2 max-sm:px-4 border-2 border-amber-200 rounded-xl hover:border-amber-400 hover:bg-amber-50 transition-all duration-200 text-left"
                 >
-                  <div className="font-semibold text-amber-900">sie/ihr (weiblich)</div>
+                  <div className="font-semibold text-amber-900">sie/ihr ({pendingFigure.id === 'sibling' ? 'schwester' : 'weiblich'})</div>
                   <div className="text-sm text-amber-700">Für {pendingFigure.id === 'pet-dog' ? 'einen weiblichen' : pendingFigure.id === 'pet-cat' ? 'eine weibliche' : 'eine weibliche'} {pendingFigure.name}</div>
                 </button>
                 
                 <button
                   onClick={() => handlePronounSelection('er/ihm')}
-                  className="w-full p-4 border-2 border-amber-200 rounded-xl hover:border-amber-400 hover:bg-amber-50 transition-all duration-200 text-left"
+                  className="w-full sm:p-4 max-sm:py-2 max-sm:px-4 border-2 border-amber-200 rounded-xl hover:border-amber-400 hover:bg-amber-50 transition-all duration-200 text-left"
                 >
-                  <div className="font-semibold text-amber-900">er/ihm (männlich)</div>
+                  <div className="font-semibold text-amber-900">er/ihm ({pendingFigure.id === 'sibling' ? 'bruder' : 'männlich'})</div>
                   <div className="text-sm text-amber-700">Für {pendingFigure.id === 'pet-dog' ? 'einen männlichen' : pendingFigure.id === 'pet-cat' ? 'einen männlichen' : 'einen männlichen'} {pendingFigure.name}</div>
                 </button>
               </div>
               
               <button
                 onClick={() => setShowPronounSelection(false)}
-                className="w-full mt-6 p-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300 transition-all duration-200"
+                className="w-full max-sm:text-sm sm:mt-6 mt-4 p-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300 transition-all duration-200"
                       >
                         Abbrechen
               </button>

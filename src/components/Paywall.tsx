@@ -57,38 +57,38 @@ export default function Paywall({ onClose, message }: PaywallProps) {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full p-8 relative my-8"
+        className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full sm:p-8 p-4 relative my-8"
       >
         <div className="text-center">
-          <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
-            <Lock className="w-8 h-8 text-amber-600" />
+          <div className="mx-auto sm:w-16 sm:h-16 w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center sm:mb-4 mb-2">
+            <Lock className="sm:w-8 sm:h-8 w-6 h-6 text-amber-600" />
           </div>
 
-          <h2 className="text-2xl font-bold text-amber-900 mb-2">
+          <h2 className="sm:text-2xl text-xl font-bold text-amber-900 mb-2">
             Deine tägliche Quelle der Stärke
           </h2>
 
           {message ? (
-            <p className="text-amber-700 mb-6">{message}</p>
+            <p className="text-amber-700 sm:mb-6 mb-4 max-sm:text-sm">{message}</p>
           ) : (
-            <p className="text-amber-700 mb-6">Fühle dich jeden Tag sicher, geborgen und beschützt</p>
+            <p className="text-amber-700 sm:mb-6 mb-4 max-sm:text-sm">Fühle dich jeden Tag sicher, geborgen und beschützt</p>
           )}
 
           {/* Monatliches Abo */}
-          <div className="max-w-md mx-auto mb-6">
-            <div className="border-2 border-amber-500 bg-amber-50 rounded-xl p-6">
+          <div className="max-w-md mx-auto sm:mb-6 mb-4">
+            <div className="border-2 border-amber-500 bg-amber-50 rounded-xl sm:p-6 p-4">
               <div className="text-center">
-                <h3 className="text-2xl font-bold text-amber-900 mb-2">Monatliches Abo</h3>
+                <h3 className="sm:text-2xl text-xl font-bold text-amber-900 mb-2">Monatliches Abo</h3>
                 <div className="mb-4">
                   <div className="flex items-baseline justify-center gap-2">
-                    <span className="text-4xl font-bold text-amber-900">39€</span>
+                    <span className="sm:text-4xl text-3xl font-bold text-amber-900">39€</span>
                     <span className="text-amber-600 text-sm">pro Monat</span>
                   </div>
-                  <p className="text-sm text-amber-600 mt-2">
+                  <p className="text-sm text-amber-600 mt-3">
                     Geschichten, die dein Herz berühren - monatlich kündbar
                   </p>
                 </div>
-                <div className="space-y-3 text-left mt-6">
+                <div className="sm:space-y-3 space-y-2 text-left sm:mt-6">
                   <div className="flex items-start gap-2">
                     <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
                     <p className="text-sm text-amber-700">Täglich neue Geschichten, die dir Sicherheit geben</p>
@@ -112,11 +112,11 @@ export default function Paywall({ onClose, message }: PaywallProps) {
             </div>
           )}
 
-          <div className="flex gap-3">
+          <div className="flex sm:flex-row flex-col-reverse gap-3">
             {onClose && (
               <button
                 onClick={onClose}
-                className="flex-1 px-4 py-3 border border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors"
+                className="flex-1 px-4 py-3 border border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors max-sm:text-sm"
                 disabled={loading}
               >
                 Später

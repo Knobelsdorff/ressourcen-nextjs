@@ -85,7 +85,7 @@ export default function UserSettingsPage() {
             <div className="grid gap-6">
                 <div className="lg:col-span-2 space-y-6">
                     <Card>
-                        <CardHeader>
+                        <CardHeader className='p-4'>
                             <CardTitle className="flex items-center gap-2">
                                 <User className="h-5 w-5" />
                                 User Details

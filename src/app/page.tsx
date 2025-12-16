@@ -500,7 +500,14 @@ function RessourcenAppContent() {
             appState.questionAnswers.every(a => a.answer.trim().length > 0 || a.selectedBlocks.length >= 2);
 
           if (allQuestionsAnswered) {
-            // Wait for user data to load before deciding
+            // If user is not logged in, skip step 3 (no DB call needed)
+            if (!user) {
+              console.log('All questions answered, user not logged in, skipping name form and going directly to step 4 (voice selection)');
+              setAppState(prev => ({ ...prev, currentStep: 4, currentQuestionIndex: 0 }));
+              return;
+            }
+
+            // User is logged in - wait for user data to load before deciding
             if (!userDataLoaded) {
               console.log('User data not loaded yet, waiting...');
               return;
@@ -547,10 +554,11 @@ function RessourcenAppContent() {
       let newStep = Math.max(1, prev.currentStep - 1);
 
       // When going back from Step 4 (VoiceSelection)
-      // If user has a name, go back to Step 2 (skipping name form)
-      // If user doesn't have a name, go back to Step 3 (name form)
+      // If user is not logged in, go back to Step 2 (skipping name form)
+      // If user is logged in and has a name, go back to Step 2 (skipping name form)
+      // If user is logged in but doesn't have a name, go back to Step 3 (name form)
       if (prev.currentStep === 4) {
-        newStep = (userFullName && userFullName.trim() !== '') ? 2 : 3;
+        newStep = (!user || (userFullName && userFullName.trim() !== '')) ? 2 : 3;
       }
 
       return {
@@ -560,7 +568,7 @@ function RessourcenAppContent() {
         currentQuestionIndex: newStep === 2 ? 0 : prev.currentQuestionIndex
       };
     });
-  }, [userFullName]);
+  }, [user, userFullName]);
 
   const handleUserDataUpdate = useCallback((fullName: string, pronunciationHint: string | null) => {
     setUserFullName(fullName || null);
@@ -717,7 +725,7 @@ function RessourcenAppContent() {
    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
 
         {/* Mobile Navigation - Weiter Button (nur ab Schritt 2, NICHT bei Audio/Schritt 4) */}
-        {appState.currentStep >= 2 && appState.currentStep !== 4 && (
+        {appState.currentStep === 2 && (
           <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
           <motion.button
             initial={{ y: 20, opacity: 0 }}
@@ -728,7 +736,7 @@ function RessourcenAppContent() {
               handleNextStep();
             }}
             disabled={!canProceed}
-            className={`w-full px-4 py-3 text-white rounded-lg transition-all text-base font-semibold flex items-center justify-center gap-2 shadow-lg ${
+            className={`w-full px-4 py-3 text-white rounded-lg transition-all text-base font-semibold flex items-center justify-center gap-2 shadow-lg max-sm:text-sm ${
               canProceed 
                 ? 'cursor-pointer' 
                 : 'cursor-not-allowed'
@@ -748,7 +756,7 @@ function RessourcenAppContent() {
       {/* Desktop Layout - OHNE Sidebar */}
       <div className="min-h-screen relative">
         {/* Main Content Area - VOLLER PLATZ */}
-        <div className="flex-1 min-h-screen pb-16 lg:pb-20">
+        <div className="flex-1 min-h-screen">
           <AnimatePresence mode="sync">
             <motion.div
               key={appState.currentStep}

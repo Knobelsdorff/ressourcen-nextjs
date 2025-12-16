@@ -188,7 +188,7 @@ export default function Header() {
   if (loading) {
     return (
       <header className="bg-white border-b border-orange-100">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+        <div className="max-w-7xl mx-auto sm:p-4 p-3 flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg animate-pulse"></div>
             <div className="w-32 h-6 bg-gray-200 rounded animate-pulse"></div>
@@ -203,7 +203,7 @@ export default function Header() {
     <>
       {/* Header - Global auf allen Seiten */}
       <header className="bg-white border-b border-orange-100">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+        <div className="max-w-7xl mx-auto sm:p-4 p-3 flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <button 
               className="flex items-center space-x-2 hover:opacity-80 transition-opacity cursor-pointer"
@@ -224,7 +224,7 @@ export default function Header() {
               <div className="w-8 h-8 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg flex items-center justify-center">
                 <span className="text-white text-lg">🤗</span>
               </div>
-              <span className="text-xl font-light text-amber-900">Ressourcen App</span>
+              <span className="sm:text-xl text-base font-light text-amber-900">Ressourcen App</span>
             </button>
           </div>
           <div className="flex items-center space-x-4">
@@ -247,10 +247,10 @@ export default function Header() {
                 </div>
 
                 {/* Mobile Hamburger Menu */}
-                <div className="lg:hidden mobile-menu-container relative">
+                <div className="lg:hidden mobile-menu-container relative flex">
                   <button
                     onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                    className="p-2 rounded-lg text-amber-900 hover:bg-amber-50 transition-colors"
+                    className="rounded-lg text-amber-900 hover:bg-amber-50 transition-colors"
                     aria-label="Menü öffnen"
                   >
                     <svg
@@ -276,14 +276,14 @@ export default function Header() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute right-4 top-16 bg-white rounded-lg shadow-lg border border-amber-100 py-2 z-50 min-w-[160px]"
+                        className="absolute right-0 top-12 bg-white rounded-lg shadow-lg border border-amber-100 z-50 min-w-[160px] "
                       >
                         <Link
                           href="/dashboard"
                           onClick={() => setIsMobileMenuOpen(false)}
-                          className="block px-4 py-3 text-amber-900 hover:bg-amber-50 transition-colors flex items-center gap-2"
+                          className="px-4 py-[10px] text-amber-900 hover:bg-amber-50 transition-colors flex items-center gap-2 text-sm"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-4 h-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z" />
                           </svg>
@@ -294,7 +294,7 @@ export default function Header() {
                             handleLogout();
                             setIsMobileMenuOpen(false);
                           }}
-                          className="block w-full text-left px-4 py-3 text-amber-900 hover:bg-amber-50 transition-colors flex items-center gap-2"
+                          className="w-full text-left px-4 py-[10px] text-amber-900 hover:bg-amber-50 transition-colors flex items-center gap-2 text-sm"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -309,7 +309,7 @@ export default function Header() {
             ) : (
               <button 
                 onClick={() => setShowAuthModal(true)}
-                className="text-amber-900 font-medium hover:text-amber-700 transition-colors px-4 py-2 rounded-lg hover:bg-amber-50"
+                className="text-amber-900 font-medium hover:text-amber-700 transition-colors rounded-lg hover:bg-amber-50 text-sm"
               >
                 Anmelden
               </button>
@@ -332,11 +332,11 @@ export default function Header() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4"
+              className="bg-white rounded-2xl shadow-xl sm:p-8 p-4 max-w-md w-full mx-4"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-amber-900">
+              <div className="flex justify-between items-center sm:mb-6 mb-3">
+                <h2 className="sm:text-2xl text-lg font-bold text-amber-900">
                   {authMode === 'login' ? 'Anmelden' : 'Registrieren'}
                 </h2>
                 <button 
@@ -359,7 +359,7 @@ export default function Header() {
                 </div>
               )}
               
-              <form onSubmit={handleAuth} className="space-y-4">
+              <form onSubmit={handleAuth} className="space-y-3">
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                     E-Mail
@@ -369,7 +369,7 @@ export default function Header() {
                     id="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
                     placeholder="ihre@email.de"
                     required
                   />
@@ -384,7 +384,7 @@ export default function Header() {
                     id="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
                     placeholder="••••••••"
                     required
                   />
@@ -408,7 +408,7 @@ export default function Header() {
                 )}
                 
                 {authMode === 'login' && (
-                  <div className="flex items-center justify-between">
+                  <div className="flex max-sm:flex-col max-sm:items-start max-sm:gap-2 items-center justify-between">
                     <label className="flex items-center">
                       <input type="checkbox" className="rounded border-gray-300 text-amber-600 focus:ring-amber-500" />
                       <span className="ml-2 text-sm text-gray-600">Angemeldet bleiben</span>
@@ -428,7 +428,7 @@ export default function Header() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-3 px-4 rounded-lg font-medium hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-3 px-4 rounded-lg font-medium hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                   >
                     {isSubmitting ? 'Wird verarbeitet...' : 'Anmelden'}
                   </button>
@@ -438,14 +438,14 @@ export default function Header() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-3 px-4 rounded-lg font-medium hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-3 px-4 rounded-lg font-medium hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                   >
                     {isSubmitting ? 'Wird verarbeitet...' : 'Registrieren'}
                   </button>
                 )}
               </form>
               
-              <div className="mt-6 text-center">
+              <div className="sm:mt-6 mt-4 text-center">
                 <p className="text-sm text-gray-600">
                   {authMode === 'login' ? 'Noch kein Konto?' : 'Bereits ein Konto?'}{" "}
                   <button 
