@@ -501,34 +501,34 @@ export default function AdminAnalytics() {
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div className="sm:mb-8 mb-4">
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-2 text-amber-700 hover:text-amber-800 mb-4 transition-colors"
+            className="inline-flex max-sm:text-sm items-center gap-2 text-amber-700 hover:text-amber-800 sm:mb-4 mb-2 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 " />
             Zurück zum Dashboard
           </Link>
-          <div className="flex items-center justify-between">
+          <div className="flex max-sm:flex-col max-sm:gap-2 sm:items-center justify-between">
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-amber-900 mb-2">
+              <h1 className="sm:text-3xl text-xl md:text-4xl font-bold text-amber-900 sm:mb-2 mb-1">
                 Admin Analytics
               </h1>
-              <p className="text-amber-700">Nutzerverhalten und Statistiken</p>
+              <p className="text-amber-700 max-sm:text-sm">Nutzerverhalten und Statistiken</p>
             </div>
             <Link
               href="/admin/music"
-              className="inline-flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+              className="inline-flex max-sm:justify-center items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors max-sm:text-sm"
             >
-              <Music className="w-4 h-4" />
+              <Music className="w-4 h-4 " />
               Musik verwalten
             </Link>
           </div>
         </div>
 
         {/* Filter */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl shadow-lg sm:p-6 p-3 sm:mb-6 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 sm:gap-4 gap-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Startdatum
@@ -537,7 +537,7 @@ export default function AdminAnalytics() {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent sm:text-base text-sm"
               />
             </div>
             <div>
@@ -548,7 +548,7 @@ export default function AdminAnalytics() {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent sm:text-base text-sm"
               />
             </div>
             <div>
@@ -558,7 +558,7 @@ export default function AdminAnalytics() {
               <select
                 value={eventType}
                 onChange={(e) => setEventType(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent sm:text-base text-sm"
               >
                 <option value="">Alle</option>
                 <option value="user_login">User eingeloggt</option>
@@ -570,7 +570,7 @@ export default function AdminAnalytics() {
               <button
                 onClick={fetchAnalytics}
                 disabled={loading}
-                className="w-full bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 max-sm:text-sm"
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
                 Aktualisieren
@@ -622,16 +622,16 @@ export default function AdminAnalytics() {
         {!loading && !error && stats && (
           <>
             {/* Statistik-Karten */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 sm:gap-4 gap-2 sm:mb-6 mb-4">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-xl shadow-lg p-6"
+                className="bg-white rounded-xl shadow-lg sm:p-6 p-3"
               >
                 <div className="flex items-center justify-between mb-2">
                   <BarChart3 className="w-8 h-8 text-amber-600" />
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalEvents}</p>
+                <p className="sm:text-2xl text-xl font-bold text-gray-900">{stats.totalEvents}</p>
                 <p className="text-sm text-gray-600">Gesamt Events</p>
               </motion.div>
 
@@ -639,12 +639,12 @@ export default function AdminAnalytics() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="bg-white rounded-xl shadow-lg p-6"
+                className="bg-white rounded-xl shadow-lg sm:p-6 p-3"
               >
                 <div className="flex items-center justify-between mb-2">
                   <Users className="w-8 h-8 text-blue-600" />
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalUsers}</p>
+                <p className="sm:text-2xl text-xl font-bold text-gray-900">{stats.totalUsers}</p>
                 <p className="text-sm text-gray-600">Aktive Nutzer</p>
               </motion.div>
 
@@ -652,12 +652,12 @@ export default function AdminAnalytics() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="bg-white rounded-xl shadow-lg p-6"
+                className="bg-white rounded-xl shadow-lg sm:p-6 p-3"
               >
                 <div className="flex items-center justify-between mb-2">
                   <FileText className="w-8 h-8 text-green-600" />
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{stats.resourcesCreated}</p>
+                <p className="sm:text-2xl text-xl font-bold text-gray-900">{stats.resourcesCreated}</p>
                 <p className="text-sm text-gray-600">Ressourcen erstellt</p>
               </motion.div>
 
@@ -665,12 +665,12 @@ export default function AdminAnalytics() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="bg-white rounded-xl shadow-lg p-6"
+                className="bg-white rounded-xl shadow-lg sm:p-6 p-3"
               >
                 <div className="flex items-center justify-between mb-2">
                   <PlayCircle className="w-8 h-8 text-purple-600" />
                 </div>
-                <p className="text-2xl font-bold text-gray-900">-</p>
+                <p className="sm:text-2xl text-xl font-bold text-gray-900">-</p>
                 <p className="text-sm text-gray-600">Audio-Plays (nicht mehr getrackt)</p>
               </motion.div>
             </div>
@@ -678,26 +678,26 @@ export default function AdminAnalytics() {
             {/* Detaillierte Statistiken */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
               {/* Audio-Statistiken */}
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <div className="bg-white rounded-xl shadow-lg sm:p-6 p-3">
+                <h2 className="sm:text-xl text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                   <Volume2 className="w-6 h-6 text-amber-600" />
                   Audio-Statistiken
                 </h2>
-                <div className="space-y-4">
+                <div className="sm:space-y-4 space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-700">Audio vollständig:</span>
+                    <span className="text-gray-700 max-sm:text-sm">Audio vollständig:</span>
                     <span className="font-semibold text-gray-900">{stats.audioCompletions}</span>
                   </div>
                   <div className="flex justify-between items-center pt-2 border-t">
-                    <span className="text-gray-700">Completion-Rate:</span>
+                    <span className="text-gray-700 max-sm:text-sm">Completion-Rate:</span>
                     <span className="font-semibold text-green-600">{completionRate}%</span>
                   </div>
                 </div>
               </div>
 
               {/* Top Ressourcenfiguren */}
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <div className="bg-white rounded-xl shadow-lg sm:p-6 p-3">
+                <h2 className="sm:text-xl text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                   <BookOpen className="w-6 h-6 text-amber-600" />
                   Top Ressourcenfiguren
                 </h2>
@@ -705,10 +705,10 @@ export default function AdminAnalytics() {
                   {stats.topResourceFigures.length > 0 ? (
                     stats.topResourceFigures.map((figure, index) => (
                       <div key={figure.name} className="flex justify-between items-center">
-                        <span className="text-gray-700">
+                        <span className="text-gray-700 max-sm:text-sm">
                           {index + 1}. {figure.name}
                         </span>
-                        <span className="font-semibold text-gray-900">{figure.count}</span>
+                        <span className="font-semibold text-gray-900 max-sm:text-sm">{figure.count}</span>
                       </div>
                     ))
                   ) : (
@@ -719,15 +719,15 @@ export default function AdminAnalytics() {
             </div>
 
             {/* Events nach Typ */}
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <div className="bg-white rounded-xl shadow-lg sm:p-6 p-3 mb-6">
+              <h2 className="sm:text-xl text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <TrendingUp className="w-6 h-6 text-amber-600" />
                 Events nach Typ
               </h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {Object.entries(stats.eventsByType).map(([type, count]) => (
                   <div key={type} className="text-center p-4 bg-amber-50 rounded-lg">
-                    <p className="text-2xl font-bold text-gray-900">{count}</p>
+                    <p className="sm:text-2xl text-xl font-bold text-gray-900">{count}</p>
                     <p className="text-sm text-gray-600 mt-1">{formatEventType(type)}</p>
                   </div>
                 ))}
@@ -736,15 +736,15 @@ export default function AdminAnalytics() {
 
             {/* Events nach Tag */}
             {stats.eventsByDay.length > 0 && (
-              <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <div className="bg-white rounded-xl shadow-lg sm:p-6 p-3 mb-6">
+                <h2 className="sm:text-xl text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                   <Calendar className="w-6 h-6 text-amber-600" />
                   Events nach Tag
                 </h2>
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {stats.eventsByDay.map((day) => (
                     <div key={day.day} className="flex justify-between items-center py-2 border-b">
-                      <span className="text-gray-700">
+                      <span className="text-gray-700 max-sm:text-sm">
                         {new Date(day.day).toLocaleDateString("de-DE", {
                           day: "2-digit",
                           month: "2-digit",
@@ -795,8 +795,8 @@ export default function AdminAnalytics() {
                 .sort(([, a], [, b]) => b.totalEvents - a.totalEvents);
               
               return (
-                <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <div className="bg-white rounded-xl shadow-lg sm:p-6 p-3 mb-6">
+                  <h2 className="sm:text-xl text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                     <Users className="w-6 h-6 text-amber-600" />
                     User-Statistiken
                   </h2>
@@ -804,11 +804,11 @@ export default function AdminAnalytics() {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">Email</th>
-                          <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">Logins</th>
-                          <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">Ressourcen erstellt</th>
-                          <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">Audio vollständig</th>
-                          <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">Gesamt Events</th>
+                          <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700 max-sm:text-sm">Email</th>
+                          <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700 max-sm:text-sm" >Logins</th>
+                          <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700 max-sm:text-sm" >Ressourcen erstellt</th>
+                          <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700 max-sm:text-sm" >Audio vollständig</th>
+                          <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700 max-sm:text-sm" >Gesamt Events</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -829,8 +829,8 @@ export default function AdminAnalytics() {
             })()}
 
             {/* Event-Liste */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <div className="bg-white rounded-xl shadow-lg sm:p-6 p-3">
+              <h2 className="sm:text-xl text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <BarChart3 className="w-6 h-6 text-amber-600" />
                 Event-Details ({events.length} insgesamt)
               </h2>
@@ -844,7 +844,7 @@ export default function AdminAnalytics() {
                 
                 return (
                   <>
-                    <div className="mb-4 flex items-center justify-between">
+                    <div className="mb-4 flex max-sm:flex-col max-sm:gap-2 items-center justify-between">
                       <p className="text-sm text-gray-600">
                         Zeige {startIndex + 1} - {endIndex} von {events.length} Events
                       </p>
@@ -997,7 +997,7 @@ export default function AdminAnalytics() {
                     
                     {/* Pagination Controls am Ende */}
                     {totalPages > 1 && (
-                      <div className="mt-4 flex items-center justify-between">
+                      <div className="mt-4 flex max-sm:flex-col items-center justify-between">
                         <button
                           onClick={() => setCurrentPage(1)}
                           disabled={currentPage === 1}
@@ -1061,7 +1061,7 @@ export default function AdminAnalytics() {
             <div className="flex items-center justify-between p-6 border-b">
               <div>
                 {selectedResource.resource_figure && (
-                  <h2 className="text-2xl font-bold text-gray-900">
+                  <h2 className="sm:text-2xl text-xl font-bold text-gray-900">
                     Ressourcen-Figur: {
                       (() => {
                         // Debug: Logge die Daten

@@ -263,8 +263,8 @@ export default function AudioRecorder({
 
   if (hasPermission === false) {
     return (
-      <div className="w-full p-6 bg-red-50 border-2 border-red-200 rounded-xl">
-        <p className="text-red-800 text-center">
+      <div className="w-full sm:p-6 p-3 bg-red-50 border-2 border-red-200 rounded-xl">
+        <p className="text-red-800 text-center max-sm:text-sm">
           Mikrofon-Zugriff wurde verweigert. Bitte erlaube den Zugriff in den Browser-Einstellungen und lade die Seite neu.
         </p>
       </div>

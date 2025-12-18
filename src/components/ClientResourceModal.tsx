@@ -148,24 +148,24 @@ export default function ClientResourceModal({
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+          className="bg-white sm:rounded-2xl rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b">
-            <h2 className="text-2xl font-bold text-gray-900">
+          <div className="flex items-center justify-between sm:p-6 p-3 border-b">
+            <h2 className="sm:text-2xl text-xl font-bold text-gray-900">
               Ressource für Klienten erstellen
             </h2>
             <button
               onClick={handleClose}
               disabled={isUploading}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50"
+              className="sm:p-2 p-1.5 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50"
             >
-              <X className="w-6 h-6" />
+              <X className="sm:w-6 sm:h-6 w-5 h-5" />
             </button>
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto sm:p-6 p-3 sm:space-y-6 space-y-3">
             {/* Erfolgs-Meldung */}
             {success && (
               <motion.div
@@ -192,10 +192,10 @@ export default function ClientResourceModal({
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="p-4 bg-red-50 border-2 border-red-300 rounded-xl flex items-center space-x-3"
+                className="sm:p-4 p-3 max-sm:flex-col max-sm:gap-2 max-sm:items-start bg-red-50 border-2 border-red-300 rounded-xl flex items-center sm:space-x-3"
               >
                 <AlertCircle className="w-6 h-6 text-red-600" />
-                <span className="text-red-800">{error}</span>
+                <span className="text-red-800 max-sm:text-sm">{error}</span>
               </motion.div>
             )}
 
@@ -232,7 +232,7 @@ export default function ClientResourceModal({
 
             {/* Aktuelle Ressource aufnehmen */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              <h3 className="sm:text-lg text-base font-semibold text-gray-900 sm:mb-4 mb-3">
                 {recordedResources.length > 0 ? "Weitere Ressource hinzufügen" : "1. Ressource aufnehmen"}
               </h3>
               <div className="space-y-4">
@@ -248,7 +248,7 @@ export default function ClientResourceModal({
                       setError("");
                     }}
                     placeholder="z.B. Oma, Engel, Krafttier..."
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors text-lg"
+                    className="w-full sm:px-4 px-3 sm:py-3 py-2 border-2 border-gray-200 sm:rounded-xl rounded-lg focus:outline-none focus:border-blue-500 transition-colors sm:text-lg text-sm"
                   />
                   <p className="mt-2 text-sm text-gray-600">
                     Gib einen Namen für die Ressourcenfigur ein (z.B. "Oma", "Engel", "Krafttier").
@@ -270,7 +270,7 @@ export default function ClientResourceModal({
                 <button
                   onClick={handleAddToQueue}
                   disabled={!currentResourceName.trim() || !currentAudioBlob}
-                  className="w-full px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full sm:px-4 px-3 sm:py-3 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 max-sm:text-sm"
                 >
                   <Plus className="w-5 h-5" />
                   <span>Zur Liste hinzufügen</span>
@@ -281,7 +281,7 @@ export default function ClientResourceModal({
             {/* Klienten-Email (nur wenn Ressourcen vorhanden) */}
             {recordedResources.length > 0 && (
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                <h3 className="sm:text-lg text-base font-semibold text-gray-900 sm:mb-4 mb-3">
                   2. Klienten-Email
                 </h3>
                 <input
@@ -299,17 +299,17 @@ export default function ClientResourceModal({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between p-6 border-t bg-gray-50">
+          <div className="flex items-center max-sm:flex-col-reverse justify-between sm:p-6 p-3 border-t bg-gray-50">
             <div className="text-sm text-gray-600">
               {recordedResources.length > 0 && (
                 <span>{recordedResources.length} Ressource{recordedResources.length > 1 ? 'n' : ''} bereit zum Versenden</span>
               )}
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex sm:items-center max-sm:flex-col sm:gap-3 gap-1">
               <button
                 onClick={handleClose}
                 disabled={isUploading}
-                className="px-6 py-3 text-gray-700 hover:bg-gray-200 rounded-xl font-medium transition-colors disabled:opacity-50"
+                className="sm:px-6 sm:py-3 text-gray-700 hover:bg-gray-200 rounded-xl font-medium transition-colors disabled:opacity-50"
               >
                 Abbrechen
               </button>
@@ -332,7 +332,7 @@ export default function ClientResourceModal({
                   )}
                 </button>
               ) : (
-                <div className="text-sm text-gray-500 italic">
+                <div className="sm:text-sm text-xs text-gray-500 italic">
                   Füge Ressourcen hinzu, um sie zu versenden
                 </div>
               )}

@@ -1215,7 +1215,7 @@ export default function AdminMusicPage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="sm:mb-8 mb-4">
           {isFullAdmin && (
             <Link
               href="/admin/analytics"
@@ -1234,11 +1234,11 @@ export default function AdminMusicPage() {
               Zurück zum Dashboard
             </Link>
           )}
-          <div className="flex items-center gap-3">
+          <div className="flex max-sm:flex-col max-sm:gap-2 sm:items-center gap-3">
             <Music className="w-8 h-8 text-blue-500" />
-            <h1 className="text-3xl font-bold text-gray-900">Hintergrundmusik verwalten</h1>
+            <h1 className="sm:text-3xl text-xl font-bold text-gray-900">Hintergrundmusik verwalten</h1>
           </div>
-          <p className="mt-2 text-gray-600">
+          <p className="mt-2 text-gray-600 max-sm:text-sm">
             Lade Musik-Tracks für Ressourcen hoch und verwalte sie hier.
           </p>
         </div>
@@ -1247,7 +1247,7 @@ export default function AdminMusicPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-lg shadow p-6 mb-6"
+          className="bg-white rounded-lg shadow sm:p-6 p-3 sm:mb-6 mb-3"
         >
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Ressource auswählen:
@@ -1255,19 +1255,19 @@ export default function AdminMusicPage() {
           <select
             value={selectedFigure}
             onChange={(e) => setSelectedFigure(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full border border-gray-300 rounded-md sm:px-4 px-2 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 max-sm:text-sm"
           >
             <option value="">-- Bitte wählen --</option>
             <optgroup label="Echte Personen">
               {realFigures.map((f) => (
-                <option key={f.id} value={f.id}>
+                <option className="max-sm:text-sm" key={f.id} value={f.id}>
                   {f.emoji} {f.name}
                 </option>
               ))}
             </optgroup>
             <optgroup label="Fiktive Figuren">
               {fictionalFigures.map((f) => (
-                <option key={f.id} value={f.id}>
+                <option className="max-sm:text-sm" key={f.id} value={f.id}>
                   {f.emoji} {f.name}
                 </option>
               ))}

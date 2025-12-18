@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/providers/auth-provider";
 import { motion, AnimatePresence } from "framer-motion";
 import { createSPAClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 export default function Header() {
   const { user, signIn, signUp, signOut, loading } = useAuth();
@@ -18,6 +19,7 @@ export default function Header() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const router = useRouter();
 
   // Close mobile menu when clicking outside
   useEffect(() => {
@@ -81,7 +83,6 @@ export default function Header() {
           setError(error.message);
         } else {
           setShowAuthModal(false);
-          setSuccess('Erfolgreich angemeldet!');
         }
       }
     } catch (err) {
@@ -93,7 +94,7 @@ export default function Header() {
 
   const handleLogout = async () => {
     await signOut();
-    setSuccess('Erfolgreich abgemeldet!');
+    router.push('/');
   };
 
   const resetForm = () => {
