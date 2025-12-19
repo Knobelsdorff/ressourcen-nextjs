@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Upload, Loader2, CheckCircle, AlertCircle, Plus, Trash2, Send } from "lucide-react";
 import AudioRecorder from "./AudioRecorder";
@@ -17,6 +17,16 @@ interface RecordedResource {
   audioBlob: Blob;
 }
 
+interface StoredResource {
+  id: string;
+  name: string;
+  audioBlobBase64: string;
+  mimeType: string;
+}
+
+const STORAGE_KEY = "client_resources_draft";
+const STORAGE_EMAIL_KEY = "client_email_draft";
+
 export default function ClientResourceModal({
   isOpen,
   onClose,
@@ -29,6 +39,100 @@ export default function ClientResourceModal({
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+
+  // Lade gespeicherte Ressourcen beim Öffnen des Modals
+  useEffect(() => {
+    if (isOpen) {
+      const loadStoredResources = async () => {
+        try {
+          const stored = localStorage.getItem(STORAGE_KEY);
+          const storedEmail = localStorage.getItem(STORAGE_EMAIL_KEY);
+          
+          if (storedEmail) {
+            setClientEmail(storedEmail);
+          }
+          
+          if (stored) {
+            const storedResources: StoredResource[] = JSON.parse(stored);
+            const restoredResources: RecordedResource[] = await Promise.all(
+              storedResources.map(async (sr) => {
+                // Konvertiere Base64 zurück zu Blob
+                const byteCharacters = atob(sr.audioBlobBase64);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                  byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: sr.mimeType });
+                
+                return {
+                  id: sr.id,
+                  name: sr.name,
+                  audioBlob: blob,
+                };
+              })
+            );
+            
+            if (restoredResources.length > 0) {
+              setRecordedResources(restoredResources);
+            }
+          }
+        } catch (err) {
+          console.error("Error loading stored resources:", err);
+          // Bei Fehler: Lösche ungültige Daten
+          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem(STORAGE_EMAIL_KEY);
+        }
+      };
+      
+      loadStoredResources();
+    }
+  }, [isOpen]);
+
+  // Speichere Ressourcen automatisch bei Änderungen
+  useEffect(() => {
+    if (isOpen && recordedResources.length > 0) {
+      try {
+        // Konvertiere Blobs zu Base64 für localStorage
+        Promise.all(
+          recordedResources.map(async (resource) => {
+            const base64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                const base64String = (reader.result as string).split(',')[1];
+                resolve(base64String);
+              };
+              reader.onerror = reject;
+              reader.readAsDataURL(resource.audioBlob);
+            });
+            
+            return {
+              id: resource.id,
+              name: resource.name,
+              audioBlobBase64: base64,
+              mimeType: resource.audioBlob.type || 'audio/webm',
+            } as StoredResource;
+          })
+        ).then((storedResources) => {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(storedResources));
+        });
+      } catch (err) {
+        console.error("Error saving resources to localStorage:", err);
+      }
+    }
+    // WICHTIG: localStorage wird NICHT gelöscht, wenn recordedResources leer ist,
+    // damit die Daten nach Browser-Reload erhalten bleiben
+    // localStorage wird nur gelöscht nach erfolgreichem Versand (siehe handleSendAll)
+  }, [recordedResources, isOpen]);
+
+  // Speichere Email bei Änderungen
+  useEffect(() => {
+    if (isOpen && clientEmail.trim()) {
+      localStorage.setItem(STORAGE_EMAIL_KEY, clientEmail.trim());
+    } else if (!clientEmail.trim()) {
+      localStorage.removeItem(STORAGE_EMAIL_KEY);
+    }
+  }, [clientEmail, isOpen]);
 
   const handleRecordingComplete = (blob: Blob) => {
     setCurrentAudioBlob(blob);
@@ -125,6 +229,9 @@ export default function ClientResourceModal({
         setSuccess(true);
         setRecordedResources([]);
         setClientEmail("");
+        // Lösche gespeicherte Daten nach erfolgreichem Versand
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(STORAGE_EMAIL_KEY);
         
         setTimeout(() => {
           setSuccess(false);
@@ -148,12 +255,13 @@ export default function ClientResourceModal({
   const handleClose = () => {
     if (isUploading) return; // Verhindere Schließen während Upload
     
+    // Setze nur temporäre State-Variablen zurück
+    // Die Ressourcen bleiben in localStorage gespeichert für später
     setCurrentResourceName("");
     setCurrentAudioBlob(null);
-    setRecordedResources([]);
-    setClientEmail("");
     setError("");
     setSuccess(false);
+    // recordedResources und clientEmail bleiben erhalten (werden beim nächsten Öffnen aus localStorage geladen)
     onClose();
   };
 
