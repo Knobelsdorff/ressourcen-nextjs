@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Upload, Loader2, CheckCircle, AlertCircle, Plus, Trash2, Send } from "lucide-react";
 import AudioRecorder from "./AudioRecorder";
+import { createSPAClient } from "@/lib/supabase/client";
 
 interface ClientResourceModalProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ export default function ClientResourceModal({
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
 
   // Lade gespeicherte Ressourcen beim Öffnen des Modals
   useEffect(() => {
@@ -48,12 +50,20 @@ export default function ClientResourceModal({
           const stored = localStorage.getItem(STORAGE_KEY);
           const storedEmail = localStorage.getItem(STORAGE_EMAIL_KEY);
           
+          console.log('[ClientResourceModal] Loading from localStorage:', {
+            hasStored: !!stored,
+            hasEmail: !!storedEmail,
+            storedLength: stored?.length || 0
+          });
+          
           if (storedEmail) {
             setClientEmail(storedEmail);
           }
           
           if (stored) {
             const storedResources: StoredResource[] = JSON.parse(stored);
+            console.log('[ClientResourceModal] Found stored resources:', storedResources.length);
+            
             const restoredResources: RecordedResource[] = await Promise.all(
               storedResources.map(async (sr) => {
                 // Konvertiere Base64 zurück zu Blob
@@ -74,8 +84,13 @@ export default function ClientResourceModal({
             );
             
             if (restoredResources.length > 0) {
+              console.log('[ClientResourceModal] Restored resources:', restoredResources.length);
               setRecordedResources(restoredResources);
+            } else {
+              console.log('[ClientResourceModal] No resources to restore');
             }
+          } else {
+            console.log('[ClientResourceModal] No stored data found in localStorage');
           }
         } catch (err) {
           console.error("Error loading stored resources:", err);
@@ -182,18 +197,56 @@ export default function ClientResourceModal({
     setSuccess(false);
 
     try {
-      const formData = new FormData();
-      formData.append("clientEmail", clientEmail.trim());
-      
-      // Füge alle Ressourcen zum FormData hinzu
-      recordedResources.forEach((resource, index) => {
-        formData.append(`resourceName_${index}`, resource.name);
-        formData.append(`audioFile_${index}`, resource.audioBlob, `recording-${resource.id}.webm`);
-      });
+      const supabaseClient = createSPAClient();
+      const uploadedResources: Array<{ name: string; audioUrl: string }> = [];
 
+      // Lade alle Dateien direkt zu Supabase Storage hoch
+      for (const resource of recordedResources) {
+        try {
+          // Generiere eindeutigen Dateinamen
+          const timestamp = Date.now();
+          const randomId = Math.random().toString(36).substr(2, 9);
+          const sanitizedResourceName = resource.name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+          const fileName = `client_${sanitizedResourceName}_${timestamp}_${randomId}.webm`;
+
+          // Upload zu Supabase Storage
+          const { data: uploadData, error: uploadError } = await supabaseClient.storage
+            .from('audio-files')
+            .upload(fileName, resource.audioBlob, {
+              contentType: 'audio/webm',
+              cacheControl: '3600',
+              upsert: false,
+            });
+
+          if (uploadError) {
+            console.error(`Storage upload error for ${resource.name}:`, uploadError);
+            throw new Error(`Fehler beim Hochladen von "${resource.name}": ${uploadError.message}`);
+          }
+
+          // Hole öffentliche URL
+          const { data: { publicUrl } } = supabaseClient.storage
+            .from('audio-files')
+            .getPublicUrl(fileName);
+
+          uploadedResources.push({
+            name: resource.name,
+            audioUrl: publicUrl,
+          });
+        } catch (uploadErr: any) {
+          throw new Error(`Fehler beim Hochladen von "${resource.name}": ${uploadErr.message}`);
+        }
+      }
+
+      // Sende nur Metadaten (URLs) an die API-Route
       const response = await fetch("/api/resources/client/create-batch", {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clientEmail: clientEmail.trim(),
+          resources: uploadedResources,
+        }),
       });
 
       // Prüfe Content-Type bevor JSON-Parsing
@@ -281,13 +334,34 @@ export default function ClientResourceModal({
             <h2 className="text-2xl font-bold text-gray-900">
               Ressource für Klienten erstellen
             </h2>
-            <button
-              onClick={handleClose}
-              disabled={isUploading}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50"
-            >
-              <X className="w-6 h-6" />
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Debug-Button (nur zum Testen) */}
+              <button
+                onClick={() => {
+                  const stored = localStorage.getItem(STORAGE_KEY);
+                  const storedEmail = localStorage.getItem(STORAGE_EMAIL_KEY);
+                  const info = {
+                    hasResources: !!stored,
+                    hasEmail: !!storedEmail,
+                    resourceCount: stored ? JSON.parse(stored).length : 0,
+                    storageSize: stored ? `${(stored.length / 1024).toFixed(2)} KB` : '0 KB'
+                  };
+                  alert(`Debug Info:\n\nGespeicherte Ressourcen: ${info.resourceCount}\nEmail vorhanden: ${info.hasEmail ? 'Ja' : 'Nein'}\nSpeichergröße: ${info.storageSize}\n\n${stored ? '✅ Daten gefunden!' : '❌ Keine Daten gefunden'}`);
+                  setShowDebugInfo(!showDebugInfo);
+                }}
+                className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded text-gray-600"
+                title="Prüfe localStorage"
+              >
+                🔍
+              </button>
+              <button
+                onClick={handleClose}
+                disabled={isUploading}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
           </div>
 
           {/* Content */}
