@@ -30,3 +30,5 @@ Die App erkennt automatisch, wenn du auf localhost bist, und leitet dich zur Res
 ## Empfehlung
 Für lokale Tests: **Ändere die Site URL temporär auf localhost**, dann zurück auf Production.
 
+
+

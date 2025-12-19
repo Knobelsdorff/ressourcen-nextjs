@@ -92,7 +92,25 @@ export default function ClientResourceModal({
         body: formData,
       });
 
-      const data = await response.json();
+      // Prüfe Content-Type bevor JSON-Parsing
+      const contentType = response.headers.get("content-type");
+      let data;
+      
+      if (contentType && contentType.includes("application/json")) {
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          // Fallback: Versuche Antwort als Text zu lesen
+          const text = await response.text();
+          console.error("JSON parsing failed, response text:", text);
+          throw new Error(`Server-Fehler: ${response.status} ${response.statusText}. Antwort: ${text.substring(0, 200)}`);
+        }
+      } else {
+        // Wenn kein JSON, lese als Text für bessere Fehlermeldung
+        const text = await response.text();
+        console.error("Non-JSON response:", text);
+        throw new Error(`Server-Fehler: ${response.status} ${response.statusText}. ${text.substring(0, 200)}`);
+      }
 
       if (!response.ok) {
         console.error("API Error:", data);
