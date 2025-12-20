@@ -58,9 +58,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse FormData
-    const formData = await request.formData();
-    const clientEmail = formData.get('clientEmail') as string | null;
+    // Prüfe Content-Type: JSON (neue Methode) oder FormData (alte Methode)
+    const contentType = request.headers.get('content-type') || '';
+    let clientEmail: string | null = null;
+    let resources: Array<{ name: string; audioFile?: File; audioUrl?: string }> = [];
+
+    if (contentType.includes('application/json')) {
+      // Neue Methode: JSON mit bereits hochgeladenen URLs
+      const body = await request.json();
+      clientEmail = body.clientEmail;
+      resources = (body.resources || []).map((r: any) => ({
+        name: r.name,
+        audioUrl: r.audioUrl,
+      }));
+    } else {
+      // Alte Methode: FormData mit Dateien
+      const formData = await request.formData();
+      clientEmail = formData.get('clientEmail') as string | null;
+      
+      // Parse alle Ressourcen aus FormData
+      let resourceIndex = 0;
+      while (true) {
+        const resourceName = formData.get(`resourceName_${resourceIndex}`) as string | null;
+        const audioFile = formData.get(`audioFile_${resourceIndex}`) as File | null;
+        
+        if (!resourceName || !audioFile) {
+          break; // Keine weiteren Ressourcen
+        }
+        
+        resources.push({
+          name: resourceName.trim(),
+          audioFile: audioFile,
+        });
+        
+        resourceIndex++;
+      }
+    }
     
     if (!clientEmail || !clientEmail.trim()) {
       return NextResponse.json(
@@ -71,26 +104,6 @@ export async function POST(request: NextRequest) {
 
     const normalizedClientEmail = clientEmail.trim().toLowerCase();
 
-    // Parse alle Ressourcen aus FormData
-    const resources: Array<{ name: string; audioFile: File }> = [];
-    let resourceIndex = 0;
-    
-    while (true) {
-      const resourceName = formData.get(`resourceName_${resourceIndex}`) as string | null;
-      const audioFile = formData.get(`audioFile_${resourceIndex}`) as File | null;
-      
-      if (!resourceName || !audioFile) {
-        break; // Keine weiteren Ressourcen
-      }
-      
-      resources.push({
-        name: resourceName.trim(),
-        audioFile: audioFile,
-      });
-      
-      resourceIndex++;
-    }
-
     if (resources.length === 0) {
       return NextResponse.json(
         { error: 'Mindestens eine Ressource ist erforderlich' },
@@ -98,7 +111,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[API/resources/client/create-batch] Processing ${resources.length} resources for ${normalizedClientEmail}`);
+    console.log(`[API/resources/client/create-batch] Processing ${resources.length} resources for ${normalizedClientEmail} (method: ${contentType.includes('application/json') ? 'JSON' : 'FormData'})`);
 
     // Verwende Admin Client für Storage Upload (umgeht RLS)
     const supabaseAdmin = await createServerAdminClient();
@@ -126,55 +139,75 @@ export async function POST(request: NextRequest) {
     // Verarbeite alle Ressourcen
     for (const resource of resources) {
       try {
-        // Validierung
-        const allowedTypes = ['.webm', '.mp3', '.mp4', '.ogg', '.m4a'];
-        const fileExtension = resource.audioFile.name.toLowerCase().substring(resource.audioFile.name.lastIndexOf('.'));
-        
-        if (!allowedTypes.some(type => resource.audioFile.name.toLowerCase().endsWith(type))) {
-          errors.push({
-            resourceName: resource.name,
-            error: 'Nur Audio-Dateien (WebM, MP3, MP4, OGG, M4A) sind erlaubt'
-          });
-          continue;
-        }
-
-        // Generiere eindeutigen Dateinamen
-        const timestamp = Date.now();
-        const randomId = Math.random().toString(36).substr(2, 9);
+        // Sanitize Resource Name (wird für beide Pfade benötigt)
         const sanitizedResourceName = resource.name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-        const fileName = `client_${sanitizedResourceName}_${timestamp}_${randomId}${fileExtension}`;
+        let publicUrl: string;
+        let fileName: string | null = null; // Für Cleanup bei Fehlern
 
-        // Konvertiere File zu ArrayBuffer
-        const arrayBuffer = await resource.audioFile.arrayBuffer();
+        // Neue Methode: URL ist bereits vorhanden (direkter Upload vom Client)
+        if (resource.audioUrl) {
+          publicUrl = resource.audioUrl;
+          console.log(`[API/resources/client/create-batch] Using provided URL for ${resource.name}`);
+        } 
+        // Alte Methode: Datei hochladen
+        else if (resource.audioFile) {
+          // Validierung
+          const allowedTypes = ['.webm', '.mp3', '.mp4', '.ogg', '.m4a'];
+          const fileExtension = resource.audioFile.name.toLowerCase().substring(resource.audioFile.name.lastIndexOf('.'));
+          
+          if (!allowedTypes.some(type => resource.audioFile!.name.toLowerCase().endsWith(type))) {
+            errors.push({
+              resourceName: resource.name,
+              error: 'Nur Audio-Dateien (WebM, MP3, MP4, OGG, M4A) sind erlaubt'
+            });
+            continue;
+          }
 
-        // Bestimme Content-Type
-        let contentType = 'audio/webm';
-        if (fileExtension === '.mp3') contentType = 'audio/mpeg';
-        else if (fileExtension === '.mp4' || fileExtension === '.m4a') contentType = 'audio/mp4';
-        else if (fileExtension === '.ogg') contentType = 'audio/ogg';
+          // Generiere eindeutigen Dateinamen
+          const timestamp = Date.now();
+          const randomId = Math.random().toString(36).substr(2, 9);
+          fileName = `client_${sanitizedResourceName}_${timestamp}_${randomId}${fileExtension}`;
 
-        // Upload zu Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-          .from('audio-files')
-          .upload(fileName, arrayBuffer, {
-            contentType,
-            cacheControl: '3600',
-            upsert: false,
-          });
+          // Konvertiere File zu ArrayBuffer
+          const arrayBuffer = await resource.audioFile.arrayBuffer();
 
-        if (uploadError) {
-          console.error(`[API/resources/client/create-batch] Storage upload error for ${resource.name}:`, uploadError);
+          // Bestimme Content-Type
+          let contentType = 'audio/webm';
+          if (fileExtension === '.mp3') contentType = 'audio/mpeg';
+          else if (fileExtension === '.mp4' || fileExtension === '.m4a') contentType = 'audio/mp4';
+          else if (fileExtension === '.ogg') contentType = 'audio/ogg';
+
+          // Upload zu Supabase Storage
+          const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+            .from('audio-files')
+            .upload(fileName, arrayBuffer, {
+              contentType,
+              cacheControl: '3600',
+              upsert: false,
+            });
+
+          if (uploadError) {
+            console.error(`[API/resources/client/create-batch] Storage upload error for ${resource.name}:`, uploadError);
+            errors.push({
+              resourceName: resource.name,
+              error: 'Fehler beim Hochladen der Audio-Datei'
+            });
+            continue;
+          }
+
+          // Hole öffentliche URL
+          const { data: { publicUrl: uploadedUrl } } = supabaseAdmin.storage
+            .from('audio-files')
+            .getPublicUrl(fileName);
+          
+          publicUrl = uploadedUrl;
+        } else {
           errors.push({
             resourceName: resource.name,
-            error: 'Fehler beim Hochladen der Audio-Datei'
+            error: 'Keine Audio-Datei oder URL angegeben'
           });
           continue;
         }
-
-        // Hole öffentliche URL
-        const { data: { publicUrl } } = supabaseAdmin.storage
-          .from('audio-files')
-          .getPublicUrl(fileName);
 
         // Speichere in Datenbank
         const { data: dbData, error: dbError } = await (supabaseAdmin as any)
@@ -199,11 +232,13 @@ export async function POST(request: NextRequest) {
 
         if (dbError) {
           console.error(`[API/resources/client/create-batch] Database insert error for ${resource.name}:`, dbError);
-          // Versuche Datei aus Storage zu löschen
-          try {
-            await supabaseAdmin.storage.from('audio-files').remove([fileName]);
-          } catch (cleanupError) {
-            console.error('Failed to cleanup uploaded file:', cleanupError);
+          // Versuche Datei aus Storage zu löschen (nur wenn Datei hochgeladen wurde, nicht bei direkter URL)
+          if (fileName) {
+            try {
+              await supabaseAdmin.storage.from('audio-files').remove([fileName]);
+            } catch (cleanupError) {
+              console.error('Failed to cleanup uploaded file:', cleanupError);
+            }
           }
           errors.push({
             resourceName: resource.name,
