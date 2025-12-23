@@ -57,7 +57,8 @@ export default function AdminAnalytics() {
   const [endDate, setEndDate] = useState<string>("");
   const [eventType, setEventType] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [pageSize] = useState<number>(50); // Events pro Seite
+  const [currentUsersPage, setCurrentUsersPage] = useState<number>(1);
+  const [pageSize] = useState<number>(20); // Events pro Seite
   const [selectedResource, setSelectedResource] = useState<any>(null);
   const [showResourceDetails, setShowResourceDetails] = useState(false);
   const [isPlayingResource, setIsPlayingResource] = useState(false);
@@ -760,72 +761,107 @@ export default function AdminAnalytics() {
 
             {/* User-Statistiken */}
             {(() => {
-              // Berechne Statistiken pro User
-              const statsByUser: Record<string, {
-                resourcesCreated: number;
-                audioCompletions: number;
-                userLogins: number;
-                totalEvents: number;
-              }> = {};
-              
-              events.forEach((event) => {
-                const email = event.user_email || 'Unbekannt';
-                if (!statsByUser[email]) {
-                  statsByUser[email] = {
-                    resourcesCreated: 0,
-                    audioCompletions: 0,
-                    userLogins: 0,
-                    totalEvents: 0,
-                  };
-                }
-                
-                statsByUser[email].totalEvents++;
-                
-                if (event.event_type === 'resource_created') {
-                  statsByUser[email].resourcesCreated++;
-                } else if (event.event_type === 'audio_play_complete') {
-                  statsByUser[email].audioCompletions++;
-                } else if (event.event_type === 'user_login') {
-                  statsByUser[email].userLogins++;
-                }
-                // audio_play Events werden nicht mehr getrackt
-              });
-              
-              const sortedUsers = Object.entries(statsByUser)
-                .sort(([, a], [, b]) => b.totalEvents - a.totalEvents);
-              
-              return (
-                <div className="bg-white rounded-xl shadow-lg sm:p-6 p-3 mb-6">
-                  <h2 className="sm:text-xl text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Users className="w-6 h-6 text-amber-600" />
-                    User-Statistiken
-                  </h2>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700 max-sm:text-sm">Email</th>
-                          <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700 max-sm:text-sm" >Logins</th>
-                          <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700 max-sm:text-sm" >Ressourcen erstellt</th>
-                          <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700 max-sm:text-sm" >Audio vollständig</th>
-                          <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700 max-sm:text-sm" >Gesamt Events</th>
+            // Calculate stats per user
+            const statsByUser: Record<string, {
+              resourcesCreated: number;
+              audioCompletions: number;
+              userLogins: number;
+              totalEvents: number;
+            }> = {};
+
+            events.forEach((event) => {
+              const email = event.user_email || 'Unbekannt';
+              if (!statsByUser[email]) {
+                statsByUser[email] = {
+                  resourcesCreated: 0,
+                  audioCompletions: 0,
+                  userLogins: 0,
+                  totalEvents: 0,
+                };
+              }
+
+              statsByUser[email].totalEvents++;
+
+              if (event.event_type === 'resource_created') {
+                statsByUser[email].resourcesCreated++;
+              } else if (event.event_type === 'audio_play_complete') {
+                statsByUser[email].audioCompletions++;
+              } else if (event.event_type === 'user_login') {
+                statsByUser[email].userLogins++;
+              }
+            });
+
+            const sortedUsers = Object.entries(statsByUser).sort(([, a], [, b]) => b.totalEvents - a.totalEvents);
+
+            // Pagination logic
+            const itemsPerPage = 10;
+
+            const totalPages = Math.ceil(sortedUsers.length / itemsPerPage);
+            const startIndex = (currentUsersPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+
+            const paginatedUsers = sortedUsers.slice(startIndex, endIndex);
+
+            const handlePrevPage = () => {
+              if (currentUsersPage > 1) setCurrentUsersPage(currentUsersPage - 1);
+            };
+
+            const handleNextPage = () => {
+              if (currentUsersPage < totalPages) setCurrentUsersPage(currentUsersPage + 1);
+            };
+
+            return (
+              <div className="bg-white rounded-xl shadow-lg sm:p-6 p-3 mb-6">
+                <h2 className="sm:text-xl text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <Users className="w-6 h-6 text-amber-600" />
+                  User-Statistiken
+                </h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700 max-sm:text-sm">Email</th>
+                        <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700 max-sm:text-sm">Logins</th>
+                        <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700 max-sm:text-sm">Ressourcen erstellt</th>
+                        <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700 max-sm:text-sm">Audio vollständig</th>
+                        <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700 max-sm:text-sm">Gesamt Events</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedUsers.map(([userEmail, userStats]) => (
+                        <tr key={userEmail} className="border-b hover:bg-amber-50">
+                          <td className="py-2 px-4 text-sm text-gray-900 font-medium">{userEmail}</td>
+                          <td className="py-2 px-4 text-sm text-gray-600">{userStats.userLogins}</td>
+                          <td className="py-2 px-4 text-sm text-gray-600">{userStats.resourcesCreated}</td>
+                          <td className="py-2 px-4 text-sm text-gray-600">{userStats.audioCompletions}</td>
+                          <td className="py-2 px-4 text-sm text-gray-900 font-semibold">{userStats.totalEvents}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {sortedUsers.map(([userEmail, userStats]) => (
-                          <tr key={userEmail} className="border-b hover:bg-amber-50">
-                            <td className="py-2 px-4 text-sm text-gray-900 font-medium">{userEmail}</td>
-                            <td className="py-2 px-4 text-sm text-gray-600">{userStats.userLogins}</td>
-                            <td className="py-2 px-4 text-sm text-gray-600">{userStats.resourcesCreated}</td>
-                            <td className="py-2 px-4 text-sm text-gray-600">{userStats.audioCompletions}</td>
-                            <td className="py-2 px-4 text-sm text-gray-900 font-semibold">{userStats.totalEvents}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              );
+
+                <div className="flex justify-between items-center mt-4">
+                  <button
+                    onClick={handlePrevPage}
+                    disabled={currentUsersPage === 1}
+                    className="px-4 py-2 bg-gray-300 rounded-md disabled:opacity-50 max-sm:text-sm"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm text-gray-600">
+                    Page {currentUsersPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={handleNextPage}
+                    disabled={currentUsersPage === totalPages}
+                    className="px-4 py-2 bg-gray-300 rounded-md disabled:opacity-50 max-sm:text-sm"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            );
             })()}
 
             {/* Event-Liste */}

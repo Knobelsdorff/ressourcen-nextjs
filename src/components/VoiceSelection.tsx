@@ -453,11 +453,13 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
                   }}
                   className="flex items-center gap-1"
                 >
-                  {playingVoiceId === voice.id ? (
-                    <Pause className="h-4 w-4" />
-                  ) : (
-                    <Play className="h-4 w-4" />
-                  )}
+                  <span key={playingVoiceId === voice.id ? 'pause' : 'play'}>
+                    {playingVoiceId === voice.id ? (
+                      <Pause className="h-4 w-4" />
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )}
+                  </span>
                   {playingVoiceId === voice.id ? 'Stoppen' : 'Testen'}
                 </Button>
 

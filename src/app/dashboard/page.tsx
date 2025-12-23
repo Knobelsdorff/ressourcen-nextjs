@@ -3075,7 +3075,7 @@ ${story.content}
           <div className="bg-white w-full rounded-2xl shadow-lg p-3 lg:flex grid sm:grid-cols-2 grid-cols-1 sm:gap-3 gap-2 sm:space-x-2 ">
             <button
               onClick={() => setActiveTab('profile')}
-              className={`flex items-center space-x-2 sm:px-6 px-4 py-3 rounded-xl font-medium transition-all duration-300 ${
+              className={`flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 ${
                 activeTab === 'profile'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
                   : 'text-gray-600 hover:text-amber-700 hover:bg-amber-50'
@@ -3087,7 +3087,7 @@ ${story.content}
             
             <button
               onClick={() => setActiveTab('stories')}
-              className={`flex items-center space-x-2 sm:px-6 px-4 py-3 rounded-xl font-medium transition-all duration-300 ${
+              className={`flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 ${
                 activeTab === 'stories'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
                   : 'text-gray-600 hover:text-amber-700 hover:bg-amber-50'
@@ -3100,7 +3100,7 @@ ${story.content}
             {isAdmin && (
               <button
                 onClick={() => router.push('/admin/analytics')}
-                className="flex items-center space-x-2 sm:px-6 px-4 py-3 rounded-xl font-medium transition-all duration-300 text-white bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 shadow-lg"
+                className="flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 text-white bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 shadow-lg"
               >
                 <BarChart3 className="w-5 h-5" />
                 <span className="max-sm:text-sm">Admin Analytics</span>
@@ -3110,7 +3110,7 @@ ${story.content}
             {isMusicAdmin && (
               <button
                 onClick={() => router.push('/admin/music')}
-                className="flex items-center space-x-2 sm:px-6 px-4 py-3 rounded-xl font-medium transition-all duration-300 text-white bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 shadow-lg"
+                className="flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 text-white bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 shadow-lg"
               >
                 <Music className="w-5 h-5" />
                 <span className="max-sm:text-sm">Musik verwalten</span>
@@ -3120,7 +3120,7 @@ ${story.content}
             {(isAdmin || isMusicAdmin) && (
               <button
                 onClick={() => setShowClientResourceModal(true)}
-                className="flex items-center space-x-2 sm:px-6 px-4 py-3 rounded-xl font-medium transition-all duration-300 text-white bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-lg"
+                className="flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 text-white bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-lg"
               >
                 <Volume2 className="w-5 h-5" />
                 <span className="max-sm:text-sm">Ressource für Klienten erstellen</span>
