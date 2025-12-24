@@ -2,12 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { generateStoryEditingPrompt } from '@/data/edit-story';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export async function POST(request: NextRequest) {
   try {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { message: 'OPENAI_API_KEY fehlt. Bitte in deiner .env setzen, damit der KI-Editor funktioniert.' },
+        { status: 500 }
+      );
+    }
+
+    const openai = new OpenAI({ apiKey });
     const { selectedFigure, questionAnswers, currentStory, editingInstructions } = await request.json();
 
     const prompt = generateStoryEditingPrompt({

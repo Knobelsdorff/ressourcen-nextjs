@@ -20,8 +20,6 @@ interface GenerateStoryRequest {
   sparModus?: boolean;
 }
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY as string });
-
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const { selectedFigure, questionAnswers, editingInstructions, existingStory, userName, userPronunciationHint, sparModus } = (await request.json()) as GenerateStoryRequest;
@@ -63,9 +61,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       isUndefined: sparModus === undefined
     });
 
+    const apiKey = process.env.OPENAI_API_KEY;
+
     // Wenn es sich um eine Bearbeitung handelt
     if (editingInstructions && existingStory) {
       console.log('Editing existing story with AI');
+      if (!apiKey) {
+        return NextResponse.json(
+          { story: existingStory },
+          { status: 200 }
+        );
+      }
+      const openai = new OpenAI({ apiKey });
       
       const editPrompt = `Du bist ein Therapeut, der bestehende Heilungsgeschichten verbessert. 
 
@@ -156,6 +163,19 @@ Bearbeitete Geschichte:`;
     let story: string;
 
     try {
+      if (!apiKey) {
+        // Lokaler Fallback ohne OpenAI-Key
+        const figureName = selectedFigure.name;
+        const pronouns = selectedFigure.pronouns?.toLowerCase() || 'sie/ihr';
+        const pronoun = pronouns.startsWith('er') ? 'er' : pronouns.startsWith('sie') ? 'sie' : 'sie';
+        story = sparModus
+          ? `Du spürst die warme Präsenz von ${figureName}.`
+          : `Du spürst die warme Präsenz von ${figureName}. ${pronoun.charAt(0).toUpperCase() + pronoun.slice(1)} ist bei dir.\n\nDu atmest ein, und mit dem Ausatmen darf dein Körper ein wenig weicher werden.\n\n${figureName} bleibt an deiner Seite – ruhig, freundlich und stabil.\n\nIn schwierigen Momenten erinnert dich ${figureName} sanft: „Du bist jetzt sicher. Ich bin hier.“`;
+        return NextResponse.json({ story });
+      }
+
+      const openai = new OpenAI({ apiKey });
+
       // Debug: Prüfe, ob userNameWithPronunciation SSML-Tags enthält
       const storyPromptText = storyPrompt;
       const ssmlInPrompt = storyPromptText.match(/<phoneme[^>]*>([^<]+)<\/phoneme>/g);
