@@ -3062,694 +3062,698 @@ ${story.content}
           className="text-center sm:mb-8 mb-4"
         >
           <h1 className="sm:text-4xl text-2xl font-bold text-amber-900 mb-2">
-            Dashboard
+            {user ? "Dashboard" : "Melde dich an, um auf dein Dashboard zuzugreifen "}
           </h1>
         </motion.div>
 
-        {/* Tab Navigation */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex justify-center sm:mb-8 mb-5"
-        >
-          <div className="bg-white w-full rounded-2xl shadow-lg p-3 lg:flex grid sm:grid-cols-2 grid-cols-1 sm:gap-3 gap-2 sm:space-x-2 ">
-            <button
-              onClick={() => setActiveTab('profile')}
-              className={`flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 ${
-                activeTab === 'profile'
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
-                  : 'text-gray-600 hover:text-amber-700 hover:bg-amber-50'
-              }`}
+        {user && (
+          <>
+            {/* Tab Navigation */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex justify-center sm:mb-8 mb-5"
             >
-              <Settings className="w-5 h-5" />
-              <span className="max-sm:text-sm">Profil</span>
-            </button>
-            
-            <button
-              onClick={() => setActiveTab('stories')}
-              className={`flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 ${
-                activeTab === 'stories'
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
-                  : 'text-gray-600 hover:text-amber-700 hover:bg-amber-50'
-              }`}
-            >
-              <BookOpen className="w-5 h-5" />
-              <span className="max-sm:text-sm">Meine Ressourcen ({stories.length})</span>
-            </button>
-            
-            {isAdmin && (
-              <button
-                onClick={() => router.push('/admin/analytics')}
-                className="flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 text-white bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 shadow-lg"
-              >
-                <BarChart3 className="w-5 h-5" />
-                <span className="max-sm:text-sm">Admin Analytics</span>
-              </button>
-            )}
-            
-            {isMusicAdmin && (
-              <button
-                onClick={() => router.push('/admin/music')}
-                className="flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 text-white bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 shadow-lg"
-              >
-                <Music className="w-5 h-5" />
-                <span className="max-sm:text-sm">Musik verwalten</span>
-              </button>
-            )}
-            
-            {(isAdmin || isMusicAdmin) && (
-              <button
-                onClick={() => setShowClientResourceModal(true)}
-                className="flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 text-white bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-lg"
-              >
-                <Volume2 className="w-5 h-5" />
-                <span className="max-sm:text-sm">Ressource für Klienten erstellen</span>
-              </button>
-            )}
-          </div>
-        </motion.div>
-
-        {/* Tab Content */}
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.3 }}
-        >
-          {activeTab === 'profile' ? (
-            <div className="sm:space-y-6 space-y-3">
-              {/* Basis-Informationen */}
-              <div className="bg-white rounded-2xl shadow-lg sm:p-6 p-3">
-                <div className="flex items-center sm:gap-3 gap-2 sm:mb-6 mb-4">
-                  <User className="w-6 h-6 text-amber-600" />
-                  <h2 className="sm:text-xl text-lg font-bold text-amber-900">Basis-Informationen</h2>
-                </div>
-              {user ? (
-                  <div className="sm:space-y-6 space-y-3">
-                    {/* E-Mail Info */}
-                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 sm:p-4 p-3 rounded-lg border border-amber-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Mail className="w-5 h-5 text-amber-600" />
-                        <span className="font-semibold text-amber-900">E-Mail-Adresse</span>
-                      </div>
-                      <p className="text-amber-800 text-sm font-medium">{user.email}</p>
-                    </div>
-                    
-                    {/* Personalisierungs-Einstellungen */}
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 sm:p-5 p-3 rounded-lg border border-blue-200">
-                      <div className="flex items-center gap-2 sm:mb-4 mb-3">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <h3 className="font-semibold text-blue-900">Personalisierung für Geschichten</h3>
-                      </div>
-                      
-                      <form onSubmit={saveFullName} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label htmlFor="fullName" className="block text-sm font-semibold text-blue-900 mb-2">
-                              Vorname/Spitzname
-                            </label>
-                            <input
-                              type="text"
-                              id="fullName"
-                              value={fullName}
-                              onChange={(e) => setFullName(e.target.value)}
-                              className="w-full px-3 py-2.5 border border-blue-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all"
-                              placeholder="z.B. Andy, Maria, Tom"
-                            />
-                            <p className="text-blue-600 text-xs mt-1.5">
-                              Wird in deinen Geschichten verwendet
-                            </p>
-                          </div>
-
-                          <div>
-                            <label htmlFor="pronunciationHint" className="block text-sm font-semibold text-blue-900 mb-2">
-                              Aussprache-Hinweis
-                              <span className="text-blue-500 text-xs font-normal ml-1">(optional)</span>
-                            </label>
-                            <input
-                              type="text"
-                              id="pronunciationHint"
-                              value={pronunciationHint}
-                              onChange={(e) => setPronunciationHint(e.target.value)}
-                              className="w-full px-3 py-2.5 border border-blue-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all"
-                              placeholder="z.B. Andi (statt Andy)"
-                            />
-                            <p className="mt-1 text-xs text-blue-600">
-                              Gib hier einfach den Namen ein, wie er ausgesprochen werden soll. 
-                              <span className="font-semibold"> Beispiel: Wenn dein Name "Andy" ist, aber als "Andi" ausgesprochen werden soll, gib hier "Andi" ein.</span>
-                            </p>
-                            <p className="text-blue-600 text-xs mt-1">
-                              Der Name wird dann automatisch in der Geschichte durch diese Schreibweise ersetzt.
-                            </p>
-                          </div>
-                        </div>
-                        
-                        {fullNameError && (
-                          <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">
-                            {fullNameError}
-                          </div>
-                        )}
-                        
-                        {fullNameSuccess && (
-                          <div className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-lg text-sm">
-                            {fullNameSuccess}
-                          </div>
-                        )}
-                        
-                        <div className="flex justify-end">
-                          <button
-                            type="submit"
-                            disabled={fullNameLoading}
-                            className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white sm:px-6 px-4 sm:py-2.5 py-2 rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold transition-all shadow-sm hover:shadow-md"
-                          >
-                            {fullNameLoading ? 'Speichern...' : 'Einstellungen speichern'}
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-              ) : (
-                <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-                  <p className="text-amber-700 text-sm">
-                    Bitte melde dich an, um dein Profil zu sehen.
-                  </p>
-                </div>
-              )}
-              </div>
-
-              {/* Nutzungs-Statistiken */}
-              <div className="bg-white rounded-2xl shadow-lg sm:p-6 p-3">
-                <div className="flex items-center gap-3 mb-4">
-                  <TrendingUp className="w-6 h-6 text-amber-600" />
-                  <h2 className="sm:text-xl text-lg font-bold text-amber-900">Nutzungs-Statistiken</h2>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-blue-50 p-4 rounded-lg text-center">
-                    <BookOpen className="sm:w-8 sm:h-8 w-6 h-6 text-blue-600 mx-auto mb-2" />
-                            <p className="sm:text-2xl text-base font-bold text-ellipsis overflow-hidden text-blue-900">{userStats.totalStories}</p>
-                            <p className="text-blue-700 text-sm">Ressourcen</p>
-                  </div>
-                  <div className="bg-purple-50 p-4 rounded-lg text-center">
-                    <Clock className="sm:w-8 sm:h-8 w-6 h-6 text-purple-600 mx-auto mb-2" />
-                    <p className="sm:text-2xl text-base font-bold text-ellipsis overflow-hidden text-purple-900">{userStats.totalAudioTime}</p>
-                    <p className="text-purple-700 text-sm">Min. Audio</p>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded-lg text-center">
-                    <Star className="sm:w-8 sm:h-8 w-6 h-6 text-green-600 mx-auto mb-2" />
-                    <p className="sm:text-lg text-base font-bold text-ellipsis overflow-hidden text-green-900">{userStats.favoriteFigure}</p>
-                    <p className="text-green-700 text-sm">Lieblingsfigur</p>
-                  </div>
-                  <div className="bg-orange-50 p-4 rounded-lg text-center">
-                    <Volume2 className="sm:w-8 sm:h-8 w-6 h-6 text-orange-600 mx-auto mb-2" />
-                    <p className="sm:text-lg text-base font-bold text-ellipsis overflow-hidden text-orange-900">{userStats.favoriteVoice}</p>
-                    <p className="text-orange-700 text-sm">Lieblingsstimme</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Abo-Status */}
-              <div className="bg-white rounded-2xl shadow-lg sm:p-6 p-3">
-                <div className="flex items-center gap-3 mb-4">
-                  <Crown className="w-6 h-6 text-amber-600" />
-                  <h2 className="sm:text-xl text-lg font-bold text-amber-900">Abo-Status</h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 sm:p-4 p-3 rounded-lg border border-amber-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Shield className="w-5 h-5 text-amber-600" />
-                      <span className="font-medium text-amber-900">Aktueller Plan</span>
-                    </div>
-                    <p className="text-amber-700 sm:text-lg text-base font-semibold">{subscriptionStatus.plan}</p>
-                    {subscriptionStatus.isPro && (
-                      <p className="text-amber-600 text-sm">
-                        {subscriptionStatus.subscriptionStatus === 'active' ? 'Aktiv' : 
-                         subscriptionStatus.subscriptionStatus === 'past_due' ? 'Zahlung ausstehend' :
-                         subscriptionStatus.subscriptionStatus === 'paused' ? 'Pausiert' :
-                         subscriptionStatus.subscriptionStatus === 'canceled' ? 'Gekündigt' :
-                         'Pro-Version aktiv'}
-                      </p>
-                    )}
-                  </div>
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Zap className="w-5 h-5 text-blue-600" />
-                      <span className="font-medium text-blue-900">Ressourcen</span>
-                    </div>
-                    <p className="text-blue-700 sm:text-lg text-base font-semibold">
-                      {subscriptionStatus.credits >= 999999 ? 'Unbegrenzt' : subscriptionStatus.credits}
-                    </p>
-                    <p className="text-blue-600 text-sm">Verfügbar</p>
-                  </div>
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Calendar className="w-5 h-5 text-green-600" />
-                      <span className="font-medium text-green-900">Ablauf</span>
-                    </div>
-                    <p className="text-green-700 sm:text-lg text-base font-semibold">
-                      {subscriptionStatus.expiresAt 
-                        ? new Date(subscriptionStatus.expiresAt).toLocaleDateString('de-DE')
-                        : subscriptionStatus.subscriptionId ? 'Monatlich kündbar' : 'Unbegrenzt'
-                      }
-                    </p>
-                  </div>
-                </div>
-                {subscriptionStatus.subscriptionId ? (
-                  <div className="mt-4 text-center">
-                    <button 
-                      onClick={async () => {
-                        if (!user?.id) return;
-                        setLoadingCustomerPortal(true);
-                        try {
-                          const response = await fetch('/api/stripe/customer-portal', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ userId: user.id }),
-                          });
-                          const data = await response.json();
-                          if (data.url) {
-                            window.open(data.url, '_blank', 'noopener,noreferrer');
-                          } else {
-                            alert(data.error || 'Fehler beim Öffnen des Abo-Verwaltungsbereichs. Bitte versuche es später erneut.');
-                          }
-                        } catch (error) {
-                          console.error('Error opening customer portal:', error);
-                          alert('Fehler beim Öffnen des Abo-Verwaltungsbereichs. Bitte versuche es später erneut.');
-                        } finally {
-                          setLoadingCustomerPortal(false);
-                        }
-                      }}
-                      disabled={loadingCustomerPortal}
-                      className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed "
-                    >
-                      {loadingCustomerPortal ? 'Lädt...' : 'Abo verwalten'}
-                    </button>
-                    <p className="text-gray-600 text-sm mt-2">
-                      Hier kannst du dein Abo kündigen, Zahlungsmethode ändern oder Rechnungen ansehen.
-                    </p>
-                  </div>
-                ) : subscriptionStatus.isPro ? (
-                  <div className="mt-4 text-center">
-                    <button 
-                      onClick={async () => {
-                        if (!user?.id) return;
-                        setLoadingCustomerPortal(true);
-                        try {
-                          const response = await fetch('/api/stripe/customer-portal', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ userId: user.id }),
-                          });
-                          const data = await response.json();
-                          if (data.url) {
-                            window.open(data.url, '_blank', 'noopener,noreferrer');
-                          } else {
-                            alert(data.error || 'Fehler beim Öffnen des Abo-Verwaltungsbereichs. Bitte versuche es später erneut.');
-                          }
-                        } catch (error) {
-                          console.error('Error opening customer portal:', error);
-                          alert('Fehler beim Öffnen des Abo-Verwaltungsbereichs. Bitte versuche es später erneut.');
-                        } finally {
-                          setLoadingCustomerPortal(false);
-                        }
-                      }}
-                      disabled={loadingCustomerPortal}
-                      className="bg-gradient-to-r from-amber-500 to-orange-500 text-white sm:px-6 px-4 py-3 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed sm:text-base text-sm"
-                    >
-                      {loadingCustomerPortal ? 'Lädt...' : 'Abo verwalten'}
-                    </button>
-                    <p className="text-gray-600 text-sm mt-2">
-                      Hier kannst du dein Abo kündigen, Zahlungsmethode ändern oder Rechnungen ansehen.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="mt-4 text-center">
-                    <button 
-                      onClick={() => setShowPaywall(true)}
-                      className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-300 font-medium max-sm:text-sm max-sm:w-full"
-                    >
-                      Unbegrenzte Ressourcen erstellen
-                    </button>
-                    <p className="text-xs text-amber-600 mt-2">
-                      Early Adopter Preis - 50% Rabatt
-                    </p>
-                  </div>
+              <div className="bg-white w-full rounded-2xl shadow-lg p-3 lg:flex grid sm:grid-cols-2 grid-cols-1 sm:gap-3 gap-2 sm:space-x-2 ">
+                <button
+                  onClick={() => setActiveTab('profile')}
+                  className={`flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 ${
+                    activeTab === 'profile'
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
+                      : 'text-gray-600 hover:text-amber-700 hover:bg-amber-50'
+                  }`}
+                >
+                  <Settings className="w-5 h-5" />
+                  <span className="max-sm:text-sm">Profil</span>
+                </button>
+                
+                <button
+                  onClick={() => setActiveTab('stories')}
+                  className={`flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 ${
+                    activeTab === 'stories'
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
+                      : 'text-gray-600 hover:text-amber-700 hover:bg-amber-50'
+                  }`}
+                >
+                  <BookOpen className="w-5 h-5" />
+                  <span className="max-sm:text-sm">Meine Ressourcen ({stories.length})</span>
+                </button>
+                
+                {isAdmin && (
+                  <button
+                    onClick={() => router.push('/admin/analytics')}
+                    className="flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 text-white bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 shadow-lg"
+                  >
+                    <BarChart3 className="w-5 h-5" />
+                    <span className="max-sm:text-sm">Admin Analytics</span>
+                  </button>
+                )}
+                
+                {isMusicAdmin && (
+                  <button
+                    onClick={() => router.push('/admin/music')}
+                    className="flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 text-white bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 shadow-lg"
+                  >
+                    <Music className="w-5 h-5" />
+                    <span className="max-sm:text-sm">Musik verwalten</span>
+                  </button>
+                )}
+                
+                {(isAdmin || isMusicAdmin) && (
+                  <button
+                    onClick={() => setShowClientResourceModal(true)}
+                    className="flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 text-white bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-lg"
+                  >
+                    <Volume2 className="w-5 h-5" />
+                    <span className="max-sm:text-sm">Ressource für Klienten erstellen</span>
+                  </button>
                 )}
               </div>
+            </motion.div>
 
-
-              {/* Account-Management */}
-              <div className="bg-white rounded-2xl shadow-lg sm:p-6 p-3">
-                <div className="flex items-center gap-3 mb-4">
-                  <Settings className="w-6 h-6 text-amber-600" />
-                  <h2 className="sm:text-xl text-lg font-bold text-amber-900">Account-Management</h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <ChangePassword/>
-                  <DeleteAccount/>
-                </div>
-              </div>
-
-              {/* Support */}
-              <div className="bg-white rounded-2xl shadow-lg sm:p-6 p-3">
-                <div className="flex items-center gap-3 mb-4">
-                  <HelpCircle className="w-6 h-6 text-amber-600" />
-                  <h2 className="sm:text-xl text-lg font-bold text-amber-900">Support & Hilfe</h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <button className="flex items-center gap-3 sm:p-4 px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
-                    <HelpCircle className="w-5 h-5 text-blue-600" />
-                    <div className="text-left">
-                      <p className="font-medium text-blue-900">FAQ</p>
-                      <p className="text-blue-700 text-sm">Häufige Fragen</p>
+            {/* Tab Content */}
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              {activeTab === 'profile' ? (
+                <div className="sm:space-y-6 space-y-3">
+                  {/* Basis-Informationen */}
+                  <div className="bg-white rounded-2xl shadow-lg sm:p-6 p-3">
+                    <div className="flex items-center sm:gap-3 gap-2 sm:mb-6 mb-4">
+                      <User className="w-6 h-6 text-amber-600" />
+                      <h2 className="sm:text-xl text-lg font-bold text-amber-900">Basis-Informationen</h2>
                     </div>
-                  </button>
-                  <button className="flex items-center gap-3 sm:p-4 px-4 py-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
-                    <MessageCircle className="w-5 h-5 text-green-600" />
-                    <div className="text-left">
-                      <p className="font-medium text-green-900">Kontakt</p>
-                      <p className="text-green-700 text-sm">Support kontaktieren</p>
-                    </div>
-                  </button>
-                  <button className="flex items-center gap-3 sm:p-4 px-4 py-3 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors">
-                    <Star className="w-5 h-5 text-purple-600" />
-                    <div className="text-left">
-                      <p className="font-medium text-purple-900">Feedback</p>
-                      <p className="text-purple-700 text-sm">Verbesserungsvorschläge</p>
-                    </div>
-                  </button>
-                  <button className="flex items-center gap-3 sm:p-4 px-4 py-3 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors">
-                    <Bug className="w-5 h-5 text-orange-600" />
-                    <div className="text-left">
-                      <p className="font-medium text-orange-900">Bug melden</p>
-                      <p className="text-orange-700 text-sm">Problem melden</p>
-                    </div>
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white rounded-2xl shadow-lg sm:p-8 p-4">
-              <div className="flex justify-between items-center sm:mb-6 mb-4">
-                <h2 className="sm:text-2xl text-xl font-bold text-amber-900">Meine Ressourcen</h2>
-              </div>
-              
-              {loading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4"></div>
-                  <p className="text-gray-600 max-sm:text-sm">Lade Geschichten...</p>
-                </div>
-              ) : error ? (
-                <div className="text-center py-8">
-                  <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                  <p className="text-red-600">{error}</p>
-                </div>
-              ) : stories.length === 0 && !pendingStory ? (
-                <div className="text-center py-8">
-                  <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 max-sm:text-sm">Noch keine Geschichten gespeichert.</p>
-                  <p className="text-gray-500 text-sm max-sm:text-xs mt-2">
-                    Erstelle eine neue Ressourcen-Geschichte, um sie hier zu sehen.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* Temporäre Ressource anzeigen - nur wenn Benutzer nicht eingeloggt ist */}
-                  {pendingStory && !user && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6"
-                    >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center space-x-3">
-                          <div className="text-3xl">{pendingStory.selectedFigure?.emoji}</div>
-                          <div>
-                            <h3 className="text-lg font-semibold text-blue-900">
-                              {pendingStory.selectedFigure?.name}
-                            </h3>
-                            <p className="text-blue-700 text-sm">
-                              Temporäre Ressource - Bitte melde dich an, um sie zu speichern
-                            </p>
-                          </div>
-                        </div>
-                        <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                          Temporär
-                        </div>
-                      </div>
-                      
-                      <div className="bg-white rounded-lg p-4 mb-4">
-                        <p className="text-gray-800 leading-relaxed">
-                          {pendingStory.generatedStory}
-                        </p>
-                      </div>
-                      
-                      {pendingStory.audioState?.audioUrl && (
-                        <div className="flex items-center space-x-3">
-                          <button
-                            onClick={() => {
-                              const audio = new Audio(pendingStory.audioState.audioUrl);
-                              audio.play();
-                            }}
-                            className="flex items-center space-x-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-                          >
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                            </svg>
-                            <span>Audio abspielen</span>
-                          </button>
-                        </div>
-                      )}
-                      
-                      <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <p className="text-yellow-800 text-sm">
-                          ⚠️ Diese Ressource ist nur temporär gespeichert. Bitte melde dich an, um sie dauerhaft zu speichern.
-                        </p>
-                      </div>
-                    </motion.div>
-                  )}
-                  
-                  
-                  {stories.map((story) => (
-                    <motion.div
-                      key={story.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-amber-50 border border-amber-200 rounded-xl sm:p-6 p-4"
-                    >
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
+                  {user ? (
+                      <div className="sm:space-y-6 space-y-3">
+                        {/* E-Mail Info */}
+                        <div className="bg-gradient-to-r from-amber-50 to-orange-50 sm:p-4 p-3 rounded-lg border border-amber-200">
                           <div className="flex items-center gap-2 mb-2">
-                            <h3 className="text-lg font-semibold text-amber-900">
-                              {story.title}
-                            </h3>
-                            {story.is_audio_only && (
-                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
-                                Audio-only
-                              </span>
-                            )}
-                            {story.client_email && (
-                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium" title={`Für Klient: ${story.client_email}`}>
-                                Klient
-                              </span>
-                            )}
+                            <Mail className="w-5 h-5 text-amber-600" />
+                            <span className="font-semibold text-amber-900">E-Mail-Adresse</span>
                           </div>
-                          <p className="text-amber-700 text-sm mb-2">
-                            <strong>{getResourceTypeLabel(story.resource_figure)}:</strong> {story.resource_figure?.name || 'Unbekannt'}
-                          </p>
-                          <p className="text-amber-600 text-sm">
-                            <strong>Erstellt am:</strong> {new Date(story.created_at).toLocaleDateString('de-DE', { 
-                              day: '2-digit', 
-                              month: '2-digit', 
-                              year: 'numeric' 
-                            })}
-                          </p>
+                          <p className="text-amber-800 text-sm font-medium">{user.email}</p>
                         </div>
-                        <div className="flex sm:space-x-2">
-                          {deleteConfirmId === story.id ? (
-                            <div className="flex sm:space-x-2">
-                              <button
-                                onClick={() => deleteStory(story.id)}
-                                className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
-                              >
-                                Bestätigen
-                              </button>
-                              <button
-                                onClick={handleDeleteCancel}
-                                className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm"
-                              >
-                                Abbrechen
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => handleDeleteClick(story.id)}
-                              className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                              title="Geschichte löschen"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* Audio-Fokus Bereich */}
-                      <div className="sm:bg-white rounded-lg sm:p-4">
-                        <div className="text-center">
-                          <div className="mb-4">
-                            {story.audio_url ? (
-                            <div className="space-y-3">
-                                <div className="flex justify-center">
-                                  {playingAudioId === story.id ? (
-                                <button
-                                      onClick={() => pauseAudio(story.id)}
-                                      className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-8 py-4 rounded-xl hover:from-red-600 hover:to-pink-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-3 text-lg font-medium"
-                                    >
-                                      <Pause className="w-6 h-6" />
-                                      Pause
-                                </button>
-                                  ) : (() => {
-                                    const accessStatus = resourceAccessStatus[story.id];
-                                    const canAccess = accessStatus?.canAccess ?? true; // Fallback: erlauben wenn nicht geprüft
-                                    const isFirst = accessStatus?.isFirst ?? false;
-                                    const trialExpired = accessStatus?.trialExpired ?? false;
-                                    
-                                    if (!canAccess) {
-                                      return (
-                                    <button
-                                          onClick={() => setShowPaywall(true)}
-                                          className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-3 text-lg font-medium opacity-75 cursor-pointer"
-                                        >
-                                          <Lock className="w-6 h-6" />
-                                          {isFirst && trialExpired ? 'Trial abgelaufen - Zugang aktivieren' : 'Zugang aktivieren'}
-                                        </button>
-                                      );
-                                    }
-                                    
-                                    return (
-                                      <button
-                                        onClick={async () => {
-                                          // Prüfe Zugang vor dem Abspielen (nur wenn Paywall aktiviert)
-                                          const paywallEnabled = isEnabled('PAYWALL_ENABLED');
-                                          
-                                          if (user && paywallEnabled) {
-                                            console.log(`[Dashboard] Checking access for story ${story.id} before playing...`);
-                                            const canAccessNow = await canAccessResource(user.id, story.id);
-                                            console.log(`[Dashboard] Access check result for story ${story.id}:`, canAccessNow);
-                                            if (!canAccessNow) {
-                                              console.log(`[Dashboard] Access denied for story ${story.id} - showing paywall`);
-                                              setShowPaywall(true);
-                                              return;
-                                            }
-                                            console.log(`[Dashboard] Access granted for story ${story.id} - playing audio`);
-                                          }
-                                          
-                                          // VALIDIERUNG: Prüfe ob audio_url vorhanden ist
-                                          if (!story.audio_url || story.audio_url.trim() === '') {
-                                            console.error(`[Dashboard] No audio_url for story ${story.id}:`, story);
-                                            alert('Fehler: Diese Ressource hat keine Audio-URL. Bitte generiere das Audio erneut.');
-                                            return;
-                                          }
-                                          
-                                          console.log(`[Dashboard] Calling playAudio with URL:`, story.audio_url);
-                                          playAudio(story.audio_url, story.id);
-                                        }}
-                                      className="bg-gradient-to-r from-amber-500 to-orange-500 text-white sm:px-8 sm:py-4 px-5 py-3 rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-3 text-lg font-medium max-sm:text-base max-sm:w-full max-sm:justify-center max-sm:my-2"
-                                    >
-                                      <Play className="sm:w-6 sm:h-6 w-4 h-4" />
-                                      Audio abspielen
-                                    </button>
-                                    );
-                                  })()}
-                                </div>
-                                <p className="text-amber-600 text-sm">
-                                  {playingAudioId === story.id ? '🔊 Audio wird abgespielt' : (() => {
-                                    const accessStatus = resourceAccessStatus[story.id];
-                                    const canAccess = accessStatus?.canAccess ?? true;
-                                    const isFirst = accessStatus?.isFirst ?? false;
-                                    const trialExpired = accessStatus?.trialExpired ?? false;
-                                    const daysRemaining = accessStatus?.daysRemaining ?? 0;
-                                    
-                                    if (!canAccess && isFirst && trialExpired) {
-                                      return '⏰ Deine 3-Tage-Trial-Periode ist abgelaufen. Aktiviere den Zugang, um Audio abzuspielen.';
-                                    } else if (!canAccess) {
-                                      return '🔒 Aktiviere den Zugang, um Audio abzuspielen.';
-                                    } else if (isFirst && daysRemaining > 0) {
-                                      // Zeige verbleibende Tage für erste Ressource
-                                      const daysText = daysRemaining === 1 ? 'Tag' : 'Tage';
-                                      return `⏰ Kostenloser Zugriff noch ${daysRemaining} ${daysText} verfügbar (3-Tage-Trial)`;
-                                    }
-                                    return '✓ Audio verfügbar - Klicke zum Abspielen';
-                                  })()}
-                                </p>
-                              </div>
-                            ) : (
-                              <div className="space-y-3">
-                                <p className="text-amber-600 text-sm text-center mb-3">
-                                  Für diese Geschichte ist noch kein Audio verfügbar.
-                                </p>
-                                {generatingAudioFor === story.id ? (
-                                  <div className="flex items-center justify-center gap-2 text-amber-600">
-                                    <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
-                                    <span>Audio wird generiert...</span>
-                                  </div>
-                                ) : (
-                                  <button
-                                    onClick={() => generateAudio(story.id)}
-                                    className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2 mx-auto font-medium"
-                                  >
-                                    <Volume2 className="w-5 h-5" />
-                                    Audio generieren
-                                  </button>
-                                )}
-                              </div>
-                            )}
+                        
+                        {/* Personalisierungs-Einstellungen */}
+                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 sm:p-5 p-3 rounded-lg border border-blue-200">
+                          <div className="flex items-center gap-2 sm:mb-4 mb-3">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <h3 className="font-semibold text-blue-900">Personalisierung für Geschichten</h3>
                           </div>
                           
-                          {/* Pro-Version Hinweis für Text und Downloads */}
-                          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg sm:p-4 p-3">
-                            <div className="flex items-center justify-center gap-2 mb-3">
-                              <span className="text-2xl">👑</span>
-                              <h4 className="text-lg font-semibold text-purple-900">Pro-Version</h4>
+                          <form onSubmit={saveFullName} className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label htmlFor="fullName" className="block text-sm font-semibold text-blue-900 mb-2">
+                                  Vorname/Spitzname
+                                </label>
+                                <input
+                                  type="text"
+                                  id="fullName"
+                                  value={fullName}
+                                  onChange={(e) => setFullName(e.target.value)}
+                                  className="w-full px-3 py-2.5 border border-blue-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all"
+                                  placeholder="z.B. Andy, Maria, Tom"
+                                />
+                                <p className="text-blue-600 text-xs mt-1.5">
+                                  Wird in deinen Geschichten verwendet
+                                </p>
+                              </div>
+
+                              <div>
+                                <label htmlFor="pronunciationHint" className="block text-sm font-semibold text-blue-900 mb-2">
+                                  Aussprache-Hinweis
+                                  <span className="text-blue-500 text-xs font-normal ml-1">(optional)</span>
+                                </label>
+                                <input
+                                  type="text"
+                                  id="pronunciationHint"
+                                  value={pronunciationHint}
+                                  onChange={(e) => setPronunciationHint(e.target.value)}
+                                  className="w-full px-3 py-2.5 border border-blue-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all"
+                                  placeholder="z.B. Andi (statt Andy)"
+                                />
+                                <p className="mt-1 text-xs text-blue-600">
+                                  Gib hier einfach den Namen ein, wie er ausgesprochen werden soll. 
+                                  <span className="font-semibold"> Beispiel: Wenn dein Name "Andy" ist, aber als "Andi" ausgesprochen werden soll, gib hier "Andi" ein.</span>
+                                </p>
+                                <p className="text-blue-600 text-xs mt-1">
+                                  Der Name wird dann automatisch in der Geschichte durch diese Schreibweise ersetzt.
+                                </p>
+                              </div>
                             </div>
-                            <p className="text-purple-700 text-sm mb-4">
-                              Textanzeige, Bearbeitung und Downloads sind in der Pro-Version verfügbar
-                            </p>
                             
-                            {/* Pro-Features Liste */}
-                            <div className="space-y-2 mb-4">
-                              <div className="flex items-center gap-2 text-sm text-purple-700">
-                                <span className="text-purple-500">📝</span>
-                                <span>Text anzeigen und bearbeiten</span>
+                            {fullNameError && (
+                              <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">
+                                {fullNameError}
                               </div>
-                              <div className="flex items-center gap-2 text-sm text-purple-700">
-                                <span className="text-purple-500">📄</span>
-                                <span>Text als TXT herunterladen</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-sm text-purple-700">
-                                <span className="text-purple-500">🎵</span>
-                                <span>Audio als MP3 herunterladen</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-sm text-purple-700">
-                                <span className="text-purple-500">🎤</span>
-                                <span>Stimme nachträglich ändern</span>
-                              </div>
-                            </div>
+                            )}
                             
+                            {fullNameSuccess && (
+                              <div className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-lg text-sm">
+                                {fullNameSuccess}
+                              </div>
+                            )}
                             
-                            <button className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-6 py-2 rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all duration-300 text-sm font-medium">
-                              Upgrade zu Pro
+                            <div className="flex justify-end">
+                              <button
+                                type="submit"
+                                disabled={fullNameLoading}
+                                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white sm:px-6 px-4 sm:py-2.5 py-2 rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold transition-all shadow-sm hover:shadow-md"
+                              >
+                                {fullNameLoading ? 'Speichern...' : 'Einstellungen speichern'}
                               </button>
-                          </div>
+                            </div>
+                          </form>
                         </div>
                       </div>
-                    </motion.div>
-                  ))}
+                  ) : (
+                    <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                      <p className="text-amber-700 text-sm">
+                        Bitte melde dich an, um dein Profil zu sehen.
+                      </p>
+                    </div>
+                  )}
+                  </div>
+
+                  {/* Nutzungs-Statistiken */}
+                  <div className="bg-white rounded-2xl shadow-lg sm:p-6 p-3">
+                    <div className="flex items-center gap-3 mb-4">
+                      <TrendingUp className="w-6 h-6 text-amber-600" />
+                      <h2 className="sm:text-xl text-lg font-bold text-amber-900">Nutzungs-Statistiken</h2>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-blue-50 p-4 rounded-lg text-center">
+                        <BookOpen className="sm:w-8 sm:h-8 w-6 h-6 text-blue-600 mx-auto mb-2" />
+                                <p className="sm:text-2xl text-base font-bold text-ellipsis overflow-hidden text-blue-900">{userStats.totalStories}</p>
+                                <p className="text-blue-700 text-sm">Ressourcen</p>
+                      </div>
+                      <div className="bg-purple-50 p-4 rounded-lg text-center">
+                        <Clock className="sm:w-8 sm:h-8 w-6 h-6 text-purple-600 mx-auto mb-2" />
+                        <p className="sm:text-2xl text-base font-bold text-ellipsis overflow-hidden text-purple-900">{userStats.totalAudioTime}</p>
+                        <p className="text-purple-700 text-sm">Min. Audio</p>
+                      </div>
+                      <div className="bg-green-50 p-4 rounded-lg text-center">
+                        <Star className="sm:w-8 sm:h-8 w-6 h-6 text-green-600 mx-auto mb-2" />
+                        <p className="sm:text-lg text-base font-bold text-ellipsis overflow-hidden text-green-900">{userStats.favoriteFigure}</p>
+                        <p className="text-green-700 text-sm">Lieblingsfigur</p>
+                      </div>
+                      <div className="bg-orange-50 p-4 rounded-lg text-center">
+                        <Volume2 className="sm:w-8 sm:h-8 w-6 h-6 text-orange-600 mx-auto mb-2" />
+                        <p className="sm:text-lg text-base font-bold text-ellipsis overflow-hidden text-orange-900">{userStats.favoriteVoice}</p>
+                        <p className="text-orange-700 text-sm">Lieblingsstimme</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Abo-Status */}
+                  <div className="bg-white rounded-2xl shadow-lg sm:p-6 p-3">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Crown className="w-6 h-6 text-amber-600" />
+                      <h2 className="sm:text-xl text-lg font-bold text-amber-900">Abo-Status</h2>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-gradient-to-r from-amber-50 to-orange-50 sm:p-4 p-3 rounded-lg border border-amber-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Shield className="w-5 h-5 text-amber-600" />
+                          <span className="font-medium text-amber-900">Aktueller Plan</span>
+                        </div>
+                        <p className="text-amber-700 sm:text-lg text-base font-semibold">{subscriptionStatus.plan}</p>
+                        {subscriptionStatus.isPro && (
+                          <p className="text-amber-600 text-sm">
+                            {subscriptionStatus.subscriptionStatus === 'active' ? 'Aktiv' : 
+                            subscriptionStatus.subscriptionStatus === 'past_due' ? 'Zahlung ausstehend' :
+                            subscriptionStatus.subscriptionStatus === 'paused' ? 'Pausiert' :
+                            subscriptionStatus.subscriptionStatus === 'canceled' ? 'Gekündigt' :
+                            'Pro-Version aktiv'}
+                          </p>
+                        )}
+                      </div>
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Zap className="w-5 h-5 text-blue-600" />
+                          <span className="font-medium text-blue-900">Ressourcen</span>
+                        </div>
+                        <p className="text-blue-700 sm:text-lg text-base font-semibold">
+                          {subscriptionStatus.credits >= 999999 ? 'Unbegrenzt' : subscriptionStatus.credits}
+                        </p>
+                        <p className="text-blue-600 text-sm">Verfügbar</p>
+                      </div>
+                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Calendar className="w-5 h-5 text-green-600" />
+                          <span className="font-medium text-green-900">Ablauf</span>
+                        </div>
+                        <p className="text-green-700 sm:text-lg text-base font-semibold">
+                          {subscriptionStatus.expiresAt 
+                            ? new Date(subscriptionStatus.expiresAt).toLocaleDateString('de-DE')
+                            : subscriptionStatus.subscriptionId ? 'Monatlich kündbar' : 'Unbegrenzt'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    {subscriptionStatus.subscriptionId ? (
+                      <div className="mt-4 text-center">
+                        <button 
+                          onClick={async () => {
+                            if (!user?.id) return;
+                            setLoadingCustomerPortal(true);
+                            try {
+                              const response = await fetch('/api/stripe/customer-portal', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ userId: user.id }),
+                              });
+                              const data = await response.json();
+                              if (data.url) {
+                                window.open(data.url, '_blank', 'noopener,noreferrer');
+                              } else {
+                                alert(data.error || 'Fehler beim Öffnen des Abo-Verwaltungsbereichs. Bitte versuche es später erneut.');
+                              }
+                            } catch (error) {
+                              console.error('Error opening customer portal:', error);
+                              alert('Fehler beim Öffnen des Abo-Verwaltungsbereichs. Bitte versuche es später erneut.');
+                            } finally {
+                              setLoadingCustomerPortal(false);
+                            }
+                          }}
+                          disabled={loadingCustomerPortal}
+                          className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed "
+                        >
+                          {loadingCustomerPortal ? 'Lädt...' : 'Abo verwalten'}
+                        </button>
+                        <p className="text-gray-600 text-sm mt-2">
+                          Hier kannst du dein Abo kündigen, Zahlungsmethode ändern oder Rechnungen ansehen.
+                        </p>
+                      </div>
+                    ) : subscriptionStatus.isPro ? (
+                      <div className="mt-4 text-center">
+                        <button 
+                          onClick={async () => {
+                            if (!user?.id) return;
+                            setLoadingCustomerPortal(true);
+                            try {
+                              const response = await fetch('/api/stripe/customer-portal', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ userId: user.id }),
+                              });
+                              const data = await response.json();
+                              if (data.url) {
+                                window.open(data.url, '_blank', 'noopener,noreferrer');
+                              } else {
+                                alert(data.error || 'Fehler beim Öffnen des Abo-Verwaltungsbereichs. Bitte versuche es später erneut.');
+                              }
+                            } catch (error) {
+                              console.error('Error opening customer portal:', error);
+                              alert('Fehler beim Öffnen des Abo-Verwaltungsbereichs. Bitte versuche es später erneut.');
+                            } finally {
+                              setLoadingCustomerPortal(false);
+                            }
+                          }}
+                          disabled={loadingCustomerPortal}
+                          className="bg-gradient-to-r from-amber-500 to-orange-500 text-white sm:px-6 px-4 py-3 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed sm:text-base text-sm"
+                        >
+                          {loadingCustomerPortal ? 'Lädt...' : 'Abo verwalten'}
+                        </button>
+                        <p className="text-gray-600 text-sm mt-2">
+                          Hier kannst du dein Abo kündigen, Zahlungsmethode ändern oder Rechnungen ansehen.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="mt-4 text-center">
+                        <button 
+                          onClick={() => setShowPaywall(true)}
+                          className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-300 font-medium max-sm:text-sm max-sm:w-full"
+                        >
+                          Unbegrenzte Ressourcen erstellen
+                        </button>
+                        <p className="text-xs text-amber-600 mt-2">
+                          Early Adopter Preis - 50% Rabatt
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+
+                  {/* Account-Management */}
+                  <div className="bg-white rounded-2xl shadow-lg sm:p-6 p-3">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Settings className="w-6 h-6 text-amber-600" />
+                      <h2 className="sm:text-xl text-lg font-bold text-amber-900">Account-Management</h2>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <ChangePassword/>
+                      <DeleteAccount/>
+                    </div>
+                  </div>
+
+                  {/* Support */}
+                  <div className="bg-white rounded-2xl shadow-lg sm:p-6 p-3">
+                    <div className="flex items-center gap-3 mb-4">
+                      <HelpCircle className="w-6 h-6 text-amber-600" />
+                      <h2 className="sm:text-xl text-lg font-bold text-amber-900">Support & Hilfe</h2>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <button className="flex items-center gap-3 sm:p-4 px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                        <HelpCircle className="w-5 h-5 text-blue-600" />
+                        <div className="text-left">
+                          <p className="font-medium text-blue-900">FAQ</p>
+                          <p className="text-blue-700 text-sm">Häufige Fragen</p>
+                        </div>
+                      </button>
+                      <button className="flex items-center gap-3 sm:p-4 px-4 py-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
+                        <MessageCircle className="w-5 h-5 text-green-600" />
+                        <div className="text-left">
+                          <p className="font-medium text-green-900">Kontakt</p>
+                          <p className="text-green-700 text-sm">Support kontaktieren</p>
+                        </div>
+                      </button>
+                      <button className="flex items-center gap-3 sm:p-4 px-4 py-3 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors">
+                        <Star className="w-5 h-5 text-purple-600" />
+                        <div className="text-left">
+                          <p className="font-medium text-purple-900">Feedback</p>
+                          <p className="text-purple-700 text-sm">Verbesserungsvorschläge</p>
+                        </div>
+                      </button>
+                      <button className="flex items-center gap-3 sm:p-4 px-4 py-3 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors">
+                        <Bug className="w-5 h-5 text-orange-600" />
+                        <div className="text-left">
+                          <p className="font-medium text-orange-900">Bug melden</p>
+                          <p className="text-orange-700 text-sm">Problem melden</p>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl shadow-lg sm:p-8 p-4">
+                  <div className="flex justify-between items-center sm:mb-6 mb-4">
+                    <h2 className="sm:text-2xl text-xl font-bold text-amber-900">Meine Ressourcen</h2>
+                  </div>
+                  
+                  {loading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4"></div>
+                      <p className="text-gray-600 max-sm:text-sm">Lade Geschichten...</p>
+                    </div>
+                  ) : error ? (
+                    <div className="text-center py-8">
+                      <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                      <p className="text-red-600">{error}</p>
+                    </div>
+                  ) : stories.length === 0 && !pendingStory ? (
+                    <div className="text-center py-8">
+                      <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 max-sm:text-sm">Noch keine Geschichten gespeichert.</p>
+                      <p className="text-gray-500 text-sm max-sm:text-xs mt-2">
+                        Erstelle eine neue Ressourcen-Geschichte, um sie hier zu sehen.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Temporäre Ressource anzeigen - nur wenn Benutzer nicht eingeloggt ist */}
+                      {pendingStory && !user && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6"
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center space-x-3">
+                              <div className="text-3xl">{pendingStory.selectedFigure?.emoji}</div>
+                              <div>
+                                <h3 className="text-lg font-semibold text-blue-900">
+                                  {pendingStory.selectedFigure?.name}
+                                </h3>
+                                <p className="text-blue-700 text-sm">
+                                  Temporäre Ressource - Bitte melde dich an, um sie zu speichern
+                                </p>
+                              </div>
+                            </div>
+                            <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                              Temporär
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white rounded-lg p-4 mb-4">
+                            <p className="text-gray-800 leading-relaxed">
+                              {pendingStory.generatedStory}
+                            </p>
+                          </div>
+                          
+                          {pendingStory.audioState?.audioUrl && (
+                            <div className="flex items-center space-x-3">
+                              <button
+                                onClick={() => {
+                                  const audio = new Audio(pendingStory.audioState.audioUrl);
+                                  audio.play();
+                                }}
+                                className="flex items-center space-x-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                              >
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                                </svg>
+                                <span>Audio abspielen</span>
+                              </button>
+                            </div>
+                          )}
+                          
+                          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <p className="text-yellow-800 text-sm">
+                              ⚠️ Diese Ressource ist nur temporär gespeichert. Bitte melde dich an, um sie dauerhaft zu speichern.
+                            </p>
+                          </div>
+                        </motion.div>
+                      )}
+                      
+                      
+                      {stories.map((story) => (
+                        <motion.div
+                          key={story.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="bg-amber-50 border border-amber-200 rounded-xl sm:p-6 p-4"
+                        >
+                          <div className="flex justify-between items-start mb-4">
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <h3 className="text-lg font-semibold text-amber-900">
+                                  {story.title}
+                                </h3>
+                                {story.is_audio_only && (
+                                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                                    Audio-only
+                                  </span>
+                                )}
+                                {story.client_email && (
+                                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium" title={`Für Klient: ${story.client_email}`}>
+                                    Klient
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-amber-700 text-sm mb-2">
+                                <strong>{getResourceTypeLabel(story.resource_figure)}:</strong> {story.resource_figure?.name || 'Unbekannt'}
+                              </p>
+                              <p className="text-amber-600 text-sm">
+                                <strong>Erstellt am:</strong> {new Date(story.created_at).toLocaleDateString('de-DE', { 
+                                  day: '2-digit', 
+                                  month: '2-digit', 
+                                  year: 'numeric' 
+                                })}
+                              </p>
+                            </div>
+                            <div className="flex sm:space-x-2">
+                              {deleteConfirmId === story.id ? (
+                                <div className="flex sm:space-x-2">
+                                  <button
+                                    onClick={() => deleteStory(story.id)}
+                                    className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                                  >
+                                    Bestätigen
+                                  </button>
+                                  <button
+                                    onClick={handleDeleteCancel}
+                                    className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm"
+                                  >
+                                    Abbrechen
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => handleDeleteClick(story.id)}
+                                  className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                  title="Geschichte löschen"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Audio-Fokus Bereich */}
+                          <div className="sm:bg-white rounded-lg sm:p-4">
+                            <div className="text-center">
+                              <div className="mb-4">
+                                {story.audio_url ? (
+                                <div className="space-y-3">
+                                    <div className="flex justify-center">
+                                      {playingAudioId === story.id ? (
+                                    <button
+                                          onClick={() => pauseAudio(story.id)}
+                                          className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-8 py-4 rounded-xl hover:from-red-600 hover:to-pink-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-3 text-lg font-medium"
+                                        >
+                                          <Pause className="w-6 h-6" />
+                                          Pause
+                                    </button>
+                                      ) : (() => {
+                                        const accessStatus = resourceAccessStatus[story.id];
+                                        const canAccess = accessStatus?.canAccess ?? true; // Fallback: erlauben wenn nicht geprüft
+                                        const isFirst = accessStatus?.isFirst ?? false;
+                                        const trialExpired = accessStatus?.trialExpired ?? false;
+                                        
+                                        if (!canAccess) {
+                                          return (
+                                        <button
+                                              onClick={() => setShowPaywall(true)}
+                                              className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-3 text-lg font-medium opacity-75 cursor-pointer"
+                                            >
+                                              <Lock className="w-6 h-6" />
+                                              {isFirst && trialExpired ? 'Trial abgelaufen - Zugang aktivieren' : 'Zugang aktivieren'}
+                                            </button>
+                                          );
+                                        }
+                                        
+                                        return (
+                                          <button
+                                            onClick={async () => {
+                                              // Prüfe Zugang vor dem Abspielen (nur wenn Paywall aktiviert)
+                                              const paywallEnabled = isEnabled('PAYWALL_ENABLED');
+                                              
+                                              if (user && paywallEnabled) {
+                                                console.log(`[Dashboard] Checking access for story ${story.id} before playing...`);
+                                                const canAccessNow = await canAccessResource(user.id, story.id);
+                                                console.log(`[Dashboard] Access check result for story ${story.id}:`, canAccessNow);
+                                                if (!canAccessNow) {
+                                                  console.log(`[Dashboard] Access denied for story ${story.id} - showing paywall`);
+                                                  setShowPaywall(true);
+                                                  return;
+                                                }
+                                                console.log(`[Dashboard] Access granted for story ${story.id} - playing audio`);
+                                              }
+                                              
+                                              // VALIDIERUNG: Prüfe ob audio_url vorhanden ist
+                                              if (!story.audio_url || story.audio_url.trim() === '') {
+                                                console.error(`[Dashboard] No audio_url for story ${story.id}:`, story);
+                                                alert('Fehler: Diese Ressource hat keine Audio-URL. Bitte generiere das Audio erneut.');
+                                                return;
+                                              }
+                                              
+                                              console.log(`[Dashboard] Calling playAudio with URL:`, story.audio_url);
+                                              playAudio(story.audio_url, story.id);
+                                            }}
+                                          className="bg-gradient-to-r from-amber-500 to-orange-500 text-white sm:px-8 sm:py-4 px-5 py-3 rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-3 text-lg font-medium max-sm:text-base max-sm:w-full max-sm:justify-center max-sm:my-2"
+                                        >
+                                          <Play className="sm:w-6 sm:h-6 w-4 h-4" />
+                                          Audio abspielen
+                                        </button>
+                                        );
+                                      })()}
+                                    </div>
+                                    <p className="text-amber-600 text-sm">
+                                      {playingAudioId === story.id ? '🔊 Audio wird abgespielt' : (() => {
+                                        const accessStatus = resourceAccessStatus[story.id];
+                                        const canAccess = accessStatus?.canAccess ?? true;
+                                        const isFirst = accessStatus?.isFirst ?? false;
+                                        const trialExpired = accessStatus?.trialExpired ?? false;
+                                        const daysRemaining = accessStatus?.daysRemaining ?? 0;
+                                        
+                                        if (!canAccess && isFirst && trialExpired) {
+                                          return '⏰ Deine 3-Tage-Trial-Periode ist abgelaufen. Aktiviere den Zugang, um Audio abzuspielen.';
+                                        } else if (!canAccess) {
+                                          return '🔒 Aktiviere den Zugang, um Audio abzuspielen.';
+                                        } else if (isFirst && daysRemaining > 0) {
+                                          // Zeige verbleibende Tage für erste Ressource
+                                          const daysText = daysRemaining === 1 ? 'Tag' : 'Tage';
+                                          return `⏰ Kostenloser Zugriff noch ${daysRemaining} ${daysText} verfügbar (3-Tage-Trial)`;
+                                        }
+                                        return '✓ Audio verfügbar - Klicke zum Abspielen';
+                                      })()}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-3">
+                                    <p className="text-amber-600 text-sm text-center mb-3">
+                                      Für diese Geschichte ist noch kein Audio verfügbar.
+                                    </p>
+                                    {generatingAudioFor === story.id ? (
+                                      <div className="flex items-center justify-center gap-2 text-amber-600">
+                                        <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+                                        <span>Audio wird generiert...</span>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={() => generateAudio(story.id)}
+                                        className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2 mx-auto font-medium"
+                                      >
+                                        <Volume2 className="w-5 h-5" />
+                                        Audio generieren
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Pro-Version Hinweis für Text und Downloads */}
+                              <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg sm:p-4 p-3">
+                                <div className="flex items-center justify-center gap-2 mb-3">
+                                  <span className="text-2xl">👑</span>
+                                  <h4 className="text-lg font-semibold text-purple-900">Pro-Version</h4>
+                                </div>
+                                <p className="text-purple-700 text-sm mb-4">
+                                  Textanzeige, Bearbeitung und Downloads sind in der Pro-Version verfügbar
+                                </p>
+                                
+                                {/* Pro-Features Liste */}
+                                <div className="space-y-2 mb-4">
+                                  <div className="flex items-center gap-2 text-sm text-purple-700">
+                                    <span className="text-purple-500">📝</span>
+                                    <span>Text anzeigen und bearbeiten</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-sm text-purple-700">
+                                    <span className="text-purple-500">📄</span>
+                                    <span>Text als TXT herunterladen</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-sm text-purple-700">
+                                    <span className="text-purple-500">🎵</span>
+                                    <span>Audio als MP3 herunterladen</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-sm text-purple-700">
+                                    <span className="text-purple-500">🎤</span>
+                                    <span>Stimme nachträglich ändern</span>
+                                  </div>
+                                </div>
+                                
+                                
+                                <button className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-6 py-2 rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all duration-300 text-sm font-medium">
+                                  Upgrade zu Pro
+                                  </button>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
-        </motion.div>
+            </motion.div>
+          </>
+        )}
       </div>
 
       {/* Paywall Modal */}

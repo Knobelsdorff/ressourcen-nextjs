@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/providers/auth-provider";
 import { motion, AnimatePresence } from "framer-motion";
 import { createSPAClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 export default function Header() {
   const { user, signIn, signUp, signOut, loading } = useAuth();
@@ -20,6 +20,7 @@ export default function Header() {
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
 
   // Close mobile menu when clicking outside
   useEffect(() => {
@@ -37,6 +38,18 @@ export default function Header() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isMobileMenuOpen]);
+
+  // show login modal if user is not logged in
+  useEffect(() => {
+  if (
+    !loading &&
+    !user &&
+    pathname === "/dashboard"
+  ) {
+    setAuthMode("login");
+    setShowAuthModal(true);
+  }
+}, [loading, user, pathname]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
