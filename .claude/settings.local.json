@@ -4,7 +4,8 @@
       "Bash(mkdir:*)",
       "Bash(chmod:*)",
       "Bash(supabase --version:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []
