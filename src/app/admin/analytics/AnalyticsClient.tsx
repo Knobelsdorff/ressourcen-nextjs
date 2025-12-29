@@ -98,6 +98,10 @@ export function AnalyticsClient({
   };
 
   const handlePlayResource = async (storyId: string, userEmail?: string | null) => {
+    // Open modal immediately with loading state
+    setSelectedResource({ loading: true });
+    setShowResourceDetails(true);
+
     try {
       const response = await fetch(`/api/admin/resources/search?storyId=${storyId}`);
 
@@ -109,13 +113,15 @@ export function AnalyticsClient({
       const resource = data.resource;
 
       if (resource) {
+        console.log("Loaded resource:", resource);
         setSelectedResource(resource);
-        setShowResourceDetails(true);
       } else {
+        setShowResourceDetails(false);
         alert("Ressource nicht gefunden");
       }
     } catch (error: any) {
       console.error("Error loading resource:", error);
+      setShowResourceDetails(false);
       alert("Fehler beim Laden der Ressource: " + (error.message || "Unbekannter Fehler"));
     }
   };
@@ -124,6 +130,10 @@ export function AnalyticsClient({
     resourceName: string,
     userEmail?: string | null
   ) => {
+    // Open modal immediately with loading state
+    setSelectedResource({ loading: true });
+    setShowResourceDetails(true);
+
     try {
       const params = new URLSearchParams();
       params.append("q", resourceName);
@@ -155,9 +165,10 @@ export function AnalyticsClient({
       });
 
       if (resource) {
+        console.log("Loaded resource:", resource);
         setSelectedResource(resource);
-        setShowResourceDetails(true);
       } else {
+        setShowResourceDetails(false);
         let errorMessage = `Ressource "${resourceName}" nicht gefunden${
           userEmail ? ` für ${userEmail}` : ""
         }.`;
@@ -168,6 +179,7 @@ export function AnalyticsClient({
       }
     } catch (error: any) {
       console.error("Error loading resource by name:", error);
+      setShowResourceDetails(false);
       alert("Fehler beim Laden der Ressource: " + (error.message || "Unbekannter Fehler"));
     }
   };
@@ -284,6 +296,23 @@ export function AnalyticsClient({
     });
 
     return Object.values(statsByUser);
+  })();
+
+  // Calculate recent logins - get most recent login for each user
+  const recentLogins = (() => {
+    const loginsByUser: Record<string, AnalyticsEvent> = {};
+
+    events
+      .filter((event) => event.event_type === "user_login")
+      .forEach((event) => {
+        const email = event.user_email || "Unbekannt";
+        // Keep only the most recent login (events are already sorted by created_at desc)
+        if (!loginsByUser[email]) {
+          loginsByUser[email] = event;
+        }
+      });
+
+    return Object.values(loginsByUser);
   })();
 
   return (
@@ -563,9 +592,9 @@ export function AnalyticsClient({
           className="mb-6"
         />
 
-        {/* Event-Liste */}
+        {/* Ressourcen-Erstellung Tabelle */}
         <DataTable
-          data={events}
+          data={events.filter((e) => e.event_type === "resource_created")}
           columns={[
             {
               key: "created_at",
@@ -575,13 +604,12 @@ export function AnalyticsClient({
               width: "180px",
             },
             {
-              key: "event_type",
-              label: "Event",
+              key: "user_email",
+              label: "User Email",
               sortable: true,
               render: (value) => (
-                <span className="font-medium text-gray-900">{formatEventType(value)}</span>
+                <span className="font-medium text-gray-900">{value || "-"}</span>
               ),
-              width: "150px",
             },
             {
               key: "resource_figure_name",
@@ -623,12 +651,46 @@ export function AnalyticsClient({
               width: "120px",
             },
             {
+              key: "voice_id",
+              label: "Stimme",
+              sortable: true,
+              render: (value) => (
+                <span className="text-sm text-gray-600">{value || "-"}</span>
+              ),
+              width: "150px",
+            },
+          ]}
+          pageSize={20}
+          searchable={true}
+          exportable={true}
+          title={
+            <div className="flex items-center gap-2">
+              <FileText className="w-6 h-6 text-green-600" />
+              <span>Ressourcen-Erstellung ({events.filter((e) => e.event_type === "resource_created").length} insgesamt)</span>
+            </div>
+          }
+          emptyMessage="Keine Ressourcen-Erstellungen gefunden"
+          className="mb-6"
+        />
+
+        {/* Recent Logins Table */}
+        <DataTable
+          data={recentLogins}
+          columns={[
+            {
               key: "user_email",
               label: "User Email",
               sortable: true,
               render: (value) => (
                 <span className="font-medium text-gray-900">{value || "-"}</span>
               ),
+            },
+            {
+              key: "created_at",
+              label: "Letzter Login",
+              sortable: true,
+              render: (value) => formatDate(value),
+              width: "180px",
             },
             {
               key: "user_id",
@@ -647,11 +709,11 @@ export function AnalyticsClient({
           exportable={true}
           title={
             <div className="flex items-center gap-2">
-              <BarChart3 className="w-6 h-6 text-amber-600" />
-              <span>Event-Details ({events.length} insgesamt)</span>
+              <Users className="w-6 h-6 text-blue-600" />
+              <span>Letzte Logins ({recentLogins.length} Nutzer)</span>
             </div>
           }
-          emptyMessage="Keine Events gefunden"
+          emptyMessage="Keine Login-Daten gefunden"
           className="mb-6"
         />
       </div>
@@ -690,8 +752,16 @@ export function AnalyticsClient({
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              {selectedResource.question_answers &&
-              selectedResource.question_answers.length > 0 ? (
+              {selectedResource.loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <RefreshCw className="w-8 h-8 animate-spin text-amber-600 mx-auto mb-2" />
+                    <p className="text-gray-500">Lade Ressource...</p>
+                  </div>
+                </div>
+              ) : selectedResource.question_answers &&
+                Array.isArray(selectedResource.question_answers) &&
+                selectedResource.question_answers.length > 0 ? (
                 <div className="space-y-6">
                   <h3 className="text-lg font-semibold mb-4">Fragen & Antworten:</h3>
                   {selectedResource.question_answers.map((qa: any, qaIndex: number) => {
@@ -740,12 +810,17 @@ export function AnalyticsClient({
                   })}
                 </div>
               ) : (
-                <p className="text-gray-500">Keine Fragen-Antworten verfügbar</p>
+                <div className="text-center py-12">
+                  <p className="text-gray-500 mb-2">Keine Fragen-Antworten verfügbar</p>
+                  <p className="text-xs text-gray-400">
+                    Diese Ressource wurde möglicherweise ohne Fragebogen erstellt.
+                  </p>
+                </div>
               )}
             </div>
 
             {/* Footer mit Abspielen-Button */}
-            {selectedResource.audio_url && (
+            {!selectedResource.loading && selectedResource.audio_url && (
               <div className="p-6 border-t flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   {isPlayingResource && resourceAudioElement && (

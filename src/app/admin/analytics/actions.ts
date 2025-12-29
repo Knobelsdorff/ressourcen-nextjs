@@ -97,52 +97,69 @@ export async function getAnalyticsData(
     // Now use admin client with service role to bypass RLS
     const supabaseAdmin = await createServerAdminClient();
 
-    // Build query with admin client (bypasses RLS)
-    // Query user_analytics table and join with user_profiles view to get user email
-    let query = supabaseAdmin
+    // Build base query
+    let baseQuery = supabaseAdmin
       .from("user_analytics")
       .select(`
         *,
         user_profiles!user_analytics_user_id_fkey (
           email
         )
-      `)
+      `, { count: 'exact' })
       .order("created_at", { ascending: false });
 
-    // Apply filters
+    // Apply filters to base query
     if (startDate) {
-      query = query.gte("created_at", startDate);
+      baseQuery = baseQuery.gte("created_at", startDate);
     }
     if (endDate) {
-      query = query.lte("created_at", endDate);
+      baseQuery = baseQuery.lte("created_at", endDate);
     }
     if (eventType) {
-      query = query.eq("event_type", eventType);
+      baseQuery = baseQuery.eq("event_type", eventType);
     }
 
-    // Fetch events
-    const { data: events, error: eventsError } = await query;
+    // Fetch ALL events using pagination to bypass Supabase's 1000 row limit
+    const pageSize = 1000;
+    let allEvents: any[] = [];
+    let page = 0;
+    let hasMore = true;
 
-    console.log({events , eventsError})
-    if (eventsError) {
-      console.error("Error fetching events:", eventsError);
-      return {
-        events: [],
-        stats: {
-          totalEvents: 0,
-          totalUsers: 0,
-          audioCompletions: 0,
-          resourcesCreated: 0,
-          userLogins: 0,
-          eventsByType: {},
-          topResourceFigures: [],
-          topVoices: [],
-          eventsByDay: [],
-        },
-        isAdmin: true,
-        error: "Fehler beim Laden der Analytics-Daten.",
-      };
+    while (hasMore) {
+      const { data: pageData, error: pageError } = await baseQuery
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+
+      if (pageError) {
+        console.error("Error fetching events page:", pageError);
+        return {
+          events: [],
+          stats: {
+            totalEvents: 0,
+            totalUsers: 0,
+            audioCompletions: 0,
+            resourcesCreated: 0,
+            userLogins: 0,
+            eventsByType: {},
+            topResourceFigures: [],
+            topVoices: [],
+            eventsByDay: [],
+          },
+          isAdmin: true,
+          error: "Fehler beim Laden der Analytics-Daten.",
+        };
+      }
+
+      if (pageData && pageData.length > 0) {
+        allEvents = [...allEvents, ...pageData];
+        hasMore = pageData.length === pageSize;
+        page++;
+      } else {
+        hasMore = false;
+      }
     }
+
+    const events = allEvents;
+    console.log({ totalFetchedEvents: events.length, pages: page })
 
     // Transform events to match AnalyticsEvent interface and extract email from joined profile
     const transformedEvents: AnalyticsEvent[] = events.map((event: any) => ({
@@ -157,25 +174,17 @@ export async function getAnalyticsData(
       created_at: event.created_at,
     }));
 
-    // Filter relevant events
-    const relevantEvents = transformedEvents.filter(
-      (event: AnalyticsEvent) =>
-        event.event_type === "user_login" ||
-        event.event_type === "resource_created" ||
-        event.event_type === "audio_play_complete"
-    );
-
-    // Calculate statistics
+    // Calculate statistics (using ALL events, not filtered)
     const stats: AnalyticsStats = {
-      totalEvents: relevantEvents.length,
-      totalUsers: new Set(relevantEvents.map((e: AnalyticsEvent) => e.user_id)).size,
-      audioCompletions: relevantEvents.filter(
+      totalEvents: transformedEvents.length,
+      totalUsers: new Set(transformedEvents.map((e: AnalyticsEvent) => e.user_id)).size,
+      audioCompletions: transformedEvents.filter(
         (e: AnalyticsEvent) => e.event_type === "audio_play_complete"
       ).length,
-      resourcesCreated: relevantEvents.filter(
+      resourcesCreated: transformedEvents.filter(
         (e: AnalyticsEvent) => e.event_type === "resource_created"
       ).length,
-      userLogins: relevantEvents.filter((e: AnalyticsEvent) => e.event_type === "user_login")
+      userLogins: transformedEvents.filter((e: AnalyticsEvent) => e.event_type === "user_login")
         .length,
       eventsByType: {},
       topResourceFigures: [],
@@ -184,14 +193,14 @@ export async function getAnalyticsData(
     };
 
     // Events by type
-    relevantEvents.forEach((event: AnalyticsEvent) => {
+    transformedEvents.forEach((event: AnalyticsEvent) => {
       stats.eventsByType[event.event_type] =
         (stats.eventsByType[event.event_type] || 0) + 1;
     });
 
     // Top resource figures
     const figureCounts: Record<string, number> = {};
-    relevantEvents.forEach((event: AnalyticsEvent) => {
+    transformedEvents.forEach((event: AnalyticsEvent) => {
       if (event.resource_figure_name) {
         figureCounts[event.resource_figure_name] =
           (figureCounts[event.resource_figure_name] || 0) + 1;
@@ -204,7 +213,7 @@ export async function getAnalyticsData(
 
     // Top voices
     const voiceCounts: Record<string, number> = {};
-    relevantEvents.forEach((event: AnalyticsEvent) => {
+    transformedEvents.forEach((event: AnalyticsEvent) => {
       if (event.voice_id) {
         voiceCounts[event.voice_id] = (voiceCounts[event.voice_id] || 0) + 1;
       }
@@ -216,7 +225,7 @@ export async function getAnalyticsData(
 
     // Events by day
     const dayCounts: Record<string, number> = {};
-    relevantEvents.forEach((event: AnalyticsEvent) => {
+    transformedEvents.forEach((event: AnalyticsEvent) => {
       const day = event.created_at.split("T")[0];
       dayCounts[day] = (dayCounts[day] || 0) + 1;
     });
@@ -225,7 +234,7 @@ export async function getAnalyticsData(
       .sort((a, b) => a.day.localeCompare(b.day));
 
     return {
-      events: relevantEvents,
+      events: transformedEvents,
       stats,
       isAdmin: true,
     };

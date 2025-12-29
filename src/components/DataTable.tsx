@@ -31,7 +31,7 @@ export interface DataTableProps<T> {
   pageSize?: number;
   searchable?: boolean;
   exportable?: boolean;
-  title?: string;
+  title?: string | React.ReactNode;
   emptyMessage?: string;
   className?: string;
 }
