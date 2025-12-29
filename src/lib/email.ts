@@ -10,12 +10,13 @@ interface SendResourceReadyEmailParams {
   resourceName?: string; // Für Rückwärtskompatibilität
   resourceNames?: string[]; // Array von Ressourcennamen
   magicLink: string;
+  isNewUser?: boolean; // Ob der User neu ist und Passwort einrichten muss
 }
 
-const getEmailHTML = (resourceNames: string[], magicLink: string) => {
+const getEmailHTML = (resourceNames: string[], magicLink: string, isNewUser: boolean = false) => {
   const isMultiple = resourceNames.length > 1;
   const resourceNamesList = resourceNames.map(name => `<li style="margin-bottom: 8px;"><strong>"${name}"</strong></li>`).join('');
-  
+
   return `
 <!DOCTYPE html>
 <html>
@@ -27,46 +28,61 @@ const getEmailHTML = (resourceNames: string[], magicLink: string) => {
   <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
     <h1 style="color: white; margin: 0; font-size: 28px;">${isMultiple ? 'Deine Ressourcen sind bereit!' : 'Deine Ressource ist bereit!'}</h1>
   </div>
-  
+
   <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
     <p style="font-size: 16px; margin-bottom: 20px;">
       Hallo,
     </p>
-    
+
     <p style="font-size: 16px; margin-bottom: 20px;">
-      ${isMultiple 
+      ${isMultiple
         ? `Die folgenden ${resourceNames.length} Ressourcen wurden für dich erstellt und sind jetzt verfügbar:`
         : `Deine persönliche Ressource <strong>"${resourceNames[0]}"</strong> wurde für dich erstellt und ist jetzt verfügbar.`
       }
     </p>
-    
+
     ${isMultiple ? `
     <ul style="font-size: 16px; margin-bottom: 20px; padding-left: 20px; list-style-type: disc;">
       ${resourceNamesList}
     </ul>
     ` : ''}
-    
+
+    ${isNewUser ? `
+    <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px;">
+      <p style="font-size: 15px; margin: 0; color: #92400e;">
+        <strong>Wichtig:</strong> Dies ist dein erster Zugang. Bitte klicke auf den Button unten, um ein Passwort einzurichten.
+        Danach kannst du dich jederzeit mit deiner E-Mail und deinem Passwort anmelden.
+      </p>
+    </div>
+    ` : ''}
+
     <p style="font-size: 16px; margin-bottom: 30px;">
-      Klicke auf den Button unten, um dich anzumelden und auf ${isMultiple ? 'deine Ressourcen' : 'deine Ressource'} zuzugreifen:
+      Klicke auf den Button unten, um ${isNewUser ? 'dein Passwort einzurichten und' : 'dich anzumelden und'} auf ${isMultiple ? 'deine Ressourcen' : 'deine Ressource'} zuzugreifen:
     </p>
-    
+
     <div style="text-align: center; margin: 30px 0;">
-      <a href="${magicLink}" 
+      <a href="${magicLink}"
          style="display: inline-block; background: #f59e0b; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
-        Zur Ressource
+        ${isNewUser ? 'Passwort einrichten' : 'Zur Ressource'}
       </a>
     </div>
-    
+
     <p style="font-size: 14px; color: #6b7280; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
       Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br>
       <a href="${magicLink}" style="color: #f59e0b; word-break: break-all;">${magicLink}</a>
     </p>
-    
+
     <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
       Dieser Link ist 24 Stunden gültig.
     </p>
+
+    ${!isNewUser ? `
+    <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
+      <strong>Tipp:</strong> Du kannst dich auch jederzeit mit deiner E-Mail und deinem Passwort anmelden.
+    </p>
+    ` : ''}
   </div>
-  
+
   <div style="text-align: center; margin-top: 20px; padding: 20px; color: #6b7280; font-size: 12px;">
     <p>© ${new Date().getFullYear()} Ressourcen App - Andreas von Knobelsdorff</p>
   </div>
@@ -80,6 +96,7 @@ export async function sendResourceReadyEmail({
   resourceName,
   resourceNames,
   magicLink,
+  isNewUser = false,
 }: SendResourceReadyEmailParams): Promise<{ success: boolean; error?: string }> {
   try {
     // Normalisiere resourceNames Array (für Rückwärtskompatibilität)
@@ -95,6 +112,7 @@ export async function sendResourceReadyEmail({
       resourceNames: names,
       count: names.length,
       hasMagicLink: !!magicLink,
+      isNewUser,
     });
 
     // Verwende Resend für Email-Versand
@@ -112,11 +130,15 @@ export async function sendResourceReadyEmail({
         const resend = new Resend(resendApiKey);
 
         const isMultiple = names.length > 1;
+        const subject = isNewUser
+          ? (isMultiple ? `Willkommen! ${names.length} Ressourcen warten auf dich` : 'Willkommen! Deine Ressource wartet auf dich')
+          : (isMultiple ? `Deine ${names.length} Ressourcen sind bereit!` : 'Deine Ressource ist bereit!');
+
         const { data, error } = await resend.emails.send({
           from: `Ressourcen App <${resendFromEmail}>`,
           to: [to],
-          subject: isMultiple ? `Deine ${names.length} Ressourcen sind bereit!` : 'Deine Ressource ist bereit!',
-          html: getEmailHTML(names, magicLink),
+          subject,
+          html: getEmailHTML(names, magicLink, isNewUser),
         });
 
         if (error) {
