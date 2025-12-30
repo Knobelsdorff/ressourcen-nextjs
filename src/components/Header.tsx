@@ -310,7 +310,7 @@ export default function Header() {
             ) : (
               <button 
                 onClick={() => setShowAuthModal(true)}
-                className="text-amber-900 font-medium hover:text-amber-700 transition-colors rounded-lg hover:bg-amber-50 text-sm"
+                className="text-amber-900 font-medium hover:text-amber-700 transition-colors rounded-lg hover:bg-amber-50 max-sm:text-sm"
               >
                 Anmelden
               </button>
