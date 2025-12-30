@@ -5,7 +5,7 @@
 ### Schritt 1: User erstellen oder Passwort setzen
 
 1. Gehe zu deinem **Supabase Dashboard**
-2. Navigiere zu: **Authentication** → **Users**
+2. Navigiere zu: **Authentication** → **Users** 
 3. **Falls User bereits existiert:**
    - Suche nach `tahirwaleed399@gmail.com`
    - Klicke auf den User
