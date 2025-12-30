@@ -5,7 +5,8 @@
       "Bash(chmod:*)",
       "Bash(supabase --version:*)",
       "Bash(npm install:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": []
