@@ -15,6 +15,9 @@ import { isEnabled } from "@/lib/featureFlags";
 import { getBackgroundMusicTrack, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
 import ChangePassword from "@/components/ChangePassword";
 import DeleteAccount from "@/components/DeleteAccount";
+import ContactModal from "@/components/ContactModal";
+import FeedbackModal from "@/components/FeedbackModal";
+import BugModal from "@/components/BugModal";
 
 interface SavedStory {
   id: string;
@@ -3075,7 +3078,7 @@ ${story.content}
           <div className="bg-white w-full rounded-2xl shadow-lg p-3 lg:flex grid sm:grid-cols-2 grid-cols-1 sm:gap-3 gap-2 sm:space-x-2 ">
             <button
               onClick={() => setActiveTab('profile')}
-              className={`flex items-center space-x-2 sm:px-6 px-4 py-3 rounded-xl font-medium transition-all duration-300 ${
+              className={`flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 ${
                 activeTab === 'profile'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
                   : 'text-gray-600 hover:text-amber-700 hover:bg-amber-50'
@@ -3087,7 +3090,7 @@ ${story.content}
             
             <button
               onClick={() => setActiveTab('stories')}
-              className={`flex items-center space-x-2 sm:px-6 px-4 py-3 rounded-xl font-medium transition-all duration-300 ${
+              className={`flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 ${
                 activeTab === 'stories'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
                   : 'text-gray-600 hover:text-amber-700 hover:bg-amber-50'
@@ -3100,7 +3103,7 @@ ${story.content}
             {isAdmin && (
               <button
                 onClick={() => router.push('/admin/analytics')}
-                className="flex items-center space-x-2 sm:px-6 px-4 py-3 rounded-xl font-medium transition-all duration-300 text-white bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 shadow-lg"
+                className="flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 text-white bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 shadow-lg"
               >
                 <BarChart3 className="w-5 h-5" />
                 <span className="max-sm:text-sm">Admin Analytics</span>
@@ -3110,7 +3113,7 @@ ${story.content}
             {isMusicAdmin && (
               <button
                 onClick={() => router.push('/admin/music')}
-                className="flex items-center space-x-2 sm:px-6 px-4 py-3 rounded-xl font-medium transition-all duration-300 text-white bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 shadow-lg"
+                className="flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 text-white bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 shadow-lg"
               >
                 <Music className="w-5 h-5" />
                 <span className="max-sm:text-sm">Musik verwalten</span>
@@ -3120,7 +3123,7 @@ ${story.content}
             {(isAdmin || isMusicAdmin) && (
               <button
                 onClick={() => setShowClientResourceModal(true)}
-                className="flex items-center space-x-2 sm:px-6 px-4 py-3 rounded-xl font-medium transition-all duration-300 text-white bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-lg"
+                className="flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 text-white bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-lg"
               >
                 <Volume2 className="w-5 h-5" />
                 <span className="max-sm:text-sm">Ressource für Klienten erstellen</span>
@@ -3417,34 +3420,16 @@ ${story.content}
                   <h2 className="sm:text-xl text-lg font-bold text-amber-900">Support & Hilfe</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <button className="flex items-center gap-3 sm:p-4 px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                  <button onClick={()=> router.push('faq')} className="flex items-center gap-3 sm:p-4 px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
                     <HelpCircle className="w-5 h-5 text-blue-600" />
                     <div className="text-left">
                       <p className="font-medium text-blue-900">FAQ</p>
                       <p className="text-blue-700 text-sm">Häufige Fragen</p>
                     </div>
                   </button>
-                  <button className="flex items-center gap-3 sm:p-4 px-4 py-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
-                    <MessageCircle className="w-5 h-5 text-green-600" />
-                    <div className="text-left">
-                      <p className="font-medium text-green-900">Kontakt</p>
-                      <p className="text-green-700 text-sm">Support kontaktieren</p>
-                    </div>
-                  </button>
-                  <button className="flex items-center gap-3 sm:p-4 px-4 py-3 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors">
-                    <Star className="w-5 h-5 text-purple-600" />
-                    <div className="text-left">
-                      <p className="font-medium text-purple-900">Feedback</p>
-                      <p className="text-purple-700 text-sm">Verbesserungsvorschläge</p>
-                    </div>
-                  </button>
-                  <button className="flex items-center gap-3 sm:p-4 px-4 py-3 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors">
-                    <Bug className="w-5 h-5 text-orange-600" />
-                    <div className="text-left">
-                      <p className="font-medium text-orange-900">Bug melden</p>
-                      <p className="text-orange-700 text-sm">Problem melden</p>
-                    </div>
-                  </button>
+                  <ContactModal />
+                  <FeedbackModal />
+                  <BugModal />
                 </div>
               </div>
             </div>
