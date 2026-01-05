@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/components/providers/auth-provider";
 import { motion, AnimatePresence } from "framer-motion";
 import { createSPAClient } from "@/lib/supabase/client";
@@ -152,7 +153,7 @@ export default function Header() {
       <header className="bg-white border-b border-orange-100">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg animate-pulse"></div>
+            <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
             <div className="w-32 h-6 bg-gray-200 rounded animate-pulse"></div>
           </div>
           <div className="w-16 h-8 bg-gray-200 rounded animate-pulse"></div>
@@ -183,10 +184,14 @@ export default function Header() {
                 }
               }}
             >
-              <div className="w-8 h-8 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg flex items-center justify-center">
-                <span className="text-white text-lg">🤗</span>
-              </div>
-              <span className="text-xl font-light text-amber-900">Ressourcen App</span>
+              <Image
+                src="/images/power-storys_logo.webp"
+                alt="Power Storys Logo"
+                width={200}
+                height={60}
+                className="h-12 md:h-14 w-auto object-contain"
+                priority
+              />
             </button>
           </div>
           <div className="flex items-center space-x-4">
