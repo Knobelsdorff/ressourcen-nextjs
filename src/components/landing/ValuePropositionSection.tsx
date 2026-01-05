@@ -84,7 +84,7 @@ export default function ValuePropositionSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.5 }}
-          className="text-center"
+          className="text-center mb-8"
         >
           <AuthModal isOnLandingPage={true}>
             <Button
@@ -95,6 +95,16 @@ export default function ValuePropositionSection() {
             </Button>
           </AuthModal>
         </motion.div>
+
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+          className="text-lg md:text-xl text-amber-700 text-center italic"
+        >
+          Manchmal ist es genau diese Ruhe, die im Alltag am schwersten erreichbar ist
+        </motion.p>
       </div>
     </section>
   );

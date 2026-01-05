@@ -59,7 +59,7 @@ export default function HeroSection() {
           </h1>
 
           <p className="text-xl md:text-2xl text-amber-700 mb-8">
-            Wenn sich viel anstaut, findest du hier wieder mehr Halt
+            Wenn sich viel anstaut, findest du hier wieder <span className="whitespace-nowrap">mehr Halt</span>
           </p>
 
           <div className="flex justify-center lg:justify-start">

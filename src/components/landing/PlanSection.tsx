@@ -3,29 +3,22 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { AuthModal } from "@/components/modals/auth-modal";
-import { UserPlus, Users, TrendingUp } from "lucide-react";
-
 export default function PlanSection() {
   const steps = [
     {
       number: 1,
-      icon: UserPlus,
-      title: "Online registrieren",
-      description: "Sichere dir deinen Platz für die kommende Ressource.",
+      title: "Kurz innehalten",
+      description: "Du beantwortest ein paar einfache Fragen – damit die Geschichte zu dir und deinem Moment passt.",
     },
     {
       number: 2,
-      icon: Users,
-      title: "Ressource erstellen",
-      description:
-        "Verbinde dich mit anderen Teilnehmern und teile Erfahrungen.",
+      title: "Zuhören",
+      description: "Du hörst dir eine kurze Power Story an – ruhig gesprochen, mit sanfter Musik im Hintergrund.",
     },
     {
       number: 3,
-      icon: TrendingUp,
-      title: "Persönliches Wachstum erleben",
-      description:
-        "Arbeite an emotionalen Themen mit professioneller Unterstützung.",
+      title: "Nachspüren",
+      description: "Du bleibst einen Moment bei dir und nimmst wahr, was sich verändert hat – ganz ohne Bewertung.",
     },
   ];
 
@@ -39,7 +32,7 @@ export default function PlanSection() {
           transition={{ duration: 0.6 }}
           className="text-4xl md:text-5xl font-bold text-amber-900 text-center mb-4"
         >
-          3 einfache Schritte zu emotionaler Heilung
+          So einfach kann es sein
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 20 }}
@@ -48,12 +41,11 @@ export default function PlanSection() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-xl md:text-2xl text-amber-700 text-center mb-16"
         >
-          Begleite uns und beginne heute, deine Beziehungen zu transformieren.
+          Du wirst Schritt für Schritt begleitet – ohne Vorbereitung, ohne Vorkenntnisse.
         </motion.p>
 
-        <div className="grid md:grid-cols-3 gap-8 mb-12">
+        <div className="grid md:grid-cols-3 gap-8 mb-8">
           {steps.map((step, index) => {
-            const Icon = step.icon;
             return (
               <motion.div
                 key={index}
@@ -66,9 +58,6 @@ export default function PlanSection() {
                 <div className="bg-amber-600 text-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
                   {step.number}
                 </div>
-                <div className="bg-amber-100 rounded-lg p-3 w-fit mx-auto mb-4">
-                  <Icon className="w-6 h-6 text-amber-600" />
-                </div>
                 <h3 className="text-xl font-semibold text-amber-900 mb-2">
                   {step.title}
                 </h3>
@@ -77,6 +66,16 @@ export default function PlanSection() {
             );
           })}
         </div>
+
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="text-lg md:text-xl text-amber-700 text-center mb-12 italic"
+        >
+          Es gibt kein richtig oder falsch. Du darfst einfach erleben, was passiert.
+        </motion.p>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -90,7 +89,7 @@ export default function PlanSection() {
               size="lg"
               className="bg-amber-600 hover:bg-amber-700 text-white text-lg px-8 py-6 rounded-lg"
             >
-              Jetzt starten
+              Jetzt einfach beginnen
             </Button>
           </AuthModal>
         </motion.div>
