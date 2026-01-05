@@ -3,29 +3,29 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { AuthModal } from "@/components/modals/auth-modal";
-import { Heart, Mic, Calendar, Shield } from "lucide-react";
+import { HouseHeart, Sparkles, AudioLines, Infinity } from "lucide-react";
 
 export default function ValuePropositionSection() {
   const features = [
     {
-      icon: Heart,
-      title: "Personalisierte Ressourcen",
-      description: "Maßgeschneiderte Geschichten, die genau zu dir passen",
+      icon: HouseHeart,
+      title: "Ein sicherer Raum",
+      description: "Du musst nichts leisten. Du darfst einfach da sein.",
     },
     {
-      icon: Mic,
-      title: "Professionelle Stimmen",
-      description: "Hochwertige Audio-Aufnahmen mit beruhigenden Stimmen",
+      icon: Sparkles,
+      title: "Personalisierte Geschichten",
+      description: "Abgestimmt auf das, was du gerade brauchst.",
     },
     {
-      icon: Calendar,
-      title: "Täglich verfügbar",
-      description: "Jederzeit Zugang zu deinen Ressourcen, wann immer du sie brauchst",
+      icon: AudioLines,
+      title: "Ruhige Stimmen",
+      description: "Sanft getragen – damit du innerlich mitgehen kannst.",
     },
     {
-      icon: Shield,
-      title: "Sicherer Raum",
-      description: "Ein geschützter Ort für deine emotionale Heilung",
+      icon: Infinity,
+      title: "Jederzeit für dich da",
+      description: "Wenn du merkst, dass es viel wird – oder gar nicht erst so weit kommen soll.",
     },
   ];
 
@@ -39,7 +39,7 @@ export default function ValuePropositionSection() {
           transition={{ duration: 0.6 }}
           className="text-4xl md:text-5xl font-bold text-amber-900 text-center mb-4"
         >
-          Erlebe echte emotionale Unterstützung
+          Ein einfacher Weg, wieder bei dir anzukommen
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 20 }}
@@ -48,7 +48,7 @@ export default function ValuePropositionSection() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-xl md:text-2xl text-amber-700 text-center mb-16"
         >
-          Erstelle echte Verbindungen in einer unterstützenden Umgebung.
+          Kurze Geschichten, die dich sanft aus der Anspannung holen
         </motion.p>
 
         <div className="grid md:grid-cols-2 gap-8 mb-12">
@@ -91,7 +91,7 @@ export default function ValuePropositionSection() {
               size="lg"
               className="bg-amber-600 hover:bg-amber-700 text-white text-lg px-8 py-6 rounded-lg"
             >
-              Jetzt starten
+              Jetzt kurz eintauchen
             </Button>
           </AuthModal>
         </motion.div>

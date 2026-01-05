@@ -165,7 +165,7 @@ export default function Header() {
   return (
     <>
       {/* Header - Global auf allen Seiten */}
-      <header className="bg-white border-b border-orange-100">
+      <header className="bg-white border-b border-orange-100 lg:sticky lg:top-0 lg:z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <button 
