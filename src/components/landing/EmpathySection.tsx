@@ -2,10 +2,12 @@
 
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { AuthModal } from "@/components/modals/auth-modal";
+import { useRouter } from "next/navigation";
 import { Quote } from "lucide-react";
 
 export default function EmpathySection() {
+  const router = useRouter();
+  
   return (
     <section className="py-20 px-4 bg-white">
       <div className="max-w-6xl mx-auto">
@@ -79,22 +81,21 @@ export default function EmpathySection() {
           </p>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-          className="text-center"
-        >
-          <AuthModal isOnLandingPage={true}>
-            <Button
-              size="lg"
-              className="bg-amber-600 hover:bg-amber-700 text-white text-lg px-8 py-6 rounded-lg"
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              className="text-center"
             >
-              Einfach selbst erleben
-            </Button>
-          </AuthModal>
-        </motion.div>
+              <Button
+                onClick={() => router.push("/example")}
+                size="lg"
+                className="bg-amber-600 hover:bg-amber-700 text-white text-lg px-8 py-6 rounded-lg"
+              >
+                Einfach selbst erleben
+              </Button>
+            </motion.div>
       </div>
     </section>
   );

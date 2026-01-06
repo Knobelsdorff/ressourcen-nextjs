@@ -34,3 +34,19 @@ export interface SavedStory {
   created_at: string
   updated_at: string
 }
+
+export interface AppConfig {
+  key: string
+  value: string
+  updated_at: string
+}
+
+export interface ExampleResource {
+  id: string
+  title: string
+  content: string | null
+  resource_figure: any
+  audio_url?: string
+  voice_id?: string
+  created_at: string
+}

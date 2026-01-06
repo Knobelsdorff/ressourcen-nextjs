@@ -2,8 +2,10 @@
 
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { AuthModal } from "@/components/modals/auth-modal";
+import { useRouter } from "next/navigation";
+
 export default function PlanSection() {
+  const router = useRouter();
   const steps = [
     {
       number: 1,
@@ -77,22 +79,21 @@ export default function PlanSection() {
           Es gibt kein richtig oder falsch. Du darfst einfach erleben, was passiert.
         </motion.p>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="text-center"
-        >
-          <AuthModal isOnLandingPage={true}>
-            <Button
-              size="lg"
-              className="bg-amber-600 hover:bg-amber-700 text-white text-lg px-8 py-6 rounded-lg"
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="text-center"
             >
-              Jetzt einfach beginnen
-            </Button>
-          </AuthModal>
-        </motion.div>
+              <Button
+                onClick={() => router.push("/example")}
+                size="lg"
+                className="bg-amber-600 hover:bg-amber-700 text-white text-lg px-8 py-6 rounded-lg"
+              >
+                Jetzt einfach beginnen
+              </Button>
+            </motion.div>
       </div>
     </section>
   );

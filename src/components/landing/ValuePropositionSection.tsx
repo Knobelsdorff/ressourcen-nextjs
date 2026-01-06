@@ -2,10 +2,12 @@
 
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { AuthModal } from "@/components/modals/auth-modal";
+import { useRouter } from "next/navigation";
 import { HouseHeart, Sparkles, AudioLines, Infinity } from "lucide-react";
 
 export default function ValuePropositionSection() {
+  const router = useRouter();
+  
   const features = [
     {
       icon: HouseHeart,
@@ -79,22 +81,21 @@ export default function ValuePropositionSection() {
           })}
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-          className="text-center mb-8"
-        >
-          <AuthModal isOnLandingPage={true}>
-            <Button
-              size="lg"
-              className="bg-amber-600 hover:bg-amber-700 text-white text-lg px-8 py-6 rounded-lg"
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              className="text-center mb-8"
             >
-              Jetzt kurz eintauchen
-            </Button>
-          </AuthModal>
-        </motion.div>
+              <Button
+                onClick={() => router.push("/example")}
+                size="lg"
+                className="bg-amber-600 hover:bg-amber-700 text-white text-lg px-8 py-6 rounded-lg"
+              >
+                Jetzt kurz eintauchen
+              </Button>
+            </motion.div>
 
         <motion.p
           initial={{ opacity: 0, y: 20 }}

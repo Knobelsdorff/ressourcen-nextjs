@@ -2,10 +2,12 @@
 
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { AuthModal } from "@/components/modals/auth-modal";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 export default function StakesSection() {
+  const router = useRouter();
+  
   const stakes = [
     "Innere Unruhe klingt nicht immer von selbst ab",
     "Selbst freie Momente bringen oft kaum Entlastung",
@@ -84,14 +86,13 @@ export default function StakesSection() {
               transition={{ duration: 0.6, delay: 0.8 }}
               className="pt-4"
             >
-              <AuthModal isOnLandingPage={true}>
-                <Button
-                  size="lg"
-                  className="bg-amber-600 hover:bg-amber-700 text-white text-lg px-8 py-6 rounded-lg"
-                >
-                  Jetzt ausprobieren
-                </Button>
-              </AuthModal>
+              <Button
+                onClick={() => router.push("/example")}
+                size="lg"
+                className="bg-amber-600 hover:bg-amber-700 text-white text-lg px-8 py-6 rounded-lg"
+              >
+                Jetzt ausprobieren
+              </Button>
             </motion.div>
           </div>
 
@@ -139,14 +140,13 @@ export default function StakesSection() {
           transition={{ duration: 0.6, delay: 0.8 }}
           className="lg:hidden text-center"
         >
-          <AuthModal isOnLandingPage={true}>
-            <Button
-              size="lg"
-              className="bg-amber-600 hover:bg-amber-700 text-white text-lg px-8 py-6 rounded-lg"
-            >
-              Jetzt ausprobieren
-            </Button>
-          </AuthModal>
+          <Button
+            onClick={() => router.push("/example")}
+            size="lg"
+            className="bg-amber-600 hover:bg-amber-700 text-white text-lg px-8 py-6 rounded-lg"
+          >
+            Jetzt ausprobieren
+          </Button>
         </motion.div>
       </div>
     </section>

@@ -62,16 +62,11 @@ export default function Header() {
     }, 100);
   };
 
-  // Handler für "Eine Power Story entdecken" - Start-Flow
+  // Handler für "Eine Power Story entdecken" - Weiterleitung zu Beispiel-Seite
   const handleDiscoverPowerStory = () => {
     setIsMobileMenuOpen(false);
     setTimeout(() => {
-      if (user) {
-        router.push("/");
-      } else {
-        setShowAuthModal(true);
-        setAuthMode('login');
-      }
+      router.push("/example");
     }, 100);
   };
 

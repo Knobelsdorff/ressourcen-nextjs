@@ -65,6 +65,13 @@ export default function AdminAnalytics() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const timeUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Beispiel-Ressourcenfigur Konfiguration
+  const [exampleResourceId, setExampleResourceId] = useState<string>("");
+  const [exampleResourceLoading, setExampleResourceLoading] = useState(false);
+  const [exampleResourceError, setExampleResourceError] = useState<string | null>(null);
+  const [availableResources, setAvailableResources] = useState<Array<{ id: string; title: string; created_at: string }>>([]);
+  const [resourcesLoading, setResourcesLoading] = useState(false);
 
   // Cleanup für Audio-Element beim Schließen des Modals
   useEffect(() => {
@@ -315,6 +322,105 @@ export default function AdminAnalytics() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, isAdmin, user, session, startDate, endDate, eventType]);
+
+  // Lade Beispiel-Ressourcenfigur Konfiguration
+  const fetchExampleResourceConfig = async () => {
+    try {
+      setExampleResourceLoading(true);
+      setExampleResourceError(null);
+
+      const response = await fetch('/api/admin/config');
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        if (data.config) {
+          setExampleResourceId(data.config.value);
+        } else {
+          setExampleResourceId("");
+        }
+      } else {
+        throw new Error(data.error || 'Fehler beim Laden der Konfiguration');
+      }
+    } catch (err: any) {
+      console.error('Error fetching example resource config:', err);
+      setExampleResourceError(err.message || 'Fehler beim Laden der Konfiguration');
+    } finally {
+      setExampleResourceLoading(false);
+    }
+  };
+
+  // Lade verfügbare Ressourcenfiguren für Dropdown
+  const fetchAvailableResources = async () => {
+    try {
+      setResourcesLoading(true);
+      // Verwende einen Platzhalter-Query, um alle Ressourcen zu laden
+      // Die API-Route gibt dann alle Ressourcen zurück (mit Limit)
+      const response = await fetch('/api/admin/resources/search?q=%');
+      const data = await response.json();
+
+      if (response.ok && data.success && data.resources) {
+        // Filtere nur Ressourcen mit Audio-URL
+        const resourcesWithAudio = data.resources.filter((r: any) => 
+          r.audio_url && r.audio_url.trim() !== ''
+        );
+        setAvailableResources(
+          resourcesWithAudio.map((r: any) => ({
+            id: r.id,
+            title: r.title,
+            created_at: r.created_at,
+          }))
+        );
+      }
+    } catch (err: any) {
+      console.error('Error fetching available resources:', err);
+    } finally {
+      setResourcesLoading(false);
+    }
+  };
+
+  // Speichere Beispiel-Ressourcenfigur
+  const saveExampleResource = async () => {
+    if (!exampleResourceId) {
+      setExampleResourceError('Bitte wähle eine Ressourcenfigur aus');
+      return;
+    }
+
+    try {
+      setExampleResourceLoading(true);
+      setExampleResourceError(null);
+
+      const response = await fetch('/api/admin/config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ resourceId: exampleResourceId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setExampleResourceError(null);
+        alert('Beispiel-Ressourcenfigur erfolgreich gespeichert!');
+      } else {
+        throw new Error(data.error || 'Fehler beim Speichern');
+      }
+    } catch (err: any) {
+      console.error('Error saving example resource:', err);
+      setExampleResourceError(err.message || 'Fehler beim Speichern');
+    } finally {
+      setExampleResourceLoading(false);
+    }
+  };
+
+  // Lade Konfiguration beim Mount
+  useEffect(() => {
+    if (isAdmin && user && session) {
+      fetchExampleResourceConfig();
+      fetchAvailableResources();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, user, session]);
 
   // Completion-Rate: Da audio_play Events nicht mehr getrackt werden, zeigen wir N/A
   const completionRate = 'N/A';
@@ -577,6 +683,79 @@ export default function AdminAnalytics() {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Beispiel-Ressourcenfigur Konfiguration */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <h2 className="text-2xl font-bold text-amber-900 mb-4">
+            Beispiel-Ressourcenfigur für Landingpage
+          </h2>
+          <p className="text-amber-700 mb-4">
+            Wähle eine Ressourcenfigur aus, die auf der Landingpage als Beispiel angezeigt wird.
+          </p>
+
+          {exampleResourceError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+              <p className="text-red-700 text-sm">{exampleResourceError}</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Ressourcenfigur auswählen
+              </label>
+              {resourcesLoading ? (
+                <div className="flex items-center gap-2 text-amber-700">
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Lade Ressourcenfiguren...</span>
+                </div>
+              ) : (
+                <select
+                  value={exampleResourceId}
+                  onChange={(e) => setExampleResourceId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  disabled={exampleResourceLoading}
+                >
+                  <option value="">-- Bitte auswählen --</option>
+                  {availableResources.map((resource) => (
+                    <option key={resource.id} value={resource.id}>
+                      {resource.title} ({new Date(resource.created_at).toLocaleDateString('de-DE')})
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div className="flex items-end">
+              <button
+                onClick={saveExampleResource}
+                disabled={exampleResourceLoading || !exampleResourceId || resourcesLoading}
+                className="w-full bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {exampleResourceLoading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Speichere...
+                  </>
+                ) : (
+                  'Speichern'
+                )}
+              </button>
+            </div>
+          </div>
+
+          {exampleResourceId && (
+            <div className="mt-4 p-4 bg-amber-50 rounded-lg">
+              <p className="text-sm text-amber-800">
+                <strong>Aktuell ausgewählt:</strong> {
+                  availableResources.find(r => r.id === exampleResourceId)?.title || exampleResourceId
+                }
+              </p>
+              <p className="text-xs text-amber-700 mt-1">
+                Die Beispiel-Ressourcenfigur ist unter <code className="bg-white px-2 py-1 rounded">/example</code> verfügbar.
+              </p>
+            </div>
+          )}
         </div>
 
         {(loading || authLoading) && (
