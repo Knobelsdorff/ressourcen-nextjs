@@ -12,7 +12,7 @@ export default function HeroSection() {
   const router = useRouter();
 
   const handleCTAClick = () => {
-    router.push("/example");
+    router.push("/ankommen");
   };
 
   return (

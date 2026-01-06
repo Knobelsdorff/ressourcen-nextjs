@@ -7,7 +7,7 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { motion, AnimatePresence } from "framer-motion";
 import { createSPAClient } from "@/lib/supabase/client";
 import { scrollToAnchor } from "@/lib/navigation-helpers";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import {
   Sheet,
@@ -17,6 +17,9 @@ import {
 export default function Header() {
   const { user, signIn, signUp, signOut, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  
+  // All hooks must be called before any conditional returns
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
@@ -62,11 +65,11 @@ export default function Header() {
     }, 100);
   };
 
-  // Handler für "Eine Power Story entdecken" - Weiterleitung zu Beispiel-Seite
+  // Handler für "Eine Power Story entdecken" - Weiterleitung zu Ankommen-Seite
   const handleDiscoverPowerStory = () => {
     setIsMobileMenuOpen(false);
     setTimeout(() => {
-      router.push("/example");
+      router.push("/ankommen");
     }, 100);
   };
 
@@ -190,6 +193,11 @@ export default function Header() {
         </div>
       </header>
     );
+  }
+
+  // Hide header on /ankommen page (after loading check)
+  if (pathname === '/ankommen') {
+    return null;
   }
 
   return (

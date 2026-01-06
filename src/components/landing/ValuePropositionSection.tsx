@@ -89,7 +89,7 @@ export default function ValuePropositionSection() {
               className="text-center mb-8"
             >
               <Button
-                onClick={() => router.push("/example")}
+                onClick={() => router.push("/ankommen")}
                 size="lg"
                 className="bg-amber-600 hover:bg-amber-700 text-white text-lg px-8 py-6 rounded-lg"
               >
