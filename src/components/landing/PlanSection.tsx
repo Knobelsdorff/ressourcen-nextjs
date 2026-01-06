@@ -7,7 +7,7 @@ export default function PlanSection() {
   const steps = [
     {
       number: 1,
-      title: "Kurz innehalten",
+      title: "Ankommen",
       description: "Du beantwortest ein paar einfache Fragen – damit die Geschichte zu dir und deinem Moment passt.",
     },
     {
@@ -17,7 +17,7 @@ export default function PlanSection() {
     },
     {
       number: 3,
-      title: "Nachspüren",
+      title: "Etwas weicher werden",
       description: "Du bleibst einen Moment bei dir und nimmst wahr, was sich verändert hat – ganz ohne Bewertung.",
     },
   ];

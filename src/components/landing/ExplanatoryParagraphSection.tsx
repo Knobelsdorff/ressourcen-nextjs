@@ -6,7 +6,10 @@ import { AuthModal } from "@/components/modals/auth-modal";
 
 export default function ExplanatoryParagraphSection() {
   return (
-    <section className="py-20 px-4 bg-white">
+    <section 
+      id="was-ist-eine-power-story" 
+      className="py-20 px-4 bg-white scroll-mt-20 md:scroll-mt-24"
+    >
       <div className="max-w-4xl mx-auto">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
@@ -15,7 +18,7 @@ export default function ExplanatoryParagraphSection() {
           transition={{ duration: 0.6 }}
           className="text-4xl md:text-5xl font-bold text-amber-900 text-center mb-4"
         >
-          Warum kurze Geschichten helfen können
+          Was eine Power Story möglich macht
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 20 }}

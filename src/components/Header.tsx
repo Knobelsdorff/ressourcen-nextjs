@@ -1,14 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/components/providers/auth-provider";
 import { motion, AnimatePresence } from "framer-motion";
 import { createSPAClient } from "@/lib/supabase/client";
+import { scrollToAnchor } from "@/lib/navigation-helpers";
+import { useRouter } from "next/navigation";
+import { Menu, X } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+} from "@/components/ui/sheet";
 
 export default function Header() {
   const { user, signIn, signUp, signOut, loading } = useAuth();
+  const router = useRouter();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
@@ -19,23 +27,62 @@ export default function Header() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const hamburgerButtonRef = useRef<HTMLButtonElement>(null);
+  const firstMenuItemRef = useRef<HTMLButtonElement>(null);
 
-  // Close mobile menu when clicking outside
+  // ESC-Taste zum Schließen des Mobile-Menüs
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (isMobileMenuOpen) {
-        const target = event.target as Element;
-        if (!target.closest('.mobile-menu-container')) {
-          setIsMobileMenuOpen(false);
-        }
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isMobileMenuOpen) {
+        setIsMobileMenuOpen(false);
+        hamburgerButtonRef.current?.focus();
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
     };
   }, [isMobileMenuOpen]);
+
+  // Fokus-Handling: Fokus ins Menü beim Öffnen
+  useEffect(() => {
+    if (isMobileMenuOpen && firstMenuItemRef.current) {
+      setTimeout(() => {
+        firstMenuItemRef.current?.focus();
+      }, 100);
+    }
+  }, [isMobileMenuOpen]);
+
+  // Handler für "Was ist eine Power Story?" - Smooth-Scroll
+  const handleWhatIsPowerStory = () => {
+    setIsMobileMenuOpen(false);
+    setTimeout(() => {
+      scrollToAnchor('was-ist-eine-power-story');
+    }, 100);
+  };
+
+  // Handler für "Eine Power Story entdecken" - Start-Flow
+  const handleDiscoverPowerStory = () => {
+    setIsMobileMenuOpen(false);
+    setTimeout(() => {
+      if (user) {
+        router.push("/");
+      } else {
+        setShowAuthModal(true);
+        setAuthMode('login');
+      }
+    }, 100);
+  };
+
+  // Handler für "Anmelden"
+  const handleLoginClick = () => {
+    setIsMobileMenuOpen(false);
+    setTimeout(() => {
+      setShowAuthModal(true);
+      setAuthMode('login');
+    }, 100);
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +104,6 @@ export default function Header() {
         const { error } = await signUp(email, password);
         
         if (error) {
-          // Bessere Fehlermeldungen
           if (error.message.includes('already registered') || 
               error.message.includes('already been registered') ||
               error.message.includes('User already registered') ||
@@ -69,7 +115,6 @@ export default function Header() {
             setError(`Fehler: ${error.message}`);
           }
         } else {
-          // Erfolgreiche Registrierung - zeige Erfolgsmeldung
           setSuccess('Registrierung erfolgreich! Bitte bestätige deine E-Mail-Adresse.');
           setTimeout(() => {
             setShowAuthModal(false);
@@ -121,32 +166,22 @@ export default function Header() {
       setIsSendingReset(true);
       const supabase = createSPAClient();
       
-      console.log('Sending password reset email to:', email);
-      console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-      
-      // Bestimme Redirect-URL und hänge die E-Mail als Fallback-Parameter an
       const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.ressourcen.app';
       const redirectTo = `${origin}/auth/reset?email=${encodeURIComponent(email)}`;
 
-      // Sende Reset-Mail mit explizitem redirectTo (inkl. email)
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-      console.log('Reset email response:', { data, error });
       
       if (error) {
         setError(error.message);
-        console.error('Reset email error:', error);
       } else {
         setSuccess('Reset-Link wurde per E-Mail gesendet. Bitte öffne den Link aus der E-Mail.');
       }
     } catch (e) {
       setError('Senden des Reset-Links ist fehlgeschlagen.');
-      console.error('Reset email exception:', e);
     } finally {
       setIsSendingReset(false);
     }
   };
-
-
 
   if (loading) {
     return (
@@ -165,21 +200,18 @@ export default function Header() {
   return (
     <>
       {/* Header - Global auf allen Seiten */}
-      <header className="bg-white border-b border-orange-100 lg:sticky lg:top-0 lg:z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <header className="bg-white border-b border-amber-100/60 lg:sticky lg:top-0 lg:z-50">
+        <div className="max-w-7xl mx-auto px-4 py-4 md:py-5 flex justify-between items-center">
+          {/* Logo */}
           <div className="flex items-center space-x-2">
             <button 
               className="flex items-center space-x-2 hover:opacity-80 transition-opacity cursor-pointer"
               onClick={() => {
-                // Robuste Navigation zur Startseite
                 if (typeof window !== 'undefined') {
-                  // Lösche alle gespeicherten Zustände
                   localStorage.removeItem('appState');
                   localStorage.removeItem('currentStep');
                   localStorage.removeItem('questionAnswers');
                   localStorage.removeItem('resourceFigure');
-                  
-                  // Navigiere zur Startseite
                   window.location.href = '/';
                 }
               }}
@@ -194,96 +226,168 @@ export default function Header() {
               />
             </button>
           </div>
-          <div className="flex items-center space-x-4">
+
+          {/* Desktop Navigation (ab md) - Ruhig und therapeutisch-sanft */}
+          <nav className="hidden md:flex items-center gap-6 md:gap-8">
             {user ? (
-              <div className="flex items-center">
-                {/* Desktop Menu */}
-                <div className="hidden lg:flex items-center space-x-3">
-                  <Link
-                    href="/dashboard"
-                    className="text-amber-900 font-medium hover:text-amber-700 transition-colors px-4 py-2 rounded-lg hover:bg-amber-50"
-                  >
-                    Dashboard
-                  </Link>
-                  <button 
-                    onClick={handleLogout}
-                    className="text-amber-900 font-medium hover:text-amber-700 transition-colors px-4 py-2 rounded-lg hover:bg-amber-50"
-                  >
-                    Abmelden
-                  </button>
-                </div>
-
-                {/* Mobile Hamburger Menu */}
-                <div className="lg:hidden mobile-menu-container relative">
-                  <button
-                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                    className="p-2 rounded-lg text-amber-900 hover:bg-amber-50 transition-colors"
-                    aria-label="Menü öffnen"
-                  >
-                    <svg
-                      className="w-6 h-6"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d={isMobileMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
-                      />
-                    </svg>
-                  </button>
-
-                  {/* Mobile Dropdown Menu */}
-                  <AnimatePresence>
-                    {isMobileMenuOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute right-4 top-16 bg-white rounded-lg shadow-lg border border-amber-100 py-2 z-50 min-w-[160px]"
-                      >
-                        <Link
-                          href="/dashboard"
-                          onClick={() => setIsMobileMenuOpen(false)}
-                          className="block px-4 py-3 text-amber-900 hover:bg-amber-50 transition-colors flex items-center gap-2"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z" />
-                          </svg>
-                          Dashboard
-                        </Link>
-                        <button
-                          onClick={() => {
-                            handleLogout();
-                            setIsMobileMenuOpen(false);
-                          }}
-                          className="block w-full text-left px-4 py-3 text-amber-900 hover:bg-amber-50 transition-colors flex items-center gap-2"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                          </svg>
-                          Abmelden
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
+              <>
+                {/* Eingeloggte User: Navigation + Dashboard/Logout */}
+                <button
+                  onClick={handleWhatIsPowerStory}
+                  className="text-amber-900/80 font-medium hover:text-amber-900 hover:underline transition-colors py-2"
+                >
+                  Was ist eine Power Story?
+                </button>
+                <button
+                  onClick={handleDiscoverPowerStory}
+                  className="bg-[#ce7106] hover:bg-amber-700 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:ring-offset-2"
+                >
+                  Eine Power Story entdecken
+                </button>
+                <Link
+                  href="/dashboard"
+                  className="text-amber-900/80 font-medium hover:text-amber-900 hover:underline transition-colors py-2"
+                >
+                  Dashboard
+                </Link>
+                <button 
+                  onClick={handleLogout}
+                  className="text-amber-900/80 font-normal hover:text-amber-900 hover:underline transition-colors py-2"
+                >
+                  Abmelden
+                </button>
+              </>
             ) : (
-              <button 
-                onClick={() => setShowAuthModal(true)}
-                className="text-amber-900 font-medium hover:text-amber-700 transition-colors px-4 py-2 rounded-lg hover:bg-amber-50"
-              >
-                Anmelden
-              </button>
+              <>
+                {/* Nicht eingeloggte User: Navigation + Anmelden */}
+                <button
+                  onClick={handleWhatIsPowerStory}
+                  className="text-amber-900/80 font-medium hover:text-amber-900 hover:underline transition-colors py-2"
+                >
+                  Was ist eine Power Story?
+                </button>
+                <button
+                  onClick={handleDiscoverPowerStory}
+                  className="bg-[#ce7106] hover:bg-amber-700 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:ring-offset-2"
+                >
+                  Eine Power Story entdecken
+                </button>
+                <button 
+                  onClick={handleLoginClick}
+                  className="text-amber-900/80 font-normal hover:text-amber-900 hover:underline transition-colors py-2"
+                >
+                  Anmelden
+                </button>
+              </>
             )}
+          </nav>
+
+          {/* Mobile Navigation (unter md) */}
+          <div className="md:hidden flex items-center">
+            <button
+              ref={hamburgerButtonRef}
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-2 rounded-lg text-amber-900 hover:bg-amber-50 transition-colors"
+              aria-label="Menü öffnen"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
           </div>
         </div>
       </header>
+
+      {/* Mobile Menu Sheet */}
+      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+        <SheetContent 
+          side="right" 
+          className="w-full sm:w-[400px] p-0 flex flex-col [&>button]:hidden"
+          onInteractOutside={(e) => {
+            e.preventDefault();
+          }}
+        >
+          {/* Header mit Logo und Close-Button */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-amber-100">
+            <Image
+              src="/images/power-storys_logo.webp"
+              alt="Power Storys Logo"
+              width={160}
+              height={48}
+              className="h-10 w-auto object-contain"
+            />
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                hamburgerButtonRef.current?.focus();
+              }}
+              className="p-2 rounded-lg text-amber-900 hover:bg-amber-50 transition-colors"
+              aria-label="Menü schließen"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Menü-Inhalte */}
+          <div className="flex-1 px-6 py-6 space-y-4">
+            {user ? (
+              <>
+                {/* Eingeloggte User */}
+                <button
+                  ref={firstMenuItemRef}
+                  onClick={handleDiscoverPowerStory}
+                  className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-4 px-6 rounded-[20px] transition-colors text-center"
+                >
+                  Eine Power Story entdecken
+                </button>
+                <button
+                  onClick={handleWhatIsPowerStory}
+                  className="w-full text-left text-amber-900 font-medium hover:text-amber-700 transition-colors py-3 px-4 rounded-lg hover:bg-amber-50"
+                >
+                  Was ist eine Power Story?
+                </button>
+                <Link
+                  href="/dashboard"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block w-full text-left text-amber-900 font-medium hover:text-amber-700 transition-colors py-3 px-4 rounded-lg hover:bg-amber-50"
+                >
+                  Dashboard
+                </Link>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full text-left text-amber-900/80 font-normal hover:text-amber-700 transition-colors py-3 px-4 rounded-lg hover:bg-amber-50"
+                >
+                  Abmelden
+                </button>
+              </>
+            ) : (
+              <>
+                {/* Nicht eingeloggte User */}
+                <button
+                  ref={firstMenuItemRef}
+                  onClick={handleDiscoverPowerStory}
+                  className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-4 px-6 rounded-[20px] transition-colors text-center"
+                >
+                  Eine Power Story entdecken
+                </button>
+                <button
+                  onClick={handleWhatIsPowerStory}
+                  className="w-full text-left text-amber-900 font-medium hover:text-amber-700 transition-colors py-3 px-4 rounded-lg hover:bg-amber-50"
+                >
+                  Was ist eine Power Story?
+                </button>
+                <button
+                  onClick={handleLoginClick}
+                  className="w-full text-left text-amber-900/80 font-normal hover:text-amber-700 transition-colors py-3 px-4 rounded-lg hover:bg-amber-50"
+                >
+                  Anmelden
+                </button>
+              </>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Auth Modal */}
       <AnimatePresence>
@@ -424,6 +528,17 @@ export default function Header() {
                   </button>
                 </p>
               </div>
+              {authMode === 'login' && (
+                <div className="mt-2 text-center">
+                  <button
+                    onClick={handlePasswordReset}
+                    className="text-sm text-amber-600 hover:text-amber-800"
+                    disabled={isSendingReset}
+                  >
+                    {isSendingReset ? 'Sende Link...' : 'Passwort vergessen?'}
+                  </button>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
