@@ -63,6 +63,33 @@ export default function ExplanatoryParagraphSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.3 }}
+          className="prose prose-lg max-w-none text-center text-amber-800 mb-12"
+        >
+          <p className="text-lg md:text-xl leading-relaxed mb-4 font-semibold">
+            Manchmal zeigt sich die Wirkung ganz leise.
+          </p>
+          <p className="text-lg md:text-xl leading-relaxed mb-4">
+            Manche Menschen berichten,
+            dass Gedanken langsamer werden.
+          </p>
+          <p className="text-lg md:text-xl leading-relaxed mb-4">
+            Dass der Körper für einen Moment loslässt.
+          </p>
+          <p className="text-lg md:text-xl leading-relaxed mb-4">
+          Oder dass sich innerlich mehr Raum öffnet.
+          </p>
+          <p className="text-lg md:text-xl leading-relaxed mb-4">
+            Nicht immer gleich.
+            Nicht immer stark.
+            Aber oft spürbar.
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.4 }}
           className="text-center"
         >
           <AuthModal isOnLandingPage={true}>

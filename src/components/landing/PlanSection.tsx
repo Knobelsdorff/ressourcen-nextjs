@@ -55,7 +55,7 @@ export default function PlanSection() {
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 className="bg-white rounded-xl p-8 shadow-lg text-center"
               >
-                <div className="bg-amber-600 text-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
+                <div className="bg-amber-100 text-amber-700 rounded-full w-10 h-10 flex items-center justify-center mx-auto mb-4 text-lg font-semibold border-2 border-amber-200">
                   {step.number}
                 </div>
                 <h3 className="text-xl font-semibold text-amber-900 mb-2">
