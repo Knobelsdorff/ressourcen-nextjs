@@ -353,6 +353,22 @@ function hasAbstractTermInName(figureName: string): boolean {
   return abstractTerms.some(term => lowerName.includes(term));
 }
 
+// Funktion zur Bestimmung des bestimmten Artikels "diese/dieser/diesem/diesen" für abstrakte Custom-Figuren
+function getDemonstrativeArticle(figureName: string, pronouns: string, case_: 'nominative' | 'dative' | 'accusative' = 'nominative'): string {
+  const gender = getGrammaticalGender(figureName, pronouns);
+  
+  if (case_ === 'nominative') {
+    // Nominativ: "diese" (feminin/neutrum) oder "dieser" (maskulin)
+    return gender === 'masculine' ? 'dieser' : 'diese';
+  } else if (case_ === 'dative') {
+    // Dativ: "dieser" (feminin) oder "diesem" (maskulin/neutrum)
+    return gender === 'feminine' ? 'dieser' : 'diesem';
+  } else {
+    // Akkusativ: "diese" (feminin/neutrum) oder "diesen" (maskulin)
+    return gender === 'masculine' ? 'diesen' : 'diese';
+  }
+}
+
 // Funktion zur Bestimmung, ob eine Custom-Figur einen Artikel benötigt
 function needsArticleForCustomFigure(figureName: string, category: string): boolean {
   // Nur für Custom-Figuren
@@ -514,6 +530,13 @@ Zusatz: Wenn es natürlich und sanft passt, verwende den Namen "${userName}" ein
        - Beispiel RICHTIG: "Du nimmst die sanfte Kraft von einer wohlwollenden Präsenz wahr" (unterschiedliche Adjektive)
        - Wenn du bereits über die Figur sprichst, verwende alternative Formulierungen wie "Anwesenheit", "Gefühl", "Energie", "Kraft" statt den Begriff aus dem Namen zu wiederholen.
        - Verwende unterschiedliche Adjektive, um Variation zu schaffen - vermeide es, Adjektive zu verwenden, die ähnlich zum Adjektiv im Namen klingen (z.B. bei "Wohlwollende Präsenz" vermeide "wohltuend", "wohlig", "wohlwollend" im selben Satz).
+     - **WICHTIG - BESTIMMTER ARTIKEL FÜR ABSTRAKTE CUSTOM-FIGUREN:**
+       - Da "${selectedFigure.name}" eine abstrakte, nicht-konkrete Figur ist, verwende IMMER den bestimmten Artikel "${getDemonstrativeArticle(selectedFigure.name, selectedFigure.pronouns, 'nominative')}" wenn du die Figur ohne Artikel verwendest.
+       - Beispiel FALSCH: "… denn wohlwollende Präsenz ist für dich da." → RICHTIG: "… denn ${getDemonstrativeArticle(selectedFigure.name, selectedFigure.pronouns, 'nominative')} ${selectedFigure.name.toLowerCase()} ist für dich da."
+       - Beispiel FALSCH: "Du bittest wohlwollende Präsenz …" → RICHTIG: "Du bittest ${getDemonstrativeArticle(selectedFigure.name, selectedFigure.pronouns, 'accusative')} ${selectedFigure.name.toLowerCase()} …"
+       - Beispiel FALSCH: "Du sprichst mit wohlwollende Präsenz …" → RICHTIG: "Du sprichst mit ${getDemonstrativeArticle(selectedFigure.name, selectedFigure.pronouns, 'dative')} ${declineNameInDative(selectedFigure.name)} …"
+       - **Regel:** Wenn die Figur ohne Artikel verwendet wird (nicht bei "von"-Formulierungen), verwende IMMER "${getDemonstrativeArticle(selectedFigure.name, selectedFigure.pronouns, 'nominative')}" im Nominativ, "${getDemonstrativeArticle(selectedFigure.name, selectedFigure.pronouns, 'accusative')}" im Akkusativ, oder "${getDemonstrativeArticle(selectedFigure.name, selectedFigure.pronouns, 'dative')}" im Dativ.
+       - Bei "von"-Formulierungen bleibt die bestehende Logik erhalten (z.B. "von einer wohlwollenden Präsenz").
      ` : ''}
    - **WICHTIG - TATSÄCHLICHE ANWESENHEIT FÜR ALLE RESSOURCENFIGUREN:**
      - Beschreibe ${selectedFigure.name} als **tatsächlich anwesend und real**, nicht nur als mentale Vorstellung oder Einbildung.
