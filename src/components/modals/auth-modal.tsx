@@ -202,7 +202,12 @@ export function AuthModal({
   // Handle button click when user is already logged in
   const handleAuthButtonClick = () => {
     if (user) {
-      router.push("/dashboard");
+      // If on landing page (e.g., /ankommen), go to /figur, otherwise dashboard
+      if (isOnLandingPage) {
+        router.push("/figur");
+      } else {
+        router.push("/dashboard");
+      }
       return;
     }
     // Otherwise, the dialog will open as normal
@@ -354,9 +359,13 @@ export function AuthModal({
 
       console.log("OTP verification successful");
 
-      // Success - redirect to dashboard
+      // Success - redirect based on context
       router.refresh();
-      router.push("/dashboard");
+      if (isOnLandingPage) {
+        router.push("/figur");
+      } else {
+        router.push("/dashboard");
+      }
 
       toast.success("Successfully verified!");
       setIsOpen(false);
@@ -372,9 +381,13 @@ export function AuthModal({
 
   // Reset state when dialog closes
   function handleOpenChange(open: boolean) {
-    // If user is logged in and trying to open the dialog, redirect to dashboard instead
+    // If user is logged in and trying to open the dialog, redirect based on context
     if (open && user) {
-      router.push("/dashboard");
+      if (isOnLandingPage) {
+        router.push("/figur");
+      } else {
+        router.push("/dashboard");
+      }
       return;
     }
 

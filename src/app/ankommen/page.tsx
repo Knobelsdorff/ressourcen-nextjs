@@ -83,7 +83,7 @@ export default function AnkommenPage() {
         page_path: '/ankommen',
       },
     });
-    router.push("/");
+    router.push("/figur");
   };
 
   if (loading) {
