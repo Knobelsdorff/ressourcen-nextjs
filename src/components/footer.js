@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 export default function Footer() {
   const pathname = usePathname();
   
-  // Hide footer on /ankommen page
-  if (pathname === '/ankommen') {
+  // Hide footer on /ankommen and /zugang pages
+  if (pathname === '/ankommen' || pathname === '/zugang') {
     return null;
   }
   

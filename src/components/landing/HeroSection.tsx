@@ -2,13 +2,10 @@
 
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/components/providers/auth-provider";
 import { useRouter } from "next/navigation";
-import { AuthModal } from "@/components/modals/auth-modal";
 import Image from "next/image";
 
 export default function HeroSection() {
-  const { user } = useAuth();
   const router = useRouter();
 
   const handleCTAClick = () => {
@@ -61,24 +58,13 @@ export default function HeroSection() {
           </p>
 
           <div className="flex justify-center lg:justify-start">
-            {user ? (
-              <Button
-                onClick={handleCTAClick}
-                size="lg"
-                className="bg-amber-600 hover:bg-amber-700 text-white text-lg px-8 py-6 rounded-lg"
-              >
-                Kurz innehalten
-              </Button>
-            ) : (
-              <AuthModal isOnLandingPage={true}>
-                <Button
-                  size="lg"
-                  className="bg-amber-600 hover:bg-amber-700 text-white text-lg px-8 py-6 rounded-lg"
-                >
-                  Kurz innehalten
-                </Button>
-              </AuthModal>
-            )}
+            <Button
+              onClick={handleCTAClick}
+              size="lg"
+              className="bg-amber-600 hover:bg-amber-700 text-white text-lg px-8 py-6 rounded-lg"
+            >
+              Kurz innehalten
+            </Button>
           </div>
         </motion.div>
       </div>

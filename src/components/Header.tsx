@@ -4,8 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/components/providers/auth-provider";
-import { motion, AnimatePresence } from "framer-motion";
-import { createSPAClient } from "@/lib/supabase/client";
 import { scrollToAnchor } from "@/lib/navigation-helpers";
 import { useRouter, usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
@@ -15,20 +13,11 @@ import {
 } from "@/components/ui/sheet";
 
 export default function Header() {
-  const { user, signIn, signUp, signOut, loading } = useAuth();
+  const { user, signOut, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   
   // All hooks must be called before any conditional returns
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSendingReset, setIsSendingReset] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const hamburgerButtonRef = useRef<HTMLButtonElement>(null);
   const firstMenuItemRef = useRef<HTMLButtonElement>(null);
@@ -73,112 +62,14 @@ export default function Header() {
     }, 100);
   };
 
-  // Handler für "Anmelden"
-  const handleLoginClick = () => {
+  // Handler für "Mein Zugang"
+  const handleAccessClick = () => {
     setIsMobileMenuOpen(false);
-    setTimeout(() => {
-      setShowAuthModal(true);
-      setAuthMode('login');
-    }, 100);
-  };
-
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    setIsSubmitting(true);
-
-    try {
-      if (authMode === 'register') {
-        if (password !== confirmPassword) {
-          setError('Passwörter stimmen nicht überein');
-          return;
-        }
-        if (password.length < 6) {
-          setError('Passwort muss mindestens 6 Zeichen lang sein');
-          return;
-        }
-
-        const { error } = await signUp(email, password);
-        
-        if (error) {
-          if (error.message.includes('already registered') || 
-              error.message.includes('already been registered') ||
-              error.message.includes('User already registered') ||
-              error.message.includes('already exists')) {
-            setError('Diese E-Mail-Adresse ist bereits registriert. Bitte melden Sie sich an oder verwenden Sie eine andere E-Mail.');
-          } else if (error.message.includes('Invalid email')) {
-            setError('Bitte geben Sie eine gültige E-Mail-Adresse ein.');
-          } else {
-            setError(`Fehler: ${error.message}`);
-          }
-        } else {
-          setSuccess('Registrierung erfolgreich! Bitte bestätige deine E-Mail-Adresse.');
-          setTimeout(() => {
-            setShowAuthModal(false);
-            setSuccess('');
-          }, 3000);
-        }
-      } else {
-        const { error } = await signIn(email, password);
-        if (error) {
-          setError(error.message);
-        } else {
-          setShowAuthModal(false);
-          setSuccess('Erfolgreich angemeldet!');
-        }
-      }
-    } catch (err) {
-      setError('Ein unerwarteter Fehler ist aufgetreten');
-    } finally {
-      setIsSubmitting(false);
-    }
+    router.push("/zugang");
   };
 
   const handleLogout = async () => {
     await signOut();
-    setSuccess('Erfolgreich abgemeldet!');
-  };
-
-  const resetForm = () => {
-    setEmail('');
-    setPassword('');
-    setConfirmPassword('');
-    setError('');
-    setSuccess('');
-  };
-
-  const switchMode = () => {
-    setAuthMode(authMode === 'login' ? 'register' : 'login');
-    resetForm();
-  };
-
-  const handlePasswordReset = async () => {
-    setError('');
-    setSuccess('');
-    if (!email) {
-      setError('Bitte gib zuerst deine E-Mail ein.');
-      return;
-    }
-    try {
-      setIsSendingReset(true);
-      const supabase = createSPAClient();
-      
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.ressourcen.app';
-      const redirectTo = `${origin}/auth/reset?email=${encodeURIComponent(email)}`;
-
-      const { data, error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-      
-      if (error) {
-        setError(error.message);
-      } else {
-        setSuccess('Reset-Link wurde per E-Mail gesendet. Bitte öffne den Link aus der E-Mail.');
-      }
-    } catch (e) {
-      setError('Senden des Reset-Links ist fehlgeschlagen.');
-    } finally {
-      setIsSendingReset(false);
-    }
   };
 
   if (loading) {
@@ -195,8 +86,8 @@ export default function Header() {
     );
   }
 
-  // Hide header on /ankommen page (after loading check)
-  if (pathname === '/ankommen') {
+  // Hide header on /ankommen and /zugang pages (after loading check)
+  if (pathname === '/ankommen' || pathname === '/zugang') {
     return null;
   }
 
@@ -276,10 +167,10 @@ export default function Header() {
                   Eine Power Story entdecken
                 </button>
                 <button 
-                  onClick={handleLoginClick}
+                  onClick={handleAccessClick}
                   className="text-amber-900/80 font-normal hover:text-amber-900 hover:underline transition-colors py-2"
                 >
-                  Anmelden
+                  Mein Zugang
                 </button>
               </>
             )}
@@ -381,10 +272,10 @@ export default function Header() {
                   Was ist eine Power Story?
                 </button>
                 <button
-                  onClick={handleLoginClick}
+                  onClick={handleAccessClick}
                   className="w-full text-left text-amber-900/80 font-normal hover:text-amber-700 transition-colors py-3 px-4 rounded-lg hover:bg-amber-50"
                 >
-                  Anmelden
+                  Mein Zugang
                 </button>
               </>
             )}
@@ -392,160 +283,6 @@ export default function Header() {
         </SheetContent>
       </Sheet>
 
-      {/* Auth Modal */}
-      <AnimatePresence>
-        {showAuthModal && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-            onClick={() => setShowAuthModal(false)}
-          >
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-amber-900">
-                  {authMode === 'login' ? 'Anmelden' : 'Registrieren'}
-                </h2>
-                <button 
-                  onClick={() => setShowAuthModal(false)}
-                  className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
-                >
-                  ×
-                </button>
-              </div>
-              
-              {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                  {error}
-                </div>
-              )}
-              
-              {success && (
-                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
-                  {success}
-                </div>
-              )}
-              
-              <form onSubmit={handleAuth} className="space-y-4">
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                    E-Mail
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                    placeholder="ihre@email.de"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                    Passwort
-                  </label>
-                  <input
-                    type="password"
-                    id="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                    placeholder="••••••••"
-                    required
-                  />
-                </div>
-                
-                {authMode === 'register' && (
-                  <div>
-                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                      Passwort bestätigen
-                    </label>
-                    <input
-                      type="password"
-                      id="confirmPassword"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                      placeholder="••••••••"
-                      required
-                    />
-                  </div>
-                )}
-                
-                {authMode === 'login' && (
-                  <div className="flex items-center justify-between">
-                    <label className="flex items-center">
-                      <input type="checkbox" className="rounded border-gray-300 text-amber-600 focus:ring-amber-500" />
-                      <span className="ml-2 text-sm text-gray-600">Angemeldet bleiben</span>
-                    </label>
-                    <button 
-                      type="button"
-                      onClick={handlePasswordReset}
-                      disabled={isSendingReset}
-                      className="text-sm text-amber-600 hover:text-amber-800 disabled:opacity-50 font-medium"
-                    >
-                      {isSendingReset ? 'Sende Link…' : 'Passwort setzen/zurücksetzen'}
-                    </button>
-                  </div>
-                )}
-                
-                {authMode === 'login' && (
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-3 px-4 rounded-lg font-medium hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isSubmitting ? 'Wird verarbeitet...' : 'Anmelden'}
-                  </button>
-                )}
-                
-                {authMode === 'register' && (
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-3 px-4 rounded-lg font-medium hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isSubmitting ? 'Wird verarbeitet...' : 'Registrieren'}
-                  </button>
-                )}
-              </form>
-              
-              <div className="mt-6 text-center">
-                <p className="text-sm text-gray-600">
-                  {authMode === 'login' ? 'Noch kein Konto?' : 'Bereits ein Konto?'}{" "}
-                  <button 
-                    type="button"
-                    onClick={switchMode}
-                    className="text-amber-600 hover:text-amber-800 font-medium"
-                  >
-                    {authMode === 'login' ? 'Jetzt registrieren' : 'Jetzt anmelden'}
-                  </button>
-                </p>
-              </div>
-              {authMode === 'login' && (
-                <div className="mt-2 text-center">
-                  <button
-                    onClick={handlePasswordReset}
-                    className="text-sm text-amber-600 hover:text-amber-800"
-                    disabled={isSendingReset}
-                  >
-                    {isSendingReset ? 'Sende Link...' : 'Passwort vergessen?'}
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </>
   );
 }

@@ -202,7 +202,7 @@ export function AuthModal({
   // Handle button click when user is already logged in
   const handleAuthButtonClick = () => {
     if (user) {
-      // If on landing page (e.g., /ankommen), go to /figur, otherwise dashboard
+      // Redirect based on context
       if (isOnLandingPage) {
         router.push("/figur");
       } else {
@@ -362,6 +362,7 @@ export function AuthModal({
       // Success - redirect based on context
       router.refresh();
       if (isOnLandingPage) {
+        // If on landing page (/ankommen), redirect to /figur
         router.push("/figur");
       } else {
         router.push("/dashboard");

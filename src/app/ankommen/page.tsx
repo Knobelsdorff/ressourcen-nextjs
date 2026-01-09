@@ -4,8 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/components/providers/auth-provider";
-import { AuthModal } from "@/components/modals/auth-modal";
 import AnkommenAudioPlayer from "@/components/ankommen/AnkommenAudioPlayer";
 import { Loader2 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
@@ -21,7 +19,6 @@ interface ExampleResource {
 }
 
 export default function AnkommenPage() {
-  const { user } = useAuth();
   const router = useRouter();
   const [resource, setResource] = useState<ExampleResource | null>(null);
   const [loading, setLoading] = useState(true);
@@ -209,24 +206,13 @@ export default function AnkommenPage() {
                 Du beantwortest ein paar kurze Fragen – ganz ohne Druck.
               </p>
               <div>
-                {user ? (
-                  <Button
-                    onClick={handlePersonalizeClick}
-                    size="lg"
-                    className="bg-amber-600 hover:bg-amber-700 text-white text-base md:text-lg px-8 py-4 md:py-5 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md"
-                  >
-                    Eine persönliche Geschichte erstellen
-                  </Button>
-                ) : (
-                  <AuthModal isOnLandingPage={true}>
-                    <Button
-                      size="lg"
-                      className="bg-amber-600 hover:bg-amber-700 text-white text-base md:text-lg px-8 py-4 md:py-5 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md"
-                    >
-                      Eine persönliche Geschichte erstellen
-                    </Button>
-                  </AuthModal>
-                )}
+                <Button
+                  onClick={handlePersonalizeClick}
+                  size="lg"
+                  className="bg-amber-600 hover:bg-amber-700 text-white text-base md:text-lg px-8 py-4 md:py-5 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md"
+                >
+                  Eine persönliche Geschichte erstellen
+                </Button>
               </div>
             </motion.div>
           )}
