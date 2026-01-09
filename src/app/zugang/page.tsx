@@ -156,26 +156,6 @@ export default function ZugangPage() {
           <h1 className="text-3xl md:text-4xl font-medium text-amber-900 mb-3">
             Dein Zugang
           </h1>
-          
-          {/* New User Guidance Block */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-            className="mb-6 pb-6 border-b border-amber-100"
-          >
-            <p className="text-sm md:text-base text-amber-700/80 mb-3 leading-relaxed">
-              Wenn du neu hier bist, kannst du mit einer ersten Geschichte beginnen.
-            </p>
-            <Button
-              onClick={() => router.push("/ankommen")}
-              variant="outline"
-              className="w-full border-amber-300 text-amber-700 hover:bg-amber-50 hover:text-amber-900"
-            >
-              Eine Geschichte anhören
-            </Button>
-          </motion.div>
-
           <p className="text-base md:text-lg text-amber-700 mb-8 leading-relaxed">
             Wenn du schon eine persönliche Geschichte erstellt hast, kannst du hier zurück in deinen Raum.
           </p>
@@ -198,10 +178,10 @@ export default function ZugangPage() {
                     Link ist unterwegs.
                   </h2>
                   <p className="text-base text-amber-700 mb-2">
-                    Schau kurz in dein Postfach. Wenn du möchtest, öffne den Link auf diesem Gerät.
+                    Schau kurz in dein Postfach. Manchmal landet er im Spam.
                   </p>
                   <p className="text-sm text-amber-600/70 mt-4">
-                    Manchmal landet er im Spam.
+                    Öffne den Link am besten auf diesem Gerät.
                   </p>
                 </div>
                 <Button
