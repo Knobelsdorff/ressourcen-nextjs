@@ -19,6 +19,7 @@ import { useAppReset } from "@/components/providers/app-reset-provider";
 import Paywall from "@/components/Paywall";
 import { canCreateResource } from "@/lib/access";
 import { getOrCreateBrowserFingerprint } from "@/lib/browser-fingerprint";
+import { realFigures, fictionalFigures } from "@/data/figures";
 
 export interface ResourceFigure {
   id: string;
@@ -93,7 +94,7 @@ const initialAppState: AppState = {
   currentQuestionIndex: 0
 };
 
-function RessourcenAppContent() {
+function RessourcenAppInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [appState, setAppState] = useState<AppState>(initialAppState);
@@ -197,6 +198,46 @@ function RessourcenAppContent() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Handle figure preselection from query parameter (from /figur)
+  useEffect(() => {
+    const figureId = searchParams?.get('figure');
+    if (figureId && !appState.resourceFigure) {
+      // Find figure in all figures
+      const allFigures = [...realFigures, ...fictionalFigures];
+      const preselectedFigure = allFigures.find(f => f.id === figureId);
+      
+      if (preselectedFigure) {
+        // Handle ambivalent figures (best-friend needs pronoun selection)
+        const ambivalentFigures = ['partner', 'teacher', 'sibling', 'best-friend', 'pet-dog', 'pet-cat'];
+        if (ambivalentFigures.includes(preselectedFigure.id)) {
+          // For best-friend, default to 'sie/ihr' (can be changed later)
+          const figureWithPronouns = {
+            ...preselectedFigure,
+            pronouns: preselectedFigure.id === 'best-friend' ? 'sie/ihr' : preselectedFigure.pronouns
+          };
+          setAppState(prev => ({
+            ...prev,
+            resourceFigure: figureWithPronouns,
+            currentStep: 2 // Skip to questions
+          }));
+        } else {
+          setAppState(prev => ({
+            ...prev,
+            resourceFigure: preselectedFigure,
+            currentStep: 2 // Skip to questions
+          }));
+        }
+        
+        // Remove query parameter from URL
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('figure');
+        router.replace(newUrl.pathname + newUrl.search, { scroll: false });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
   const [userDataLoaded, setUserDataLoaded] = useState(false);
 
@@ -886,8 +927,12 @@ function RessourcenAppContent() {
 
 export default function RessourcenApp() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Laden...</div>}>
-      <RessourcenAppContent />
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
+        <div className="text-amber-600">Lade...</div>
+      </div>
+    }>
+      <RessourcenAppInner />
     </Suspense>
   );
 }

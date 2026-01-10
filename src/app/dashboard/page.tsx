@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { BookOpen, Settings, AlertTriangle, Trash2, Volume2, User, Mail, Calendar, Clock, Star, Shield, HelpCircle, MessageCircle, Bug, Crown, Zap, TrendingUp, Play, Pause, BarChart3, Lock, Music } from "lucide-react";
+import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, Volume2, User, Mail, Calendar, Clock, Star, Trophy, Target, Shield, HelpCircle, MessageCircle, Bug, Key, Trash, Crown, Zap, TrendingUp, Play, Pause, BarChart3, Lock, Music, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
@@ -108,6 +108,11 @@ export default function Dashboard() {
   });
   const [loadingCustomerPortal, setLoadingCustomerPortal] = useState(false);
   const [resourceAccessStatus, setResourceAccessStatus] = useState<Record<string, { canAccess: boolean; isFirst: boolean; trialExpired: boolean; daysRemaining?: number }>>({});
+  
+  // Beispiel-Ressourcenfigur Konfiguration (nur für Admins)
+  const [exampleResourceId, setExampleResourceId] = useState<string>("");
+  const [exampleResourceLoading, setExampleResourceLoading] = useState(false);
+  const [exampleResourceError, setExampleResourceError] = useState<string | null>(null);
 
   // Funktion zur Bestimmung des Ressourcen-Typs
   const getResourceTypeLabel = (resourceFigure: any) => {
@@ -1118,9 +1123,75 @@ export default function Dashboard() {
       loadUserAccess();
       // Lade den vollständigen Namen
       loadFullName();
+      
+      // Lade Beispiel-Ressourcenfigur Konfiguration (nur für Admins)
+      if (isAdmin) {
+        fetchExampleResourceConfig();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]); // Nur user als Dependency, um Endlosschleife zu vermeiden
+  }, [user, isAdmin]); // Nur user und isAdmin als Dependency, um Endlosschleife zu vermeiden
+
+  // Lade Beispiel-Ressourcenfigur Konfiguration (nur für Admins)
+  const fetchExampleResourceConfig = useCallback(async () => {
+    if (!isAdmin || !user) return;
+    
+    try {
+      setExampleResourceLoading(true);
+      setExampleResourceError(null);
+
+      const response = await fetch('/api/admin/config');
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        if (data.config) {
+          setExampleResourceId(data.config.value);
+        } else {
+          setExampleResourceId("");
+        }
+      } else {
+        throw new Error(data.error || 'Fehler beim Laden der Konfiguration');
+      }
+    } catch (err: any) {
+      console.error('Error fetching example resource config:', err);
+      setExampleResourceError(err.message || 'Fehler beim Laden der Konfiguration');
+    } finally {
+      setExampleResourceLoading(false);
+    }
+  }, [isAdmin, user]);
+
+
+  // Speichere Beispiel-Ressourcenfigur (nur für Admins)
+  const saveExampleResource = async (resourceId: string) => {
+    try {
+      setExampleResourceLoading(true);
+      setExampleResourceError(null);
+
+      const response = await fetch('/api/admin/config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ resourceId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setExampleResourceId(resourceId);
+        setExampleResourceError(null);
+        setFullNameSuccess('Beispiel-Ressourcenfigur erfolgreich gespeichert!');
+        setTimeout(() => setFullNameSuccess(''), 3000);
+      } else {
+        throw new Error(data.error || 'Fehler beim Speichern');
+      }
+    } catch (err: any) {
+      console.error('Error saving example resource:', err);
+      setExampleResourceError(err.message || 'Fehler beim Speichern');
+    } finally {
+      setExampleResourceLoading(false);
+    }
+  };
 
   // Einziger useEffect für pending stories und URL-Parameter
   useEffect(() => {
@@ -3514,6 +3585,16 @@ ${story.content}
                     </motion.div>
                   )}
                   
+                  {/* Fehlermeldung für Beispiel-Ressourcenfigur (nur für Admins) */}
+                  {isAdmin && exampleResourceError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4"
+                    >
+                      <p className="text-red-700 text-sm">{exampleResourceError}</p>
+                    </motion.div>
+                  )}
                   
                   {stories.map((story) => (
                     <motion.div
@@ -3523,7 +3604,7 @@ ${story.content}
                       className="bg-amber-50 border border-amber-200 rounded-xl sm:p-6 p-4"
                     >
                       <div className="flex justify-between items-start mb-4">
-                        <div>
+                        <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <h3 className="text-lg font-semibold text-amber-900">
                               {story.title}
@@ -3537,6 +3618,22 @@ ${story.content}
                               <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium" title={`Für Klient: ${story.client_email}`}>
                                 Klient
                               </span>
+                            )}
+                            {/* Beispiel-Ressourcenfigur Checkbox (nur für Admins, nur wenn Audio vorhanden) */}
+                            {isAdmin && story.audio_url && story.audio_url.trim() !== '' && (
+                              <label className="flex items-center gap-2 cursor-pointer group">
+                                <input
+                                  type="radio"
+                                  name="example-resource"
+                                  checked={exampleResourceId === story.id}
+                                  onChange={() => saveExampleResource(story.id)}
+                                  disabled={exampleResourceLoading}
+                                  className="w-4 h-4 text-purple-600 border-purple-300 focus:ring-purple-500 focus:ring-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                />
+                                <span className="text-xs font-medium text-purple-700 group-hover:text-purple-900 transition-colors">
+                                  Als Beispiel-Ressource
+                                </span>
+                              </label>
                             )}
                           </div>
                           <p className="text-amber-700 text-sm mb-2">

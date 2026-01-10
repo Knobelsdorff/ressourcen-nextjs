@@ -350,6 +350,9 @@ export async function sendAdminConfirmationEmail({
       console.log('Erfolg:', success);
       if (error) console.log('Fehler:', error);
       console.log('==================================================\n');
+      
+      // WICHTIG: Wenn SMTP nicht konfiguriert ist, wurde die E-Mail NICHT versendet
+      return { success: false, error: 'SMTP nicht konfiguriert - E-Mail wurde nicht versendet' };
     }
 
     return { success: true };
