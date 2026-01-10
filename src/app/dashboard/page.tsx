@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, Volume2, User, Mail, Calendar, Clock, Star, Trophy, Target, Shield, HelpCircle, MessageCircle, Bug, Key, Trash, Crown, Zap, TrendingUp, Play, Pause, BarChart3, Lock, Music, RefreshCw } from "lucide-react";
+import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, Volume2, User, Mail, Calendar, Clock, Star, Trophy, Target, Shield, HelpCircle, MessageCircle, Bug, Key, Trash, Crown, Zap, TrendingUp, Play, Pause, BarChart3, Lock, Music, RefreshCw, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
@@ -74,6 +74,8 @@ export default function Dashboard() {
   const [audioElements, setAudioElements] = useState<{ [key: string]: HTMLAudioElement }>({});
   const [backgroundMusicElements, setBackgroundMusicElements] = useState<{ [key: string]: HTMLAudioElement }>({});
   const [musicEnabled, setMusicEnabled] = useState(true); // Toggle für Musik
+  const [audioCurrentTime, setAudioCurrentTime] = useState<{ [key: string]: number }>({});
+  const [audioDuration, setAudioDuration] = useState<{ [key: string]: number }>({});
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const adminResourceLoadingRef = useRef<string | null>(null); // Verhindere mehrfaches Laden derselben Ressource
   const [pendingStory, setPendingStory] = useState<any>(null);
@@ -1416,7 +1418,22 @@ export default function Dashboard() {
     };
   }, [audioElements]);
 
-  
+  // Initialize audio metadata for all stories when audioElements change
+  useEffect(() => {
+    Object.entries(audioElements).forEach(([storyId, audio]) => {
+      if (audio.duration && isFinite(audio.duration)) {
+        setAudioDuration(prev => {
+          // Only update if not already set
+          if (!prev[storyId] || prev[storyId] !== audio.duration) {
+            return { ...prev, [storyId]: audio.duration };
+          }
+          return prev;
+        });
+      }
+    });
+  }, [audioElements]);
+
+
 
   const deleteStory = async (storyId: string) => {
     try {
@@ -1816,71 +1833,22 @@ ${story.content}
         (audio as any)._volumeCheckInterval = volumeCheckInterval;
         
         setAudioElements(prev => ({ ...prev, [storyId]: audio }));
-      
-      // Event Listener für Audio-Ende und Fade-Out-Start
-      audio.addEventListener('timeupdate', () => {
-        // Starte Fade-Out 4 Sekunden vor dem Ende
-        if (audio.duration && audio.currentTime >= audio.duration - 4 && !audio.ended) {
-          setBackgroundMusicElements(prev => {
-            const musicAudio = prev[storyId];
-            if (musicAudio && !(musicAudio as any)._fadeOutStarted) {
-              (musicAudio as any)._fadeOutStarted = true;
-              console.log(`[playAudio] Starting early fade-out for background music (4s before end)`);
-              fadeOutMusic(musicAudio, storyId, 3500); // 3.5 Sekunden Fade-Out
-            }
-            return prev;
-          });
-        }
-      });
-      
+
       // Funktion zum Stoppen der Musik (wird sowohl von 'ended' als auch von Polling verwendet)
       const stopMusicForStory = () => {
         console.log(`[playAudio] Stopping music for story ${storyId}`);
         setPlayingAudioId(null);
-        
-        // Stoppe Hintergrundmusik endgültig wenn Stimme endet (IMMER, auch wenn Fade-Out läuft)
+
+        // Reset seekbar to beginning when audio ends
+        setAudioCurrentTime(prev => ({ ...prev, [storyId]: 0 }));
+
+        // Lasse Hintergrundmusik weiterlaufen bis zum Ende (Musik spielt weiter, auch wenn Stimme endet)
         setBackgroundMusicElements(prev => {
           const musicAudio = prev[storyId];
           if (musicAudio) {
-            // Markiere dass Musik gestoppt werden soll (verhindert iOS Auto-Restart)
-            (musicAudio as any)._shouldStop = true;
-            
-            // Stoppe Fade-Out-Interval falls vorhanden
-            if ((musicAudio as any)._fadeOutInterval) {
-              clearInterval((musicAudio as any)._fadeOutInterval);
-              (musicAudio as any)._fadeOutInterval = null;
-            }
-            
-            // Entferne ALLE iOS Event-Listener vor dem Stoppen (wichtig für iPhone)
-            if ((musicAudio as any)._pauseHandler) {
-              musicAudio.removeEventListener('pause', (musicAudio as any)._pauseHandler);
-              musicAudio.removeEventListener('suspend', (musicAudio as any)._pauseHandler);
-            }
-            if ((musicAudio as any)._timeupdateHandler) {
-              musicAudio.removeEventListener('timeupdate', (musicAudio as any)._timeupdateHandler);
-            }
-            
-            // Deaktiviere Loop, damit Musik nicht automatisch wieder startet
+            // Deaktiviere Loop, damit Musik nach dem Ende stoppt (nicht endlos wiederholt)
             musicAudio.loop = false;
-            
-            // Stoppe Musik sofort (auch wenn Fade-Out läuft)
-            console.log(`[playAudio] Stopping background music immediately (audio ended)`);
-            musicAudio.pause();
-            musicAudio.currentTime = 0;
-            
-            // Verwende die ursprüngliche track-spezifische Lautstärke statt DEFAULT_MUSIC_VOLUME
-            const originalVolume = (musicAudio as any)._originalVolume || DEFAULT_MUSIC_VOLUME;
-            setMusicVolume(musicAudio, originalVolume);
-            (musicAudio as any)._fadeOutStarted = false; // Reset Flag
-            
-            // Entferne Musik-Element aus State nach kurzer Verzögerung (für Cleanup)
-            setTimeout(() => {
-              setBackgroundMusicElements(prevState => {
-                const updated = { ...prevState };
-                delete updated[storyId];
-                return updated;
-              });
-            }, 100);
+            console.log(`[playAudio] Voice audio ended - background music continues playing until track ends`);
           }
           return prev;
         });
@@ -2143,38 +2111,20 @@ ${story.content}
       setAudioElements(prev => ({ ...prev, [storyId]: newAudio }));
       
       // Füge Event-Listener NACH dem Setzen der URL hinzu
-      newAudio.addEventListener('timeupdate', () => {
-        // Starte Fade-Out 4 Sekunden vor dem Ende
-        if (newAudio.duration && newAudio.currentTime >= newAudio.duration - 4 && !newAudio.ended) {
-          setBackgroundMusicElements(prev => {
-            const musicAudio = prev[storyId];
-            if (musicAudio && !(musicAudio as any)._fadeOutStarted) {
-              (musicAudio as any)._fadeOutStarted = true;
-              console.log(`[playAudio] Starting early fade-out for background music (4s before end)`);
-              fadeOutMusic(musicAudio, storyId, 3500); // 3.5 Sekunden Fade-Out
-            }
-            return prev;
-          });
-        }
-      });
-      
+      // HINWEIS: timeupdate-Listener für Seekbar wird später hinzugefügt (nach needsNewSource-Check)
+      // um sicherzustellen, dass er am finalen Audio-Element angehängt wird
+
       newAudio.addEventListener('ended', () => {
         console.log(`[playAudio] Audio ended for story ${storyId} (newAudio)`);
         setPlayingAudioId(null);
-        
-        // Stoppe Hintergrundmusik endgültig wenn Stimme endet
+
+        // Lasse Hintergrundmusik weiterlaufen bis zum Ende (Musik spielt weiter, auch wenn Stimme endet)
         setBackgroundMusicElements(prev => {
           const musicAudio = prev[storyId];
           if (musicAudio) {
-            // Falls Fade-Out noch nicht gestartet wurde, stoppe sofort
-            if (!(musicAudio as any)._fadeOutStarted) {
-              console.log(`[playAudio] Stopping background music immediately`);
-              musicAudio.pause();
-              musicAudio.currentTime = 0;
-              // Verwende die ursprüngliche track-spezifische Lautstärke statt DEFAULT_MUSIC_VOLUME
-              const originalVolume = (musicAudio as any)._originalVolume || DEFAULT_MUSIC_VOLUME;
-              setMusicVolume(musicAudio, originalVolume);
-            }
+            // Deaktiviere Loop, damit Musik nach dem Ende stoppt (nicht endlos wiederholt)
+            musicAudio.loop = false;
+            console.log(`[playAudio] Voice audio ended - background music continues playing until track ends`);
           }
           return prev;
         });
@@ -2587,7 +2537,51 @@ ${story.content}
         audio.load();
       }
     }
-    
+
+    // Stelle sicher, dass Event-Listener für Seekbar immer vorhanden sind
+    // Dieser Code muss NACH dem needsNewSource-Check kommen, damit die Listener
+    // am finalen audio-Element (nicht an einem temporären) angehängt werden
+    // Nur neu hinzufügen wenn sie noch nicht existieren oder wenn sich die Story-ID geändert hat
+    const needsNewListeners = !(audio as any)._seekbarListenersAttached || (audio as any)._lastStoryId !== storyId;
+
+    if (needsNewListeners) {
+      // Entferne alte Listener zuerst, um Duplikate zu vermeiden
+      if ((audio as any)._timeupdateHandler) {
+        audio.removeEventListener('timeupdate', (audio as any)._timeupdateHandler);
+      }
+      if ((audio as any)._metadataHandler) {
+        audio.removeEventListener('loadedmetadata', (audio as any)._metadataHandler);
+      }
+
+      // Füge neue Event-Listener hinzu
+      const timeupdateHandler = () => {
+        // Update current time for seekbar
+        setAudioCurrentTime(prev => ({ ...prev, [storyId]: audio.currentTime }));
+
+        // Kein Fade-out - Musik spielt bis zum Ende weiter (auch wenn Stimme endet)
+      };
+      const metadataHandler = () => {
+        setAudioDuration(prev => ({ ...prev, [storyId]: audio.duration }));
+      };
+
+      audio.addEventListener('timeupdate', timeupdateHandler);
+      audio.addEventListener('loadedmetadata', metadataHandler);
+
+      // Speichere Referenzen für späteres Cleanup
+      (audio as any)._timeupdateHandler = timeupdateHandler;
+      (audio as any)._metadataHandler = metadataHandler;
+      (audio as any)._seekbarListenersAttached = true;
+      (audio as any)._lastStoryId = storyId;
+
+      console.log(`[playAudio] Attached seekbar event listeners for story ${storyId}`);
+    }
+
+    // Wenn Audio bereits geladen ist, setze die Dauer sofort
+    if (audio.duration && isFinite(audio.duration)) {
+      setAudioDuration(prev => ({ ...prev, [storyId]: audio.duration }));
+      // Setze auch aktuelle Zeit, falls schon vorhanden
+      setAudioCurrentTime(prev => ({ ...prev, [storyId]: audio.currentTime }));
+    }
     // Spiele Audio ab
     try {
       // Stelle sicher, dass Stimme immer auf 100% läuft
@@ -2974,10 +2968,10 @@ ${story.content}
             
             const finalVolume = getMusicVolume(musicAudio);
             console.log(`[playAudio] Background music started for story ${storyId} (at 0s) with volume ${finalVolume * 100}%`);
-            
+
             // Aktualisiere Button-Status SOFORT, wenn Musik startet (vor der 3-Sekunden-Wartezeit)
             setPlayingAudioId(storyId);
-            
+
             // Warte 3 Sekunden bevor die Stimme startet
             await new Promise(resolve => setTimeout(resolve, 3000));
           } else {
@@ -2996,13 +2990,13 @@ ${story.content}
           // Musik-Fehler nicht anzeigen, nur loggen (nicht kritisch)
         }
       }
-      
+
       // Stelle sicher, dass Stimme immer auf 100% läuft (auch nach Musik-Start)
       audio.volume = 1.0;
-      
+
       // Spiele Stimme ab (nach 3 Sekunden Verzögerung, wenn Musik läuft)
       await audio.play();
-      
+
       // Setze playingAudioId wenn Audio startet (auch wenn keine Musik vorhanden ist)
       setPlayingAudioId(storyId);
       console.log(`[playAudio] Audio playback started for story ${storyId}, setPlayingAudioId`);
@@ -3069,6 +3063,36 @@ ${story.content}
     }
   }, [audioElements, backgroundMusicElements]);
 
+  const restartAudio = useCallback((storyId: string) => {
+    const audio = audioElements[storyId];
+    if (!audio) return;
+
+    audio.currentTime = 0;
+    setAudioCurrentTime(prev => ({ ...prev, [storyId]: 0 }));
+
+    // Starte Musik neu, wenn sie gerade läuft
+    if (playingAudioId === storyId) {
+      audio.play().catch((err) => {
+        console.error('Audio play failed on restart:', err);
+      });
+    }
+  }, [audioElements, playingAudioId]);
+
+  const handleSeek = useCallback((storyId: string, time: number) => {
+    const audio = audioElements[storyId];
+    if (!audio) return;
+
+    audio.currentTime = time;
+    setAudioCurrentTime(prev => ({ ...prev, [storyId]: time }));
+  }, [audioElements]);
+
+  const formatTime = (time: number) => {
+    if (!isFinite(time)) return "0:00";
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
   const stopAllAudio = useCallback(() => {
     Object.values(audioElements).forEach(audio => {
       audio.pause();
@@ -3095,23 +3119,13 @@ ${story.content}
         // Tab wurde wieder aktiv - prüfe alle Audio-Elemente
         Object.entries(audioElements).forEach(([storyId, audio]) => {
           if (audio.ended) {
-            // Audio ist beendet - stoppe Musik
+            // Audio ist beendet - lasse Musik weiterlaufen bis zum Ende
             const musicAudio = backgroundMusicElements[storyId];
             if (musicAudio) {
-              // Stoppe Fade-Out-Interval falls vorhanden
-              if ((musicAudio as any)._fadeOutInterval) {
-                clearInterval((musicAudio as any)._fadeOutInterval);
-                (musicAudio as any)._fadeOutInterval = null;
-              }
-              
-              // Stoppe Musik
-              musicAudio.pause();
-              musicAudio.currentTime = 0;
-              // Verwende die ursprüngliche track-spezifische Lautstärke statt DEFAULT_MUSIC_VOLUME
-              const originalVolume = (musicAudio as any)._originalVolume || DEFAULT_MUSIC_VOLUME;
-              setMusicVolume(musicAudio, originalVolume);
-              (musicAudio as any)._fadeOutStarted = false;
-              
+              // Deaktiviere Loop, damit Musik nach dem Ende stoppt (nicht endlos wiederholt)
+              musicAudio.loop = false;
+              console.log(`[handleVisibilityChange] Voice audio ended - background music continues playing until track ends`);
+
               // Aktualisiere State
               setPlayingAudioId(prev => prev === storyId ? null : prev);
             }
@@ -3680,8 +3694,55 @@ ${story.content}
                         <div className="text-center">
                           <div className="mb-4">
                             {story.audio_url ? (
-                            <div className="space-y-3">
-                                <div className="flex justify-center">
+                            <div className="space-y-4">
+                                {/* Seekbar Section - Always visible */}
+                                <div className="space-y-2">
+                                  <div
+                                    className="relative w-full h-3 bg-gradient-to-r from-orange-100 to-amber-100 rounded-full overflow-hidden cursor-pointer group shadow-inner"
+                                    onClick={(e) => {
+                                      const rect = e.currentTarget.getBoundingClientRect();
+                                      const clickX = e.clientX - rect.left;
+                                      const progressBarWidth = rect.width;
+                                      const clickRatio = clickX / progressBarWidth;
+                                      const duration = audioDuration[story.id] || 0;
+                                      const newTime = clickRatio * duration;
+                                      if (duration > 0) {
+                                        handleSeek(story.id, newTime);
+                                      }
+                                    }}
+                                  >
+                                    {/* Current Progress */}
+                                    <motion.div
+                                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 rounded-full shadow-sm"
+                                      style={{
+                                        width: `${audioDuration[story.id] > 0 ? ((audioCurrentTime[story.id] || 0) / audioDuration[story.id]) * 100 : 0}%`
+                                      }}
+                                      transition={{ duration: 0.1 }}
+                                    >
+                                      {/* Animated shine effect */}
+                                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 animate-pulse" />
+                                    </motion.div>
+                                  </div>
+
+                                  <div className="flex justify-between items-center text-sm text-amber-600">
+                                    <span className="font-medium">{formatTime(audioCurrentTime[story.id] || 0)}</span>
+                                    <span className="font-medium">{formatTime(audioDuration[story.id] || 0)}</span>
+                                  </div>
+                                </div>
+
+                                {/* Control Buttons */}
+                                <div className="flex items-center justify-center gap-4">
+                                  {/* Rewind Button - Always visible */}
+                                  <motion.button
+                                    whileHover={{ scale: 1.1, rotate: -15 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={() => restartAudio(story.id)}
+                                    className="p-3 bg-gradient-to-br from-orange-100 to-amber-100 text-amber-700 rounded-full hover:from-orange-200 hover:to-amber-200 transition-all duration-300 shadow-lg hover:shadow-xl"
+                                  >
+                                    <RotateCcw className="w-5 h-5" />
+                                  </motion.button>
+
+                                  {/* Play/Pause Button */}
                                   {playingAudioId === story.id ? (
                                 <button
                                       onClick={() => pauseAudio(story.id)}

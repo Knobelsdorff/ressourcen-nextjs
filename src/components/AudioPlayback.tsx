@@ -949,39 +949,15 @@ export default function AudioPlayback({
       setIsPlaying(false);
       setCurrentTime(0);
       setHasPlayedOnce(true);
-      
-      // Stoppe Hintergrundmusik endgültig wenn Stimme endet (IMMER, auch wenn Fade-Out läuft)
+
+      // Lasse Hintergrundmusik weiterlaufen bis zum Ende (wie im Dashboard)
+      // Die Musik spielt weiter, auch wenn die Stimme beendet ist
       if (backgroundMusicElement) {
-        // Markiere dass Musik gestoppt werden soll (verhindert iOS Auto-Restart)
-        (backgroundMusicElement as any)._shouldStop = true;
-        
-        // Stoppe Fade-Out-Interval falls vorhanden
-        if ((backgroundMusicElement as any)._fadeOutInterval) {
-          clearInterval((backgroundMusicElement as any)._fadeOutInterval);
-          (backgroundMusicElement as any)._fadeOutInterval = null;
-        }
-        
-        // Entferne ALLE iOS Event-Listener vor dem Stoppen (wichtig für iPhone)
-        if ((backgroundMusicElement as any)._pauseHandler) {
-          backgroundMusicElement.removeEventListener('pause', (backgroundMusicElement as any)._pauseHandler);
-          backgroundMusicElement.removeEventListener('suspend', (backgroundMusicElement as any)._pauseHandler);
-        }
-        if ((backgroundMusicElement as any)._timeupdateHandler) {
-          backgroundMusicElement.removeEventListener('timeupdate', (backgroundMusicElement as any)._timeupdateHandler);
-        }
-        
-        // Deaktiviere Loop, damit Musik nicht automatisch wieder startet
+        // Deaktiviere Loop, damit Musik nach dem Ende stoppt (nicht endlos wiederholt)
         backgroundMusicElement.loop = false;
-        
-        // Stoppe Musik sofort (auch wenn Fade-Out läuft)
-        console.log('[AudioPlayback] Stopping background music immediately (audio ended)');
-        backgroundMusicElement.pause();
-        backgroundMusicElement.currentTime = 0;
-        const resetVolume = (backgroundMusicElement as any)._originalVolume || DEFAULT_MUSIC_VOLUME;
-        setMusicVolume(backgroundMusicElement, resetVolume); // Reset (iOS-kompatibel)
-        (backgroundMusicElement as any)._fadeOutStarted = false; // Reset Flag
+        console.log('[AudioPlayback] Voice audio ended - background music continues playing until track ends');
       }
-      
+
       // Variante 3C: Zeige Auth-Modal nach 1x Anhören (nur wenn nicht eingeloggt)
       if (!user && hasPlayedOnce) {
         setTimeout(() => {
@@ -989,7 +965,7 @@ export default function AudioPlayback({
           setAuthMode('register'); // Zeige Registrierung mit Benefits
         }, 1000); // Kurze Verzögerung für bessere UX
       }
-      
+
       // Track vollständigen Audio-Play (nur wenn User eingeloggt ist UND eine gültige Session hat)
       if (user && session && audioState?.audioUrl && audio.duration) {
         trackEvent({
@@ -1011,50 +987,10 @@ export default function AudioPlayback({
       setIsLoading(false);
     };
 
-    // Fade-out Musik 4 Sekunden vor dem Ende
+    // Kein Fade-out - Musik spielt bis zum Ende weiter (wie im Dashboard)
     const handleTimeUpdate = () => {
       updateTime();
-      if (backgroundMusicElement && audio.duration && audio.currentTime >= audio.duration - 4 && !audio.ended) {
-        // Starte Fade-Out
-        if (!(backgroundMusicElement as any)._fadeOutStarted) {
-          (backgroundMusicElement as any)._fadeOutStarted = true;
-          
-          // Stoppe vorheriges Fade-Out-Interval falls vorhanden
-          if ((backgroundMusicElement as any)._fadeOutInterval) {
-            clearInterval((backgroundMusicElement as any)._fadeOutInterval);
-            (backgroundMusicElement as any)._fadeOutInterval = null;
-          }
-          
-          const fadeOutDuration = 3500;
-          const startVolume = getMusicVolume(backgroundMusicElement); // iOS-kompatibel
-          const fadeSteps = fadeOutDuration / 50;
-          let currentStep = 0;
-          
-          const fadeInterval = setInterval(() => {
-            if (!backgroundMusicElement || backgroundMusicElement.paused) {
-              clearInterval(fadeInterval);
-              (backgroundMusicElement as any)._fadeOutInterval = null;
-              return;
-            }
-            
-            currentStep++;
-            const newVolume = Math.max(0, startVolume * (1 - currentStep / fadeSteps));
-            setMusicVolume(backgroundMusicElement, newVolume); // iOS-kompatibel
-            
-            if (currentStep >= fadeSteps || newVolume <= 0) {
-              clearInterval(fadeInterval);
-              (backgroundMusicElement as any)._fadeOutInterval = null;
-              backgroundMusicElement.pause();
-              backgroundMusicElement.currentTime = 0;
-              const resetVolume = (backgroundMusicElement as any)._originalVolume || DEFAULT_MUSIC_VOLUME;
-              setMusicVolume(backgroundMusicElement, resetVolume); // iOS-kompatibel
-            }
-          }, 50);
-          
-          // Speichere Interval-Referenz für späteres Cleanup
-          (backgroundMusicElement as any)._fadeOutInterval = fadeInterval;
-        }
-      }
+      // Musik läuft weiter, auch wenn die Stimme endet
     };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
@@ -1090,13 +1026,13 @@ export default function AudioPlayback({
           clearInterval((backgroundMusicElement as any)._fadeOutInterval);
           (backgroundMusicElement as any)._fadeOutInterval = null;
         }
-        
+
         backgroundMusicElement.pause();
         console.log('[AudioPlayback] Background music paused');
       }
       return;
     }
-    
+
     // Variante 3C: Prüfe Auth für Replay (nur wenn komplett angehört und nicht eingeloggt)
     if (!user && hasPlayedOnce) {
       console.log('[AudioPlayback] Audio was already played completely - showing auth modal');
@@ -1104,13 +1040,13 @@ export default function AudioPlayback({
       setAuthMode('register'); // Zeige Registrierung mit Benefits
       return;
     }
-    
+
     // Prüfe ob User Zugang hat (nur wenn eingeloggt und Paywall aktiviert)
     const paywallEnabled = isEnabled('PAYWALL_ENABLED');
-    
+
     if (user && paywallEnabled) {
       console.log('[AudioPlayback] Checking access before playing audio...');
-      
+
       // Prüfe zuerst ob User ein Admin ist - Admins haben immer Zugriff
       const fullAdminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
         .split(',')
@@ -1122,7 +1058,7 @@ export default function AudioPlayback({
         .filter(Boolean);
       const userEmail = user.email?.toLowerCase().trim();
       const isAdmin = userEmail && (fullAdminEmails.includes(userEmail) || musicAdminEmails.includes(userEmail));
-      
+
       if (isAdmin) {
         console.log(`[AudioPlayback] User is admin (${userEmail}) - allowing audio playback without paywall`);
         // Admin hat immer Zugriff - weiter mit Audio-Playback
@@ -1133,16 +1069,16 @@ export default function AudioPlayback({
           .select('id, created_at')
           .eq('user_id', user.id)
           .order('created_at', { ascending: true });
-        
+
         const resourceCount = existingStories?.length || 0;
         console.log(`[AudioPlayback] User has ${resourceCount} resource(s) in database`);
-        
+
         // Wenn User bereits 1+ Ressourcen hat, ist diese neue Ressource (noch nicht gespeichert) die 2.+ - Paywall prüfen
         if (resourceCount >= 1) {
           // Prüfe ob User aktiven Zugang hat
           const { hasActiveAccess } = await import('@/lib/access');
           const hasAccess = await hasActiveAccess(user.id);
-          
+
           if (!hasAccess) {
             console.log('[AudioPlayback] User has 1+ resources but no active access - showing paywall');
             setShowPaywall(true);
@@ -1153,7 +1089,7 @@ export default function AudioPlayback({
           const firstResource = (existingStories as Array<{ created_at: string }>)[0];
           const firstResourceDate = new Date(firstResource.created_at);
           const daysSinceFirst = (Date.now() - firstResourceDate.getTime()) / (1000 * 60 * 60 * 24);
-          
+
           if (daysSinceFirst >= 3) {
             console.log('[AudioPlayback] First resource trial expired - showing paywall');
             setShowPaywall(true);
@@ -1367,7 +1303,7 @@ export default function AudioPlayback({
           musicAudio.currentTime = 0;
           await musicAudio.play();
           console.log('[AudioPlayback] Background music started (at 0s, iOS: ' + isIOS + ')');
-          
+
           // Warte 3 Sekunden bevor die Stimme startet
           await new Promise(resolve => setTimeout(resolve, 3000));
         } else {
