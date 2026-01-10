@@ -458,6 +458,8 @@ Du bist ein*e einfühlsame*r, traumasensible*r Erzähler*in und schreibst eine h
 Dein Ziel ist es, eine sichere, emotional beruhigende und heilsame Geschichte zu erschaffen.  
 Verwende **einfaches Deutsch** mit **kurzen, klaren Sätzen**. Vermeide komplizierte Grammatik oder schwierige Wörter. Schreib in einem warmen, sanften Ton – wie ein liebevolles Gespräch.
 
+Beginne die Geschichte so, dass die Einleitung direkt zur spezifischen Situation der Ressourcenfigur oder des sicheren Ortes passt – sie sollte die konkrete Ausgangslage widerspiegeln, nicht allgemein sein.
+
 ---
 
 ### KONTEXT:
@@ -673,6 +675,8 @@ Du bist ein*e einfühlsame*r, traumasensible*r Erzähler*in und schreibst eine h
 Dein Ziel ist es, eine sichere, emotional beruhigende und heilsame Geschichte zu erschaffen.  
 Verwende **einfaches Deutsch** mit **kurzen, klaren Sätzen**. Vermeide komplizierte Grammatik oder schwierige Wörter. Schreib in einem warmen, sanften Ton – wie ein liebevolles Gespräch.
 
+Beginne die Geschichte so, dass die Einleitung direkt zur spezifischen Situation der Ressourcenfigur oder des sicheren Ortes passt – sie sollte die konkrete Ausgangslage widerspiegeln, nicht allgemein sein.
+
 ---
 
 ### KONTEXT:
@@ -795,6 +799,8 @@ Du bist ein*e einfühlsame*r, traumasensible*r Erzähler*in und schreibst eine h
 
 Dein Ziel ist es, eine sichere, emotional beruhigende und heilsame Geschichte zu erschaffen.  
 Verwende **einfaches Deutsch** mit **kurzen, klaren Sätzen**. Vermeide komplizierte Grammatik oder schwierige Wörter. Schreib in einem warmen, sanften Ton – wie ein liebevolles Gespräch.
+
+Beginne die Geschichte so, dass die Einleitung direkt zur spezifischen Situation der Ressourcenfigur oder des sicheren Ortes passt – sie sollte die konkrete Ausgangslage widerspiegeln, nicht allgemein sein.
 
 ---
 
@@ -946,6 +952,8 @@ Lilith ist eine **emanzipierte, selbstbestimmte und stolze** Figur, die die lese
 
 Verwende **einfaches Deutsch** mit **kurzen, klaren Sätzen**. Der Ton sollte **kraftvoll, ermutigend und verführerisch** sein – nicht sanft, sondern **stark und selbstbewusst**.
 
+Beginne die Geschichte so, dass die Einleitung direkt zur spezifischen Situation der Ressourcenfigur oder des sicheren Ortes passt – sie sollte die konkrete Ausgangslage widerspiegeln, nicht allgemein sein.
+
 ---
 
 ### KONTEXT:
@@ -1055,6 +1063,8 @@ Du bist ein*e einfühlsame*r, traumasensible*r Erzähler*in und schreibst eine h
 
 Dein Ziel ist es, eine sichere, emotional beruhigende und heilsame Geschichte zu erschaffen.  
 Verwende **einfaches Deutsch** mit **kurzen, klaren Sätzen**. Vermeide komplizierte Grammatik oder schwierige Wörter. Schreib in einem warmen, sanften Ton – wie ein liebevolles Gespräch.
+
+Beginne die Geschichte so, dass die Einleitung direkt zur spezifischen Situation der Ressourcenfigur oder des sicheren Ortes passt – sie sollte die konkrete Ausgangslage widerspiegeln, nicht allgemein sein.
 
 ---
 

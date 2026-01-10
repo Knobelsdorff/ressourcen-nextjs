@@ -3048,7 +3048,7 @@ ${story.content}
       audio.pause();
       setPlayingAudioId(null);
     }
-    
+
     // Pausiere auch Hintergrundmusik (und stoppe Fade-Out falls aktiv)
     const musicAudio = backgroundMusicElements[storyId];
     if (musicAudio) {
@@ -3850,7 +3850,7 @@ ${story.content}
                           </div>
                           
                           {/* Pro-Version Hinweis für Text und Downloads */}
-                          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg sm:p-4 p-3">
+                          {/* <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg sm:p-4 p-3">
                             <div className="flex items-center justify-center gap-2 mb-3">
                               <span className="text-2xl">👑</span>
                               <h4 className="text-lg font-semibold text-purple-900">Pro-Version</h4>
@@ -3859,7 +3859,6 @@ ${story.content}
                               Textanzeige, Bearbeitung und Downloads sind in der Pro-Version verfügbar
                             </p>
                             
-                            {/* Pro-Features Liste */}
                             <div className="space-y-2 mb-4">
                               <div className="flex items-center gap-2 text-sm text-purple-700">
                                 <span className="text-purple-500">📝</span>
@@ -3883,7 +3882,7 @@ ${story.content}
                             <button className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-6 py-2 rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all duration-300 text-sm font-medium">
                               Upgrade zu Pro
                               </button>
-                          </div>
+                          </div> */}
                         </div>
                       </div>
                     </motion.div>

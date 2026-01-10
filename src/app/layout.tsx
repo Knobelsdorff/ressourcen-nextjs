@@ -7,6 +7,7 @@ import { AuthProvider } from "@/components/providers/auth-provider";
 import { AppResetProvider } from "@/components/providers/app-reset-provider";
 import Header from "@/components/Header";
 import Footer from "@/components/footer";
+import HeaderTherapy from "@/components/HeaderTherapy";
 
 export const metadata: Metadata = {
   title: process.env.NEXT_PUBLIC_PRODUCTNAME,
@@ -28,7 +29,8 @@ export default function RootLayout({
     <body className={`${theme} min-h-screen flex flex-col`} suppressHydrationWarning>
       <AuthProvider>
         <AppResetProvider>
-          <Header />
+          {/* <Header /> */}
+          <HeaderTherapy/>
           <main className="flex-1">
             {children}
           </main>
