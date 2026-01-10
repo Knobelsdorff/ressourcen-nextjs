@@ -87,7 +87,7 @@ export default function Header() {
   }
 
   // Hide header on /ankommen and /zugang pages (after loading check)
-  if (pathname === '/ankommen' || pathname === '/zugang') {
+  if (pathname === '/ankommen' || pathname === '/zugang' || pathname === '/zugang-erhalten') {
     return null;
   }
 

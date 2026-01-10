@@ -646,23 +646,15 @@ export async function canAccessResource(userId: string, resourceId?: string): Pr
         const isFirstNormal = firstNormalResource.id === resourceId;
         
         if (isFirstNormal) {
-          // Erste normale Ressource - prüfe 3-Tage-Regel
-          const firstResourceDate = new Date(firstNormalResource.created_at);
-          const now = Date.now();
-          const resourceTime = firstResourceDate.getTime();
-          const daysSinceFirst = (now - resourceTime) / (1000 * 60 * 60 * 24);
-          
-          console.log(`[canAccessResource] First normal resource check:`, {
+          // Erste normale Ressource - immer zugänglich (für immer kostenlos)
+          console.log(`[canAccessResource] First normal resource - always accessible:`, {
             resourceId,
             firstNormalResourceId: firstNormalResource.id,
             created_at: firstNormalResource.created_at,
-            daysSinceFirst: daysSinceFirst.toFixed(4),
-            canAccess: daysSinceFirst < 3,
           });
           
-          const result = daysSinceFirst < 3;
-          console.log(`[canAccessResource] Returning: ${result} for first normal resource ${resourceId}`);
-          return result;
+          console.log(`[canAccessResource] Returning: true for first normal resource ${resourceId} (always accessible)`);
+          return true;
         } else {
           // Es ist nicht die erste normale Ressource - benötigt Zugang
           console.log(`[canAccessResource] Not first normal resource:`, {

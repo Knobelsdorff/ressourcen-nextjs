@@ -85,6 +85,9 @@ export default function AudioPlayback({
   const [musicEnabled, setMusicEnabled] = useState(true);
   const [hasAutoSaved, setHasAutoSaved] = useState(false); // Track ob bereits automatisch gespeichert wurde
   const [hasPlayedOnce, setHasPlayedOnce] = useState(false);
+  const [hasStartedPlayback, setHasStartedPlayback] = useState(false); // Track ob User bereits Play gedrückt hat
+  const [showPostAudioPanel, setShowPostAudioPanel] = useState(false); // Show calm "after" panel
+  const [showPostAudioCTA, setShowPostAudioCTA] = useState(false); // Show CTA after delay
   const { user, session, signIn, signUp } = useAuth();
   const router = useRouter();
 
@@ -130,19 +133,18 @@ export default function AudioPlayback({
     }
   }, [user]);
 
-  // Reset hasAutoSaved wenn sich die Story ändert (neue Story generiert)
+  // Reset hasAutoSaved und hasStartedPlayback wenn sich die Story ändert (neue Story generiert)
   useEffect(() => {
     setHasAutoSaved(false);
+    setHasStartedPlayback(false);
+    setShowPostAudioPanel(false);
+    setShowPostAudioCTA(false);
   }, [generatedStory]);
 
   // Automatisches Speichern: Speichere Ressource automatisch, sobald Story und Audio vorhanden sind
   useEffect(() => {
     const autoSave = async () => {
       // Prüfe ob alle Bedingungen erfüllt sind
-      if (!user) {
-        return; // User muss eingeloggt sein
-      }
-      
       if (!generatedStory || generatedStory.trim().length === 0) {
         return; // Story muss vorhanden sein
       }
@@ -151,27 +153,53 @@ export default function AudioPlayback({
         return; // Audio muss vorhanden sein
       }
       
-      if (hasAutoSaved) {
-        return; // Bereits gespeichert, nicht erneut speichern
-      }
-      
       if (isGenerating) {
         return; // Warte bis Audio-Generierung abgeschlossen ist
       }
       
-      console.log('[AutoSave] Automatisches Speichern wird ausgelöst...');
+      // WICHTIG: Speichere IMMER in localStorage, auch wenn User nicht eingeloggt ist
+      // Dies stellt sicher, dass die Story nach Login gespeichert werden kann
+      if (!hasAutoSaved) {
+        console.log('[AutoSave] Speichere Story in localStorage (auch wenn nicht eingeloggt)...');
+        savePendingStory(); // Speichere in localStorage
+        setHasAutoSaved(true);
+      }
       
-      // Setze Flag sofort, um mehrfaches Speichern zu verhindern
-      setHasAutoSaved(true);
+      // Wenn User eingeloggt ist, speichere direkt in Datenbank
+      if (!user) {
+        return; // User nicht eingeloggt - Story ist bereits in localStorage gespeichert
+      }
+      
+      // Prüfe ob bereits in Datenbank gespeichert wurde (verhindere doppeltes Speichern)
+      // Wenn hasAutoSaved true ist, wurde bereits localStorage gespeichert
+      // Prüfe ob Story bereits in DB existiert, bevor wir erneut speichern
+      try {
+        const { data: existingStories } = await supabase
+          .from('saved_stories')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('title', selectedFigure.name)
+          .eq('content', generatedStory)
+          .limit(1);
+        
+        if (existingStories && existingStories.length > 0) {
+          console.log('[AutoSave] Story bereits in Datenbank vorhanden, überspringe Speichern');
+          return;
+        }
+      } catch (checkError) {
+        console.warn('[AutoSave] Fehler beim Prüfen auf Duplikate:', checkError);
+        // Weiter mit Speichern trotz Fehler
+      }
+      
+      console.log('[AutoSave] Automatisches Speichern in Datenbank wird ausgelöst...');
       
       // Verwende die bestehende saveStoryToDatabase Funktion
       try {
         await saveStoryToDatabase();
-        console.log('[AutoSave] Ressource wurde automatisch gespeichert');
+        console.log('[AutoSave] Ressource wurde automatisch in Datenbank gespeichert');
       } catch (error) {
         console.error('[AutoSave] Fehler beim automatischen Speichern:', error);
-        // Setze Flag zurück, damit es bei nächster Gelegenheit erneut versucht wird
-        setHasAutoSaved(false);
+        // Fehler ist nicht kritisch - Story ist bereits in localStorage gespeichert
       }
     };
     
@@ -966,13 +994,13 @@ export default function AudioPlayback({
         (backgroundMusicElement as any)._fadeOutStarted = false; // Reset Flag
       }
       
-      // Variante 3C: Zeige Auth-Modal nach 1x Anhören (nur wenn nicht eingeloggt)
-      if (!user && hasPlayedOnce) {
-        setTimeout(() => {
-          setShowAuthModal(true);
-          setAuthMode('register'); // Zeige Registrierung mit Benefits
-        }, 1000); // Kurze Verzögerung für bessere UX
-      }
+      // Moment 1: Zeige post-audio panel nach Audio-Ende
+      setShowPostAudioPanel(true);
+      
+      // Moment 2: Zeige CTA nach 2-3 Sekunden
+      setTimeout(() => {
+        setShowPostAudioCTA(true);
+      }, 2500);
       
       // Track vollständigen Audio-Play (nur wenn User eingeloggt ist UND eine gültige Session hat)
       if (user && session && audioState?.audioUrl && audio.duration) {
@@ -987,8 +1015,20 @@ export default function AudioPlayback({
         }, { accessToken: session.access_token });
       }
     };
-    const handleLoadStart = () => setIsLoading(true);
-    const handleCanPlay = () => setIsLoading(false);
+    const handleLoadStart = () => {
+      setIsLoading(true);
+      console.log('[AudioPlayback] Audio load started');
+    };
+    const handleCanPlay = () => {
+      // Audio ist bereit zum Abspielen
+      setIsLoading(false);
+      console.log('[AudioPlayback] Audio can play - ready state:', audio.readyState);
+    };
+    const handleCanPlayThrough = () => {
+      // Audio ist vollständig geladen und kann durchgespielt werden
+      setIsLoading(false);
+      console.log('[AudioPlayback] Audio can play through - fully loaded');
+    };
     const updateBuffered = () => setBufferedRanges(audio.buffered);
     const handleError = () => {
       setError('Failed to load audio. Please try regenerating.');
@@ -1045,6 +1085,7 @@ export default function AudioPlayback({
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('loadstart', handleLoadStart);
     audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('canplaythrough', handleCanPlayThrough);
     audio.addEventListener('progress', updateBuffered);
     audio.addEventListener('error', handleError);
 
@@ -1054,6 +1095,7 @@ export default function AudioPlayback({
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('loadstart', handleLoadStart);
       audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('canplaythrough', handleCanPlayThrough);
       audio.removeEventListener('progress', updateBuffered);
       audio.removeEventListener('error', handleError);
     };
@@ -1089,12 +1131,13 @@ export default function AudioPlayback({
     }
     
     // Prüfe ob User Zugang hat (nur wenn eingeloggt und Paywall aktiviert)
+    // OPTIMIERUNG: Für erste Story schneller - starte Audio sofort, prüfe parallel
     const paywallEnabled = isEnabled('PAYWALL_ENABLED');
     
     if (user && paywallEnabled) {
       console.log('[AudioPlayback] Checking access before playing audio...');
       
-      // Prüfe zuerst ob User ein Admin ist - Admins haben immer Zugriff
+      // Prüfe zuerst ob User ein Admin ist - Admins haben immer Zugriff (schnell, keine DB-Abfrage)
       const fullAdminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
         .split(',')
         .map(e => e.trim().toLowerCase())
@@ -1106,44 +1149,66 @@ export default function AudioPlayback({
       const userEmail = user.email?.toLowerCase().trim();
       const isAdmin = userEmail && (fullAdminEmails.includes(userEmail) || musicAdminEmails.includes(userEmail));
       
-      if (isAdmin) {
-        console.log(`[AudioPlayback] User is admin (${userEmail}) - allowing audio playback without paywall`);
-        // Admin hat immer Zugriff - weiter mit Audio-Playback
-      } else {
+      if (!isAdmin) {
         // Prüfe ob User bereits Ressourcen hat (für 2. Ressource Paywall)
-        const { data: existingStories } = await supabase
-          .from('saved_stories')
-          .select('id, created_at')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: true });
-        
-        const resourceCount = existingStories?.length || 0;
-        console.log(`[AudioPlayback] User has ${resourceCount} resource(s) in database`);
-        
-        // Wenn User bereits 1+ Ressourcen hat, ist diese neue Ressource (noch nicht gespeichert) die 2.+ - Paywall prüfen
-        if (resourceCount >= 1) {
-          // Prüfe ob User aktiven Zugang hat
-          const { hasActiveAccess } = await import('@/lib/access');
-          const hasAccess = await hasActiveAccess(user.id);
-          
-          if (!hasAccess) {
-            console.log('[AudioPlayback] User has 1+ resources but no active access - showing paywall');
-            setShowPaywall(true);
-            return;
+        // OPTIMIERUNG: Starte Audio bereits während der Prüfung läuft (optimistisch für erste Story)
+        const checkAccessPromise = (async () => {
+          try {
+            const { data: existingStories } = await supabase
+              .from('saved_stories')
+              .select('id, created_at, is_audio_only')
+              .eq('user_id', user.id)
+              .order('created_at', { ascending: true });
+            
+            // Zähle nur KI-generierte Ressourcen (ignoriere Audio-only)
+            const aiResourceCount = existingStories?.filter((s: any) => !s.is_audio_only).length || 0;
+            console.log(`[AudioPlayback] User has ${aiResourceCount} AI-generated resource(s) in database`);
+            
+            // Wenn User bereits 1+ KI-Ressourcen hat, ist diese neue Ressource die 2.+ - Paywall prüfen
+            if (aiResourceCount >= 1) {
+              // Prüfe ob User aktiven Zugang hat
+              const { hasActiveAccess } = await import('@/lib/access');
+              const hasAccess = await hasActiveAccess(user.id);
+              
+              if (!hasAccess) {
+                console.log('[AudioPlayback] User has 1+ AI resources but no active access - showing paywall');
+                setShowPaywall(true);
+                // Stoppe Audio wenn Paywall gezeigt wird
+                audio.pause();
+                setIsPlaying(false);
+                return false;
+              }
+            } else if (aiResourceCount === 1 && existingStories && existingStories.length === 1) {
+              // Erste Ressource existiert bereits - prüfe 3-Tage-Regel
+              const firstResource = (existingStories as Array<{ created_at: string }>)[0];
+              const firstResourceDate = new Date(firstResource.created_at);
+              const daysSinceFirst = (Date.now() - firstResourceDate.getTime()) / (1000 * 60 * 60 * 24);
+              
+              if (daysSinceFirst >= 3) {
+                console.log('[AudioPlayback] First resource trial expired - showing paywall');
+                setShowPaywall(true);
+                // Stoppe Audio wenn Paywall gezeigt wird
+                audio.pause();
+                setIsPlaying(false);
+                return false;
+              }
+            }
+            // Wenn aiResourceCount === 0: Erste Ressource, Audio ist erlaubt (innerhalb von 3 Tagen nach Erstellung)
+            return true;
+          } catch (err) {
+            console.error('[AudioPlayback] Error checking access:', err);
+            // Bei Fehler: Erlaube Playback (Fail-Open für bessere UX)
+            return true;
           }
-        } else if (resourceCount === 1 && existingStories && existingStories.length === 1) {
-          // Erste Ressource existiert bereits - prüfe 3-Tage-Regel
-          const firstResource = (existingStories as Array<{ created_at: string }>)[0];
-          const firstResourceDate = new Date(firstResource.created_at);
-          const daysSinceFirst = (Date.now() - firstResourceDate.getTime()) / (1000 * 60 * 60 * 24);
-          
-          if (daysSinceFirst >= 3) {
-            console.log('[AudioPlayback] First resource trial expired - showing paywall');
-            setShowPaywall(true);
-            return;
-          }
-        }
-        // Wenn resourceCount === 0: Erste Ressource, Audio ist erlaubt (innerhalb von 3 Tagen nach Erstellung)
+        })();
+        
+        // Starte Audio optimistisch (für erste Story) - Prüfung läuft parallel
+        // Wenn Paywall benötigt wird, wird Audio gestoppt
+        checkAccessPromise.catch((err) => {
+          console.error('[AudioPlayback] Error in access check promise:', err);
+        });
+      } else {
+        console.log(`[AudioPlayback] User is admin (${userEmail}) - allowing audio playback without paywall`);
       }
     }
 
@@ -1305,14 +1370,14 @@ export default function AudioPlayback({
           }
         }
         
-        // Starte Musik (nur wenn sie pausiert ist)
+        // Starte Musik (nur wenn sie pausiert ist) - asynchron, blockiert nicht
         if (musicAudio.paused) {
           musicAudio.currentTime = 0;
-          await musicAudio.play();
+          musicAudio.play().catch((err: any) => {
+            console.warn('[AudioPlayback] Background music play failed:', err);
+          });
           console.log('[AudioPlayback] Background music started (at 0s, iOS: ' + isIOS + ')');
-          
-          // Warte 3 Sekunden bevor die Stimme startet
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          // KEINE Verzögerung mehr - Audio startet sofort
         } else {
           console.log('[AudioPlayback] Background music already playing, skipping start');
         }
@@ -1322,22 +1387,94 @@ export default function AudioPlayback({
       }
     }
 
-    // Spiele Stimme ab (nach 3 Sekunden Verzögerung, wenn Musik läuft)
+    // Spiele Stimme ab - prüfe zuerst ob Audio bereit ist
     // setIsPlaying(true) wurde bereits oben gesetzt, damit der Button sofort wechselt
-    audio.play().then(() => {
-      // Track Audio-Play Event (nur wenn User eingeloggt ist UND eine gültige Session hat)
-      if (user && session) {
-        trackEvent({
-          eventType: 'audio_play',
-          resourceFigureName: selectedFigure.name,
-          voiceId: selectedVoiceId || undefined,
-        }, { accessToken: session.access_token });
+    setHasStartedPlayback(true); // Markiere dass Playback gestartet wurde
+    
+    // WICHTIG: Prüfe ob Audio bereit ist, bevor wir es abspielen
+    const playAudioWhenReady = async () => {
+      const audio = audioRef.current;
+      if (!audio) {
+        console.error('[AudioPlayback] Audio element not found');
+        setError('Audio-Element nicht gefunden. Bitte Seite neu laden.');
+        setIsPlaying(false);
+        return;
       }
-    }).catch((err) => {
-        console.error('Audio play failed:', err);
-        setError('Failed to play audio. Please try again.');
-        setIsPlaying(false); // Setze zurück auf false bei Fehler
-      });
+      
+      // Prüfe ob Audio bereits geladen ist (readyState >= HAVE_FUTURE_DATA bedeutet Audio kann abgespielt werden)
+      // HAVE_FUTURE_DATA = 3 bedeutet, dass genug Daten geladen sind, um abzuspielen
+      // HAVE_ENOUGH_DATA = 4 bedeutet, dass genug Daten geladen sind, um durchzuspielen
+      if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+        // Audio ist bereit - spiele sofort
+        console.log('[AudioPlayback] Audio ready, playing immediately (readyState:', audio.readyState, ')');
+        setIsLoading(false); // Setze Loading auf false, da Audio bereit ist
+        audio.play().then(() => {
+          console.log('[AudioPlayback] Audio playback started successfully');
+          // Track Audio-Play Event (nur wenn User eingeloggt ist UND eine gültige Session hat)
+          if (user && session) {
+            trackEvent({
+              eventType: 'audio_play',
+              resourceFigureName: selectedFigure.name,
+              voiceId: selectedVoiceId || undefined,
+            }, { accessToken: session.access_token });
+          }
+        }).catch((err) => {
+          console.error('[AudioPlayback] Audio play failed:', err);
+          setError('Fehler beim Abspielen des Audios. Bitte versuche es erneut.');
+          setIsPlaying(false); // Setze zurück auf false bei Fehler
+          setIsLoading(false);
+        });
+      } else {
+        // Audio ist noch nicht bereit - zeige Loading und warte auf canplay Event
+        console.log('[AudioPlayback] Audio not ready yet (readyState:', audio.readyState, '), waiting for canplay event...');
+        setIsLoading(true); // Zeige Loading, da Audio noch nicht bereit ist
+        
+        const handleCanPlayForPlay = () => {
+          audio.removeEventListener('canplay', handleCanPlayForPlay);
+          audio.removeEventListener('canplaythrough', handleCanPlayForPlay);
+          console.log('[AudioPlayback] Audio ready for playback (readyState:', audio.readyState, ')');
+          setIsLoading(false); // Audio ist jetzt bereit
+          audio.play().then(() => {
+            console.log('[AudioPlayback] Audio playback started after waiting');
+            // Track Audio-Play Event
+            if (user && session) {
+              trackEvent({
+                eventType: 'audio_play',
+                resourceFigureName: selectedFigure.name,
+                voiceId: selectedVoiceId || undefined,
+              }, { accessToken: session.access_token });
+            }
+          }).catch((err) => {
+            console.error('[AudioPlayback] Audio play failed after canplay:', err);
+            setError('Fehler beim Abspielen des Audios. Bitte versuche es erneut.');
+            setIsPlaying(false);
+            setIsLoading(false);
+          });
+        };
+        
+        // Warte auf canplay oder canplaythrough Event
+        audio.addEventListener('canplay', handleCanPlayForPlay, { once: true });
+        audio.addEventListener('canplaythrough', handleCanPlayForPlay, { once: true });
+        
+        // Fallback: Wenn Audio nach 10 Sekunden noch nicht bereit ist, versuche trotzdem zu spielen
+        setTimeout(() => {
+          audio.removeEventListener('canplay', handleCanPlayForPlay);
+          audio.removeEventListener('canplaythrough', handleCanPlayForPlay);
+          if (audio.paused && isPlaying) {
+            console.log('[AudioPlayback] Audio still not ready after 10s, attempting to play anyway...');
+            setIsLoading(false);
+            audio.play().catch((err) => {
+              console.error('[AudioPlayback] Audio play failed after timeout:', err);
+              setError('Audio konnte nicht geladen werden. Bitte versuche es erneut.');
+              setIsPlaying(false);
+              setIsLoading(false);
+            });
+          }
+        }, 10000);
+      }
+    };
+    
+    playAudioWhenReady();
   };
 
   const restart = async () => {
@@ -1377,6 +1514,7 @@ export default function AudioPlayback({
     
     audio.currentTime = 0;
     setCurrentTime(0);
+    setHasStartedPlayback(true); // Markiere dass Playback gestartet wurde (auch beim Restart)
     if (isPlaying) {
       audio.play().then(() => {
         // Track Audio-Play Event beim Restart (nur wenn User eingeloggt ist UND eine gültige Session hat)
@@ -1405,6 +1543,37 @@ export default function AudioPlayback({
   const bufferedPercentage = duration > 0 && bufferedRanges && bufferedRanges.length > 0 
     ? (bufferedRanges.end(bufferedRanges.length - 1) / duration) * 100 
     : 0;
+  
+  // Berechne Ladezustand basierend auf Audio readyState
+  // readyState: 0=HAVE_NOTHING, 1=HAVE_METADATA, 2=HAVE_CURRENT_DATA, 3=HAVE_FUTURE_DATA, 4=HAVE_ENOUGH_DATA
+  const getLoadingProgress = () => {
+    const audio = audioRef.current;
+    if (!audio || !audioState?.audioUrl) return 0;
+    
+    if (isGenerating) {
+      // Während der Generierung zeigen wir einen generischen Ladezustand
+      return generationProgress || 0;
+    }
+    
+    if (audio.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA) {
+      // Audio ist vollständig geladen
+      return 100;
+    } else if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+      // Audio kann abgespielt werden, aber noch nicht vollständig geladen
+      return Math.max(bufferedPercentage, 75);
+    } else if (audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      // Audio hat aktuelle Daten, aber noch nicht genug für Playback
+      return Math.max(bufferedPercentage, 50);
+    } else if (audio.readyState >= HTMLMediaElement.HAVE_METADATA) {
+      // Nur Metadaten geladen
+      return Math.max(bufferedPercentage, 25);
+    } else {
+      // Noch nichts geladen
+      return Math.max(bufferedPercentage, 0);
+    }
+  };
+  
+  const loadingProgress = getLoadingProgress();
 
   // Verhindere Hydration-Mismatch - zeige Loading bis Mount
   if (!mounted) {
@@ -1519,12 +1688,27 @@ export default function AudioPlayback({
           animate={{ y: 0, opacity: 1 }}
           className="text-center mb-8"
         >
-          <div className="text-5xl mb-4">💎</div>
-          <h2 className="text-2xl lg:text-3xl font-light text-amber-900 mb-2">
-            Deine Ressource
+          <h2 className="text-2xl lg:text-3xl font-light text-amber-900 mb-4">
+            Deine Power Story
           </h2>
+          {/* Figure Icon */}
+          <div className="flex justify-center mb-4">
+            {selectedFigure.id === 'ideal-family' ? (
+              <IdealFamilyIconFinal size={48} className="w-12 h-12" />
+            ) : selectedFigure.id === 'jesus' ? (
+              <JesusIconFinal size={48} className="w-12 h-12" />
+            ) : selectedFigure.id === 'archangel-michael' ? (
+              <ArchangelMichaelIconFinal size={48} className="w-12 h-12" />
+            ) : selectedFigure.id === 'angel' ? (
+              <AngelIconFinal size={48} className="w-12 h-12" />
+            ) : selectedFigure.id === 'superhero' ? (
+              <SuperheroIconFinal size={48} className="w-12 h-12" />
+            ) : (
+              <span className="text-4xl">{selectedFigure.emoji}</span>
+            )}
+          </div>
           <p className="text-amber-700">
-            Lass <span className="font-medium">{selectedFigure.name}</span> dich zu innerer Sicherheit führen
+            {selectedFigure.name} ist bei dir
           </p>
         </motion.div>
 
@@ -1535,25 +1719,21 @@ export default function AudioPlayback({
           transition={{ delay: 0.2 }}
           className="bg-white rounded-3xl p-6 lg:p-8 shadow-xl border border-orange-100 mb-6"
         >
-          {/* Resource Figure Display */}
-          <div className="text-center mb-8">
-            <div className="text-4xl mb-3 flex justify-center">
-              {selectedFigure.id === 'ideal-family' ? (
-                <IdealFamilyIconFinal size={60} className="w-12 h-12" />
-              ) : selectedFigure.id === 'jesus' ? (
-                <JesusIconFinal size={60} className="w-12 h-12" />
-              ) : selectedFigure.id === 'archangel-michael' ? (
-                <ArchangelMichaelIconFinal size={60} className="w-12 h-12" />
-              ) : selectedFigure.id === 'angel' ? (
-                <AngelIconFinal size={60} className="w-12 h-12" />
-              ) : selectedFigure.id === 'superhero' ? (
-                <SuperheroIconFinal size={60} className="w-12 h-12" />
-              ) : (
-                selectedFigure.emoji
-              )}
-            </div>
-            <h3 className="text-xl font-medium text-amber-900">{selectedFigure.name}</h3>
-          </div>
+          {/* Pre-Play Calming Microcopy */}
+          {audioState?.audioUrl && !isGenerating && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-center mb-8"
+            >
+              <p className="text-sm md:text-base text-amber-700/80 max-w-md mx-auto leading-relaxed space-y-1">
+                <span className="block">Du musst nichts tun.</span>
+                <span className="block">Die Geschichte ist gleich für dich da.</span>
+                <span className="block">Du kannst einfach zuhören – oder jederzeit pausieren.</span>
+              </p>
+            </motion.div>
+          )}
 
           {/* Audio Controls */}
           <div className="space-y-8">
@@ -1605,6 +1785,15 @@ export default function AudioPlayback({
                     onClick={handleProgressBarClick}
                     className="relative w-full h-3 bg-gradient-to-r from-orange-100 to-amber-100 rounded-full overflow-hidden cursor-pointer group shadow-inner"
                   >
+                    {/* Loading Progress (zeigt Ladezustand wenn Audio noch nicht bereit) */}
+                    {isLoading && (
+                      <motion.div
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-200 to-blue-300 rounded-full"
+                        style={{ width: `${loadingProgress}%` }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    )}
+                    
                     {/* Buffered Progress */}
                     <motion.div
                       className="absolute inset-y-0 left-0 bg-gradient-to-r from-orange-200 to-amber-200 rounded-full"
@@ -1644,15 +1833,19 @@ export default function AudioPlayback({
                 </div>
 
                 {/* Enhanced Control Buttons */}
-                <div className="flex items-center justify-center space-x-6">
-                  <motion.button
-                    whileHover={{ scale: 1.1, rotate: -15 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={restart}
-                    className="p-4 bg-gradient-to-br from-orange-100 to-amber-100 text-amber-700 rounded-full hover:from-orange-200 hover:to-amber-200 transition-all duration-300 shadow-lg hover:shadow-xl"
-                  >
-                    <RotateCcw className="w-5 h-5" />
-                  </motion.button>
+                <div className={`flex items-center justify-center ${hasStartedPlayback ? 'space-x-6' : ''}`}>
+                  {hasStartedPlayback && (
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      whileHover={{ scale: 1.1, rotate: -15 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={restart}
+                      className="p-4 bg-gradient-to-br from-orange-100 to-amber-100 text-amber-700 rounded-full hover:from-orange-200 hover:to-amber-200 transition-all duration-300 shadow-lg hover:shadow-xl"
+                    >
+                      <RotateCcw className="w-5 h-5" />
+                    </motion.button>
+                  )}
 
                   <motion.button
                     whileHover={{ scale: 1.05 }}
@@ -1679,82 +1872,53 @@ export default function AudioPlayback({
                   onLoadedData={() => setIsLoading(false)}
                 />
 
-                {/* Zum Dashboard Button - direkt unter dem Play-Button */}
-                {/* Für eingeloggte User: Zeige Bestätigung wenn automatisch gespeichert */}
-                {user && hasAutoSaved && (
+                {/* Moment 1 & 2: Post-Audio Panel */}
+                {showPostAudioPanel && (
                   <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                    className="mt-6 flex justify-center"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="mt-8 pt-8 border-t border-amber-100"
                   >
-                    <div className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-xl shadow-lg flex items-center gap-2">
-                      <span className="text-lg">✅</span>
-                      Ressource wurde automatisch gespeichert
+                    {/* Moment 1: Calm "after" text */}
+                    <div className="text-center mb-6">
+                      <h3 className="text-lg font-light text-amber-900 mb-3">
+                        Lass die Geschichte einen Moment nachwirken.
+                      </h3>
+                      <p className="text-sm md:text-base text-amber-700/80 max-w-md mx-auto leading-relaxed">
+                        Du musst nichts festhalten oder verstehen.
+                        <br />
+                        Manchmal reicht es, etwas wirken zu lassen.
+                      </p>
                     </div>
-                  </motion.div>
-                )}
-                
-                {/* Für nicht eingeloggte User: Zeige "Ressource speichern" Button */}
-                {!user && (
-                  <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                    className="mt-6 flex justify-center"
-                  >
-                    <button
-                      onClick={handleSaveStory}
-                      className="px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl shadow-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-200 flex items-center gap-2"
-                    >
-                      <span className="text-lg">💾</span>
-                      Ressource speichern
-                    </button>
-                  </motion.div>
-                )}
 
-                {/* Bilaterale Stimulation Anleitung */}
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="mt-8 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100"
-                >
-                  <div className="text-center mb-6">
-                    <h3 className="text-xl font-semibold text-blue-900 mb-2">
-                      Bilaterale Stimulation
-                    </h3>
-                    <p className="text-blue-700 text-sm">
-                      Klopfe abwechselnd auf deine Oberarme, während du der Geschichte zuhörst
-                    </p>
-                  </div>
-                  
-              {/* Video Anleitung */}
-              <div className="flex justify-center mb-6">
-                <video
-                  className="w-full max-w-md rounded-xl shadow-lg bg-gray-100"
-                  controls
-                  muted
-                  loop
-                  playsInline
-                  preload="metadata"
-                  autoPlay
-                >
-                  <source src="/videos/Bilaterale Stimulation.mp4" type="video/mp4" />
-                  <div className="flex items-center justify-center h-48 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl">
-                    <div className="text-center">
-                      <p className="text-gray-600 text-sm">Video wird geladen...</p>
-                    </div>
-                  </div>
-                </video>
-              </div>
-                  
-                  <div className="text-center">
-                    <p className="text-blue-600 text-base">
-                      <span className="text-xl">💡</span> Dies hilft deinem Gehirn, die Geschichte besser zu verarbeiten und zu integrieren
-                    </p>
-                  </div>
-                </motion.div>
+                    {/* Moment 2: CTA Button (revealed after delay) */}
+                    {showPostAudioCTA && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="flex justify-center"
+                      >
+                        <button
+                          onClick={async () => {
+                            // Moment 3: Route to access page if not authenticated
+                            if (!user) {
+                              router.push('/zugang-erhalten');
+                            } else {
+                              // User is authenticated, reset state and navigate to start
+                              // Use window.location for a full page reload to ensure clean state
+                              window.location.href = '/';
+                            }
+                          }}
+                          className="px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl shadow-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-200"
+                        >
+                          Eine weitere persönliche Geschichte erstellen
+                        </button>
+                      </motion.div>
+                    )}
+                  </motion.div>
+                )}
 
               </motion.div>
             )}
