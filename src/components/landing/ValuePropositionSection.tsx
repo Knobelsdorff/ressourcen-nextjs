@@ -3,14 +3,14 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { HouseHeart, Sparkles, AudioLines, Infinity } from "lucide-react";
+import { Sparkles, AudioLines, Infinity, Heart } from "lucide-react";
 
 export default function ValuePropositionSection() {
   const router = useRouter();
   
   const features = [
     {
-      icon: HouseHeart,
+      icon: Heart,
       title: "Ein sicherer Raum",
       description: "Du musst nichts leisten. Du darfst einfach da sein.",
     },

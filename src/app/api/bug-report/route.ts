@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
     }
 
     const resendApiKey = process.env.RESEND_API_KEY;
-    const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@biggerspreadsemail.com';
+    const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@power-storys.de';
 
     if (!resendApiKey) {
       console.error('[Bug Report API] Resend API key not configured');
