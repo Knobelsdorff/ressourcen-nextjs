@@ -29,8 +29,8 @@ export default function RootLayout({
     <body className={`${theme} min-h-screen flex flex-col`} suppressHydrationWarning>
       <AuthProvider>
         <AppResetProvider>
-          {/* <Header /> */}
-          <HeaderTherapy/>
+          <Header />
+          {/* <HeaderTherapy/> */}
           <main className="flex-1">
             {children}
           </main>
