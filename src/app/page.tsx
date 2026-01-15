@@ -48,30 +48,6 @@ export interface AppState {
   currentQuestionIndex: number;
 }
 
-const steps = [
-  {
-    number: 1,
-    title: "Ressourcenfigur",
-    icon: "🤗"
-  },
-  {
-    number: 2,
-    title: "Beziehung",
-    icon: "💝"
-  },
-  {
-    number: 3,
-    title: "Stimme wechseln",
-    icon: "🎤"
-  },
-  {
-    number: 4,
-    title: "Anhören",
-    icon: "🎧"
-  }
-];
-
-
 const initialAppState: AppState = {
   currentStep: 1,
   resourceFigure: null,
