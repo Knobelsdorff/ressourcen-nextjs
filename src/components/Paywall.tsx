@@ -64,42 +64,32 @@ export default function Paywall({ onClose, message }: PaywallProps) {
             <Lock className="sm:w-8 sm:h-8 w-6 h-6 text-amber-600" />
           </div>
 
-          <h2 className="sm:text-2xl text-xl font-bold text-amber-900 mb-2">
-            Deine tägliche Quelle der Stärke
+          <h2 className="text-2xl md:text-3xl font-light text-amber-900 mb-6">
+            Dein persönlicher Raum für innere Ruhe
           </h2>
 
-          {message ? (
-            <p className="text-amber-700 sm:mb-6 mb-4 max-sm:text-sm">{message}</p>
-          ) : (
-            <p className="text-amber-700 sm:mb-6 mb-4 max-sm:text-sm">Fühle dich jeden Tag sicher, geborgen und beschützt</p>
-          )}
-
           {/* Monatliches Abo */}
-          <div className="max-w-md mx-auto sm:mb-6 mb-4">
-            <div className="border-2 border-amber-500 bg-amber-50 rounded-xl sm:p-6 p-4">
+          <div className="max-w-md mx-auto mb-6">
+            <div className="border border-amber-200 bg-white rounded-xl p-6 md:p-8">
               <div className="text-center">
-                <h3 className="sm:text-2xl text-xl font-bold text-amber-900 mb-2">Monatliches Abo</h3>
-                <div className="mb-4">
+                <div className="mb-6">
                   <div className="flex items-baseline justify-center gap-2">
-                    <span className="sm:text-4xl text-3xl font-bold text-amber-900">39€</span>
-                    <span className="text-amber-600 text-sm">pro Monat</span>
+                    <span className="text-4xl font-light text-amber-900">15 €</span>
+                    <span className="text-amber-600 text-base">/ Monat</span>
                   </div>
-                  <p className="text-sm text-amber-600 mt-3">
-                    Geschichten, die dein Herz berühren - monatlich kündbar
-                  </p>
                 </div>
-                <div className="sm:space-y-3 space-y-2 text-left sm:mt-6">
-                  <div className="flex items-start gap-2">
-                    <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-amber-700">Täglich neue Geschichten, die dir Sicherheit geben</p>
+                <div className="space-y-4 text-left">
+                  <div className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-base text-amber-700">Unbegrenzte personalisierte Power Storys</p>
                   </div>
-                  <div className="flex items-start gap-2">
-                    <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-amber-700">Professionelle Stimmen und Musik für Geborgenheit</p>
+                  <div className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-base text-amber-700">Zugriff jederzeit</p>
                   </div>
-                  <div className="flex items-start gap-2">
-                    <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-amber-700">Jederzeit kündbar - du hast die Kontrolle</p>
+                  <div className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-base text-amber-700">Monatlich kündbar</p>
                   </div>
                 </div>
               </div>
@@ -125,24 +115,21 @@ export default function Paywall({ onClose, message }: PaywallProps) {
             <button
               onClick={handleCheckout}
               disabled={loading || !user}
-              className="flex-1 px-4 py-3 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+              className="flex-1 px-6 py-3 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-lg"
             >
               {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   Wird geladen...
                 </>
               ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  Abo für 39€/Monat abschließen
-                </>
+                "Zugang freischalten"
               )}
             </button>
           </div>
 
-          <p className="text-xs text-gray-500 mt-4">
-            Sichere Zahlung über Stripe
+          <p className="text-sm text-amber-600/70 mt-6">
+            Du kannst dir Zeit lassen.
           </p>
         </div>
       </motion.div>

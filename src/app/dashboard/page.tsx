@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, Volume2, User, Mail, Calendar, Clock, Star, Trophy, Target, Shield, HelpCircle, MessageCircle, Bug, Key, Trash, Crown, Zap, TrendingUp, Play, Pause, BarChart3, Lock, Music, RefreshCw, RotateCcw } from "lucide-react";
+import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, Volume2, User, Mail, Calendar, Clock, Star, Trophy, Target, Shield, HelpCircle, MessageCircle, Bug, Key, Trash, Crown, Zap, TrendingUp, Play, Pause, BarChart3, Lock, Music, RefreshCw, Plus, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
@@ -3149,8 +3149,8 @@ ${story.content}
           animate={{ opacity: 1, y: 0 }}
           className="text-center sm:mb-8 mb-4"
         >
-          <h1 className="sm:text-4xl text-2xl font-bold text-amber-900 mb-2">
-            Dashboard
+          <h1 className="text-3xl md:text-4xl font-light text-amber-900 mb-2">
+            Willkommen in deinem Raum.
           </h1>
         </motion.div>
 
@@ -3519,10 +3519,32 @@ ${story.content}
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl shadow-lg sm:p-8 p-4">
-              <div className="flex justify-between items-center sm:mb-6 mb-4">
-                <h2 className="sm:text-2xl text-xl font-bold text-amber-900">Meine Ressourcen</h2>
-              </div>
+            <div className="space-y-6">
+              {/* All Stories List */}
+              <div className="bg-white rounded-2xl shadow-lg p-8">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-amber-900">Meine Ressourcen</h2>
+                  <button
+                    onClick={async () => {
+                      // Check if user can create more stories
+                      if (user) {
+                        const { canCreateResource } = await import('@/lib/access');
+                        const canCreate = await canCreateResource(user.id);
+                        
+                        if (!canCreate) {
+                          setShowPaywall(true);
+                          return;
+                        }
+                      }
+                      
+                      router.push('/');
+                    }}
+                    className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl shadow-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-200 flex items-center gap-2"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Neue Power Story erstellen
+                  </button>
+                </div>
               
               {loading ? (
                 <div className="text-center py-8">
@@ -3890,6 +3912,7 @@ ${story.content}
                   ))}
                 </div>
               )}
+              </div>
             </div>
           )}
         </motion.div>
