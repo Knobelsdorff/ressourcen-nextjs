@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, Volume2, User, Mail, Calendar, Clock, Star, Trophy, Target, Shield, HelpCircle, MessageCircle, Bug, Key, Trash, Crown, Zap, TrendingUp, Play, Pause, BarChart3, Lock, Music, RefreshCw, RotateCcw } from "lucide-react";
+import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, Volume2, User, Mail, Calendar, Clock, Star, Trophy, Target, Shield, HelpCircle, MessageCircle, Bug, Key, Trash, Crown, Zap, TrendingUp, Play, Pause, BarChart3, Lock, Music, RefreshCw, Plus, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
@@ -3048,7 +3048,7 @@ ${story.content}
       audio.pause();
       setPlayingAudioId(null);
     }
-    
+
     // Pausiere auch Hintergrundmusik (und stoppe Fade-Out falls aktiv)
     const musicAudio = backgroundMusicElements[storyId];
     if (musicAudio) {
@@ -3149,8 +3149,8 @@ ${story.content}
           animate={{ opacity: 1, y: 0 }}
           className="text-center sm:mb-8 mb-4"
         >
-          <h1 className="sm:text-4xl text-2xl font-bold text-amber-900 mb-2">
-            Dashboard
+          <h1 className="text-3xl md:text-4xl font-light text-amber-900 mb-2">
+            Willkommen in deinem Raum.
           </h1>
         </motion.div>
 
@@ -3519,10 +3519,32 @@ ${story.content}
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl shadow-lg sm:p-8 p-4">
-              <div className="flex justify-between items-center sm:mb-6 mb-4">
-                <h2 className="sm:text-2xl text-xl font-bold text-amber-900">Meine Ressourcen</h2>
-              </div>
+            <div className="space-y-6">
+              {/* All Stories List */}
+              <div className="bg-white rounded-2xl shadow-lg p-8">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-amber-900">Meine Ressourcen</h2>
+                  <button
+                    onClick={async () => {
+                      // Check if user can create more stories
+                      if (user) {
+                        const { canCreateResource } = await import('@/lib/access');
+                        const canCreate = await canCreateResource(user.id);
+                        
+                        if (!canCreate) {
+                          setShowPaywall(true);
+                          return;
+                        }
+                      }
+                      
+                      router.push('/');
+                    }}
+                    className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl shadow-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-200 flex items-center gap-2"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Neue Power Story erstellen
+                  </button>
+                </div>
               
               {loading ? (
                 <div className="text-center py-8">
@@ -3850,7 +3872,7 @@ ${story.content}
                           </div>
                           
                           {/* Pro-Version Hinweis für Text und Downloads */}
-                          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg sm:p-4 p-3">
+                          {/* <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg sm:p-4 p-3">
                             <div className="flex items-center justify-center gap-2 mb-3">
                               <span className="text-2xl">👑</span>
                               <h4 className="text-lg font-semibold text-purple-900">Pro-Version</h4>
@@ -3859,7 +3881,6 @@ ${story.content}
                               Textanzeige, Bearbeitung und Downloads sind in der Pro-Version verfügbar
                             </p>
                             
-                            {/* Pro-Features Liste */}
                             <div className="space-y-2 mb-4">
                               <div className="flex items-center gap-2 text-sm text-purple-700">
                                 <span className="text-purple-500">📝</span>
@@ -3883,13 +3904,14 @@ ${story.content}
                             <button className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-6 py-2 rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all duration-300 text-sm font-medium">
                               Upgrade zu Pro
                               </button>
-                          </div>
+                          </div> */}
                         </div>
                       </div>
                     </motion.div>
                   ))}
                 </div>
               )}
+              </div>
             </div>
           )}
         </motion.div>

@@ -8,17 +8,15 @@ import { ResourceFigure } from "@/app/page";
 import { trackEvent } from "@/lib/analytics";
 import JesusIconFinal from "@/components/JesusIconFinal";
 
-// IDs der 6 kuratierten Figuren
 const CURATED_FIGURE_IDS = [
-  "angel",           // Engel
-  "archangel-michael", // Erzengel Michael
-  "godmother",       // Mutter Erde
-  "superhero",       // Superheld
-  "jesus",           // Jesus
-  "best-friend",     // Bester Freund / Beste Freundin
+  "angel",
+  "archangel-michael",
+  "godmother",
+  "superhero",
+  "jesus",     
+  "best-friend",
 ];
 
-// Filter-Funktion für kuratierte Figuren
 function getCuratedFigures(): ResourceFigure[] {
   const allFigures = [...realFigures, ...fictionalFigures];
   return allFigures.filter(figure => CURATED_FIGURE_IDS.includes(figure.id));
@@ -29,7 +27,6 @@ export default function FigurPage() {
   const [curatedFigures] = useState<ResourceFigure[]>(getCuratedFigures());
 
   useEffect(() => {
-    // Track page view
     trackEvent({
       eventType: 'page_view',
       metadata: {
@@ -39,16 +36,14 @@ export default function FigurPage() {
   }, []);
 
   const handleFigureSelect = (figure: ResourceFigure) => {
-    // Track figure selection
     trackEvent({
-      eventType: 'click_personalize', // Reuse existing event type
+      eventType: 'click_personalize', 
       metadata: {
         page_path: '/figur',
         story_id: figure.id,
       },
     });
 
-    // Navigate to main app with figure preselected via query parameter
     router.push(`/?figure=${figure.id}`);
   };
 
