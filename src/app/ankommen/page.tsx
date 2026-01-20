@@ -48,6 +48,20 @@ export default function AnkommenPage() {
 
         if (data.success && data.resource) {
           setResource(data.resource);
+
+          // Speichere Ankommen-Resource in localStorage für spätere Zuordnung zum User-Account
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ankommen_resource', JSON.stringify({
+              id: data.resource.id,
+              title: data.resource.title,
+              content: data.resource.content,
+              resource_figure: data.resource.resource_figure,
+              audio_url: data.resource.audio_url,
+              voice_id: data.resource.voice_id,
+              visited_at: new Date().toISOString(),
+            }));
+            console.log('[Ankommen] Saved example resource to localStorage for later association');
+          }
         } else {
           throw new Error('Beispiel-Ressourcenfigur nicht gefunden');
         }
@@ -188,6 +202,22 @@ export default function AnkommenPage() {
             <br />
             Manche Geschichten wirken leise – und erst später.
           </p>
+        </motion.div>
+
+        {/* Call to action button */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+          className="text-center mb-8 md:mb-12"
+        >
+          <Button
+            onClick={() => router.push("/figur")}
+            size="lg"
+            className="bg-amber-600 hover:bg-amber-700 text-white text-base md:text-lg px-8 py-4 md:py-5 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md"
+          >
+            Erstelle deine erste Ressource
+          </Button>
         </motion.div>
 
         {/* Post-audio reveal */}
