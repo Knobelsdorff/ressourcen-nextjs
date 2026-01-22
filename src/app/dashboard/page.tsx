@@ -21,7 +21,7 @@ import BugModal from "@/components/BugModal";
 import AnkommenAudioPlayer from "@/components/ankommen/AnkommenAudioPlayer";
 import DashboardAudioPlayer from "@/components/DashboardAudioPlayer";
 import SubscriptionManagement from "@/components/SubscriptionManagement";
-import BLSSection from "@/components/BLSSection";
+import StoryPlayerWithBLS from "@/components/StoryPlayerWithBLS";
 
 interface SavedStory {
   id: string;
@@ -3690,16 +3690,22 @@ ${story.content}
                       {/* Audio Player */}
                       {story.audio_url ? (
                         <div className="mt-4">
-                          <DashboardAudioPlayer
-                            audioUrl={story.audio_url}
-                            title={story.title}
-                            subtitle={story.resource_figure?.name || null}
-                            resourceFigure={story.resource_figure}
-                          />
-
-                          {/* BLS Section - only for Pro users, not for first story */}
-                          {subscriptionStatus.isPro  && (
-                            <BLSSection />
+                          {/* Use enhanced player with BLS for Pro users (not first story), regular player otherwise */}
+                          {subscriptionStatus.isPro ? (
+                            <StoryPlayerWithBLS
+                              audioUrl={story.audio_url}
+                              title={story.title}
+                              subtitle={story.resource_figure?.name || null}
+                              resourceFigure={story.resource_figure}
+                              showBLS={true}
+                            />
+                          ) : (
+                            <DashboardAudioPlayer
+                              audioUrl={story.audio_url}
+                              title={story.title}
+                              subtitle={story.resource_figure?.name || null}
+                              resourceFigure={story.resource_figure}
+                            />
                           )}
                         </div>
                       ) : (
