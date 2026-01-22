@@ -68,6 +68,62 @@ export default function GeschichteSpeichernPage() {
     }
   };
 
+  // Save ankommen resource when user logs in
+  useEffect(() => {
+    const saveAnkommenResourceIfExists = async () => {
+      if (!user) return;
+
+      try {
+        // Check if ankommen resource exists in localStorage
+        const ankommenData = localStorage.getItem('ankommen_resource');
+        if (!ankommenData) return;
+
+        const ankommenResource = JSON.parse(ankommenData);
+        console.log('[GeschichteSpeichern] Found ankommen resource, attempting to save');
+
+        const supabase = createSPAClient();
+
+        // Check if this story already exists for the user
+        const { data: existing } = await supabase
+          .from('saved_stories')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('title', ankommenResource.title)
+          .eq('audio_url', ankommenResource.audio_url);
+
+        if (existing && existing.length > 0) {
+          console.log('[GeschichteSpeichern] Ankommen story already exists for user');
+          localStorage.removeItem('ankommen_resource');
+          return;
+        }
+
+        // Save the ankommen story for the user
+        const { error } = await supabase
+          .from('saved_stories')
+          .insert({
+            user_id: user.id,
+            title: ankommenResource.title || 'Ankommen-Geschichte',
+            content: ankommenResource.content,
+            resource_figure: ankommenResource.resource_figure || 'Ankommen',
+            question_answers: [],
+            audio_url: ankommenResource.audio_url,
+            voice_id: ankommenResource.voice_id || null,
+          });
+
+        if (error) {
+          console.error('[GeschichteSpeichern] Error saving ankommen story:', error);
+        } else {
+          console.log('[GeschichteSpeichern] Ankommen story saved successfully');
+          localStorage.removeItem('ankommen_resource');
+        }
+      } catch (err) {
+        console.error('[GeschichteSpeichern] Error in saveAnkommenResourceIfExists:', err);
+      }
+    };
+
+    saveAnkommenResourceIfExists();
+  }, [user]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center px-4 py-12">
       <div className="max-w-md w-full">
