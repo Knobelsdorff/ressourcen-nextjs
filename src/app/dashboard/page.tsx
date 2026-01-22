@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, Volume2, User, Mail, Calendar, Clock, Star, Trophy, Target, Shield, HelpCircle, MessageCircle, Bug, Key, Trash, Crown, Zap, TrendingUp, Play, Pause, BarChart3, Lock, Music, RefreshCw, Plus, RotateCcw } from "lucide-react";
+import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, Volume2, User, Mail, Calendar, Clock, Star, Trophy, Target, Shield, HelpCircle, MessageCircle, Bug, Key, Trash, Crown, Zap, TrendingUp, Play, Pause, BarChart3, Lock, Music, RefreshCw, Plus, RotateCcw, CreditCard } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
@@ -3163,14 +3163,6 @@ ${story.content}
 
         return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
-        {/* Abo-Verwaltung */}
-              {user?.id && (
-                <SubscriptionManagement
-                  userId={user.id}
-                  onRefresh={loadUserAccess}
-                />
-              )}
-
       <div className="max-w-6xl mx-auto px-4 sm:py-8 py-4">
         {/* Header */}
         <motion.div
@@ -3213,7 +3205,18 @@ ${story.content}
               <BookOpen className="w-5 h-5" />
               <span className="max-sm:text-sm">Meine Ressourcen ({stories.length})</span>
             </button>
-            
+
+            {/* Subscription Management Link - only for Pro users */}
+            {subscriptionStatus.isPro && (
+              <button
+                onClick={() => router.push('/subscription')}
+                className="flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-lg"
+              >
+                <CreditCard className="w-5 h-5" />
+                <span className="max-sm:text-sm">Abo verwalten</span>
+              </button>
+            )}
+
             {isAdmin && (
               <button
                 onClick={() => router.push('/admin/analytics')}
