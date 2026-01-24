@@ -81,6 +81,9 @@ export default function AudioPlayback({
   const [pendingStory, setPendingStory] = useState<any>(null); // Temporäre Speicherung
   const [backgroundMusicElement, setBackgroundMusicElement] = useState<HTMLAudioElement | null>(null);
   const [musicEnabled, setMusicEnabled] = useState(true);
+  const [musicDuration, setMusicDuration] = useState(0); // Duration of background music
+  const [combinedDuration, setCombinedDuration] = useState(0); // Max of voice or music duration
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false); // Loading state for both audios
   const [hasAutoSaved, setHasAutoSaved] = useState(false); // Track ob bereits automatisch gespeichert wurde
   const [hasPlayedOnce, setHasPlayedOnce] = useState(false);
   const [hasStartedPlayback, setHasStartedPlayback] = useState(false); // Track ob User bereits Play gedrückt hat
@@ -105,31 +108,59 @@ export default function AudioPlayback({
     setIsGenerating(true);
   }, []);
 
-  // Automatisches Speichern nach erfolgreicher Anmeldung
+  // Automatisches Speichern nach erfolgreicher Anmeldung (wenn Auth Modal geschlossen wird)
   useEffect(() => {
     if (user && showAuthModal) {
       setShowAuthModal(false);
-      // Speichere die temporäre Geschichte
-      if (pendingStory) {
-        savePendingStoryToDatabase();
-      } else {
+      // Die eigentliche Speicherung erfolgt durch den pendingStory useEffect unten
+      // wenn pendingStory gesetzt ist, oder saveStoryToDatabase wenn nicht
+      if (!pendingStory) {
+        console.log('poopoo [AudioPlayback] Auth modal closed, no pendingStory, saving current story...');
         saveStoryToDatabase();
       }
+      // Wenn pendingStory existiert, wird es durch den useEffect unten gespeichert
     }
-  }, [user, showAuthModal, pendingStory]);
+  }, [user, showAuthModal]);
 
-  // Prüfe beim Mount, ob eine temporäre Geschichte vorhanden ist
+  // Prüfe beim Mount, ob eine temporäre Geschichte in localStorage vorhanden ist
   useEffect(() => {
     if (user && !showAuthModal) {
       const savedPendingStory = localStorage.getItem('pendingStory');
       if (savedPendingStory) {
-        console.log('Found pending story, saving to database...');
+        console.log('poopoo [AudioPlayback] Found pending story in localStorage, parsing...');
         const storyData = JSON.parse(savedPendingStory);
+        console.log('poopoo [AudioPlayback] Parsed pending story from localStorage:', JSON.stringify({
+          hasAudioState: !!storyData.audioState,
+          audioUrl: storyData.audioState?.audioUrl,
+          selectedFigure: storyData.selectedFigure?.name,
+          selectedVoiceId: storyData.selectedVoiceId
+        }, null, 2));
         setPendingStory(storyData);
-        savePendingStoryToDatabase();
+        // Note: savePendingStoryToDatabase will be called by the useEffect below
+        // that watches for pendingStory changes
       }
     }
-  }, [user]);
+  }, [user, showAuthModal]);
+
+  // When pendingStory is set and user is logged in, save to database
+  // This is the ONLY place that should call savePendingStoryToDatabase
+  useEffect(() => {
+    if (user && pendingStory) {
+      console.log('poopoo [AudioPlayback] pendingStory detected, checking if ready to save...');
+      console.log('poopoo [AudioPlayback] pendingStory.audioState:', JSON.stringify({
+        hasAudioState: !!pendingStory.audioState,
+        audioUrl: pendingStory.audioState?.audioUrl
+      }));
+
+      // Only save if we have the audio URL
+      if (pendingStory.audioState?.audioUrl) {
+        console.log('poopoo [AudioPlayback] pendingStory has audioUrl, saving to database...');
+        savePendingStoryToDatabase();
+      } else {
+        console.log('poopoo [AudioPlayback] pendingStory missing audioUrl - NOT saving yet');
+      }
+    }
+  }, [user, pendingStory]);
 
   // Reset hasAutoSaved und hasStartedPlayback wenn sich die Story ändert (neue Story generiert)
   useEffect(() => {
@@ -223,15 +254,22 @@ export default function AudioPlayback({
   };
 
   const savePendingStoryToDatabase = async () => {
-    console.log('AudioPlayback: savePendingStoryToDatabase called');
-    
+    console.log('poopoo [AudioPlayback] savePendingStoryToDatabase called');
+    console.log('poopoo [AudioPlayback] pendingStory state:', JSON.stringify({
+      hasPendingStory: !!pendingStory,
+      hasAudioState: !!pendingStory?.audioState,
+      audioUrl: pendingStory?.audioState?.audioUrl,
+      selectedVoiceId: pendingStory?.selectedVoiceId,
+      figureName: pendingStory?.selectedFigure?.name
+    }, null, 2));
+
     if (!user) {
-      console.log('No user logged in');
+      console.log('poopoo [AudioPlayback] No user logged in - skipping save');
       return;
     }
-    
+
     if (!pendingStory) {
-      console.log('No pending story found');
+      console.log('poopoo [AudioPlayback] No pending story found - skipping save');
       return;
     }
     
@@ -266,26 +304,38 @@ export default function AudioPlayback({
         }
       }
       
-      console.log('Saving pending story to database...');
-      
+      const insertData = {
+        user_id: user.id,
+        title: pendingStory.selectedFigure.name,
+        content: pendingStory.generatedStory,
+        resource_figure: pendingStory.selectedFigure.name,
+        question_answers: Array.isArray(pendingStory.questionAnswers) ? pendingStory.questionAnswers : [],
+        audio_url: pendingStory.audioState?.audioUrl || null,
+        voice_id: pendingStory.selectedVoiceId || null
+      };
+
+      console.log('poopoo [AudioPlayback] Saving pending story to database with data:', JSON.stringify({
+        user_id: insertData.user_id,
+        title: insertData.title,
+        content_length: insertData.content?.length,
+        audio_url: insertData.audio_url,
+        voice_id: insertData.voice_id
+      }, null, 2));
+
       const { data, error } = await (supabase as any)
         .from('saved_stories')
-        .insert({
-          user_id: user.id,
-          title: pendingStory.selectedFigure.name,
-          content: pendingStory.generatedStory,
-          resource_figure: pendingStory.selectedFigure.name,
-          question_answers: Array.isArray(pendingStory.questionAnswers) ? pendingStory.questionAnswers : [],
-          audio_url: pendingStory.audioState?.audioUrl || null,
-          voice_id: pendingStory.selectedVoiceId || null
-        })
+        .insert(insertData)
         .select();
 
       if (error) {
-        console.error('Error saving pending story:', error);
+        console.error('poopoo [AudioPlayback] Error saving pending story:', error);
         // Kein Popup - nur Console-Log
       } else {
-        console.log('Pending story saved successfully:', data);
+        console.log('poopoo [AudioPlayback] Pending story saved successfully!', JSON.stringify({
+          id: data?.[0]?.id,
+          audio_url: data?.[0]?.audio_url,
+          voice_id: data?.[0]?.voice_id
+        }, null, 2));
         // Kein Popup - nur Console-Log
         // Lösche temporäre Daten
         localStorage.removeItem('pendingStory');
@@ -299,10 +349,17 @@ export default function AudioPlayback({
   };
 
   const saveStoryToDatabase = async () => {
-    console.log('AudioPlayback: saveStoryToDatabase called');
-    
+    console.log('poopoo [AudioPlayback] saveStoryToDatabase called');
+    console.log('poopoo [AudioPlayback] Current audioState:', JSON.stringify({
+      hasAudioUrl: !!audioState?.audioUrl,
+      audioUrl: audioState?.audioUrl,
+      voiceId: audioState?.voiceId,
+      filename: audioState?.filename,
+      isGenerated: audioState?.isGenerated
+    }, null, 2));
+
     if (!user) {
-      console.log('No user logged in');
+      console.log('poopoo [AudioPlayback] No user logged in - cannot save to database');
       return;
     }
     
@@ -388,24 +445,41 @@ export default function AudioPlayback({
         });
       });
       
+      const insertData = {
+        user_id: user.id,
+        title: selectedFigure.name,
+        content: generatedStory,
+        resource_figure: selectedFigure.name,
+        question_answers: Array.isArray(questionAnswers) ? questionAnswers : [],
+        audio_url: audioState?.audioUrl || null,
+        voice_id: selectedVoiceId || null
+      };
+
+      console.log('poopoo [AudioPlayback] About to INSERT story with data:', JSON.stringify({
+        user_id: insertData.user_id,
+        title: insertData.title,
+        content_length: insertData.content?.length,
+        resource_figure: insertData.resource_figure,
+        question_answers_count: insertData.question_answers?.length,
+        audio_url: insertData.audio_url,
+        voice_id: insertData.voice_id
+      }, null, 2));
+
       const { data, error } = await (supabase as any)
         .from('saved_stories')
-        .insert({
-          user_id: user.id,
-          title: selectedFigure.name,
-          content: generatedStory,
-          resource_figure: selectedFigure.name,
-          question_answers: Array.isArray(questionAnswers) ? questionAnswers : [],
-          audio_url: audioState?.audioUrl || null,
-          voice_id: selectedVoiceId || null
-        })
+        .insert(insertData)
         .select();
 
       if (error) {
-        console.error('Error saving story:', error);
+        console.error('poopoo [AudioPlayback] ERROR saving story:', error);
         // Kein Popup - nur Console-Log
       } else {
-        console.log('Story saved successfully:', data);
+        console.log('poopoo [AudioPlayback] Story saved successfully! Response:', JSON.stringify({
+          id: data?.[0]?.id,
+          audio_url: data?.[0]?.audio_url,
+          voice_id: data?.[0]?.voice_id,
+          title: data?.[0]?.title
+        }, null, 2));
         
         // Track Resource Creation Event (nur wenn User eingeloggt ist)
         if (user && data && data[0]) {
@@ -438,16 +512,100 @@ export default function AudioPlayback({
           .select('id')
           .eq('user_id', user.id)
           .single();
-        
+
         // Nur Zähler erhöhen, wenn User bereits Zugang hat (also nach Zahlung)
         if (userAccess) {
           await incrementResourceCount(user.id);
         }
+
+        // Speichere auch die Ankommen-Story wenn vorhanden
+        await saveAnkommenStoryIfExists();
+
         // Kein Popup - nur Console-Log
       }
     } catch (err) {
       console.error('Error saving story:', err);
       // Kein Popup - nur Console-Log
+    }
+  };
+
+  // Speichere die Ankommen-Story (Beispiel-Ressource) zum User-Account
+  const saveAnkommenStoryIfExists = async () => {
+    console.log('[AudioPlayback] saveAnkommenStoryIfExists called');
+
+    if (!user) {
+      console.log('[AudioPlayback] No user, skipping ankommen save');
+      return;
+    }
+
+    try {
+      // Prüfe ob Ankommen-Resource in localStorage vorhanden ist
+      const ankommenData = localStorage.getItem('ankommen_resource');
+      console.log('[AudioPlayback] Checking localStorage for ankommen_resource:', !!ankommenData);
+
+      if (!ankommenData) {
+        console.log('[AudioPlayback] No ankommen resource in localStorage');
+        return;
+      }
+
+      const ankommenResource = JSON.parse(ankommenData);
+      console.log('[AudioPlayback] Found ankommen resource:', {
+        title: ankommenResource.title,
+        hasContent: !!ankommenResource.content,
+        hasAudioUrl: !!ankommenResource.audio_url
+      });
+
+      // Prüfe ob diese Story bereits für den User existiert
+      const { data: existing } = await supabase
+        .from('saved_stories')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('title', ankommenResource.title)
+        .eq('audio_url', ankommenResource.audio_url);
+
+      if (existing && existing.length > 0) {
+        console.log('[AudioPlayback] Ankommen story already exists for user, skipping');
+        // Entferne aus localStorage da bereits gespeichert
+        localStorage.removeItem('ankommen_resource');
+        return;
+      }
+
+      // Speichere die Ankommen-Story für den User
+      const { data, error } = await (supabase as any)
+        .from('saved_stories')
+        .insert({
+          user_id: user.id,
+          title: ankommenResource.title || 'Ankommen-Geschichte',
+          content: ankommenResource.content,
+          resource_figure: ankommenResource.resource_figure || 'Ankommen',
+          question_answers: [],
+          audio_url: ankommenResource.audio_url,
+          voice_id: ankommenResource.voice_id || null,
+        })
+        .select();
+
+      if (error) {
+        console.error('[AudioPlayback] Error saving ankommen story:', error);
+      } else {
+        console.log('[AudioPlayback] Ankommen story saved successfully:', data);
+        // Entferne aus localStorage nach erfolgreichem Speichern
+        localStorage.removeItem('ankommen_resource');
+
+        // Track Event
+        if (session?.access_token) {
+          try {
+            await trackEvent({
+              eventType: 'resource_created',
+              storyId: data?.[0]?.id,
+              resourceFigureName: ankommenResource.title || 'Ankommen',
+            }, { accessToken: session.access_token });
+          } catch (trackError) {
+            console.warn('[AudioPlayback] Failed to track ankommen story event:', trackError);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[AudioPlayback] Error in saveAnkommenStoryIfExists:', err);
     }
   };
 
@@ -518,70 +676,6 @@ export default function AudioPlayback({
       setAuthError(err.message || 'Ein Fehler ist aufgetreten');
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleSaveStory = async () => {
-    // Variante 3C: Prüfe Auth für Speichern (nur wenn nicht eingeloggt)
-    if (!user) {
-      setShowAuthModal(true);
-      setAuthMode('register'); // Zeige Registrierung mit Benefits
-      return;
-    }
-    
-    // Speichere IMMER zuerst als temporäre Geschichte
-    savePendingStory();
-    
-    if (user) {
-      // Prüfe ZUERST ob User Ressource speichern kann (Paywall-Prüfung)
-      // Nur wenn Paywall-Feature aktiviert ist
-      const paywallEnabled = isEnabled('PAYWALL_ENABLED');
-      
-      if (paywallEnabled) {
-        console.log('[handleSaveStory] Checking if user can save resource...');
-        
-        const { data: existingStories } = await supabase
-          .from('saved_stories')
-          .select('id, created_at')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: true });
-        
-        const resourceCount = existingStories?.length || 0;
-        console.log(`[handleSaveStory] User has ${resourceCount} resource(s) in database`);
-        
-        // 1. Ressource ist gratis (immer erlaubt)
-        if (resourceCount === 0) {
-          console.log('[handleSaveStory] First resource is free - allowing save');
-        } else {
-          // Ab der 2. Ressource: IMMER Paywall prüfen
-          console.log(`[handleSaveStory] User has ${resourceCount} resource(s), checking access for next resource...`);
-          const canCreate = await canCreateResource(user.id);
-          
-          if (!canCreate) {
-            console.log('[handleSaveStory] User cannot create more resources - showing paywall');
-            setShowPaywall(true);
-            return; // Wichtig: Früher Return, damit nicht gespeichert wird
-          }
-        }
-      }
-      
-      // Wenn angemeldet und Zugang erlaubt, versuche sofort in der Datenbank zu speichern
-      try {
-        await saveStoryToDatabase();
-        
-        // Lösche temporäre Daten nach erfolgreichem Speichern
-        localStorage.removeItem('pendingStory');
-        setPendingStory(null);
-        // Direkt zum Dashboard navigieren nach erfolgreichem Speichern
-        router.push('/dashboard');
-      } catch (error) {
-        console.error('Fehler beim Speichern:', error);
-        // Trotzdem zum Dashboard navigieren (temporäre Geschichte bleibt erhalten)
-        router.push('/dashboard');
-      }
-    } else {
-      // Für unangemeldete User: Auth-Modal öffnen
-      setShowAuthModal(true);
     }
   };
 
@@ -659,7 +753,8 @@ export default function AudioPlayback({
   const [showVoiceSelection, setShowVoiceSelection] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [bufferedRanges, setBufferedRanges] = useState<TimeRanges | null>(null);
-  
+  const [isDragging, setIsDragging] = useState(false);
+
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
 
@@ -763,7 +858,15 @@ export default function AudioPlayback({
       setGenerationStatus('Fertig!');
 
       const result = await response.json();
-      
+
+      console.log('poopoo [AudioPlayback] Audio generation response:', JSON.stringify({
+        audioUrl: result.audioUrl,
+        filename: result.filename,
+        voiceId: result.voiceId,
+        size: result.size,
+        processingTime: result.processingTime
+      }, null, 2));
+
       // Update parent state with new audio data from Supabase
       const newAudioState: AudioState = {
         audioUrl: result.audioUrl, // Supabase public URL
@@ -773,7 +876,8 @@ export default function AudioPlayback({
         isGenerated: true,
         filename: result.filename
       };
-      
+
+      console.log('poopoo [AudioPlayback] Setting new audioState:', JSON.stringify(newAudioState, null, 2));
       onAudioStateChange(newAudioState);
       setIsGenerating(false); // Audio erfolgreich geladen
     } catch (err: any) {
@@ -857,41 +961,134 @@ export default function AudioPlayback({
     }
   };
 
-  // Enhanced progress bar click handler for seeking
-  const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const audio = audioRef.current;
+  // Berechne effektive Duration für Seek-Berechnung
+  const getEffectiveDuration = useCallback(() => {
+    return Math.max(duration, musicDuration) || duration;
+  }, [duration, musicDuration]);
+
+  // Hilfsfunktion um Zeit aus Mausposition zu berechnen
+  const getTimeFromMouseEvent = useCallback((e: React.MouseEvent<HTMLDivElement> | MouseEvent) => {
     const progressBar = progressBarRef.current;
-    
-    if (!audio || !progressBar || !duration) return;
-    
+    const effDuration = getEffectiveDuration();
+    if (!progressBar || !effDuration) return null;
+
     const rect = progressBar.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const progressBarWidth = rect.width;
-    const clickRatio = clickX / progressBarWidth;
-    const newTime = clickRatio * duration;
-    
-    audio.currentTime = newTime;
+    const clickRatio = Math.max(0, Math.min(1, clickX / progressBarWidth));
+    return clickRatio * effDuration;
+  }, [getEffectiveDuration]);
+
+  // Seek zu einer bestimmten Zeit
+  const seekToTime = useCallback((newTime: number) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const musicElement = (window as any)._pendingBackgroundMusic || backgroundMusicElement;
+    const voiceDuration = audio.duration || 0;
+
+    // Merke ob wir gerade spielen (entweder Voice oder Music)
+    const wasPlaying = isPlaying;
+
+    console.log('[AudioPlayback] Seeking to:', newTime, 'Voice duration:', voiceDuration);
+
+    // Setze Voice Audio Zeit (nur wenn innerhalb der Voice-Duration)
+    if (newTime < voiceDuration) {
+      audio.currentTime = newTime;
+      // Voice sollte spielen wenn wir spielen
+      if (wasPlaying && audio.paused) {
+        audio.play().catch((err) => {
+          console.warn('[AudioPlayback] Failed to resume voice after seek:', err);
+        });
+      }
+    } else {
+      // Seek ist außerhalb der Voice-Duration - pausiere Voice
+      audio.pause();
+      audio.currentTime = voiceDuration; // Setze auf Ende
+    }
+
+    // Synchronisiere Hintergrundmusik
+    if (musicElement) {
+      musicElement.currentTime = newTime;
+      // Music sollte spielen wenn wir spielen
+      if (wasPlaying && musicElement.paused) {
+        musicElement.play().catch((err: any) => {
+          console.warn('[AudioPlayback] Failed to resume music after seek:', err);
+        });
+      }
+    }
+
     setCurrentTime(newTime);
+  }, [backgroundMusicElement, isPlaying]);
+
+  // Enhanced progress bar click handler for seeking
+  const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const newTime = getTimeFromMouseEvent(e);
+    if (newTime !== null) {
+      seekToTime(newTime);
+      console.log('[AudioPlayback] Seeked both audio streams to:', newTime);
+    }
+  };
+
+  // Mouse down handler - start dragging
+  const handleProgressBarMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+    const newTime = getTimeFromMouseEvent(e);
+    if (newTime !== null) {
+      seekToTime(newTime);
+    }
+
+    // Add global mouse event listeners
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const progressBar = progressBarRef.current;
+      const effDuration = getEffectiveDuration();
+      if (!progressBar || !effDuration) return;
+
+      const rect = progressBar.getBoundingClientRect();
+      const clickX = moveEvent.clientX - rect.left;
+      const progressBarWidth = rect.width;
+      const clickRatio = Math.max(0, Math.min(1, clickX / progressBarWidth));
+      const time = clickRatio * effDuration;
+      seekToTime(time);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
   };
 
   // Cleanup: Stoppe Hintergrundmusik beim Unmount
   useEffect(() => {
     return () => {
-      if (backgroundMusicElement) {
-        // Entferne pause-Event-Listener vor dem Cleanup
-        if ((backgroundMusicElement as any)._pauseHandler) {
-          // Entferne alle iOS Event-Listener
-          if ((backgroundMusicElement as any)._pauseHandler) {
-            backgroundMusicElement.removeEventListener('pause', (backgroundMusicElement as any)._pauseHandler);
-            backgroundMusicElement.removeEventListener('suspend', (backgroundMusicElement as any)._pauseHandler);
-          }
-          if ((backgroundMusicElement as any)._timeupdateHandler) {
-            backgroundMusicElement.removeEventListener('timeupdate', (backgroundMusicElement as any)._timeupdateHandler);
-          }
-        }
-        backgroundMusicElement.pause();
-        backgroundMusicElement.currentTime = 0;
+      // Cleanup music time tracker
+      if ((window as any)._musicTimeTracker) {
+        clearInterval((window as any)._musicTimeTracker);
+        (window as any)._musicTimeTracker = null;
       }
+
+      // Cleanup pending background music
+      const musicElement = (window as any)._pendingBackgroundMusic || backgroundMusicElement;
+      if (musicElement) {
+        // Entferne pause-Event-Listener vor dem Cleanup
+        if ((musicElement as any)._pauseHandler) {
+          musicElement.removeEventListener('pause', (musicElement as any)._pauseHandler);
+          musicElement.removeEventListener('suspend', (musicElement as any)._pauseHandler);
+        }
+        if ((musicElement as any)._timeupdateHandler) {
+          musicElement.removeEventListener('timeupdate', (musicElement as any)._timeupdateHandler);
+        }
+        musicElement.pause();
+        musicElement.currentTime = 0;
+      }
+
+      // Clear window reference
+      (window as any)._pendingBackgroundMusic = null;
     };
   }, [backgroundMusicElement]);
 
@@ -965,6 +1162,11 @@ export default function AudioPlayback({
     const updateTime = () => setCurrentTime(audio.currentTime);
     const updateDuration = () => {
       setDuration(audio.duration);
+      // Berechne kombinierte Duration (Maximum von Voice und Musik)
+      // Musik läuft weiter nachdem Voice endet
+      const newCombinedDuration = Math.max(audio.duration, musicDuration);
+      setCombinedDuration(newCombinedDuration);
+      console.log('[AudioPlayback] Voice duration:', audio.duration, 'Music duration:', musicDuration, 'Combined:', newCombinedDuration);
       // Update duration in parent state
       if (audioState && audio.duration !== audioState.duration) {
         onAudioStateChange({
@@ -974,26 +1176,47 @@ export default function AudioPlayback({
       }
     };
     const handleEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-      setHasPlayedOnce(true);
+      console.log('[AudioPlayback] Voice audio ended');
 
-      // Lasse Hintergrundmusik weiterlaufen bis zum Ende (wie im Dashboard)
-      // Die Musik spielt weiter, auch wenn die Stimme beendet ist
-      if (backgroundMusicElement) {
-        // Deaktiviere Loop, damit Musik nach dem Ende stoppt (nicht endlos wiederholt)
-        backgroundMusicElement.loop = false;
-        console.log('[AudioPlayback] Voice audio ended - background music continues playing until track ends');
-      }
-      
-      // Moment 1: Zeige post-audio panel nach Audio-Ende
+      // Zeige CTA SOFORT wenn Voice endet (unabhängig von Musik)
+      setHasPlayedOnce(true);
       setShowPostAudioPanel(true);
-      
+
       // Moment 2: Zeige CTA nach 2-3 Sekunden
       setTimeout(() => {
         setShowPostAudioCTA(true);
       }, 2500);
-      
+
+      // Prüfe ob Hintergrundmusik noch läuft
+      const musicElement = (window as any)._pendingBackgroundMusic || backgroundMusicElement;
+      const musicStillPlaying = musicElement && !musicElement.paused && !musicElement.ended;
+
+      if (musicStillPlaying) {
+        // Musik läuft noch - behalte isPlaying und tracke Musik-Zeit
+        console.log('[AudioPlayback] Background music still playing, keeping isPlaying true');
+        // Wir setzen currentTime NICHT auf 0 - lassen es weiterlaufen
+
+        // Starte Intervall um Musik-Zeit zu tracken
+        const trackMusicTime = setInterval(() => {
+          if (musicElement && !musicElement.paused && !musicElement.ended) {
+            setCurrentTime(musicElement.currentTime);
+          } else {
+            // Musik ist auch zu Ende
+            clearInterval(trackMusicTime);
+            setIsPlaying(false);
+            setCurrentTime(0);
+            console.log('[AudioPlayback] Background music also ended');
+          }
+        }, 100);
+
+        // Speichere Intervall für Cleanup
+        (window as any)._musicTimeTracker = trackMusicTime;
+      } else {
+        // Keine Musik oder Musik auch zu Ende
+        setIsPlaying(false);
+        setCurrentTime(0);
+      }
+
       // Track vollständigen Audio-Play (nur wenn User eingeloggt ist UND eine gültige Session hat)
       if (user && session && audioState?.audioUrl && audio.duration) {
         trackEvent({
@@ -1052,7 +1275,9 @@ export default function AudioPlayback({
       audio.removeEventListener('progress', updateBuffered);
       audio.removeEventListener('error', handleError);
     };
-  }, [audioState, onAudioStateChange, user, session, selectedFigure, selectedVoiceId, backgroundMusicElement]);
+    // WICHTIG: backgroundMusicElement NICHT in dependencies - sonst wird Audio neu geladen wenn Musik startet!
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audioState, onAudioStateChange, user, session, selectedFigure, selectedVoiceId]);
 
   const togglePlayPause = async () => {
     const audio = audioRef.current;
@@ -1062,24 +1287,17 @@ export default function AudioPlayback({
       audio.pause();
       setIsPlaying(false);
       // Pausiere auch Hintergrundmusik (und stoppe Fade-Out falls aktiv)
-      if (backgroundMusicElement) {
+      const musicElement = (window as any)._pendingBackgroundMusic || backgroundMusicElement;
+      if (musicElement) {
         // Stoppe Fade-Out-Interval falls vorhanden
-        if ((backgroundMusicElement as any)._fadeOutInterval) {
-          clearInterval((backgroundMusicElement as any)._fadeOutInterval);
-          (backgroundMusicElement as any)._fadeOutInterval = null;
+        if ((musicElement as any)._fadeOutInterval) {
+          clearInterval((musicElement as any)._fadeOutInterval);
+          (musicElement as any)._fadeOutInterval = null;
         }
 
-        backgroundMusicElement.pause();
+        musicElement.pause();
         console.log('[AudioPlayback] Background music paused');
       }
-      return;
-    }
-
-    // Variante 3C: Prüfe Auth für Replay (nur wenn komplett angehört und nicht eingeloggt)
-    if (!user && hasPlayedOnce) {
-      console.log('[AudioPlayback] Audio was already played completely - showing auth modal');
-      setShowAuthModal(true);
-      setAuthMode('register'); // Zeige Registrierung mit Benefits
       return;
     }
 
@@ -1165,12 +1383,75 @@ export default function AudioPlayback({
       }
     }
 
-    // Setze isPlaying sofort auf true, damit der Button sofort zu Pause wechselt
-    setIsPlaying(true);
+    const voiceAudio = audioRef.current;
+    if (!voiceAudio) {
+      console.error('[AudioPlayback] Audio element not found');
+      setError('Audio-Element nicht gefunden. Bitte Seite neu laden.');
+      return;
+    }
 
-    // Hole Hintergrundmusik-URL und Lautstärke für diese Figur
+    // Prüfe ob wir RESUME (nach Pause) oder ERSTEN START machen
+    const musicElement = (window as any)._pendingBackgroundMusic || backgroundMusicElement;
+    const isResume = hasStartedPlayback && musicElement;
+
+    if (isResume) {
+      // RESUME: Einfach weiterspielen von aktueller Position
+      console.log('[AudioPlayback] RESUMING playback from current position...');
+      setIsPlaying(true);
+
+      try {
+        // Resume Voice (wenn noch nicht zu Ende)
+        if (voiceAudio.currentTime < voiceAudio.duration) {
+          await voiceAudio.play();
+          console.log('[AudioPlayback] Voice resumed');
+        }
+
+        // Resume Music
+        if (musicElement && musicElement.paused) {
+          await musicElement.play();
+          console.log('[AudioPlayback] Music resumed');
+        }
+      } catch (err: any) {
+        console.error('[AudioPlayback] Resume failed:', err);
+        setIsPlaying(false);
+      }
+      return;
+    }
+
+    // ERSTER START: Voice sofort starten, dann Musik laden
+    console.log('[AudioPlayback] FIRST PLAY - starting voice audio...');
+    setIsPlaying(true);
+    setHasStartedPlayback(true);
+
+    // Starte Voice Audio SOFORT - keine Verzögerung!
+    voiceAudio.currentTime = 0;
+
+    try {
+      await voiceAudio.play();
+      console.log('[AudioPlayback] Voice audio started successfully!');
+
+      // Track Audio-Play Event
+      if (user && session) {
+        trackEvent({
+          eventType: 'audio_play',
+          resourceFigureName: selectedFigure.name,
+          voiceId: selectedVoiceId || undefined,
+        }, { accessToken: session.access_token });
+      }
+    } catch (err: any) {
+      console.error('[AudioPlayback] Voice audio play failed:', err);
+      if (err.name === 'NotAllowedError') {
+        setError('Bitte erlaube Audio-Wiedergabe in deinem Browser.');
+      } else {
+        setError('Fehler beim Abspielen. Bitte versuche es erneut.');
+      }
+      setIsPlaying(false);
+      return;
+    }
+
+    // Jetzt lade und starte Hintergrundmusik (Voice läuft bereits)
     const figureIdOrName = selectedFigure?.id || selectedFigure?.name;
-    console.log('[AudioPlayback] ===== LOADING BACKGROUND MUSIC =====');
+    console.log('[AudioPlayback] ===== LOADING BACKGROUND MUSIC (voice already playing) =====');
     console.log('[AudioPlayback] Figure ID/Name:', figureIdOrName);
 
     let musicUrl: string | null = null;
@@ -1198,7 +1479,7 @@ export default function AudioPlayback({
 
         // Erstelle neues Musik-Element - lade als Blob für bessere Kompatibilität
         const musicAudio = new Audio();
-        musicAudio.loop = true;
+        musicAudio.loop = false; // Kein Loop - Musik spielt einmal durch
         musicAudio.volume = 1.0; // Set to max, will control via Web Audio API GainNode
         musicAudio.preload = 'auto';
 
@@ -1363,124 +1644,62 @@ export default function AudioPlayback({
           }
         }
         
-        // Starte Musik (nur wenn sie pausiert ist) - asynchron, blockiert nicht
-        if (musicAudio.paused) {
-          musicAudio.currentTime = 0;
-          musicAudio.play().catch((err: any) => {
-            console.warn('[AudioPlayback] Background music play failed:', err);
-          });
-          console.log('[AudioPlayback] Background music started (at 0s, iOS: ' + isIOS + ')');
-          // KEINE Verzögerung mehr - Audio startet sofort
-        } else {
-          console.log('[AudioPlayback] Background music already playing, skipping start');
+        // Warte auf Musik-Metadaten für Duration
+        await new Promise<void>((resolve) => {
+          if (musicAudio.readyState >= HTMLMediaElement.HAVE_METADATA) {
+            setMusicDuration(musicAudio.duration);
+            console.log('[AudioPlayback] Background music duration:', musicAudio.duration);
+            resolve();
+          } else {
+            musicAudio.addEventListener('loadedmetadata', () => {
+              setMusicDuration(musicAudio.duration);
+              console.log('[AudioPlayback] Background music duration:', musicAudio.duration);
+              resolve();
+            }, { once: true });
+            // Timeout nach 5 Sekunden
+            setTimeout(() => resolve(), 5000);
+          }
+        });
+
+        // Speichere musicAudio
+        (window as any)._pendingBackgroundMusic = musicAudio;
+        setBackgroundMusicElement(musicAudio);
+
+        // Starte Musik JETZT - sync zur aktuellen Voice-Position
+        const voiceAudioElement = audioRef.current;
+        const currentVoiceTime = voiceAudioElement?.currentTime || 0;
+        const wasVoicePlaying = voiceAudioElement && !voiceAudioElement.paused;
+
+        musicAudio.currentTime = currentVoiceTime;
+
+        console.log('[AudioPlayback] Starting background music at position:', currentVoiceTime);
+        console.log('[AudioPlayback] Voice was playing before music start:', wasVoicePlaying);
+
+        try {
+          await musicAudio.play();
+          console.log('[AudioPlayback] Background music started successfully!');
+
+          // WICHTIG: Stelle sicher, dass Voice noch läuft nach Music-Start
+          if (wasVoicePlaying && voiceAudioElement && voiceAudioElement.paused) {
+            console.log('[AudioPlayback] Voice was paused after music start - restarting voice!');
+            await voiceAudioElement.play();
+            console.log('[AudioPlayback] Voice restarted successfully!');
+          }
+        } catch (playErr: any) {
+          console.warn('[AudioPlayback] Background music play failed:', playErr);
+          // Kein Fehler anzeigen - Voice läuft bereits
         }
       } catch (musicError: any) {
-        console.error('[AudioPlayback] Failed to play background music:', musicError);
-        // Musik-Fehler nicht blockieren - spiele Stimme trotzdem
+        console.error('[AudioPlayback] Failed to prepare background music:', musicError);
+        // Musik-Fehler nicht blockieren - Voice spielt bereits
       }
     }
-
-    // Spiele Stimme ab - prüfe zuerst ob Audio bereit ist
-    // setIsPlaying(true) wurde bereits oben gesetzt, damit der Button sofort wechselt
-    setHasStartedPlayback(true); // Markiere dass Playback gestartet wurde
-    
-    // WICHTIG: Prüfe ob Audio bereit ist, bevor wir es abspielen
-    const playAudioWhenReady = async () => {
-      const audio = audioRef.current;
-      if (!audio) {
-        console.error('[AudioPlayback] Audio element not found');
-        setError('Audio-Element nicht gefunden. Bitte Seite neu laden.');
-        setIsPlaying(false);
-        return;
-      }
-      
-      // Prüfe ob Audio bereits geladen ist (readyState >= HAVE_FUTURE_DATA bedeutet Audio kann abgespielt werden)
-      // HAVE_FUTURE_DATA = 3 bedeutet, dass genug Daten geladen sind, um abzuspielen
-      // HAVE_ENOUGH_DATA = 4 bedeutet, dass genug Daten geladen sind, um durchzuspielen
-      if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
-        // Audio ist bereit - spiele sofort
-        console.log('[AudioPlayback] Audio ready, playing immediately (readyState:', audio.readyState, ')');
-        setIsLoading(false); // Setze Loading auf false, da Audio bereit ist
-        audio.play().then(() => {
-          console.log('[AudioPlayback] Audio playback started successfully');
-          // Track Audio-Play Event (nur wenn User eingeloggt ist UND eine gültige Session hat)
-          if (user && session) {
-            trackEvent({
-              eventType: 'audio_play',
-              resourceFigureName: selectedFigure.name,
-              voiceId: selectedVoiceId || undefined,
-            }, { accessToken: session.access_token });
-          }
-        }).catch((err) => {
-          console.error('[AudioPlayback] Audio play failed:', err);
-          setError('Fehler beim Abspielen des Audios. Bitte versuche es erneut.');
-          setIsPlaying(false); // Setze zurück auf false bei Fehler
-          setIsLoading(false);
-        });
-      } else {
-        // Audio ist noch nicht bereit - zeige Loading und warte auf canplay Event
-        console.log('[AudioPlayback] Audio not ready yet (readyState:', audio.readyState, '), waiting for canplay event...');
-        setIsLoading(true); // Zeige Loading, da Audio noch nicht bereit ist
-        
-        const handleCanPlayForPlay = () => {
-          audio.removeEventListener('canplay', handleCanPlayForPlay);
-          audio.removeEventListener('canplaythrough', handleCanPlayForPlay);
-          console.log('[AudioPlayback] Audio ready for playback (readyState:', audio.readyState, ')');
-          setIsLoading(false); // Audio ist jetzt bereit
-          audio.play().then(() => {
-            console.log('[AudioPlayback] Audio playback started after waiting');
-            // Track Audio-Play Event
-            if (user && session) {
-              trackEvent({
-                eventType: 'audio_play',
-                resourceFigureName: selectedFigure.name,
-                voiceId: selectedVoiceId || undefined,
-              }, { accessToken: session.access_token });
-            }
-          }).catch((err) => {
-            console.error('[AudioPlayback] Audio play failed after canplay:', err);
-            setError('Fehler beim Abspielen des Audios. Bitte versuche es erneut.');
-            setIsPlaying(false);
-            setIsLoading(false);
-          });
-        };
-        
-        // Warte auf canplay oder canplaythrough Event
-        audio.addEventListener('canplay', handleCanPlayForPlay, { once: true });
-        audio.addEventListener('canplaythrough', handleCanPlayForPlay, { once: true });
-        
-        // Fallback: Wenn Audio nach 10 Sekunden noch nicht bereit ist, versuche trotzdem zu spielen
-        setTimeout(() => {
-          audio.removeEventListener('canplay', handleCanPlayForPlay);
-          audio.removeEventListener('canplaythrough', handleCanPlayForPlay);
-          if (audio.paused && isPlaying) {
-            console.log('[AudioPlayback] Audio still not ready after 10s, attempting to play anyway...');
-            setIsLoading(false);
-            audio.play().catch((err) => {
-              console.error('[AudioPlayback] Audio play failed after timeout:', err);
-              setError('Audio konnte nicht geladen werden. Bitte versuche es erneut.');
-              setIsPlaying(false);
-              setIsLoading(false);
-            });
-          }
-        }, 10000);
-      }
-    };
-    
-    playAudioWhenReady();
   };
 
   const restart = async () => {
     const audio = audioRef.current;
     if (!audio) return;
-    
-    // Variante 3C: Prüfe Auth für Replay (nur wenn komplett angehört und nicht eingeloggt)
-    if (!user && hasPlayedOnce) {
-      setShowAuthModal(true);
-      setAuthMode('register'); // Zeige Registrierung mit Benefits
-      return;
-    }
-    
+
     // Prüfe Zugang auch beim Restart (gleiche Logik wie togglePlayPause)
     // Nur wenn Paywall-Feature aktiviert ist
     const paywallEnabled = isEnabled('PAYWALL_ENABLED');
@@ -1505,22 +1724,49 @@ export default function AudioPlayback({
       }
     }
     
+    // Setze beide Audios auf Anfang
     audio.currentTime = 0;
     setCurrentTime(0);
+
+    // Setze auch Hintergrundmusik auf Anfang
+    const musicElement = (window as any)._pendingBackgroundMusic || backgroundMusicElement;
+    if (musicElement) {
+      musicElement.currentTime = 0;
+    }
+
     setHasStartedPlayback(true); // Markiere dass Playback gestartet wurde (auch beim Restart)
+
     if (isPlaying) {
-      audio.play().then(() => {
-        // Track Audio-Play Event beim Restart (nur wenn User eingeloggt ist UND eine gültige Session hat)
-        if (user && session) {
-          trackEvent({
-            eventType: 'audio_play',
-            resourceFigureName: selectedFigure.name,
-            voiceId: selectedVoiceId || undefined,
-          }, { accessToken: session.access_token });
-        }
-      }).catch((err) => {
-        console.error('Audio play failed on restart:', err);
-      });
+      // Starte beide Audios
+      const playPromises: Promise<void>[] = [];
+
+      playPromises.push(
+        audio.play().then(() => {
+          console.log('[AudioPlayback] Voice restarted');
+          // Track Audio-Play Event beim Restart
+          if (user && session) {
+            trackEvent({
+              eventType: 'audio_play',
+              resourceFigureName: selectedFigure.name,
+              voiceId: selectedVoiceId || undefined,
+            }, { accessToken: session.access_token });
+          }
+        }).catch((err) => {
+          console.error('Voice audio play failed on restart:', err);
+        })
+      );
+
+      if (musicElement && musicEnabled) {
+        playPromises.push(
+          musicElement.play().then(() => {
+            console.log('[AudioPlayback] Background music restarted');
+          }).catch((err: any) => {
+            console.warn('Background music play failed on restart:', err);
+          })
+        );
+      }
+
+      await Promise.all(playPromises);
     }
   };
 
@@ -1532,9 +1778,11 @@ export default function AudioPlayback({
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const bufferedPercentage = duration > 0 && bufferedRanges && bufferedRanges.length > 0 
-    ? (bufferedRanges.end(bufferedRanges.length - 1) / duration) * 100 
+  // Berechne die effektive Duration (Maximum von Voice und Musik)
+  const effectiveDuration = Math.max(duration, musicDuration) || duration;
+  const progressPercentage = effectiveDuration > 0 ? (currentTime / effectiveDuration) * 100 : 0;
+  const bufferedPercentage = effectiveDuration > 0 && bufferedRanges && bufferedRanges.length > 0
+    ? (bufferedRanges.end(bufferedRanges.length - 1) / effectiveDuration) * 100
     : 0;
   
   // Berechne Ladezustand basierend auf Audio readyState
@@ -1706,6 +1954,7 @@ export default function AudioPlayback({
         </motion.div>
 
         {/* Main Audio Player Card */}
+         {audioState?.audioUrl && !isGenerating && (
         <motion.div
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -1773,54 +2022,57 @@ export default function AudioPlayback({
               >
                 {/* Beautiful Progress Bar */}
                 <div className="space-y-3">
-                  <div 
+                  <div
                     ref={progressBarRef}
-                    onClick={handleProgressBarClick}
-                    className="relative w-full h-3 bg-gradient-to-r from-orange-100 to-amber-100 rounded-full overflow-hidden cursor-pointer group shadow-inner"
+                    onMouseDown={handleProgressBarMouseDown}
+                    className={`relative w-full h-4 bg-gradient-to-r from-orange-100 to-amber-100 rounded-full overflow-hidden cursor-pointer group shadow-inner select-none ${isDragging ? 'cursor-grabbing' : 'cursor-pointer'}`}
                   >
                     {/* Loading Progress (zeigt Ladezustand wenn Audio noch nicht bereit) */}
-                    {isLoading && (
+                    {(isLoading || isLoadingAudio) && (
                       <motion.div
                         className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-200 to-blue-300 rounded-full"
                         style={{ width: `${loadingProgress}%` }}
                         transition={{ duration: 0.3 }}
                       />
                     )}
-                    
+
                     {/* Buffered Progress */}
                     <motion.div
                       className="absolute inset-y-0 left-0 bg-gradient-to-r from-orange-200 to-amber-200 rounded-full"
                       style={{ width: `${bufferedPercentage}%` }}
                       transition={{ duration: 0.3 }}
                     />
-                    
+
                     {/* Current Progress */}
                     <motion.div
                       className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 rounded-full shadow-sm"
                       style={{ width: `${progressPercentage}%` }}
-                      transition={{ duration: 0.1 }}
+                      transition={{ duration: isDragging ? 0 : 0.1 }}
                     >
                       {/* Animated shine effect */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 animate-pulse" />
+                      {!isDragging && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 animate-pulse" />
+                      )}
                     </motion.div>
-                    
-                    {/* Interactive hover indicator */}
+
+                    {/* Draggable thumb / Interactive hover indicator */}
                     <motion.div
-                      className="absolute inset-y-0 w-1 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                      style={{ 
+                      className={`absolute inset-y-0 w-1 bg-white rounded-full shadow-lg transition-opacity duration-200 ${isDragging ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                      style={{
                         left: `${progressPercentage}%`,
                         transform: 'translateX(-50%)'
                       }}
                     >
-                      <div className="absolute -top-2 -bottom-2 w-4 bg-gradient-to-b from-amber-400 to-orange-500 rounded-full shadow-lg -translate-x-1/2" />
+                      <div className={`absolute -top-1 -bottom-1 w-5 bg-gradient-to-b from-amber-400 to-orange-500 rounded-full shadow-lg -translate-x-1/2 ${isDragging ? 'scale-110' : ''}`} />
                     </motion.div>
                   </div>
-                  
+
                   <div className="flex justify-between items-center text-sm text-amber-600">
                     <span className="font-medium">{formatTime(currentTime)}</span>
                     <div className="flex items-center gap-2">
-                      {isLoading && <Loader2 className="w-3 h-3 animate-spin" />}
-                      <span className="font-medium">{formatTime(duration)}</span>
+                      {(isLoading || isLoadingAudio) && <Loader2 className="w-3 h-3 animate-spin" />}
+                      {(isLoading || isLoadingAudio) && <span className="text-xs">Lädt...</span>}
+                      <span className="font-medium">{formatTime(effectiveDuration)}</span>
                     </div>
                   </div>
                 </div>
@@ -1844,10 +2096,10 @@ export default function AudioPlayback({
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={togglePlayPause}
-                    disabled={isLoading}
+                    disabled={isLoading || isLoadingAudio}
                     className="sm:p-6 p-5 max-sm:w-[72px] max-sm:h-[72px] bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 text-white rounded-full shadow-xl hover:shadow-2xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isLoading ? (
+                    {(isLoading || isLoadingAudio) ? (
                       <Loader2 className="w-7 h-7 animate-spin" />
                     ) : isPlaying ? (
                       <Pause className="w-7 h-7" />
@@ -1897,7 +2149,7 @@ export default function AudioPlayback({
                           onClick={async () => {
                             // Moment 3: Route to access page if not authenticated
                             if (!user) {
-                              router.push('/zugang-erhalten');
+                              router.push('/geschichte-speichern');
                             } else {
                               // User is authenticated, reset state and navigate to start
                               // Use window.location for a full page reload to ensure clean state
@@ -1906,7 +2158,7 @@ export default function AudioPlayback({
                           }}
                           className="px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl shadow-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-200"
                         >
-                          Eine weitere persönliche Geschichte erstellen
+                          {user ? 'Eine weitere persönliche Geschichte erstellen' : 'Diese Geschichte für mich behalten'}
                         </button>
                       </motion.div>
                     )}
@@ -1917,6 +2169,7 @@ export default function AudioPlayback({
             )}
           </div>
         </motion.div>
+         )}
             {/* Hinweis: zusätzlicher Button unten entfernt für klare visuelle Hierarchie */}
       </motion.div>
 
