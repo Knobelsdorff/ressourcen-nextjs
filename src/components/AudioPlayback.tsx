@@ -108,31 +108,59 @@ export default function AudioPlayback({
     setIsGenerating(true);
   }, []);
 
-  // Automatisches Speichern nach erfolgreicher Anmeldung
+  // Automatisches Speichern nach erfolgreicher Anmeldung (wenn Auth Modal geschlossen wird)
   useEffect(() => {
     if (user && showAuthModal) {
       setShowAuthModal(false);
-      // Speichere die temporäre Geschichte
-      if (pendingStory) {
-        savePendingStoryToDatabase();
-      } else {
+      // Die eigentliche Speicherung erfolgt durch den pendingStory useEffect unten
+      // wenn pendingStory gesetzt ist, oder saveStoryToDatabase wenn nicht
+      if (!pendingStory) {
+        console.log('poopoo [AudioPlayback] Auth modal closed, no pendingStory, saving current story...');
         saveStoryToDatabase();
       }
+      // Wenn pendingStory existiert, wird es durch den useEffect unten gespeichert
     }
-  }, [user, showAuthModal, pendingStory]);
+  }, [user, showAuthModal]);
 
-  // Prüfe beim Mount, ob eine temporäre Geschichte vorhanden ist
+  // Prüfe beim Mount, ob eine temporäre Geschichte in localStorage vorhanden ist
   useEffect(() => {
     if (user && !showAuthModal) {
       const savedPendingStory = localStorage.getItem('pendingStory');
       if (savedPendingStory) {
-        console.log('Found pending story, saving to database...');
+        console.log('poopoo [AudioPlayback] Found pending story in localStorage, parsing...');
         const storyData = JSON.parse(savedPendingStory);
+        console.log('poopoo [AudioPlayback] Parsed pending story from localStorage:', JSON.stringify({
+          hasAudioState: !!storyData.audioState,
+          audioUrl: storyData.audioState?.audioUrl,
+          selectedFigure: storyData.selectedFigure?.name,
+          selectedVoiceId: storyData.selectedVoiceId
+        }, null, 2));
         setPendingStory(storyData);
-        savePendingStoryToDatabase();
+        // Note: savePendingStoryToDatabase will be called by the useEffect below
+        // that watches for pendingStory changes
       }
     }
-  }, [user]);
+  }, [user, showAuthModal]);
+
+  // When pendingStory is set and user is logged in, save to database
+  // This is the ONLY place that should call savePendingStoryToDatabase
+  useEffect(() => {
+    if (user && pendingStory) {
+      console.log('poopoo [AudioPlayback] pendingStory detected, checking if ready to save...');
+      console.log('poopoo [AudioPlayback] pendingStory.audioState:', JSON.stringify({
+        hasAudioState: !!pendingStory.audioState,
+        audioUrl: pendingStory.audioState?.audioUrl
+      }));
+
+      // Only save if we have the audio URL
+      if (pendingStory.audioState?.audioUrl) {
+        console.log('poopoo [AudioPlayback] pendingStory has audioUrl, saving to database...');
+        savePendingStoryToDatabase();
+      } else {
+        console.log('poopoo [AudioPlayback] pendingStory missing audioUrl - NOT saving yet');
+      }
+    }
+  }, [user, pendingStory]);
 
   // Reset hasAutoSaved und hasStartedPlayback wenn sich die Story ändert (neue Story generiert)
   useEffect(() => {
@@ -226,15 +254,22 @@ export default function AudioPlayback({
   };
 
   const savePendingStoryToDatabase = async () => {
-    console.log('AudioPlayback: savePendingStoryToDatabase called');
-    
+    console.log('poopoo [AudioPlayback] savePendingStoryToDatabase called');
+    console.log('poopoo [AudioPlayback] pendingStory state:', JSON.stringify({
+      hasPendingStory: !!pendingStory,
+      hasAudioState: !!pendingStory?.audioState,
+      audioUrl: pendingStory?.audioState?.audioUrl,
+      selectedVoiceId: pendingStory?.selectedVoiceId,
+      figureName: pendingStory?.selectedFigure?.name
+    }, null, 2));
+
     if (!user) {
-      console.log('No user logged in');
+      console.log('poopoo [AudioPlayback] No user logged in - skipping save');
       return;
     }
-    
+
     if (!pendingStory) {
-      console.log('No pending story found');
+      console.log('poopoo [AudioPlayback] No pending story found - skipping save');
       return;
     }
     
@@ -269,26 +304,38 @@ export default function AudioPlayback({
         }
       }
       
-      console.log('Saving pending story to database...');
-      
+      const insertData = {
+        user_id: user.id,
+        title: pendingStory.selectedFigure.name,
+        content: pendingStory.generatedStory,
+        resource_figure: pendingStory.selectedFigure.name,
+        question_answers: Array.isArray(pendingStory.questionAnswers) ? pendingStory.questionAnswers : [],
+        audio_url: pendingStory.audioState?.audioUrl || null,
+        voice_id: pendingStory.selectedVoiceId || null
+      };
+
+      console.log('poopoo [AudioPlayback] Saving pending story to database with data:', JSON.stringify({
+        user_id: insertData.user_id,
+        title: insertData.title,
+        content_length: insertData.content?.length,
+        audio_url: insertData.audio_url,
+        voice_id: insertData.voice_id
+      }, null, 2));
+
       const { data, error } = await (supabase as any)
         .from('saved_stories')
-        .insert({
-          user_id: user.id,
-          title: pendingStory.selectedFigure.name,
-          content: pendingStory.generatedStory,
-          resource_figure: pendingStory.selectedFigure.name,
-          question_answers: Array.isArray(pendingStory.questionAnswers) ? pendingStory.questionAnswers : [],
-          audio_url: pendingStory.audioState?.audioUrl || null,
-          voice_id: pendingStory.selectedVoiceId || null
-        })
+        .insert(insertData)
         .select();
 
       if (error) {
-        console.error('Error saving pending story:', error);
+        console.error('poopoo [AudioPlayback] Error saving pending story:', error);
         // Kein Popup - nur Console-Log
       } else {
-        console.log('Pending story saved successfully:', data);
+        console.log('poopoo [AudioPlayback] Pending story saved successfully!', JSON.stringify({
+          id: data?.[0]?.id,
+          audio_url: data?.[0]?.audio_url,
+          voice_id: data?.[0]?.voice_id
+        }, null, 2));
         // Kein Popup - nur Console-Log
         // Lösche temporäre Daten
         localStorage.removeItem('pendingStory');
@@ -302,10 +349,17 @@ export default function AudioPlayback({
   };
 
   const saveStoryToDatabase = async () => {
-    console.log('AudioPlayback: saveStoryToDatabase called');
-    
+    console.log('poopoo [AudioPlayback] saveStoryToDatabase called');
+    console.log('poopoo [AudioPlayback] Current audioState:', JSON.stringify({
+      hasAudioUrl: !!audioState?.audioUrl,
+      audioUrl: audioState?.audioUrl,
+      voiceId: audioState?.voiceId,
+      filename: audioState?.filename,
+      isGenerated: audioState?.isGenerated
+    }, null, 2));
+
     if (!user) {
-      console.log('No user logged in');
+      console.log('poopoo [AudioPlayback] No user logged in - cannot save to database');
       return;
     }
     
@@ -391,24 +445,41 @@ export default function AudioPlayback({
         });
       });
       
+      const insertData = {
+        user_id: user.id,
+        title: selectedFigure.name,
+        content: generatedStory,
+        resource_figure: selectedFigure.name,
+        question_answers: Array.isArray(questionAnswers) ? questionAnswers : [],
+        audio_url: audioState?.audioUrl || null,
+        voice_id: selectedVoiceId || null
+      };
+
+      console.log('poopoo [AudioPlayback] About to INSERT story with data:', JSON.stringify({
+        user_id: insertData.user_id,
+        title: insertData.title,
+        content_length: insertData.content?.length,
+        resource_figure: insertData.resource_figure,
+        question_answers_count: insertData.question_answers?.length,
+        audio_url: insertData.audio_url,
+        voice_id: insertData.voice_id
+      }, null, 2));
+
       const { data, error } = await (supabase as any)
         .from('saved_stories')
-        .insert({
-          user_id: user.id,
-          title: selectedFigure.name,
-          content: generatedStory,
-          resource_figure: selectedFigure.name,
-          question_answers: Array.isArray(questionAnswers) ? questionAnswers : [],
-          audio_url: audioState?.audioUrl || null,
-          voice_id: selectedVoiceId || null
-        })
+        .insert(insertData)
         .select();
 
       if (error) {
-        console.error('Error saving story:', error);
+        console.error('poopoo [AudioPlayback] ERROR saving story:', error);
         // Kein Popup - nur Console-Log
       } else {
-        console.log('Story saved successfully:', data);
+        console.log('poopoo [AudioPlayback] Story saved successfully! Response:', JSON.stringify({
+          id: data?.[0]?.id,
+          audio_url: data?.[0]?.audio_url,
+          voice_id: data?.[0]?.voice_id,
+          title: data?.[0]?.title
+        }, null, 2));
         
         // Track Resource Creation Event (nur wenn User eingeloggt ist)
         if (user && data && data[0]) {
@@ -788,7 +859,15 @@ export default function AudioPlayback({
       setGenerationStatus('Fertig!');
 
       const result = await response.json();
-      
+
+      console.log('poopoo [AudioPlayback] Audio generation response:', JSON.stringify({
+        audioUrl: result.audioUrl,
+        filename: result.filename,
+        voiceId: result.voiceId,
+        size: result.size,
+        processingTime: result.processingTime
+      }, null, 2));
+
       // Update parent state with new audio data from Supabase
       const newAudioState: AudioState = {
         audioUrl: result.audioUrl, // Supabase public URL
@@ -798,7 +877,8 @@ export default function AudioPlayback({
         isGenerated: true,
         filename: result.filename
       };
-      
+
+      console.log('poopoo [AudioPlayback] Setting new audioState:', JSON.stringify(newAudioState, null, 2));
       onAudioStateChange(newAudioState);
       setIsGenerating(false); // Audio erfolgreich geladen
     } catch (err: any) {

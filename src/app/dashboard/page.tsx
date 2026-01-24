@@ -571,13 +571,32 @@ export default function Dashboard() {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
 
+      console.log('poopoo [Dashboard] Fetching stories for user:', user.id);
+
       const { data, error } = await supabase
         .from('saved_stories')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      console.log('Supabase response:', { data, error });
+      console.log('poopoo [Dashboard] Supabase response:', {
+        storiesCount: data?.length,
+        error: error?.message
+      });
+
+      // Log each story's audio_url
+      if (data) {
+        console.log('poopoo [Dashboard] Stories audio URLs:');
+        data.forEach((story: any, index: number) => {
+          console.log(`poopoo [Dashboard] Story ${index + 1}: "${story.title}"`, {
+            id: story.id,
+            audio_url: story.audio_url,
+            voice_id: story.voice_id,
+            has_audio: !!story.audio_url,
+            created_at: story.created_at
+          });
+        });
+      }
 
       if (error) {
         console.error('Error loading stories:', error);
@@ -1007,19 +1026,27 @@ export default function Dashboard() {
             question_answers_count: storyData.questionAnswers?.length || 0
           });
 
-          // Verwende nur die user_id Spalte, die wir wissen, dass sie existiert
-          // Verwende die Spalten, die definitiv existieren: user_id, title, content, resource_figure und question_answers
-          console.log('Dashboard: Using confirmed columns: user_id, title, content, resource_figure and question_answers');
-          
+          // Verwende alle relevanten Spalten inkl. audio_url und voice_id
+          console.log('poopoo [Dashboard] Preparing to save pending story with audio data');
+
           const correctData = {
             user_id: user.id,
             title: storyData.selectedFigure.name,
             content: storyData.generatedStory,
             resource_figure: storyData.selectedFigure.name,
-            question_answers: Array.isArray(storyData.questionAnswers) ? storyData.questionAnswers : []
+            question_answers: Array.isArray(storyData.questionAnswers) ? storyData.questionAnswers : [],
+            audio_url: storyData.audioState?.audioUrl || null,
+            voice_id: storyData.selectedVoiceId || storyData.audioState?.voiceId || null
           };
-          
-          console.log('Dashboard: Inserting with correct data:', correctData);
+
+          console.log('poopoo [Dashboard] Inserting pending story with data:', JSON.stringify({
+            user_id: correctData.user_id,
+            title: correctData.title,
+            content_length: correctData.content?.length,
+            audio_url: correctData.audio_url,
+            voice_id: correctData.voice_id,
+            question_answers_count: correctData.question_answers?.length
+          }, null, 2));
           
           const { data, error } = await supabase
             .from('saved_stories')
@@ -1044,7 +1071,12 @@ export default function Dashboard() {
               checkForPendingStories();
             }, 3000);
           } else {
-            console.log('Pending story saved from dashboard:', data);
+            console.log('poopoo [Dashboard] Pending story saved successfully!', JSON.stringify({
+              id: data?.[0]?.id,
+              audio_url: data?.[0]?.audio_url,
+              voice_id: data?.[0]?.voice_id,
+              title: data?.[0]?.title
+            }, null, 2));
             
             // Track Resource Creation Event (nur wenn erfolgreich gespeichert)
             if (data && Array.isArray(data) && data.length > 0 && user && session) {
@@ -3693,6 +3725,8 @@ ${story.content}
                       {/* Audio Player */}
                       {story.audio_url ? (
                         <div className="mt-4">
+                          {/* Debug log for audio rendering */}
+                          {console.log('poopoo [Dashboard] Rendering audio player for story:', story.title, 'with audio_url:', story.audio_url)}
                           {/* Use enhanced player with BLS for Pro users (not first story), regular player otherwise */}
                           {subscriptionStatus.isPro ? (
                             <StoryPlayerWithBLS

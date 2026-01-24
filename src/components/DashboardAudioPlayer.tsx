@@ -89,10 +89,27 @@ export default function DashboardAudioPlayer({
 
   // Initialize audio elements
   useEffect(() => {
+    console.log('poopoo [DashboardAudioPlayer] Initializing audio player');
+    console.log('poopoo [DashboardAudioPlayer] audioUrl received:', audioUrl);
+    console.log('poopoo [DashboardAudioPlayer] title:', title);
+    console.log('poopoo [DashboardAudioPlayer] resourceFigure:', resourceFigure);
+
     // Create main audio element
     const audio = new Audio(audioUrl);
     audio.preload = 'metadata';
     audioRef.current = audio;
+
+    // Add error handler for audio loading
+    audio.addEventListener('error', (e) => {
+      console.error('poopoo [DashboardAudioPlayer] AUDIO LOAD ERROR:', {
+        error: audio.error,
+        errorCode: audio.error?.code,
+        errorMessage: audio.error?.message,
+        audioUrl: audioUrl,
+        networkState: audio.networkState,
+        readyState: audio.readyState
+      });
+    });
 
     // Load background music asynchronously
     const loadBackgroundMusic = async () => {
@@ -131,7 +148,13 @@ export default function DashboardAudioPlayer({
     const handleLoadedMetadata = () => {
       setDuration(audio.duration);
       setIsLoading(false);
-      console.log('[DashboardAudioPlayer] Voice duration:', audio.duration);
+      console.log('poopoo [DashboardAudioPlayer] Audio loaded successfully!');
+      console.log('poopoo [DashboardAudioPlayer] Voice duration:', audio.duration);
+      console.log('poopoo [DashboardAudioPlayer] Audio src:', audio.src);
+    };
+
+    const handleCanPlay = () => {
+      console.log('poopoo [DashboardAudioPlayer] Audio can play - ready for playback');
     };
 
     const handleTimeUpdate = () => {
@@ -258,6 +281,7 @@ export default function DashboardAudioPlayer({
     };
 
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('canplay', handleCanPlay);
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('play', handlePlay);
@@ -272,6 +296,7 @@ export default function DashboardAudioPlayer({
       }
 
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('canplay', handleCanPlay);
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('play', handlePlay);
