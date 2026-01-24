@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Play, Pause, RotateCcw } from "lucide-react";
+import { Play, Pause, RotateCcw, Rewind, FastForward } from "lucide-react";
 import { motion } from "framer-motion";
 import { getBackgroundMusicUrl, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
 
@@ -25,67 +25,78 @@ export default function DashboardAudioPlayer({
   const [musicDuration, setMusicDuration] = useState(0); // Background music duration
   const [currentTime, setCurrentTime] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMusicLoaded, setIsMusicLoaded] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const backgroundMusicRef = useRef<HTMLAudioElement | null>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
+  const isUserPausingRef = useRef(false); // Track if user initiated pause
 
   // Calculate effective duration (longer of voice or music)
   const getEffectiveDuration = useCallback(() => {
     return Math.max(duration, musicDuration) || duration;
   }, [duration, musicDuration]);
 
-  // Get time from mouse click position
-  const getTimeFromMouseEvent = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const progressBar = progressBarRef.current;
-    const effDuration = getEffectiveDuration();
-    if (!progressBar || !effDuration) return null;
 
-    const rect = progressBar.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const progressBarWidth = rect.width;
-    const clickRatio = Math.max(0, Math.min(1, clickX / progressBarWidth));
-    return clickRatio * effDuration;
-  }, [getEffectiveDuration]);
-
-  // Seek to specific time (both voice and music)
-  const seekToTime = useCallback((newTime: number) => {
+  // Seek to specific time (both voice and music) and resume playback if needed
+  const seekToTime = useCallback((newTime: number, resumePlayback: boolean = true) => {
     const audio = audioRef.current;
     const musicElement = backgroundMusicRef.current;
     if (!audio) return;
 
     const voiceDuration = audio.duration || 0;
+    const musicDur = musicElement?.duration || 0;
+    const effDuration = Math.max(voiceDuration, musicDur);
+
+    // Clamp time to valid range
+    const clampedTime = Math.max(0, Math.min(newTime, effDuration));
     const wasPlaying = isPlaying;
 
-    console.log('[DashboardAudioPlayer] Seeking to:', newTime, 'Voice duration:', voiceDuration);
+    console.log('[DashboardAudioPlayer] Seeking to:', clampedTime, 'Voice duration:', voiceDuration, 'isPlaying:', isPlaying);
 
-    // Seek voice audio (only if within voice duration)
-    if (newTime < voiceDuration) {
-      audio.currentTime = newTime;
-      // Resume playing if it was playing
-      if (wasPlaying && audio.paused) {
-        audio.play().catch((err) => {
-          console.warn('[DashboardAudioPlayer] Failed to resume voice after seek:', err);
-        });
-      }
+    // Seek voice audio
+    if (clampedTime < voiceDuration) {
+      audio.currentTime = clampedTime;
     } else {
-      // Seek is beyond voice duration - pause voice
-      audio.pause();
-      audio.currentTime = voiceDuration; // Set to end
+      // Beyond voice duration - set to end
+      audio.currentTime = voiceDuration;
     }
 
     // Synchronize background music to same time
-    if (musicElement) {
-      musicElement.currentTime = Math.min(newTime, musicElement.duration || newTime);
-      // Resume playing if it was playing
-      if (wasPlaying && musicElement.paused) {
-        musicElement.play().catch((err: any) => {
-          console.warn('[DashboardAudioPlayer] Failed to resume music after seek:', err);
-        });
-      }
+    if (musicElement && musicDur) {
+      const musicTime = Math.min(clampedTime, musicDur);
+      musicElement.currentTime = musicTime;
     }
 
-    setCurrentTime(newTime);
+    setCurrentTime(clampedTime);
+
+    // Resume playback if was playing
+    if (resumePlayback && wasPlaying) {
+      // Resume voice if within duration
+      if (clampedTime < voiceDuration && audio.paused) {
+        audio.play().catch(err => console.warn('[DashboardAudioPlayer] Seek resume voice error:', err));
+      }
+      // Resume music if within duration
+      if (musicElement && clampedTime < musicDur && musicElement.paused) {
+        musicElement.play().catch(err => console.warn('[DashboardAudioPlayer] Seek resume music error:', err));
+      }
+    }
   }, [isPlaying]);
+
+  // Skip backward 5 seconds
+  const skipBackward = useCallback(() => {
+    const newTime = Math.max(0, currentTime - 5);
+    console.log('[DashboardAudioPlayer] Skip backward to:', newTime);
+    seekToTime(newTime, true);
+  }, [currentTime, seekToTime]);
+
+  // Skip forward 5 seconds
+  const skipForward = useCallback(() => {
+    const effDuration = getEffectiveDuration();
+    const newTime = Math.min(effDuration, currentTime + 5);
+    console.log('[DashboardAudioPlayer] Skip forward to:', newTime);
+    seekToTime(newTime, true);
+  }, [currentTime, getEffectiveDuration, seekToTime]);
 
   // Initialize audio elements
   useEffect(() => {
@@ -125,6 +136,7 @@ export default function DashboardAudioPlayer({
           const bgMusic = new Audio(backgroundMusicUrl);
           bgMusic.loop = true;
           bgMusic.volume = DEFAULT_MUSIC_VOLUME;
+          bgMusic.preload = 'auto';
           backgroundMusicRef.current = bgMusic;
 
           // Set music duration when loaded
@@ -133,12 +145,29 @@ export default function DashboardAudioPlayer({
             console.log('[DashboardAudioPlayer] Background music duration:', bgMusic.duration);
           });
 
-          console.log('[DashboardAudioPlayer] Background music loaded successfully');
+          // Track when music is ready to play
+          bgMusic.addEventListener('canplaythrough', () => {
+            setIsMusicLoaded(true);
+            console.log('[DashboardAudioPlayer] Background music ready to play');
+          });
+
+          // Also mark as loaded on canplay for faster response
+          bgMusic.addEventListener('canplay', () => {
+            setIsMusicLoaded(true);
+            console.log('[DashboardAudioPlayer] Background music can play');
+          });
+
+          // Force load
+          bgMusic.load();
+
+          console.log('[DashboardAudioPlayer] Background music loading started');
         } else {
           console.log('[DashboardAudioPlayer] No background music found for:', figureId);
+          setIsMusicLoaded(true); // No music to load, so mark as "loaded"
         }
       } catch (error) {
         console.error('[DashboardAudioPlayer] Error loading background music:', error);
+        setIsMusicLoaded(true); // Error loading, proceed without music
       }
     };
 
@@ -169,14 +198,14 @@ export default function DashboardAudioPlayer({
     };
 
     const handleEnded = () => {
-      console.log('[DashboardAudioPlayer] 🏁 ENDED event - Voice audio ended');
+      console.log('[DashboardAudioPlayer] ENDED event - Voice audio ended naturally');
       console.log('[DashboardAudioPlayer] Voice duration was:', audio.duration);
 
       // Check if background music is still playing
       const musicElement = backgroundMusicRef.current;
 
       if (!musicElement) {
-        console.log('[DashboardAudioPlayer] ❌ No background music element');
+        console.log('[DashboardAudioPlayer] No background music element');
         setIsPlaying(false);
         setCurrentTime(0);
         if (onEnded) {
@@ -185,30 +214,34 @@ export default function DashboardAudioPlayer({
         return;
       }
 
-      console.log('[DashboardAudioPlayer] 🎵 Music state check:');
-      console.log('  - Music duration:', musicElement.duration);
-      console.log('  - Music current time:', musicElement.currentTime);
-      console.log('  - Music paused:', musicElement.paused);
-      console.log('  - Music ended:', musicElement.ended);
-      console.log('  - Music duration > voice duration:', musicElement.duration > audio.duration);
-
       const musicStillPlaying = musicElement && !musicElement.paused && !musicElement.ended;
-      console.log('[DashboardAudioPlayer] Music still playing:', musicStillPlaying);
 
       if (musicStillPlaying && musicElement.duration > audio.duration) {
         // Music is longer and still playing - keep isPlaying true
-        console.log('[DashboardAudioPlayer] ✅ Background music continues! Keeping isPlaying=true');
-        console.log('[DashboardAudioPlayer] 🎵 Starting interval to track music time (every 100ms)');
+        console.log('[DashboardAudioPlayer] Background music continues');
 
         // Start interval to track music time
         const trackMusicTime = setInterval(() => {
-          if (musicElement && !musicElement.paused && !musicElement.ended) {
-            console.log('[DashboardAudioPlayer] 🎵 Tracking music time:', musicElement.currentTime);
-            setCurrentTime(musicElement.currentTime);
-          } else {
-            // Music also ended
-            console.log('[DashboardAudioPlayer] 🏁 Music ended! Stopping interval');
+          // If user paused, just stop the interval but don't reset time
+          if (isUserPausingRef.current) {
+            console.log('[DashboardAudioPlayer] User paused, stopping interval without reset');
             clearInterval(trackMusicTime);
+            (window as any)._dashboardMusicTimeTracker = null;
+            return;
+          }
+
+          if (musicElement && !musicElement.paused && !musicElement.ended) {
+            setCurrentTime(musicElement.currentTime);
+          } else if (musicElement.paused) {
+            // Music was paused (possibly by user) - just stop tracking, don't reset
+            console.log('[DashboardAudioPlayer] Music paused, stopping interval');
+            clearInterval(trackMusicTime);
+            (window as any)._dashboardMusicTimeTracker = null;
+          } else {
+            // Music actually ended (reached the end)
+            console.log('[DashboardAudioPlayer] Music ended naturally, resetting');
+            clearInterval(trackMusicTime);
+            (window as any)._dashboardMusicTimeTracker = null;
             setIsPlaying(false);
             setCurrentTime(0);
             if (onEnded) {
@@ -217,12 +250,11 @@ export default function DashboardAudioPlayer({
           }
         }, 100);
 
-        // Store interval for cleanup (attach to window to access in cleanup)
+        // Store interval for cleanup
         (window as any)._dashboardMusicTimeTracker = trackMusicTime;
-        console.log('[DashboardAudioPlayer] ✅ Interval stored, music will continue playing');
       } else {
-        // No music or music also ended
-        console.log('[DashboardAudioPlayer] ❌ Music not playing or ended, stopping everything');
+        // No music or music also ended - fully complete
+        console.log('[DashboardAudioPlayer] Playback complete');
         setIsPlaying(false);
         setCurrentTime(0);
 
@@ -239,45 +271,35 @@ export default function DashboardAudioPlayer({
     };
 
     const handlePlay = () => {
-      console.log('[DashboardAudioPlayer] ▶️ PLAY event - Voice audio started playing');
+      console.log('[DashboardAudioPlayer] PLAY event - Voice audio started playing');
       setIsPlaying(true);
-      // Start background music when voice starts
-      const musicElement = backgroundMusicRef.current;
-      if (musicElement) {
-        console.log('[DashboardAudioPlayer] 🎵 Starting background music');
-        musicElement.play().catch(err => {
-          console.warn('[DashboardAudioPlayer] Background music play failed:', err);
-        });
-      }
+      // Background music is now started in togglePlayPause for synchronization
     };
 
     const handlePause = () => {
-      console.log('[DashboardAudioPlayer] ⏸️ PAUSE event - Voice audio paused');
-      console.log('[DashboardAudioPlayer] Current voice time:', audio.currentTime, '/ Voice duration:', audio.duration);
-      const musicElement = backgroundMusicRef.current;
-      if (musicElement) {
-        console.log('[DashboardAudioPlayer] Current music time:', musicElement.currentTime, '/ Music duration:', musicElement.duration);
-        console.log('[DashboardAudioPlayer] Music paused?', musicElement.paused, 'Music ended?', musicElement.ended);
+      console.log('[DashboardAudioPlayer] PAUSE event - Voice audio paused');
+
+      // If user initiated the pause via togglePlayPause, don't do anything here
+      // (togglePlayPause already handles setting isPlaying to false)
+      if (isUserPausingRef.current) {
+        console.log('[DashboardAudioPlayer] User-initiated pause, skipping handlePause logic');
+        return;
       }
 
+      const musicElement = backgroundMusicRef.current;
+
       // Check if this pause is because voice ended (currentTime === duration)
-      const voiceEnded = audio.currentTime >= audio.duration;
-      console.log('[DashboardAudioPlayer] Voice ended?', voiceEnded);
+      const voiceEnded = audio.currentTime >= audio.duration - 0.1; // Small tolerance
 
       if (voiceEnded && musicElement && musicElement.duration > audio.duration) {
         // Voice ended but music should continue - DON'T pause music, DON'T set isPlaying to false
-        console.log('[DashboardAudioPlayer] 🎵 Voice ended but music continues - NOT pausing music!');
+        console.log('[DashboardAudioPlayer] Voice ended but music continues');
         // The 'ended' event will handle setting up the interval
         return;
       }
 
-      // Normal pause (user clicked pause, or no music to continue)
+      // Normal pause (not user-initiated, maybe browser triggered)
       setIsPlaying(false);
-      // Pause background music when voice pauses
-      if (musicElement) {
-        console.log('[DashboardAudioPlayer] 🎵 Pausing background music');
-        musicElement.pause();
-      }
     };
 
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
@@ -311,19 +333,92 @@ export default function DashboardAudioPlayer({
     };
   }, [audioUrl, resourceFigure, onEnded]);
 
-  const togglePlayPause = () => {
+  const togglePlayPause = async () => {
     if (!audioRef.current) return;
 
-    console.log('[DashboardAudioPlayer] 🎮 togglePlayPause clicked, current isPlaying:', isPlaying);
+    console.log('[DashboardAudioPlayer] togglePlayPause clicked, current isPlaying:', isPlaying);
 
     if (isPlaying) {
-      console.log('[DashboardAudioPlayer] 🎮 User clicked PAUSE button');
+      console.log('[DashboardAudioPlayer] User clicked PAUSE button');
+      // Mark as user-initiated pause to prevent resetting currentTime
+      isUserPausingRef.current = true;
       audioRef.current.pause();
+      // Also pause background music
+      if (backgroundMusicRef.current) {
+        backgroundMusicRef.current.pause();
+      }
+      setIsPlaying(false);
+      // Reset the flag after a short delay
+      setTimeout(() => {
+        isUserPausingRef.current = false;
+      }, 100);
     } else {
-      console.log('[DashboardAudioPlayer] 🎮 User clicked PLAY button');
-      audioRef.current.play().catch((error) => {
+      console.log('[DashboardAudioPlayer] User clicked PLAY button');
+
+      // Ensure both audios start together
+      const audio = audioRef.current;
+      const bgMusic = backgroundMusicRef.current;
+      const voiceDuration = audio.duration || 0;
+
+      try {
+        // Check if we're beyond voice duration (only music should play)
+        const beyondVoice = currentTime >= voiceDuration;
+        console.log('[DashboardAudioPlayer] Resume at currentTime:', currentTime, 'voiceDuration:', voiceDuration, 'beyondVoice:', beyondVoice);
+
+        // Sync background music to current time
+        if (bgMusic) {
+          bgMusic.currentTime = currentTime;
+        }
+
+        if (beyondVoice) {
+          // Only play background music, voice already ended
+          if (bgMusic) {
+            await bgMusic.play();
+            setIsPlaying(true);
+            console.log('[DashboardAudioPlayer] Only music resumed (beyond voice duration)');
+
+            // Start interval to track music time since voice won't update it
+            const trackMusicTime = setInterval(() => {
+              if (isUserPausingRef.current) {
+                clearInterval(trackMusicTime);
+                (window as any)._dashboardMusicTimeTracker = null;
+                return;
+              }
+              if (bgMusic && !bgMusic.paused && !bgMusic.ended) {
+                setCurrentTime(bgMusic.currentTime);
+              } else if (bgMusic.paused) {
+                clearInterval(trackMusicTime);
+                (window as any)._dashboardMusicTimeTracker = null;
+              } else {
+                clearInterval(trackMusicTime);
+                (window as any)._dashboardMusicTimeTracker = null;
+                setIsPlaying(false);
+                setCurrentTime(0);
+              }
+            }, 100);
+            (window as any)._dashboardMusicTimeTracker = trackMusicTime;
+          }
+        } else {
+          // Normal case: play both voice and music
+          audio.currentTime = currentTime;
+
+          const playPromises: Promise<void>[] = [];
+          playPromises.push(audio.play());
+
+          if (bgMusic) {
+            playPromises.push(bgMusic.play());
+          }
+
+          await Promise.all(playPromises);
+          console.log('[DashboardAudioPlayer] Both audio tracks started successfully');
+        }
+      } catch (error) {
         console.error('[DashboardAudioPlayer] Error playing audio:', error);
-      });
+        // If main audio fails, try to stop background music too
+        if (bgMusic && !bgMusic.paused) {
+          bgMusic.pause();
+        }
+      }
     }
   };
 
@@ -344,13 +439,97 @@ export default function DashboardAudioPlayer({
     }
   };
 
-  const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const newTime = getTimeFromMouseEvent(e);
+  // Get time from position (mouse or touch)
+  const getTimeFromPosition = useCallback((clientX: number) => {
+    const progressBar = progressBarRef.current;
+    const effDuration = getEffectiveDuration();
+    if (!progressBar || !effDuration) return null;
+
+    const rect = progressBar.getBoundingClientRect();
+    const posX = clientX - rect.left;
+    const progressBarWidth = rect.width;
+    const clickRatio = Math.max(0, Math.min(1, posX / progressBarWidth));
+    return clickRatio * effDuration;
+  }, [getEffectiveDuration]);
+
+  const handleProgressBarMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+    const newTime = getTimeFromPosition(e.clientX);
     if (newTime !== null) {
       seekToTime(newTime);
-      console.log('[DashboardAudioPlayer] Seeked both audio streams to:', newTime);
+      console.log('[DashboardAudioPlayer] Started seeking to:', newTime);
     }
-  };
+  }, [getTimeFromPosition, seekToTime]);
+
+  const handleProgressBarTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+    const touch = e.touches[0];
+    if (touch) {
+      const newTime = getTimeFromPosition(touch.clientX);
+      if (newTime !== null) {
+        seekToTime(newTime);
+        console.log('[DashboardAudioPlayer] Touch started seeking to:', newTime);
+      }
+    }
+  }, [getTimeFromPosition, seekToTime]);
+
+  // Handle mouse/touch move and up events for dragging
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newTime = getTimeFromPosition(e.clientX);
+      if (newTime !== null) {
+        setCurrentTime(newTime);
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      if (touch) {
+        const newTime = getTimeFromPosition(touch.clientX);
+        if (newTime !== null) {
+          setCurrentTime(newTime);
+        }
+      }
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      const newTime = getTimeFromPosition(e.clientX);
+      if (newTime !== null) {
+        seekToTime(newTime);
+        console.log('[DashboardAudioPlayer] Finished seeking to:', newTime);
+      }
+      setIsDragging(false);
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      const touch = e.changedTouches[0];
+      if (touch) {
+        const newTime = getTimeFromPosition(touch.clientX);
+        if (newTime !== null) {
+          seekToTime(newTime);
+          console.log('[DashboardAudioPlayer] Touch finished seeking to:', newTime);
+        }
+      }
+      setIsDragging(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isDragging, getTimeFromPosition, seekToTime]);
+
 
   const formatTime = (seconds: number): string => {
     if (isNaN(seconds)) return '0:00';
@@ -378,20 +557,27 @@ export default function DashboardAudioPlayer({
 
       {/* Audio Player */}
       <div className="space-y-4 md:space-y-5">
-        {/* Progress Bar */}
+        {/* Progress Bar with improved touch/mouse handling */}
         <div
           ref={progressBarRef}
-          onClick={handleProgressBarClick}
-          className="relative w-full h-3 bg-gradient-to-r from-orange-100 to-amber-100 rounded-full overflow-hidden cursor-pointer group shadow-inner"
+          onMouseDown={handleProgressBarMouseDown}
+          onTouchStart={handleProgressBarTouchStart}
+          className="relative w-full h-4 bg-gradient-to-r from-orange-100 to-amber-100 rounded-full overflow-hidden cursor-pointer group shadow-inner touch-none select-none"
         >
           <motion.div
-            className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 rounded-full shadow-sm"
+            className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 rounded-full shadow-sm pointer-events-none"
             style={{ width: `${progress}%` }}
-            transition={{ duration: 0.1 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: isDragging ? 0 : 0.1 }}
           >
             {/* Animated shine effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 animate-pulse" />
           </motion.div>
+          {/* Draggable thumb indicator */}
+          <div
+            className="absolute top-1/2 -translate-y-1/2 w-5 h-5 bg-white rounded-full shadow-md border-2 border-amber-500 pointer-events-none transition-transform"
+            style={{ left: `calc(${progress}% - 10px)` }}
+          />
         </div>
 
         {/* Time Display */}
@@ -405,19 +591,30 @@ export default function DashboardAudioPlayer({
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-center gap-4">
-          {/* Restart Button */}
-          {currentTime > 0 && (
-            <motion.button
-              whileHover={{ scale: 1.1, rotate: -15 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={restart}
-              className="p-3 bg-gradient-to-br from-orange-100 to-amber-100 text-amber-700 rounded-full hover:from-orange-200 hover:to-amber-200 transition-all duration-300 shadow-lg hover:shadow-xl"
-              aria-label="Von vorne beginnen"
-            >
-              <RotateCcw className="w-5 h-5" />
-            </motion.button>
-          )}
+        <div className="flex items-center justify-center gap-3">
+          {/* Restart Button - Always visible */}
+          <motion.button
+            whileHover={{ scale: 1.1, rotate: -15 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={restart}
+            disabled={isLoading}
+            className="p-3 bg-gradient-to-br from-orange-100 to-amber-100 text-amber-700 rounded-full hover:from-orange-200 hover:to-amber-200 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Von vorne beginnen"
+          >
+            <RotateCcw className="w-5 h-5" />
+          </motion.button>
+
+          {/* Rewind 5s Button */}
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={skipBackward}
+            disabled={isLoading || currentTime <= 0}
+            className="p-3 bg-gradient-to-br from-orange-100 to-amber-100 text-amber-700 rounded-full hover:from-orange-200 hover:to-amber-200 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="5 Sekunden zurück"
+          >
+            <Rewind className="w-5 h-5" />
+          </motion.button>
 
           {/* Play/Pause Button */}
           <motion.button
@@ -437,13 +634,25 @@ export default function DashboardAudioPlayer({
             )}
           </motion.button>
 
-          {/* Spacer for symmetry when restart button is hidden */}
-          {currentTime === 0 && <div className="w-[52px]"></div>}
+          {/* Forward 5s Button */}
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={skipForward}
+            disabled={isLoading || currentTime >= effectiveDuration}
+            className="p-3 bg-gradient-to-br from-orange-100 to-amber-100 text-amber-700 rounded-full hover:from-orange-200 hover:to-amber-200 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="5 Sekunden vorwärts"
+          >
+            <FastForward className="w-5 h-5" />
+          </motion.button>
+
+          {/* Spacer for symmetry */}
+          <div className="w-[52px]"></div>
         </div>
 
         {/* Status Text */}
         <div className="text-center text-sm text-amber-600/70">
-          {isPlaying ? '🔊 Audio wird abgespielt' : isLoading ? 'Lädt...' : '✓ Bereit zum Abspielen'}
+          {isLoading ? 'Lädt...' : isPlaying ? 'Audio wird abgespielt' : 'Bereit zum Abspielen'}
         </div>
       </div>
     </div>
