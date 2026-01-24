@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
     try {
-      const subscription = await stripe.subscriptions.retrieve(
+      const subscription :any = await stripe.subscriptions.retrieve(
         userAccess.stripe_subscription_id,
         { expand: ['default_payment_method', 'latest_invoice'] }
       )

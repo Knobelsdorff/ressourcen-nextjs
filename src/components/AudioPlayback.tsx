@@ -571,7 +571,7 @@ export default function AudioPlayback({
       }
 
       // Speichere die Ankommen-Story für den User
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('saved_stories')
         .insert({
           user_id: user.id,
@@ -598,7 +598,6 @@ export default function AudioPlayback({
               eventType: 'resource_created',
               storyId: data?.[0]?.id,
               resourceFigureName: ankommenResource.title || 'Ankommen',
-              metadata: { source: 'ankommen_page' },
             }, { accessToken: session.access_token });
           } catch (trackError) {
             console.warn('[AudioPlayback] Failed to track ankommen story event:', trackError);

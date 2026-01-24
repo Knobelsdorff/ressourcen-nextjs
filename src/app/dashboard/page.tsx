@@ -1048,7 +1048,7 @@ export default function Dashboard() {
             question_answers_count: correctData.question_answers?.length
           }, null, 2));
           
-          const { data, error } = await supabase
+          const { data, error } :any= await supabase
             .from('saved_stories')
             .insert(correctData as any)
             .select();
@@ -3725,8 +3725,6 @@ ${story.content}
                       {/* Audio Player */}
                       {story.audio_url ? (
                         <div className="mt-4">
-                          {/* Debug log for audio rendering */}
-                          {console.log('poopoo [Dashboard] Rendering audio player for story:', story.title, 'with audio_url:', story.audio_url)}
                           {/* Use enhanced player with BLS for Pro users (not first story), regular player otherwise */}
                           {subscriptionStatus.isPro ? (
                             <StoryPlayerWithBLS

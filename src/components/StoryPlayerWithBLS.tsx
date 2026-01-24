@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Play, Pause, RotateCcw, Sparkles, Volume2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { Play, Pause, RotateCcw, Rewind, FastForward, Sparkles, Volume2, ChevronRight, ChevronLeft } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { getBackgroundMusicUrl, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
 
 interface StoryPlayerWithBLSProps {
@@ -27,54 +27,76 @@ export default function StoryPlayerWithBLS({
   const [musicDuration, setMusicDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMusicLoaded, setIsMusicLoaded] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isBLSExpanded, setIsBLSExpanded] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const backgroundMusicRef = useRef<HTMLAudioElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
+  const isUserPausingRef = useRef(false);
 
   const getEffectiveDuration = useCallback(() => {
     return Math.max(duration, musicDuration) || duration;
   }, [duration, musicDuration]);
 
-  const getTimeFromMouseEvent = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const progressBar = progressBarRef.current;
-    const effDuration = getEffectiveDuration();
-    if (!progressBar || !effDuration) return null;
-
-    const rect = progressBar.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const progressBarWidth = rect.width;
-    const clickRatio = Math.max(0, Math.min(1, clickX / progressBarWidth));
-    return clickRatio * effDuration;
-  }, [getEffectiveDuration]);
-
-  const seekToTime = useCallback((newTime: number) => {
+  // Seek to specific time (both voice and music) and resume playback if needed
+  const seekToTime = useCallback((newTime: number, resumePlayback: boolean = true) => {
     const audio = audioRef.current;
     const musicElement = backgroundMusicRef.current;
     if (!audio) return;
 
     const voiceDuration = audio.duration || 0;
+    const musicDur = musicElement?.duration || 0;
+    const effDuration = Math.max(voiceDuration, musicDur);
+
+    // Clamp time to valid range
+    const clampedTime = Math.max(0, Math.min(newTime, effDuration));
     const wasPlaying = isPlaying;
 
-    if (newTime < voiceDuration) {
-      audio.currentTime = newTime;
-      if (wasPlaying && audio.paused) {
-        audio.play().catch(() => {});
-      }
+    // Seek voice audio
+    if (clampedTime < voiceDuration) {
+      audio.currentTime = clampedTime;
     } else {
-      audio.pause();
       audio.currentTime = voiceDuration;
     }
 
-    if (musicElement) {
-      musicElement.currentTime = Math.min(newTime, musicElement.duration || newTime);
-      if (wasPlaying && musicElement.paused) {
-        musicElement.play().catch(() => {});
-      }
+    // Synchronize background music to same time
+    if (musicElement && musicDur) {
+      const musicTime = Math.min(clampedTime, musicDur);
+      musicElement.currentTime = musicTime;
     }
 
-    setCurrentTime(newTime);
+    // Sync video
+    if (videoRef.current) {
+      videoRef.current.currentTime = clampedTime % (videoRef.current.duration || clampedTime);
+    }
+
+    setCurrentTime(clampedTime);
+
+    // Resume playback if was playing
+    if (resumePlayback && wasPlaying) {
+      if (clampedTime < voiceDuration && audio.paused) {
+        audio.play().catch(err => console.warn('[StoryPlayerWithBLS] Seek resume voice error:', err));
+      }
+      if (musicElement && clampedTime < musicDur && musicElement.paused) {
+        musicElement.play().catch(err => console.warn('[StoryPlayerWithBLS] Seek resume music error:', err));
+      }
+    }
   }, [isPlaying]);
+
+  // Skip backward 5 seconds
+  const skipBackward = useCallback(() => {
+    const newTime = Math.max(0, currentTime - 5);
+    seekToTime(newTime, true);
+  }, [currentTime, seekToTime]);
+
+  // Skip forward 5 seconds
+  const skipForward = useCallback(() => {
+    const effDuration = getEffectiveDuration();
+    const newTime = Math.min(effDuration, currentTime + 5);
+    seekToTime(newTime, true);
+  }, [currentTime, getEffectiveDuration, seekToTime]);
 
   useEffect(() => {
     const audio = new Audio(audioUrl);
@@ -90,14 +112,24 @@ export default function StoryPlayerWithBLS({
           const bgMusic = new Audio(backgroundMusicUrl);
           bgMusic.loop = true;
           bgMusic.volume = DEFAULT_MUSIC_VOLUME;
+          bgMusic.preload = 'auto';
           backgroundMusicRef.current = bgMusic;
 
           bgMusic.addEventListener('loadedmetadata', () => {
             setMusicDuration(bgMusic.duration);
           });
+
+          bgMusic.addEventListener('canplay', () => {
+            setIsMusicLoaded(true);
+          });
+
+          bgMusic.load();
+        } else {
+          setIsMusicLoaded(true);
         }
       } catch (error) {
         console.error('[StoryPlayerWithBLS] Error loading background music:', error);
+        setIsMusicLoaded(true);
       }
     };
 
@@ -131,10 +163,20 @@ export default function StoryPlayerWithBLS({
 
       if (musicStillPlaying && musicElement.duration > audio.duration) {
         const trackMusicTime = setInterval(() => {
+          if (isUserPausingRef.current) {
+            clearInterval(trackMusicTime);
+            (window as any)._storyPlayerMusicTracker = null;
+            return;
+          }
+
           if (musicElement && !musicElement.paused && !musicElement.ended) {
             setCurrentTime(musicElement.currentTime);
+          } else if (musicElement.paused) {
+            clearInterval(trackMusicTime);
+            (window as any)._storyPlayerMusicTracker = null;
           } else {
             clearInterval(trackMusicTime);
+            (window as any)._storyPlayerMusicTracker = null;
             setIsPlaying(false);
             setCurrentTime(0);
             if (onEnded) onEnded();
@@ -155,10 +197,6 @@ export default function StoryPlayerWithBLS({
 
     const handlePlay = () => {
       setIsPlaying(true);
-      const musicElement = backgroundMusicRef.current;
-      if (musicElement) {
-        musicElement.play().catch(() => {});
-      }
       // Start video when audio plays
       if (videoRef.current) {
         videoRef.current.play().catch(() => {});
@@ -166,18 +204,18 @@ export default function StoryPlayerWithBLS({
     };
 
     const handlePause = () => {
+      if (isUserPausingRef.current) {
+        return;
+      }
+
       const musicElement = backgroundMusicRef.current;
-      const voiceEnded = audio.currentTime >= audio.duration;
+      const voiceEnded = audio.currentTime >= audio.duration - 0.1;
 
       if (voiceEnded && musicElement && musicElement.duration > audio.duration) {
         return;
       }
 
       setIsPlaying(false);
-      if (musicElement) {
-        musicElement.pause();
-      }
-      // Pause video when audio pauses
       if (videoRef.current) {
         videoRef.current.pause();
       }
@@ -211,15 +249,82 @@ export default function StoryPlayerWithBLS({
     };
   }, [audioUrl, resourceFigure, onEnded]);
 
-  const togglePlayPause = () => {
+  const togglePlayPause = async () => {
     if (!audioRef.current) return;
 
     if (isPlaying) {
+      isUserPausingRef.current = true;
       audioRef.current.pause();
+      if (backgroundMusicRef.current) {
+        backgroundMusicRef.current.pause();
+      }
+      if (videoRef.current) {
+        videoRef.current.pause();
+      }
+      setIsPlaying(false);
+      setTimeout(() => {
+        isUserPausingRef.current = false;
+      }, 100);
     } else {
-      audioRef.current.play().catch((error) => {
+      const audio = audioRef.current;
+      const bgMusic = backgroundMusicRef.current;
+      const voiceDuration = audio.duration || 0;
+
+      try {
+        const beyondVoice = currentTime >= voiceDuration;
+
+        if (bgMusic) {
+          bgMusic.currentTime = currentTime;
+        }
+
+        if (beyondVoice) {
+          if (bgMusic) {
+            await bgMusic.play();
+            setIsPlaying(true);
+
+            const trackMusicTime = setInterval(() => {
+              if (isUserPausingRef.current) {
+                clearInterval(trackMusicTime);
+                (window as any)._storyPlayerMusicTracker = null;
+                return;
+              }
+              if (bgMusic && !bgMusic.paused && !bgMusic.ended) {
+                setCurrentTime(bgMusic.currentTime);
+              } else if (bgMusic.paused) {
+                clearInterval(trackMusicTime);
+                (window as any)._storyPlayerMusicTracker = null;
+              } else {
+                clearInterval(trackMusicTime);
+                (window as any)._storyPlayerMusicTracker = null;
+                setIsPlaying(false);
+                setCurrentTime(0);
+              }
+            }, 100);
+            (window as any)._storyPlayerMusicTracker = trackMusicTime;
+          }
+        } else {
+          audio.currentTime = currentTime;
+
+          const playPromises: Promise<void>[] = [];
+          playPromises.push(audio.play());
+
+          if (bgMusic) {
+            playPromises.push(bgMusic.play());
+          }
+
+          await Promise.all(playPromises);
+        }
+
+        // Start video
+        if (videoRef.current) {
+          videoRef.current.play().catch(() => {});
+        }
+      } catch (error) {
         console.error('[StoryPlayerWithBLS] Error playing audio:', error);
-      });
+        if (bgMusic && !bgMusic.paused) {
+          bgMusic.pause();
+        }
+      }
     }
   };
 
@@ -244,12 +349,92 @@ export default function StoryPlayerWithBLS({
     }
   };
 
-  const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const newTime = getTimeFromMouseEvent(e);
+  // Get time from position (mouse or touch)
+  const getTimeFromPosition = useCallback((clientX: number) => {
+    const progressBar = progressBarRef.current;
+    const effDuration = getEffectiveDuration();
+    if (!progressBar || !effDuration) return null;
+
+    const rect = progressBar.getBoundingClientRect();
+    const posX = clientX - rect.left;
+    const progressBarWidth = rect.width;
+    const clickRatio = Math.max(0, Math.min(1, posX / progressBarWidth));
+    return clickRatio * effDuration;
+  }, [getEffectiveDuration]);
+
+  const handleProgressBarMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+    const newTime = getTimeFromPosition(e.clientX);
     if (newTime !== null) {
       seekToTime(newTime);
     }
-  };
+  }, [getTimeFromPosition, seekToTime]);
+
+  const handleProgressBarTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+    const touch = e.touches[0];
+    if (touch) {
+      const newTime = getTimeFromPosition(touch.clientX);
+      if (newTime !== null) {
+        seekToTime(newTime);
+      }
+    }
+  }, [getTimeFromPosition, seekToTime]);
+
+  // Handle mouse/touch move and up events for dragging
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newTime = getTimeFromPosition(e.clientX);
+      if (newTime !== null) {
+        setCurrentTime(newTime);
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      if (touch) {
+        const newTime = getTimeFromPosition(touch.clientX);
+        if (newTime !== null) {
+          setCurrentTime(newTime);
+        }
+      }
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      const newTime = getTimeFromPosition(e.clientX);
+      if (newTime !== null) {
+        seekToTime(newTime);
+      }
+      setIsDragging(false);
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      const touch = e.changedTouches[0];
+      if (touch) {
+        const newTime = getTimeFromPosition(touch.clientX);
+        if (newTime !== null) {
+          seekToTime(newTime);
+        }
+      }
+      setIsDragging(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isDragging, getTimeFromPosition, seekToTime]);
 
   const formatTime = (seconds: number): string => {
     if (isNaN(seconds)) return '0:00';
@@ -264,48 +449,71 @@ export default function StoryPlayerWithBLS({
   return (
     <div className="bg-gradient-to-br from-white via-amber-50/30 to-orange-50/30 rounded-2xl shadow-lg border border-amber-100 overflow-hidden">
       {/* Main Content Area */}
-      <div className={`${showBLS ? 'lg:flex' : ''}`}>
+      <div className="flex">
         {/* Audio Player Section */}
-        <div className={`p-6 md:p-8 ${showBLS ? 'lg:flex-1 lg:border-r lg:border-amber-100' : ''}`}>
-          {/* Story Title */}
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 mb-3">
-              <div className="p-2 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg shadow-sm">
-                <Volume2 className="w-4 h-4 text-white" />
+        <div className={`p-6 md:p-8 flex-1 transition-all duration-300 ${showBLS && isBLSExpanded ? 'lg:border-r lg:border-amber-100' : ''}`}>
+          {/* Header with Title and BLS Toggle */}
+          <div className="flex items-start justify-between mb-6">
+            {/* Story Title */}
+            <div className="flex-1">
+              <div className="inline-flex items-center gap-2 mb-3">
+                <div className="p-2 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg shadow-sm">
+                  <Volume2 className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-xs font-medium text-amber-600 uppercase tracking-wider">
+                  Deine Geschichte
+                </span>
               </div>
-              <span className="text-xs font-medium text-amber-600 uppercase tracking-wider">
-                Deine Geschichte
-              </span>
+              <h3 className="text-xl md:text-2xl font-medium text-amber-900 mb-1">
+                {title}
+              </h3>
+              {subtitle && (
+                <p className="text-sm md:text-base text-amber-700/70">
+                  {subtitle}
+                </p>
+              )}
             </div>
-            <h3 className="text-xl md:text-2xl font-medium text-amber-900 mb-1">
-              {title}
-            </h3>
-            {subtitle && (
-              <p className="text-sm md:text-base text-amber-700/70">
-                {subtitle}
-              </p>
+
+            {/* BLS Toggle Button - Only show on larger screens when showBLS is true */}
+            {showBLS && (
+              <motion.button
+                onClick={() => setIsBLSExpanded(!isBLSExpanded)}
+                className="hidden lg:flex items-center gap-2 px-3 py-2 bg-gradient-to-br from-amber-100 to-orange-100 hover:from-amber-200 hover:to-orange-200 text-amber-700 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md ml-4"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Sparkles className="w-4 h-4" />
+                <span className="text-sm font-medium">Wirkung vertiefen</span>
+                {isBLSExpanded ? (
+                  <ChevronRight className="w-4 h-4" />
+                ) : (
+                  <ChevronLeft className="w-4 h-4" />
+                )}
+              </motion.button>
             )}
           </div>
 
           {/* Audio Controls */}
-          <div className="space-y-5">
-            {/* Progress Bar */}
+          <div className="space-y-4 md:space-y-5">
+            {/* Progress Bar with improved touch/mouse handling */}
             <div
               ref={progressBarRef}
-              onClick={handleProgressBarClick}
-              className="relative w-full h-3 bg-gradient-to-r from-orange-100 to-amber-100 rounded-full overflow-hidden cursor-pointer group shadow-inner"
+              onMouseDown={handleProgressBarMouseDown}
+              onTouchStart={handleProgressBarTouchStart}
+              className="relative w-full h-4 bg-gradient-to-r from-orange-100 to-amber-100 rounded-full overflow-hidden cursor-pointer group shadow-inner touch-none select-none"
             >
               <motion.div
-                className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 rounded-full shadow-sm"
+                className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 rounded-full shadow-sm pointer-events-none"
                 style={{ width: `${progress}%` }}
-                transition={{ duration: 0.1 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: isDragging ? 0 : 0.1 }}
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 animate-pulse" />
               </motion.div>
-              {/* Progress handle */}
+              {/* Draggable thumb indicator */}
               <div
-                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-orange-500 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ left: `calc(${progress}% - 8px)` }}
+                className="absolute top-1/2 -translate-y-1/2 w-5 h-5 bg-white rounded-full shadow-md border-2 border-amber-500 pointer-events-none transition-transform"
+                style={{ left: `calc(${progress}% - 10px)` }}
               />
             </div>
 
@@ -320,19 +528,32 @@ export default function StoryPlayerWithBLS({
             </div>
 
             {/* Controls */}
-            <div className="flex items-center justify-center gap-4">
-              {currentTime > 0 && (
-                <motion.button
-                  whileHover={{ scale: 1.1, rotate: -15 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={restart}
-                  className="p-3 bg-gradient-to-br from-orange-100 to-amber-100 text-amber-700 rounded-full hover:from-orange-200 hover:to-amber-200 transition-all duration-300 shadow-lg hover:shadow-xl"
-                  aria-label="Von vorne beginnen"
-                >
-                  <RotateCcw className="w-5 h-5" />
-                </motion.button>
-              )}
+            <div className="flex items-center justify-center gap-3">
+              {/* Restart Button - Always visible */}
+              <motion.button
+                whileHover={{ scale: 1.1, rotate: -15 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={restart}
+                disabled={isLoading}
+                className="p-3 bg-gradient-to-br from-orange-100 to-amber-100 text-amber-700 rounded-full hover:from-orange-200 hover:to-amber-200 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Von vorne beginnen"
+              >
+                <RotateCcw className="w-5 h-5" />
+              </motion.button>
 
+              {/* Rewind 5s Button */}
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={skipBackward}
+                disabled={isLoading || currentTime <= 0}
+                className="p-3 bg-gradient-to-br from-orange-100 to-amber-100 text-amber-700 rounded-full hover:from-orange-200 hover:to-amber-200 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="5 Sekunden zurück"
+              >
+                <Rewind className="w-5 h-5" />
+              </motion.button>
+
+              {/* Play/Pause Button */}
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -350,89 +571,173 @@ export default function StoryPlayerWithBLS({
                 )}
               </motion.button>
 
-              {currentTime === 0 && <div className="w-[52px]"></div>}
+              {/* Forward 5s Button */}
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={skipForward}
+                disabled={isLoading || currentTime >= effectiveDuration}
+                className="p-3 bg-gradient-to-br from-orange-100 to-amber-100 text-amber-700 rounded-full hover:from-orange-200 hover:to-amber-200 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="5 Sekunden vorwärts"
+              >
+                <FastForward className="w-5 h-5" />
+              </motion.button>
+
+              {/* Spacer for symmetry */}
+              <div className="w-[52px]"></div>
             </div>
 
             {/* Status Text */}
-            <div className="text-center">
-              <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm ${
-                isPlaying
-                  ? 'bg-green-100 text-green-700'
-                  : isLoading
-                    ? 'bg-amber-100 text-amber-700'
-                    : 'bg-amber-50 text-amber-600'
-              }`}>
-                {isPlaying ? (
-                  <>
-                    <span className="flex gap-0.5">
-                      <span className="w-1 h-3 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
-                      <span className="w-1 h-3 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
-                      <span className="w-1 h-3 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
-                    </span>
-                    Audio wird abgespielt
-                  </>
-                ) : isLoading ? (
-                  'Lädt...'
-                ) : (
-                  'Bereit zum Abspielen'
-                )}
-              </span>
+            <div className="text-center text-sm text-amber-600/70">
+              {isLoading ? 'Lädt...' : isPlaying ? 'Audio wird abgespielt' : 'Bereit zum Abspielen'}
             </div>
           </div>
+
+          {/* Mobile BLS Toggle */}
+          {showBLS && (
+            <div className="lg:hidden mt-6">
+              <motion.button
+                onClick={() => setIsBLSExpanded(!isBLSExpanded)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-br from-amber-100 to-orange-100 hover:from-amber-200 hover:to-orange-200 text-amber-700 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+              >
+                <Sparkles className="w-4 h-4" />
+                <span className="text-sm font-medium">Wirkung vertiefen</span>
+                <motion.div
+                  animate={{ rotate: isBLSExpanded ? 90 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </motion.div>
+              </motion.button>
+            </div>
+          )}
         </div>
 
-        {/* BLS Video Section - Side by Side on large screens */}
-        {showBLS && (
-          <div className="lg:w-[400px] xl:w-[450px] bg-gradient-to-br from-amber-50 to-orange-50 p-6 md:p-8 border-t lg:border-t-0 border-amber-100">
-            {/* BLS Header */}
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg shadow-sm">
-                <Sparkles className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h4 className="text-amber-900 font-medium">Wirkung vertiefen</h4>
-                <p className="text-xs text-amber-600">(optional)</p>
-              </div>
-            </div>
-
-            {/* Description */}
-            <p className="text-sm text-amber-800 leading-relaxed mb-4">
-              Manche Menschen empfinden die Geschichte intensiver, wenn sie dabei sanft abwechselnd auf ihre Oberarme klopfen.
-            </p>
-
-            {/* Video */}
-            <div className="relative rounded-xl overflow-hidden shadow-lg bg-amber-900/10">
-              <video
-                ref={videoRef}
-                src="/videos/Bilaterale Stimulation.mp4"
-                loop
-                muted
-                playsInline
-                preload="auto"
-                className="w-full"
-                style={{ aspectRatio: '1280 / 852' }}
-              >
-                Dein Browser unterstützt das Video-Element nicht.
-              </video>
-
-              {/* Video overlay when not playing */}
-              {!isPlaying && (
-                <div className="absolute inset-0 bg-amber-900/20 flex items-center justify-center">
-                  <div className="text-center text-white">
-                    <Play className="w-10 h-10 mx-auto mb-2 opacity-80" />
-                    <p className="text-sm font-medium opacity-90">Video startet mit Audio</p>
+        {/* BLS Video Section - Expandable horizontally */}
+        <AnimatePresence>
+          {showBLS && isBLSExpanded && (
+            <motion.div
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 'auto', opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+              className="hidden lg:block bg-gradient-to-br from-amber-50 to-orange-50 border-l border-amber-100 overflow-hidden"
+            >
+              <div className="w-[400px] xl:w-[450px] p-6 md:p-8">
+                {/* BLS Header */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg shadow-sm">
+                    <Sparkles className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="text-amber-900 font-medium">Wirkung vertiefen</h4>
+                    <p className="text-xs text-amber-600">(optional)</p>
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Additional Info */}
-            <p className="text-xs text-amber-600/80 mt-3 text-center">
-              Bilaterale Stimulation
-            </p>
-          </div>
-        )}
+                {/* Description */}
+                <p className="text-sm text-amber-800 leading-relaxed mb-4">
+                  Manche Menschen empfinden die Geschichte intensiver, wenn sie dabei sanft abwechselnd auf ihre Oberarme klopfen.
+                </p>
+
+                {/* Video */}
+                <div className="relative rounded-xl overflow-hidden shadow-lg bg-amber-900/10">
+                  <video
+                    ref={videoRef}
+                    src="/videos/Bilaterale Stimulation.mp4"
+                    loop
+                    muted
+                    playsInline
+                    preload="auto"
+                    className="w-full"
+                    style={{ aspectRatio: '1280 / 852' }}
+                  >
+                    Dein Browser unterstützt das Video-Element nicht.
+                  </video>
+
+                  {/* Video overlay when not playing */}
+                  {!isPlaying && (
+                    <div className="absolute inset-0 bg-amber-900/20 flex items-center justify-center">
+                      <div className="text-center text-white">
+                        <Play className="w-10 h-10 mx-auto mb-2 opacity-80" />
+                        <p className="text-sm font-medium opacity-90">Video startet mit Audio</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Additional Info */}
+                <p className="text-xs text-amber-600/80 mt-3 text-center">
+                  Bilaterale Stimulation
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
+
+      {/* Mobile BLS Section - Below the player */}
+      <AnimatePresence>
+        {showBLS && isBLSExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="lg:hidden bg-gradient-to-br from-amber-50 to-orange-50 border-t border-amber-100 overflow-hidden"
+          >
+            <div className="p-6">
+              {/* BLS Header */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg shadow-sm">
+                  <Sparkles className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-amber-900 font-medium">Wirkung vertiefen</h4>
+                  <p className="text-xs text-amber-600">(optional)</p>
+                </div>
+              </div>
+
+              {/* Description */}
+              <p className="text-sm text-amber-800 leading-relaxed mb-4">
+                Manche Menschen empfinden die Geschichte intensiver, wenn sie dabei sanft abwechselnd auf ihre Oberarme klopfen.
+              </p>
+
+              {/* Video */}
+              <div className="relative rounded-xl overflow-hidden shadow-lg bg-amber-900/10">
+                <video
+                  src="/videos/Bilaterale Stimulation.mp4"
+                  loop
+                  muted
+                  playsInline
+                  preload="auto"
+                  className="w-full"
+                  style={{ aspectRatio: '1280 / 852' }}
+                >
+                  Dein Browser unterstützt das Video-Element nicht.
+                </video>
+
+                {/* Video overlay when not playing */}
+                {!isPlaying && (
+                  <div className="absolute inset-0 bg-amber-900/20 flex items-center justify-center">
+                    <div className="text-center text-white">
+                      <Play className="w-10 h-10 mx-auto mb-2 opacity-80" />
+                      <p className="text-sm font-medium opacity-90">Video startet mit Audio</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Additional Info */}
+              <p className="text-xs text-amber-600/80 mt-3 text-center">
+                Bilaterale Stimulation
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -98,7 +98,7 @@ export default function GeschichteSpeichernPage() {
         }
 
         // Save the ankommen story for the user
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('saved_stories')
           .insert({
             user_id: user.id,
