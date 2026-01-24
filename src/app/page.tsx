@@ -69,6 +69,9 @@ function RessourcenAppInner() {
   const { setResetFunction } = useAppReset();
   const [userFullName, setUserFullName] = useState<string | null>(null);
   const [userPronunciationHint, setUserPronunciationHint] = useState<string | null>(null);
+  // For anonymous users, we store the name temporarily (not persisted)
+  const [anonymousUserName, setAnonymousUserName] = useState<string | null>(null);
+  const [anonymousUserPronunciationHint, setAnonymousUserPronunciationHint] = useState<string | null>(null);
   const [sparModus, setSparModus] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [storyGenerationError, setStoryGenerationError] = useState<string | null>(null);
@@ -120,8 +123,8 @@ function RessourcenAppInner() {
         // Determine the correct step based on user authentication and name
         let targetStep = 1;
         if (!user) {
-          // Not logged in: skip to step 3 (relationship questions)
-          targetStep = 3;
+          // Not logged in: go to step 2 (name input - required every time)
+          targetStep = 2;
         } else if (userDataLoaded) {
           // Logged in: check if name exists
           if (!userFullName || userFullName.trim() === '') {
@@ -238,6 +241,9 @@ function RessourcenAppInner() {
       URL.revokeObjectURL(appState.audioState.audioUrl);
     }
     setAppState(initialAppState);
+    // Clear anonymous user data on reset (they need to enter name again for each resource)
+    setAnonymousUserName(null);
+    setAnonymousUserPronunciationHint(null);
   }, [appState.audioState?.audioUrl]);
 
   useEffect(() => {
@@ -349,10 +355,12 @@ function RessourcenAppInner() {
               return;
             }
 
-            setAppState(prev => ({ ...prev, currentStep: 3 }));
+            // Anonymous users always go to step 2 for name input (every resource creation)
+            setAppState(prev => ({ ...prev, currentStep: 2 }));
           } catch (error) {
             console.error('[handleNextStep] Error checking anonymous rate limit:', error);
-            setAppState(prev => ({ ...prev, currentStep: 3 }));
+            // Still go to step 2 for name input even on error
+            setAppState(prev => ({ ...prev, currentStep: 2 }));
           }
         };
 
@@ -360,7 +368,8 @@ function RessourcenAppInner() {
         return;
       } else {
         if (!user) {
-          setAppState(prev => ({ ...prev, currentStep: 3 }));
+          // Anonymous users always go to step 2 for name input
+          setAppState(prev => ({ ...prev, currentStep: 2 }));
         } else {
           if (!userDataLoaded) {
             return;
@@ -411,7 +420,10 @@ function RessourcenAppInner() {
       let newStep = Math.max(1, prev.currentStep - 1);
 
       if (prev.currentStep === 3) {
-        newStep = (!user || (userFullName && userFullName.trim() !== '')) ? 1 : 2;
+        // Always go back to step 2 (name form) for both logged-in and anonymous users
+        // For logged-in users with name already saved, they can skip through step 2 quickly
+        // For anonymous users, they always see step 2
+        newStep = 2;
       }
 
       if (prev.currentStep === 4) {
@@ -427,9 +439,16 @@ function RessourcenAppInner() {
   }, [user, userFullName]);
 
   const handleUserDataUpdate = useCallback((fullName: string, pronunciationHint: string | null) => {
-    setUserFullName(fullName || null);
-    setUserPronunciationHint(pronunciationHint || null);
-  }, []);
+    if (user) {
+      // Logged-in user: update persistent state
+      setUserFullName(fullName || null);
+      setUserPronunciationHint(pronunciationHint || null);
+    } else {
+      // Anonymous user: update temporary state
+      setAnonymousUserName(fullName || null);
+      setAnonymousUserPronunciationHint(pronunciationHint || null);
+    }
+  }, [user]);
 
   useEffect(() => {
     const run = async () => {
@@ -438,11 +457,19 @@ function RessourcenAppInner() {
         setIsGeneratingStory(true);
         setStoryGenerationError(null); // Clear previous errors
         try {
+          // Use the appropriate name based on whether user is logged in
+          const effectiveUserName = user
+            ? userFullName
+            : anonymousUserName;
+          const effectivePronunciationHint = user
+            ? userPronunciationHint
+            : anonymousUserPronunciationHint;
+
           const requestBody = {
             selectedFigure: appState.resourceFigure,
             questionAnswers: appState.questionAnswers,
-            userName: isEnabled('FEATURE_USER_NAME') ? userFullName || undefined : undefined,
-            userPronunciationHint: isEnabled('FEATURE_USER_NAME') ? userPronunciationHint || undefined : undefined,
+            userName: isEnabled('FEATURE_USER_NAME') ? effectiveUserName || undefined : undefined,
+            userPronunciationHint: isEnabled('FEATURE_USER_NAME') ? effectivePronunciationHint || undefined : undefined,
             sparModus: sparModus
           };
 
@@ -475,7 +502,7 @@ function RessourcenAppInner() {
       }
     };
     run();
-  }, [appState.currentStep, appState.resourceFigure, appState.questionAnswers, appState.selectedVoice, appState.generatedStory, isGeneratingStory, handleStoryGenerated, userFullName, userPronunciationHint, sparModus]);
+  }, [appState.currentStep, appState.resourceFigure, appState.questionAnswers, appState.selectedVoice, appState.generatedStory, isGeneratingStory, handleStoryGenerated, userFullName, userPronunciationHint, anonymousUserName, anonymousUserPronunciationHint, sparModus, user]);
 
   useEffect(() => {
     return () => {
@@ -550,8 +577,8 @@ function RessourcenAppInner() {
                   onNext={handleNextStep}
                   onBack={handlePreviousStep}
                   selectedFigure={appState.resourceFigure}
-                  userFullName={userFullName}
-                  userPronunciationHint={userPronunciationHint}
+                  userFullName={user ? userFullName : anonymousUserName}
+                  userPronunciationHint={user ? userPronunciationHint : anonymousUserPronunciationHint}
                   onUserDataUpdate={handleUserDataUpdate}
                 />
               )}
