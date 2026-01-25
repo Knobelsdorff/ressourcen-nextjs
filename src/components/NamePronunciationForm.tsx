@@ -37,9 +37,10 @@ export default function NamePronunciationForm({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Load existing data on mount
+  // Load existing data on mount (only for logged-in users)
   useEffect(() => {
     const loadData = async () => {
+      // Only load from database for logged-in users
       if (!user) return;
 
       const { data, error } = await supabase
@@ -70,11 +71,14 @@ export default function NamePronunciationForm({
       return;
     }
 
+    // For anonymous users: just pass the data to parent and proceed
     if (!user) {
-      setError('Sie müssen eingeloggt sein');
+      onUserDataUpdate(fullName.trim(), pronunciationHint.trim() || null);
+      onNext();
       return;
     }
 
+    // For logged-in users: save to database
     setLoading(true);
     setError('');
     setSuccess('');

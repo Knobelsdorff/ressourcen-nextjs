@@ -6,7 +6,7 @@
 - ❌ `ressourcen.app` (ohne www) funktioniert NICHT (zeigt nicht auf Vercel)
 
 ## Lösung: Root-Domain A-Record hinzufügen
-
+ 
 ### Schritt 1: In ALL-INKL.COM DNS-Verwaltung
 
 1. Gehe zu deiner DNS-Verwaltung bei ALL-INKL.COM

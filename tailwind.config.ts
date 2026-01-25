@@ -81,6 +81,9 @@ const config: Config = {
   				ring: 'hsl(var(--sidebar-ring))'
   			}
   		},
+		fontFamily: {
+        	trebuchet: ['"Trebuchet MS"', 'Helvetica', 'Arial', 'sans-serif'],
+      	},
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',

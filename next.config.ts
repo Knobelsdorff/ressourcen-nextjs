@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
   // Webhook-Route-Konfiguration für raw body
   experimental: {
     serverActions: {
-      bodySizeLimit: '2mb',
+      bodySizeLimit: '50mb', // Increased to support longer audio recordings (up to 10 minutes)
     },
   },
 };
