@@ -46,11 +46,19 @@ export default function Header() {
     }
   }, [isMobileMenuOpen]);
 
-  // Handler für "Was ist eine Power Story?" - Smooth-Scroll
+  // Handler für "Was ist eine Power Story?" - Smooth-Scroll oder Navigation
   const handleWhatIsPowerStory = () => {
     setIsMobileMenuOpen(false);
     setTimeout(() => {
-      scrollToAnchor('was-ist-eine-power-story');
+      // Prüfe, ob das Element auf der aktuellen Seite existiert
+      const element = document.getElementById('was-ist-eine-power-story');
+      if (element) {
+        // Element existiert - direkt scrollen
+        scrollToAnchor('was-ist-eine-power-story');
+      } else {
+        // Element existiert nicht - zur Landingpage mit Hash navigieren
+        router.push('/landingpage#was-ist-eine-power-story');
+      }
     }, 100);
   };
 
