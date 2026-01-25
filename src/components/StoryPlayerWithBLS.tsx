@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Play, Pause, RotateCcw, Rewind, FastForward, Sparkles, Volume2, ChevronRight, ChevronLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getBackgroundMusicUrl, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
+import { useBLS } from "@/components/providers/bls-provider";
 
 interface StoryPlayerWithBLSProps {
   audioUrl: string;
@@ -22,6 +23,13 @@ export default function StoryPlayerWithBLS({
   showBLS = false,
   onEnded
 }: StoryPlayerWithBLSProps) {
+  // Generate unique ID for this instance based on audioUrl
+  const instanceId = useMemo(() => audioUrl, [audioUrl]);
+  
+  // Use BLS context to manage which instance is open
+  const { isBLSOpen, openBLS, closeBLS } = useBLS();
+  const isBLSExpanded = isBLSOpen(instanceId);
+  
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [musicDuration, setMusicDuration] = useState(0);
@@ -29,10 +37,10 @@ export default function StoryPlayerWithBLS({
   const [isLoading, setIsLoading] = useState(true);
   const [isMusicLoaded, setIsMusicLoaded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [isBLSExpanded, setIsBLSExpanded] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const backgroundMusicRef = useRef<HTMLAudioElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const mobileVideoRef = useRef<HTMLVideoElement | null>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
   const isUserPausingRef = useRef(false);
 
@@ -248,6 +256,25 @@ export default function StoryPlayerWithBLS({
       }
     };
   }, [audioUrl, resourceFigure, onEnded]);
+
+  // Automatisches Abspielen des Videos, wenn BLS erweitert wird
+  useEffect(() => {
+    if (isBLSExpanded) {
+      // Versuche Desktop-Video abzuspielen
+      if (videoRef.current) {
+        videoRef.current.play().catch((error) => {
+          console.warn('[StoryPlayerWithBLS] Desktop video autoplay failed:', error);
+        });
+      }
+      
+      // Versuche Mobile-Video abzuspielen
+      if (mobileVideoRef.current) {
+        mobileVideoRef.current.play().catch((error) => {
+          console.warn('[StoryPlayerWithBLS] Mobile video autoplay failed:', error);
+        });
+      }
+    }
+  }, [isBLSExpanded]);
 
   const togglePlayPause = async () => {
     if (!audioRef.current) return;
@@ -477,7 +504,13 @@ export default function StoryPlayerWithBLS({
             {/* BLS Toggle Button - Only show on larger screens when showBLS is true */}
             {showBLS && (
               <motion.button
-                onClick={() => setIsBLSExpanded(!isBLSExpanded)}
+                onClick={() => {
+                  if (isBLSExpanded) {
+                    closeBLS();
+                  } else {
+                    openBLS(instanceId);
+                  }
+                }}
                 className="hidden lg:flex items-center gap-2 px-3 py-2 bg-gradient-to-br from-amber-100 to-orange-100 hover:from-amber-200 hover:to-orange-200 text-amber-700 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md ml-4"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -597,7 +630,13 @@ export default function StoryPlayerWithBLS({
           {showBLS && (
             <div className="lg:hidden mt-6">
               <motion.button
-                onClick={() => setIsBLSExpanded(!isBLSExpanded)}
+                onClick={() => {
+                  if (isBLSExpanded) {
+                    closeBLS();
+                  } else {
+                    openBLS(instanceId);
+                  }
+                }}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-br from-amber-100 to-orange-100 hover:from-amber-200 hover:to-orange-200 text-amber-700 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md"
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
@@ -656,16 +695,6 @@ export default function StoryPlayerWithBLS({
                   >
                     Dein Browser unterstützt das Video-Element nicht.
                   </video>
-
-                  {/* Video overlay when not playing */}
-                  {!isPlaying && (
-                    <div className="absolute inset-0 bg-amber-900/20 flex items-center justify-center">
-                      <div className="text-center text-white">
-                        <Play className="w-10 h-10 mx-auto mb-2 opacity-80" />
-                        <p className="text-sm font-medium opacity-90">Video startet mit Audio</p>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Additional Info */}
@@ -708,6 +737,7 @@ export default function StoryPlayerWithBLS({
               {/* Video */}
               <div className="relative rounded-xl overflow-hidden shadow-lg bg-amber-900/10">
                 <video
+                  ref={mobileVideoRef}
                   src="/videos/Bilaterale Stimulation.mp4"
                   loop
                   muted
@@ -718,16 +748,6 @@ export default function StoryPlayerWithBLS({
                 >
                   Dein Browser unterstützt das Video-Element nicht.
                 </video>
-
-                {/* Video overlay when not playing */}
-                {!isPlaying && (
-                  <div className="absolute inset-0 bg-amber-900/20 flex items-center justify-center">
-                    <div className="text-center text-white">
-                      <Play className="w-10 h-10 mx-auto mb-2 opacity-80" />
-                      <p className="text-sm font-medium opacity-90">Video startet mit Audio</p>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Additional Info */}

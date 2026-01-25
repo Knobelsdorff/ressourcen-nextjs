@@ -22,6 +22,7 @@ import AnkommenAudioPlayer from "@/components/ankommen/AnkommenAudioPlayer";
 import DashboardAudioPlayer from "@/components/DashboardAudioPlayer";
 import SubscriptionManagement from "@/components/SubscriptionManagement";
 import StoryPlayerWithBLS from "@/components/StoryPlayerWithBLS";
+import { BLSProvider } from "@/components/providers/bls-provider";
 
 interface SavedStory {
   id: string;
@@ -3223,7 +3224,8 @@ ${story.content}
   }, [audioElements, backgroundMusicElements]);
 
         return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
+    <BLSProvider>
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
       <div className="max-w-6xl mx-auto px-4 sm:py-8 py-4">
         {/* Header */}
         <motion.div
@@ -3831,6 +3833,7 @@ ${story.content}
         }}
       />
 
-    </div>
+      </div>
+    </BLSProvider>
   );
 }
