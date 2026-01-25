@@ -10,16 +10,16 @@ export default function PlanSection() {
     {
       number: 1,
       title: "Ankommen",
-      description: "Du beantwortest ein paar einfache Fragen – damit die Geschichte zu dir und deinem Moment passt.",
+      description: "Du hörst dir eine erste Power Story an – ruhig gesprochen, ohne etwas tun zu müssen.",
     },
     {
       number: 2,
-      title: "Zuhören",
-      description: "Du hörst dir eine kurze Power Story an – ruhig gesprochen, mit sanfter Musik im Hintergrund.",
+      title: "Deine eigene Geschichte",
+      description: "Wenn du magst, beantwortest du ein paar einfache Fragen. Daraus entsteht eine Geschichte, die zu dir und deinem Moment passt.",
     },
     {
       number: 3,
-      title: "Etwas weicher werden",
+      title: "Nachwirken lassen",
       description: "Du bleibst einen Moment bei dir und nimmst wahr, was sich verändert hat – ganz ohne Bewertung.",
     },
   ];
