@@ -550,6 +550,44 @@ export default function Dashboard() {
     }
   }, [user]);
 
+  // Lade Beispiel-Ressource (wie auf /ankommen Seite)
+  const loadExampleResource = useCallback(async () => {
+    try {
+      console.log('[Dashboard] Loading example resource from /api/example-resource');
+      
+      const response = await fetch('/api/example-resource');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Fehler beim Laden der Beispiel-Ressourcenfigur');
+      }
+
+      if (data.success && data.resource) {
+        // Konvertiere die Resource zu SavedStory Format für Kompatibilität
+        const exampleStory: SavedStory = {
+          id: data.resource.id,
+          title: data.resource.title,
+          content: data.resource.content,
+          resource_figure: data.resource.resource_figure,
+          question_answers: [],
+          audio_url: data.resource.audio_url,
+          voice_id: data.resource.voice_id,
+          created_at: data.resource.created_at,
+          is_audio_only: false,
+          client_email: null,
+        };
+        
+        setAnkommenStory(exampleStory);
+        console.log('[Dashboard] Example resource loaded successfully:', exampleStory.title);
+      } else {
+        throw new Error('Beispiel-Ressourcenfigur nicht gefunden');
+      }
+    } catch (err: any) {
+      console.error('[Dashboard] Error fetching example resource:', err);
+      setAnkommenStory(null);
+    }
+  }, []);
+
   // Lade Geschichten aus Supabase
   const loadStories = useCallback(async () => {
     if (!user) {
@@ -776,19 +814,8 @@ export default function Dashboard() {
 
         setStories(uniqueStories);
 
-        // Separate ankommen story from personal stories
-        // The ankommen story has title matching the pattern or is from the example resource
-        const ankommenStoryItem = uniqueStories.find(story =>
-          story.title?.includes('Ankommen') ||
-          story.resource_figure === 'Ankommen' ||
-          story.title?.includes('Wohlwollende Präsenz')
-        );
-        const personalStoriesItems = uniqueStories.filter(story =>
-          story.id !== ankommenStoryItem?.id
-        );
-
-        setAnkommenStory(ankommenStoryItem || null);
-        setPersonalStories(personalStoriesItems);
+        // Personal stories are all user stories (ankommenStory is loaded separately via loadExampleResource)
+        setPersonalStories(uniqueStories);
 
         calculateUserStats(uniqueStories);
         
@@ -1178,6 +1205,8 @@ export default function Dashboard() {
       loadUserAccess();
       // Lade den vollständigen Namen
       loadFullName();
+      // Lade Beispiel-Ressource (wie auf /ankommen Seite)
+      loadExampleResource();
       
       // Lade Beispiel-Ressourcenfigur Konfiguration (nur für Admins)
       if (isAdmin) {
@@ -3544,7 +3573,7 @@ ${story.content}
                   {/* Section 2: Personal Stories */}
                   <div className="bg-white rounded-2xl shadow-lg p-8">
                     <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-2xl font-bold text-amber-900">Deine Geschichten</h2>
+                      <h2 className="text-2xl font-bold text-amber-900">Deine persönlichen Geschichten</h2>
                       <button
                         onClick={async () => {
                           // Check if user can create more stories
