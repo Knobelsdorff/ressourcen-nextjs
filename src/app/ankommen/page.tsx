@@ -204,22 +204,6 @@ export default function AnkommenPage() {
           </p>
         </motion.div>
 
-        {/* Call to action button */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-          className="text-center mb-8 md:mb-12"
-        >
-          <Button
-            onClick={() => router.push("/figur")}
-            size="lg"
-            className="bg-amber-600 hover:bg-amber-700 text-white text-base md:text-lg px-8 py-4 md:py-5 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md"
-          >
-            Erstelle deine erste Ressource
-          </Button>
-        </motion.div>
-
         {/* Post-audio reveal */}
         <AnimatePresence>
           {audioEnded && (
