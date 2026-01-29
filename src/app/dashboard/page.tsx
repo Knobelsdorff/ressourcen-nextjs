@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { BookOpen, Settings, AlertTriangle, Trash2, Volume2, User, Mail, Calendar, Clock, Star, Shield, HelpCircle, MessageCircle, Bug, Crown, Zap, TrendingUp, Play, Pause, BarChart3, Lock, Music } from "lucide-react";
+import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, Volume2, User, Mail, Calendar, Clock, Star, Trophy, Target, Shield, HelpCircle, MessageCircle, Bug, Key, Trash, Crown, Zap, TrendingUp, Play, Pause, BarChart3, Lock, Music, RefreshCw, Plus, RotateCcw, CreditCard } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
@@ -15,6 +15,14 @@ import { isEnabled } from "@/lib/featureFlags";
 import { getBackgroundMusicTrack, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
 import ChangePassword from "@/components/ChangePassword";
 import DeleteAccount from "@/components/DeleteAccount";
+import ContactModal from "@/components/ContactModal";
+import FeedbackModal from "@/components/FeedbackModal";
+import BugModal from "@/components/BugModal";
+import AnkommenAudioPlayer from "@/components/ankommen/AnkommenAudioPlayer";
+import DashboardAudioPlayer from "@/components/DashboardAudioPlayer";
+import SubscriptionManagement from "@/components/SubscriptionManagement";
+import StoryPlayerWithBLS from "@/components/StoryPlayerWithBLS";
+import { BLSProvider } from "@/components/providers/bls-provider";
 
 interface SavedStory {
   id: string;
@@ -64,6 +72,8 @@ export default function Dashboard() {
   const [showClientResourceModal, setShowClientResourceModal] = useState(false);
   const [userAccess, setUserAccess] = useState<any>(null);
   const [stories, setStories] = useState<SavedStory[]>([]);
+  const [ankommenStory, setAnkommenStory] = useState<SavedStory | null>(null);
+  const [personalStories, setPersonalStories] = useState<SavedStory[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [generatingAudioFor, setGeneratingAudioFor] = useState<string | null>(null);
@@ -71,6 +81,8 @@ export default function Dashboard() {
   const [audioElements, setAudioElements] = useState<{ [key: string]: HTMLAudioElement }>({});
   const [backgroundMusicElements, setBackgroundMusicElements] = useState<{ [key: string]: HTMLAudioElement }>({});
   const [musicEnabled, setMusicEnabled] = useState(true); // Toggle für Musik
+  const [audioCurrentTime, setAudioCurrentTime] = useState<{ [key: string]: number }>({});
+  const [audioDuration, setAudioDuration] = useState<{ [key: string]: number }>({});
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const adminResourceLoadingRef = useRef<string | null>(null); // Verhindere mehrfaches Laden derselben Ressource
   const [pendingStory, setPendingStory] = useState<any>(null);
@@ -105,6 +117,11 @@ export default function Dashboard() {
   });
   const [loadingCustomerPortal, setLoadingCustomerPortal] = useState(false);
   const [resourceAccessStatus, setResourceAccessStatus] = useState<Record<string, { canAccess: boolean; isFirst: boolean; trialExpired: boolean; daysRemaining?: number }>>({});
+  
+  // Beispiel-Ressourcenfigur Konfiguration (nur für Admins)
+  const [exampleResourceId, setExampleResourceId] = useState<string>("");
+  const [exampleResourceLoading, setExampleResourceLoading] = useState(false);
+  const [exampleResourceError, setExampleResourceError] = useState<string | null>(null);
 
   // Funktion zur Bestimmung des Ressourcen-Typs
   const getResourceTypeLabel = (resourceFigure: any) => {
@@ -534,6 +551,44 @@ export default function Dashboard() {
     }
   }, [user]);
 
+  // Lade Beispiel-Ressource (wie auf /ankommen Seite)
+  const loadExampleResource = useCallback(async () => {
+    try {
+      console.log('[Dashboard] Loading example resource from /api/example-resource');
+      
+      const response = await fetch('/api/example-resource');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Fehler beim Laden der Beispiel-Ressourcenfigur');
+      }
+
+      if (data.success && data.resource) {
+        // Konvertiere die Resource zu SavedStory Format für Kompatibilität
+        const exampleStory: SavedStory = {
+          id: data.resource.id,
+          title: data.resource.title,
+          content: data.resource.content,
+          resource_figure: data.resource.resource_figure,
+          question_answers: [],
+          audio_url: data.resource.audio_url,
+          voice_id: data.resource.voice_id,
+          created_at: data.resource.created_at,
+          is_audio_only: false,
+          client_email: null,
+        };
+        
+        setAnkommenStory(exampleStory);
+        console.log('[Dashboard] Example resource loaded successfully:', exampleStory.title);
+      } else {
+        throw new Error('Beispiel-Ressourcenfigur nicht gefunden');
+      }
+    } catch (err: any) {
+      console.error('[Dashboard] Error fetching example resource:', err);
+      setAnkommenStory(null);
+    }
+  }, []);
+
   // Lade Geschichten aus Supabase
   const loadStories = useCallback(async () => {
     if (!user) {
@@ -555,13 +610,32 @@ export default function Dashboard() {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
 
+      console.log('poopoo [Dashboard] Fetching stories for user:', user.id);
+
       const { data, error } = await supabase
         .from('saved_stories')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      console.log('Supabase response:', { data, error });
+      console.log('poopoo [Dashboard] Supabase response:', {
+        storiesCount: data?.length,
+        error: error?.message
+      });
+
+      // Log each story's audio_url
+      if (data) {
+        console.log('poopoo [Dashboard] Stories audio URLs:');
+        data.forEach((story: any, index: number) => {
+          console.log(`poopoo [Dashboard] Story ${index + 1}: "${story.title}"`, {
+            id: story.id,
+            audio_url: story.audio_url,
+            voice_id: story.voice_id,
+            has_audio: !!story.audio_url,
+            created_at: story.created_at
+          });
+        });
+      }
 
       if (error) {
         console.error('Error loading stories:', error);
@@ -738,8 +812,12 @@ export default function Dashboard() {
           
           setResourceAccessStatus(accessStatusMap);
         }
-        
+
         setStories(uniqueStories);
+
+        // Personal stories are all user stories (ankommenStory is loaded separately via loadExampleResource)
+        setPersonalStories(uniqueStories);
+
         calculateUserStats(uniqueStories);
         
         // Track Dashboard-Visit (nur wenn User eingeloggt ist UND eine gültige Session hat)
@@ -976,21 +1054,29 @@ export default function Dashboard() {
             question_answers_count: storyData.questionAnswers?.length || 0
           });
 
-          // Verwende nur die user_id Spalte, die wir wissen, dass sie existiert
-          // Verwende die Spalten, die definitiv existieren: user_id, title, content, resource_figure und question_answers
-          console.log('Dashboard: Using confirmed columns: user_id, title, content, resource_figure and question_answers');
-          
+          // Verwende alle relevanten Spalten inkl. audio_url und voice_id
+          console.log('poopoo [Dashboard] Preparing to save pending story with audio data');
+
           const correctData = {
             user_id: user.id,
             title: storyData.selectedFigure.name,
             content: storyData.generatedStory,
             resource_figure: storyData.selectedFigure.name,
-            question_answers: Array.isArray(storyData.questionAnswers) ? storyData.questionAnswers : []
+            question_answers: Array.isArray(storyData.questionAnswers) ? storyData.questionAnswers : [],
+            audio_url: storyData.audioState?.audioUrl || null,
+            voice_id: storyData.selectedVoiceId || storyData.audioState?.voiceId || null
           };
+
+          console.log('poopoo [Dashboard] Inserting pending story with data:', JSON.stringify({
+            user_id: correctData.user_id,
+            title: correctData.title,
+            content_length: correctData.content?.length,
+            audio_url: correctData.audio_url,
+            voice_id: correctData.voice_id,
+            question_answers_count: correctData.question_answers?.length
+          }, null, 2));
           
-          console.log('Dashboard: Inserting with correct data:', correctData);
-          
-          const { data, error } = await supabase
+          const { data, error } :any= await supabase
             .from('saved_stories')
             .insert(correctData as any)
             .select();
@@ -1013,7 +1099,12 @@ export default function Dashboard() {
               checkForPendingStories();
             }, 3000);
           } else {
-            console.log('Pending story saved from dashboard:', data);
+            console.log('poopoo [Dashboard] Pending story saved successfully!', JSON.stringify({
+              id: data?.[0]?.id,
+              audio_url: data?.[0]?.audio_url,
+              voice_id: data?.[0]?.voice_id,
+              title: data?.[0]?.title
+            }, null, 2));
             
             // Track Resource Creation Event (nur wenn erfolgreich gespeichert)
             if (data && Array.isArray(data) && data.length > 0 && user && session) {
@@ -1115,9 +1206,77 @@ export default function Dashboard() {
       loadUserAccess();
       // Lade den vollständigen Namen
       loadFullName();
+      // Lade Beispiel-Ressource (wie auf /ankommen Seite)
+      loadExampleResource();
+      
+      // Lade Beispiel-Ressourcenfigur Konfiguration (nur für Admins)
+      if (isAdmin) {
+        fetchExampleResourceConfig();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]); // Nur user als Dependency, um Endlosschleife zu vermeiden
+  }, [user, isAdmin]); // Nur user und isAdmin als Dependency, um Endlosschleife zu vermeiden
+
+  // Lade Beispiel-Ressourcenfigur Konfiguration (nur für Admins)
+  const fetchExampleResourceConfig = useCallback(async () => {
+    if (!isAdmin || !user) return;
+    
+    try {
+      setExampleResourceLoading(true);
+      setExampleResourceError(null);
+
+      const response = await fetch('/api/admin/config');
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        if (data.config) {
+          setExampleResourceId(data.config.value);
+        } else {
+          setExampleResourceId("");
+        }
+      } else {
+        throw new Error(data.error || 'Fehler beim Laden der Konfiguration');
+      }
+    } catch (err: any) {
+      console.error('Error fetching example resource config:', err);
+      setExampleResourceError(err.message || 'Fehler beim Laden der Konfiguration');
+    } finally {
+      setExampleResourceLoading(false);
+    }
+  }, [isAdmin, user]);
+
+
+  // Speichere Beispiel-Ressourcenfigur (nur für Admins)
+  const saveExampleResource = async (resourceId: string) => {
+    try {
+      setExampleResourceLoading(true);
+      setExampleResourceError(null);
+
+      const response = await fetch('/api/admin/config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ resourceId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setExampleResourceId(resourceId);
+        setExampleResourceError(null);
+        setFullNameSuccess('Beispiel-Ressourcenfigur erfolgreich gespeichert!');
+        setTimeout(() => setFullNameSuccess(''), 3000);
+      } else {
+        throw new Error(data.error || 'Fehler beim Speichern');
+      }
+    } catch (err: any) {
+      console.error('Error saving example resource:', err);
+      setExampleResourceError(err.message || 'Fehler beim Speichern');
+    } finally {
+      setExampleResourceLoading(false);
+    }
+  };
 
   // Einziger useEffect für pending stories und URL-Parameter
   useEffect(() => {
@@ -1342,7 +1501,22 @@ export default function Dashboard() {
     };
   }, [audioElements]);
 
-  
+  // Initialize audio metadata for all stories when audioElements change
+  useEffect(() => {
+    Object.entries(audioElements).forEach(([storyId, audio]) => {
+      if (audio.duration && isFinite(audio.duration)) {
+        setAudioDuration(prev => {
+          // Only update if not already set
+          if (!prev[storyId] || prev[storyId] !== audio.duration) {
+            return { ...prev, [storyId]: audio.duration };
+          }
+          return prev;
+        });
+      }
+    });
+  }, [audioElements]);
+
+
 
   const deleteStory = async (storyId: string) => {
     try {
@@ -1742,71 +1916,22 @@ ${story.content}
         (audio as any)._volumeCheckInterval = volumeCheckInterval;
         
         setAudioElements(prev => ({ ...prev, [storyId]: audio }));
-      
-      // Event Listener für Audio-Ende und Fade-Out-Start
-      audio.addEventListener('timeupdate', () => {
-        // Starte Fade-Out 4 Sekunden vor dem Ende
-        if (audio.duration && audio.currentTime >= audio.duration - 4 && !audio.ended) {
-          setBackgroundMusicElements(prev => {
-            const musicAudio = prev[storyId];
-            if (musicAudio && !(musicAudio as any)._fadeOutStarted) {
-              (musicAudio as any)._fadeOutStarted = true;
-              console.log(`[playAudio] Starting early fade-out for background music (4s before end)`);
-              fadeOutMusic(musicAudio, storyId, 3500); // 3.5 Sekunden Fade-Out
-            }
-            return prev;
-          });
-        }
-      });
-      
+
       // Funktion zum Stoppen der Musik (wird sowohl von 'ended' als auch von Polling verwendet)
       const stopMusicForStory = () => {
         console.log(`[playAudio] Stopping music for story ${storyId}`);
         setPlayingAudioId(null);
-        
-        // Stoppe Hintergrundmusik endgültig wenn Stimme endet (IMMER, auch wenn Fade-Out läuft)
+
+        // Reset seekbar to beginning when audio ends
+        setAudioCurrentTime(prev => ({ ...prev, [storyId]: 0 }));
+
+        // Lasse Hintergrundmusik weiterlaufen bis zum Ende (Musik spielt weiter, auch wenn Stimme endet)
         setBackgroundMusicElements(prev => {
           const musicAudio = prev[storyId];
           if (musicAudio) {
-            // Markiere dass Musik gestoppt werden soll (verhindert iOS Auto-Restart)
-            (musicAudio as any)._shouldStop = true;
-            
-            // Stoppe Fade-Out-Interval falls vorhanden
-            if ((musicAudio as any)._fadeOutInterval) {
-              clearInterval((musicAudio as any)._fadeOutInterval);
-              (musicAudio as any)._fadeOutInterval = null;
-            }
-            
-            // Entferne ALLE iOS Event-Listener vor dem Stoppen (wichtig für iPhone)
-            if ((musicAudio as any)._pauseHandler) {
-              musicAudio.removeEventListener('pause', (musicAudio as any)._pauseHandler);
-              musicAudio.removeEventListener('suspend', (musicAudio as any)._pauseHandler);
-            }
-            if ((musicAudio as any)._timeupdateHandler) {
-              musicAudio.removeEventListener('timeupdate', (musicAudio as any)._timeupdateHandler);
-            }
-            
-            // Deaktiviere Loop, damit Musik nicht automatisch wieder startet
+            // Deaktiviere Loop, damit Musik nach dem Ende stoppt (nicht endlos wiederholt)
             musicAudio.loop = false;
-            
-            // Stoppe Musik sofort (auch wenn Fade-Out läuft)
-            console.log(`[playAudio] Stopping background music immediately (audio ended)`);
-            musicAudio.pause();
-            musicAudio.currentTime = 0;
-            
-            // Verwende die ursprüngliche track-spezifische Lautstärke statt DEFAULT_MUSIC_VOLUME
-            const originalVolume = (musicAudio as any)._originalVolume || DEFAULT_MUSIC_VOLUME;
-            setMusicVolume(musicAudio, originalVolume);
-            (musicAudio as any)._fadeOutStarted = false; // Reset Flag
-            
-            // Entferne Musik-Element aus State nach kurzer Verzögerung (für Cleanup)
-            setTimeout(() => {
-              setBackgroundMusicElements(prevState => {
-                const updated = { ...prevState };
-                delete updated[storyId];
-                return updated;
-              });
-            }, 100);
+            console.log(`[playAudio] Voice audio ended - background music continues playing until track ends`);
           }
           return prev;
         });
@@ -2069,38 +2194,20 @@ ${story.content}
       setAudioElements(prev => ({ ...prev, [storyId]: newAudio }));
       
       // Füge Event-Listener NACH dem Setzen der URL hinzu
-      newAudio.addEventListener('timeupdate', () => {
-        // Starte Fade-Out 4 Sekunden vor dem Ende
-        if (newAudio.duration && newAudio.currentTime >= newAudio.duration - 4 && !newAudio.ended) {
-          setBackgroundMusicElements(prev => {
-            const musicAudio = prev[storyId];
-            if (musicAudio && !(musicAudio as any)._fadeOutStarted) {
-              (musicAudio as any)._fadeOutStarted = true;
-              console.log(`[playAudio] Starting early fade-out for background music (4s before end)`);
-              fadeOutMusic(musicAudio, storyId, 3500); // 3.5 Sekunden Fade-Out
-            }
-            return prev;
-          });
-        }
-      });
-      
+      // HINWEIS: timeupdate-Listener für Seekbar wird später hinzugefügt (nach needsNewSource-Check)
+      // um sicherzustellen, dass er am finalen Audio-Element angehängt wird
+
       newAudio.addEventListener('ended', () => {
         console.log(`[playAudio] Audio ended for story ${storyId} (newAudio)`);
         setPlayingAudioId(null);
-        
-        // Stoppe Hintergrundmusik endgültig wenn Stimme endet
+
+        // Lasse Hintergrundmusik weiterlaufen bis zum Ende (Musik spielt weiter, auch wenn Stimme endet)
         setBackgroundMusicElements(prev => {
           const musicAudio = prev[storyId];
           if (musicAudio) {
-            // Falls Fade-Out noch nicht gestartet wurde, stoppe sofort
-            if (!(musicAudio as any)._fadeOutStarted) {
-              console.log(`[playAudio] Stopping background music immediately`);
-              musicAudio.pause();
-              musicAudio.currentTime = 0;
-              // Verwende die ursprüngliche track-spezifische Lautstärke statt DEFAULT_MUSIC_VOLUME
-              const originalVolume = (musicAudio as any)._originalVolume || DEFAULT_MUSIC_VOLUME;
-              setMusicVolume(musicAudio, originalVolume);
-            }
+            // Deaktiviere Loop, damit Musik nach dem Ende stoppt (nicht endlos wiederholt)
+            musicAudio.loop = false;
+            console.log(`[playAudio] Voice audio ended - background music continues playing until track ends`);
           }
           return prev;
         });
@@ -2513,7 +2620,51 @@ ${story.content}
         audio.load();
       }
     }
-    
+
+    // Stelle sicher, dass Event-Listener für Seekbar immer vorhanden sind
+    // Dieser Code muss NACH dem needsNewSource-Check kommen, damit die Listener
+    // am finalen audio-Element (nicht an einem temporären) angehängt werden
+    // Nur neu hinzufügen wenn sie noch nicht existieren oder wenn sich die Story-ID geändert hat
+    const needsNewListeners = !(audio as any)._seekbarListenersAttached || (audio as any)._lastStoryId !== storyId;
+
+    if (needsNewListeners) {
+      // Entferne alte Listener zuerst, um Duplikate zu vermeiden
+      if ((audio as any)._timeupdateHandler) {
+        audio.removeEventListener('timeupdate', (audio as any)._timeupdateHandler);
+      }
+      if ((audio as any)._metadataHandler) {
+        audio.removeEventListener('loadedmetadata', (audio as any)._metadataHandler);
+      }
+
+      // Füge neue Event-Listener hinzu
+      const timeupdateHandler = () => {
+        // Update current time for seekbar
+        setAudioCurrentTime(prev => ({ ...prev, [storyId]: audio.currentTime }));
+
+        // Kein Fade-out - Musik spielt bis zum Ende weiter (auch wenn Stimme endet)
+      };
+      const metadataHandler = () => {
+        setAudioDuration(prev => ({ ...prev, [storyId]: audio.duration }));
+      };
+
+      audio.addEventListener('timeupdate', timeupdateHandler);
+      audio.addEventListener('loadedmetadata', metadataHandler);
+
+      // Speichere Referenzen für späteres Cleanup
+      (audio as any)._timeupdateHandler = timeupdateHandler;
+      (audio as any)._metadataHandler = metadataHandler;
+      (audio as any)._seekbarListenersAttached = true;
+      (audio as any)._lastStoryId = storyId;
+
+      console.log(`[playAudio] Attached seekbar event listeners for story ${storyId}`);
+    }
+
+    // Wenn Audio bereits geladen ist, setze die Dauer sofort
+    if (audio.duration && isFinite(audio.duration)) {
+      setAudioDuration(prev => ({ ...prev, [storyId]: audio.duration }));
+      // Setze auch aktuelle Zeit, falls schon vorhanden
+      setAudioCurrentTime(prev => ({ ...prev, [storyId]: audio.currentTime }));
+    }
     // Spiele Audio ab
     try {
       // Stelle sicher, dass Stimme immer auf 100% läuft
@@ -2900,10 +3051,10 @@ ${story.content}
             
             const finalVolume = getMusicVolume(musicAudio);
             console.log(`[playAudio] Background music started for story ${storyId} (at 0s) with volume ${finalVolume * 100}%`);
-            
+
             // Aktualisiere Button-Status SOFORT, wenn Musik startet (vor der 3-Sekunden-Wartezeit)
             setPlayingAudioId(storyId);
-            
+
             // Warte 3 Sekunden bevor die Stimme startet
             await new Promise(resolve => setTimeout(resolve, 3000));
           } else {
@@ -2922,13 +3073,13 @@ ${story.content}
           // Musik-Fehler nicht anzeigen, nur loggen (nicht kritisch)
         }
       }
-      
+
       // Stelle sicher, dass Stimme immer auf 100% läuft (auch nach Musik-Start)
       audio.volume = 1.0;
-      
+
       // Spiele Stimme ab (nach 3 Sekunden Verzögerung, wenn Musik läuft)
       await audio.play();
-      
+
       // Setze playingAudioId wenn Audio startet (auch wenn keine Musik vorhanden ist)
       setPlayingAudioId(storyId);
       console.log(`[playAudio] Audio playback started for story ${storyId}, setPlayingAudioId`);
@@ -2980,7 +3131,7 @@ ${story.content}
       audio.pause();
       setPlayingAudioId(null);
     }
-    
+
     // Pausiere auch Hintergrundmusik (und stoppe Fade-Out falls aktiv)
     const musicAudio = backgroundMusicElements[storyId];
     if (musicAudio) {
@@ -2994,6 +3145,36 @@ ${story.content}
       console.log(`[pauseAudio] Background music paused for story ${storyId}`);
     }
   }, [audioElements, backgroundMusicElements]);
+
+  const restartAudio = useCallback((storyId: string) => {
+    const audio = audioElements[storyId];
+    if (!audio) return;
+
+    audio.currentTime = 0;
+    setAudioCurrentTime(prev => ({ ...prev, [storyId]: 0 }));
+
+    // Starte Musik neu, wenn sie gerade läuft
+    if (playingAudioId === storyId) {
+      audio.play().catch((err) => {
+        console.error('Audio play failed on restart:', err);
+      });
+    }
+  }, [audioElements, playingAudioId]);
+
+  const handleSeek = useCallback((storyId: string, time: number) => {
+    const audio = audioElements[storyId];
+    if (!audio) return;
+
+    audio.currentTime = time;
+    setAudioCurrentTime(prev => ({ ...prev, [storyId]: time }));
+  }, [audioElements]);
+
+  const formatTime = (time: number) => {
+    if (!isFinite(time)) return "0:00";
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
 
   const stopAllAudio = useCallback(() => {
     Object.values(audioElements).forEach(audio => {
@@ -3021,23 +3202,13 @@ ${story.content}
         // Tab wurde wieder aktiv - prüfe alle Audio-Elemente
         Object.entries(audioElements).forEach(([storyId, audio]) => {
           if (audio.ended) {
-            // Audio ist beendet - stoppe Musik
+            // Audio ist beendet - lasse Musik weiterlaufen bis zum Ende
             const musicAudio = backgroundMusicElements[storyId];
             if (musicAudio) {
-              // Stoppe Fade-Out-Interval falls vorhanden
-              if ((musicAudio as any)._fadeOutInterval) {
-                clearInterval((musicAudio as any)._fadeOutInterval);
-                (musicAudio as any)._fadeOutInterval = null;
-              }
-              
-              // Stoppe Musik
-              musicAudio.pause();
-              musicAudio.currentTime = 0;
-              // Verwende die ursprüngliche track-spezifische Lautstärke statt DEFAULT_MUSIC_VOLUME
-              const originalVolume = (musicAudio as any)._originalVolume || DEFAULT_MUSIC_VOLUME;
-              setMusicVolume(musicAudio, originalVolume);
-              (musicAudio as any)._fadeOutStarted = false;
-              
+              // Deaktiviere Loop, damit Musik nach dem Ende stoppt (nicht endlos wiederholt)
+              musicAudio.loop = false;
+              console.log(`[handleVisibilityChange] Voice audio ended - background music continues playing until track ends`);
+
               // Aktualisiere State
               setPlayingAudioId(prev => prev === storyId ? null : prev);
             }
@@ -3053,7 +3224,8 @@ ${story.content}
   }, [audioElements, backgroundMusicElements]);
 
         return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
+    <BLSProvider>
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
       <div className="max-w-6xl mx-auto px-4 sm:py-8 py-4">
         {/* Header */}
         <motion.div
@@ -3061,8 +3233,8 @@ ${story.content}
           animate={{ opacity: 1, y: 0 }}
           className="text-center sm:mb-8 mb-4"
         >
-          <h1 className="sm:text-4xl text-2xl font-bold text-amber-900 mb-2">
-            Dashboard
+          <h1 className="text-3xl md:text-4xl font-light text-amber-900 mb-2">
+            Willkommen in deinem Raum.
           </h1>
         </motion.div>
 
@@ -3075,7 +3247,7 @@ ${story.content}
           <div className="bg-white w-full rounded-2xl shadow-lg p-3 lg:flex grid sm:grid-cols-2 grid-cols-1 sm:gap-3 gap-2 sm:space-x-2 ">
             <button
               onClick={() => setActiveTab('profile')}
-              className={`flex items-center space-x-2 sm:px-6 px-4 py-3 rounded-xl font-medium transition-all duration-300 ${
+              className={`flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 ${
                 activeTab === 'profile'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
                   : 'text-gray-600 hover:text-amber-700 hover:bg-amber-50'
@@ -3087,7 +3259,7 @@ ${story.content}
             
             <button
               onClick={() => setActiveTab('stories')}
-              className={`flex items-center space-x-2 sm:px-6 px-4 py-3 rounded-xl font-medium transition-all duration-300 ${
+              className={`flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 ${
                 activeTab === 'stories'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
                   : 'text-gray-600 hover:text-amber-700 hover:bg-amber-50'
@@ -3096,11 +3268,22 @@ ${story.content}
               <BookOpen className="w-5 h-5" />
               <span className="max-sm:text-sm">Meine Ressourcen ({stories.length})</span>
             </button>
-            
+
+            {/* Subscription Management Link - only for Pro users */}
+            {subscriptionStatus.isPro && (
+              <button
+                onClick={() => router.push('/subscription')}
+                className="flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-lg"
+              >
+                <CreditCard className="w-5 h-5" />
+                <span className="max-sm:text-sm">Abo verwalten</span>
+              </button>
+            )}
+
             {isAdmin && (
               <button
                 onClick={() => router.push('/admin/analytics')}
-                className="flex items-center space-x-2 sm:px-6 px-4 py-3 rounded-xl font-medium transition-all duration-300 text-white bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 shadow-lg"
+                className="flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 text-white bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 shadow-lg"
               >
                 <BarChart3 className="w-5 h-5" />
                 <span className="max-sm:text-sm">Admin Analytics</span>
@@ -3110,7 +3293,7 @@ ${story.content}
             {isMusicAdmin && (
               <button
                 onClick={() => router.push('/admin/music')}
-                className="flex items-center space-x-2 sm:px-6 px-4 py-3 rounded-xl font-medium transition-all duration-300 text-white bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 shadow-lg"
+                className="flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 text-white bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 shadow-lg"
               >
                 <Music className="w-5 h-5" />
                 <span className="max-sm:text-sm">Musik verwalten</span>
@@ -3120,7 +3303,7 @@ ${story.content}
             {(isAdmin || isMusicAdmin) && (
               <button
                 onClick={() => setShowClientResourceModal(true)}
-                className="flex items-center space-x-2 sm:px-6 px-4 py-3 rounded-xl font-medium transition-all duration-300 text-white bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-lg"
+                className="flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 text-white bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-lg"
               >
                 <Volume2 className="w-5 h-5" />
                 <span className="max-sm:text-sm">Ressource für Klienten erstellen</span>
@@ -3268,123 +3451,19 @@ ${story.content}
                 </div>
               </div>
 
-              {/* Abo-Status */}
-              <div className="bg-white rounded-2xl shadow-lg sm:p-6 p-3">
-                <div className="flex items-center gap-3 mb-4">
-                  <Crown className="w-6 h-6 text-amber-600" />
-                  <h2 className="sm:text-xl text-lg font-bold text-amber-900">Abo-Status</h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 sm:p-4 p-3 rounded-lg border border-amber-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Shield className="w-5 h-5 text-amber-600" />
-                      <span className="font-medium text-amber-900">Aktueller Plan</span>
-                    </div>
-                    <p className="text-amber-700 sm:text-lg text-base font-semibold">{subscriptionStatus.plan}</p>
-                    {subscriptionStatus.isPro && (
-                      <p className="text-amber-600 text-sm">
-                        {subscriptionStatus.subscriptionStatus === 'active' ? 'Aktiv' : 
-                         subscriptionStatus.subscriptionStatus === 'past_due' ? 'Zahlung ausstehend' :
-                         subscriptionStatus.subscriptionStatus === 'paused' ? 'Pausiert' :
-                         subscriptionStatus.subscriptionStatus === 'canceled' ? 'Gekündigt' :
-                         'Pro-Version aktiv'}
-                      </p>
-                    )}
-                  </div>
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Zap className="w-5 h-5 text-blue-600" />
-                      <span className="font-medium text-blue-900">Ressourcen</span>
-                    </div>
-                    <p className="text-blue-700 sm:text-lg text-base font-semibold">
-                      {subscriptionStatus.credits >= 999999 ? 'Unbegrenzt' : subscriptionStatus.credits}
+            
+              {/* Fallback für Nicht-Abonnenten */}
+              {!subscriptionStatus.isPro && (
+                <div className="bg-white rounded-2xl shadow-lg sm:p-6 p-3 text-center">
+                  <div className="max-w-md mx-auto">
+                    <Crown className="w-12 h-12 text-amber-600 mx-auto mb-4" />
+                    <h3 className="text-xl font-light text-amber-900 mb-2">
+                      Unbegrenzte Power Storys
+                    </h3>
+                    <p className="text-amber-700 mb-6">
+                      Erstelle so viele personalisierte Ressourcen wie du möchtest
                     </p>
-                    <p className="text-blue-600 text-sm">Verfügbar</p>
-                  </div>
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Calendar className="w-5 h-5 text-green-600" />
-                      <span className="font-medium text-green-900">Ablauf</span>
-                    </div>
-                    <p className="text-green-700 sm:text-lg text-base font-semibold">
-                      {subscriptionStatus.expiresAt 
-                        ? new Date(subscriptionStatus.expiresAt).toLocaleDateString('de-DE')
-                        : subscriptionStatus.subscriptionId ? 'Monatlich kündbar' : 'Unbegrenzt'
-                      }
-                    </p>
-                  </div>
-                </div>
-                {subscriptionStatus.subscriptionId ? (
-                  <div className="mt-4 text-center">
-                    <button 
-                      onClick={async () => {
-                        if (!user?.id) return;
-                        setLoadingCustomerPortal(true);
-                        try {
-                          const response = await fetch('/api/stripe/customer-portal', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ userId: user.id }),
-                          });
-                          const data = await response.json();
-                          if (data.url) {
-                            window.open(data.url, '_blank', 'noopener,noreferrer');
-                          } else {
-                            alert(data.error || 'Fehler beim Öffnen des Abo-Verwaltungsbereichs. Bitte versuche es später erneut.');
-                          }
-                        } catch (error) {
-                          console.error('Error opening customer portal:', error);
-                          alert('Fehler beim Öffnen des Abo-Verwaltungsbereichs. Bitte versuche es später erneut.');
-                        } finally {
-                          setLoadingCustomerPortal(false);
-                        }
-                      }}
-                      disabled={loadingCustomerPortal}
-                      className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed "
-                    >
-                      {loadingCustomerPortal ? 'Lädt...' : 'Abo verwalten'}
-                    </button>
-                    <p className="text-gray-600 text-sm mt-2">
-                      Hier kannst du dein Abo kündigen, Zahlungsmethode ändern oder Rechnungen ansehen.
-                    </p>
-                  </div>
-                ) : subscriptionStatus.isPro ? (
-                  <div className="mt-4 text-center">
-                    <button 
-                      onClick={async () => {
-                        if (!user?.id) return;
-                        setLoadingCustomerPortal(true);
-                        try {
-                          const response = await fetch('/api/stripe/customer-portal', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ userId: user.id }),
-                          });
-                          const data = await response.json();
-                          if (data.url) {
-                            window.open(data.url, '_blank', 'noopener,noreferrer');
-                          } else {
-                            alert(data.error || 'Fehler beim Öffnen des Abo-Verwaltungsbereichs. Bitte versuche es später erneut.');
-                          }
-                        } catch (error) {
-                          console.error('Error opening customer portal:', error);
-                          alert('Fehler beim Öffnen des Abo-Verwaltungsbereichs. Bitte versuche es später erneut.');
-                        } finally {
-                          setLoadingCustomerPortal(false);
-                        }
-                      }}
-                      disabled={loadingCustomerPortal}
-                      className="bg-gradient-to-r from-amber-500 to-orange-500 text-white sm:px-6 px-4 py-3 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed sm:text-base text-sm"
-                    >
-                      {loadingCustomerPortal ? 'Lädt...' : 'Abo verwalten'}
-                    </button>
-                    <p className="text-gray-600 text-sm mt-2">
-                      Hier kannst du dein Abo kündigen, Zahlungsmethode ändern oder Rechnungen ansehen.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="mt-4 text-center">
-                    <button 
+                    <button
                       onClick={() => setShowPaywall(true)}
                       className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-300 font-medium max-sm:text-sm max-sm:w-full"
                     >
@@ -3394,8 +3473,8 @@ ${story.content}
                       Early Adopter Preis - 50% Rabatt
                     </p>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
 
               {/* Account-Management */}
@@ -3417,43 +3496,21 @@ ${story.content}
                   <h2 className="sm:text-xl text-lg font-bold text-amber-900">Support & Hilfe</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <button className="flex items-center gap-3 sm:p-4 px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                  <button onClick={()=> router.push('faq')} className="flex items-center gap-3 sm:p-4 px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
                     <HelpCircle className="w-5 h-5 text-blue-600" />
                     <div className="text-left">
                       <p className="font-medium text-blue-900">FAQ</p>
                       <p className="text-blue-700 text-sm">Häufige Fragen</p>
                     </div>
                   </button>
-                  <button className="flex items-center gap-3 sm:p-4 px-4 py-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
-                    <MessageCircle className="w-5 h-5 text-green-600" />
-                    <div className="text-left">
-                      <p className="font-medium text-green-900">Kontakt</p>
-                      <p className="text-green-700 text-sm">Support kontaktieren</p>
-                    </div>
-                  </button>
-                  <button className="flex items-center gap-3 sm:p-4 px-4 py-3 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors">
-                    <Star className="w-5 h-5 text-purple-600" />
-                    <div className="text-left">
-                      <p className="font-medium text-purple-900">Feedback</p>
-                      <p className="text-purple-700 text-sm">Verbesserungsvorschläge</p>
-                    </div>
-                  </button>
-                  <button className="flex items-center gap-3 sm:p-4 px-4 py-3 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors">
-                    <Bug className="w-5 h-5 text-orange-600" />
-                    <div className="text-left">
-                      <p className="font-medium text-orange-900">Bug melden</p>
-                      <p className="text-orange-700 text-sm">Problem melden</p>
-                    </div>
-                  </button>
+                  <ContactModal />
+                  <FeedbackModal />
+                  <BugModal />
                 </div>
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl shadow-lg sm:p-8 p-4">
-              <div className="flex justify-between items-center sm:mb-6 mb-4">
-                <h2 className="sm:text-2xl text-xl font-bold text-amber-900">Meine Ressourcen</h2>
-              </div>
-              
+            <div className="space-y-8">
               {loading ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4"></div>
@@ -3465,15 +3522,92 @@ ${story.content}
                   <p className="text-red-600">{error}</p>
                 </div>
               ) : stories.length === 0 && !pendingStory ? (
-                <div className="text-center py-8">
-                  <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 max-sm:text-sm">Noch keine Geschichten gespeichert.</p>
-                  <p className="text-gray-500 text-sm max-sm:text-xs mt-2">
-                    Erstelle eine neue Ressourcen-Geschichte, um sie hier zu sehen.
-                  </p>
+                <div className="bg-white rounded-2xl shadow-lg p-8">
+                  <div className="text-center py-8">
+                    <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 max-sm:text-sm">Noch keine Geschichten gespeichert.</p>
+                    <p className="text-gray-500 text-sm max-sm:text-xs mt-2 mb-6">
+                      Erstelle deine erste persönliche Ressource, um sie hier zu sehen.
+                    </p>
+                    <button
+                      onClick={() => router.push('/figur')}
+                      className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl shadow-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-200 inline-flex items-center gap-2"
+                    >
+                      <Plus className="w-5 h-5" />
+                      Erstelle deine erste Ressource
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <>
+                  {/* Section 1: Arrival Space (Ankommen) */}
+                  {ankommenStory && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                      className="bg-white rounded-2xl shadow-lg p-8"
+                    >
+                      <div className="mb-6">
+                        <h2 className="text-2xl font-bold text-amber-900 mb-2">Zum Ankommen</h2>
+                        <p className="text-amber-700">Wann immer du möchtest.</p>
+                      </div>
+
+                      {ankommenStory.audio_url ? (
+                        <div className="max-w-lg mx-auto">
+                          <AnkommenAudioPlayer
+                            audioUrl={ankommenStory.audio_url}
+                            title={ankommenStory.title}
+                            subtitle={ankommenStory.resource_figure?.name || null}
+                          />
+                          <p className="text-center text-sm text-amber-600/70 mt-4">
+                            (immer kostenlos)
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="text-center py-4 text-amber-600">
+                          <p>Audio wird geladen...</p>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+
+                  {/* Section 2: Personal Stories */}
+                  <div className="bg-white rounded-2xl shadow-lg p-8">
+                    <div className="flex justify-between items-center mb-6">
+                      <h2 className="text-2xl font-bold text-amber-900">Deine persönlichen Geschichten</h2>
+                      <button
+                        onClick={async () => {
+                          // Check if user can create more stories
+                          if (user) {
+                            const { canCreateResource } = await import('@/lib/access');
+                            const canCreate = await canCreateResource(user.id);
+
+                            if (!canCreate) {
+                              setShowPaywall(true);
+                              return;
+                            }
+                          }
+
+                          router.push('/');
+                        }}
+                        className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl shadow-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-200 flex items-center gap-2"
+                      >
+                        <Plus className="w-5 h-5" />
+                        Neue Power Story erstellen
+                      </button>
+                    </div>
+
+                    {personalStories.length === 0 ? (
+                      <div className="text-center py-8">
+                        <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-600 max-sm:text-sm">Noch keine persönlichen Geschichten.</p>
+                        <p className="text-gray-500 text-sm max-sm:text-xs mt-2">
+                          Erstelle deine erste personalisierte Power Story.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
                   {/* Temporäre Ressource anzeigen - nur wenn Benutzer nicht eingeloggt ist */}
                   {pendingStory && !user && (
                     <motion.div
@@ -3529,8 +3663,18 @@ ${story.content}
                     </motion.div>
                   )}
                   
-                  
-                  {stories.map((story) => (
+                  {/* Fehlermeldung für Beispiel-Ressourcenfigur (nur für Admins) */}
+                  {isAdmin && exampleResourceError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4"
+                    >
+                      <p className="text-red-700 text-sm">{exampleResourceError}</p>
+                    </motion.div>
+                  )}
+
+                  {personalStories.map((story, storyIndex) => (
                     <motion.div
                       key={story.id}
                       initial={{ opacity: 0, y: 20 }}
@@ -3538,7 +3682,7 @@ ${story.content}
                       className="bg-amber-50 border border-amber-200 rounded-xl sm:p-6 p-4"
                     >
                       <div className="flex justify-between items-start mb-4">
-                        <div>
+                        <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <h3 className="text-lg font-semibold text-amber-900">
                               {story.title}
@@ -3552,6 +3696,22 @@ ${story.content}
                               <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium" title={`Für Klient: ${story.client_email}`}>
                                 Klient
                               </span>
+                            )}
+                            {/* Beispiel-Ressourcenfigur Checkbox (nur für Admins, nur wenn Audio vorhanden) */}
+                            {isAdmin && story.audio_url && story.audio_url.trim() !== '' && (
+                              <label className="flex items-center gap-2 cursor-pointer group">
+                                <input
+                                  type="radio"
+                                  name="example-resource"
+                                  checked={exampleResourceId === story.id}
+                                  onChange={() => saveExampleResource(story.id)}
+                                  disabled={exampleResourceLoading}
+                                  className="w-4 h-4 text-purple-600 border-purple-300 focus:ring-purple-500 focus:ring-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                />
+                                <span className="text-xs font-medium text-purple-700 group-hover:text-purple-900 transition-colors">
+                                  Als Beispiel-Ressource
+                                </span>
+                              </label>
                             )}
                           </div>
                           <p className="text-amber-700 text-sm mb-2">
@@ -3592,160 +3752,53 @@ ${story.content}
                           )}
                         </div>
                       </div>
-                      
-                      {/* Audio-Fokus Bereich */}
-                      <div className="sm:bg-white rounded-lg sm:p-4">
-                        <div className="text-center">
-                          <div className="mb-4">
-                            {story.audio_url ? (
-                            <div className="space-y-3">
-                                <div className="flex justify-center">
-                                  {playingAudioId === story.id ? (
-                                <button
-                                      onClick={() => pauseAudio(story.id)}
-                                      className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-8 py-4 rounded-xl hover:from-red-600 hover:to-pink-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-3 text-lg font-medium"
-                                    >
-                                      <Pause className="w-6 h-6" />
-                                      Pause
-                                </button>
-                                  ) : (() => {
-                                    const accessStatus = resourceAccessStatus[story.id];
-                                    const canAccess = accessStatus?.canAccess ?? true; // Fallback: erlauben wenn nicht geprüft
-                                    const isFirst = accessStatus?.isFirst ?? false;
-                                    const trialExpired = accessStatus?.trialExpired ?? false;
-                                    
-                                    if (!canAccess) {
-                                      return (
-                                    <button
-                                          onClick={() => setShowPaywall(true)}
-                                          className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-3 text-lg font-medium opacity-75 cursor-pointer"
-                                        >
-                                          <Lock className="w-6 h-6" />
-                                          {isFirst && trialExpired ? 'Trial abgelaufen - Zugang aktivieren' : 'Zugang aktivieren'}
-                                        </button>
-                                      );
-                                    }
-                                    
-                                    return (
-                                      <button
-                                        onClick={async () => {
-                                          // Prüfe Zugang vor dem Abspielen (nur wenn Paywall aktiviert)
-                                          const paywallEnabled = isEnabled('PAYWALL_ENABLED');
-                                          
-                                          if (user && paywallEnabled) {
-                                            console.log(`[Dashboard] Checking access for story ${story.id} before playing...`);
-                                            const canAccessNow = await canAccessResource(user.id, story.id);
-                                            console.log(`[Dashboard] Access check result for story ${story.id}:`, canAccessNow);
-                                            if (!canAccessNow) {
-                                              console.log(`[Dashboard] Access denied for story ${story.id} - showing paywall`);
-                                              setShowPaywall(true);
-                                              return;
-                                            }
-                                            console.log(`[Dashboard] Access granted for story ${story.id} - playing audio`);
-                                          }
-                                          
-                                          // VALIDIERUNG: Prüfe ob audio_url vorhanden ist
-                                          if (!story.audio_url || story.audio_url.trim() === '') {
-                                            console.error(`[Dashboard] No audio_url for story ${story.id}:`, story);
-                                            alert('Fehler: Diese Ressource hat keine Audio-URL. Bitte generiere das Audio erneut.');
-                                            return;
-                                          }
-                                          
-                                          console.log(`[Dashboard] Calling playAudio with URL:`, story.audio_url);
-                                          playAudio(story.audio_url, story.id);
-                                        }}
-                                      className="bg-gradient-to-r from-amber-500 to-orange-500 text-white sm:px-8 sm:py-4 px-5 py-3 rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-3 text-lg font-medium max-sm:text-base max-sm:w-full max-sm:justify-center max-sm:my-2"
-                                    >
-                                      <Play className="sm:w-6 sm:h-6 w-4 h-4" />
-                                      Audio abspielen
-                                    </button>
-                                    );
-                                  })()}
-                                </div>
-                                <p className="text-amber-600 text-sm">
-                                  {playingAudioId === story.id ? '🔊 Audio wird abgespielt' : (() => {
-                                    const accessStatus = resourceAccessStatus[story.id];
-                                    const canAccess = accessStatus?.canAccess ?? true;
-                                    const isFirst = accessStatus?.isFirst ?? false;
-                                    const trialExpired = accessStatus?.trialExpired ?? false;
-                                    const daysRemaining = accessStatus?.daysRemaining ?? 0;
-                                    
-                                    if (!canAccess && isFirst && trialExpired) {
-                                      return '⏰ Deine 3-Tage-Trial-Periode ist abgelaufen. Aktiviere den Zugang, um Audio abzuspielen.';
-                                    } else if (!canAccess) {
-                                      return '🔒 Aktiviere den Zugang, um Audio abzuspielen.';
-                                    } else if (isFirst && daysRemaining > 0) {
-                                      // Zeige verbleibende Tage für erste Ressource
-                                      const daysText = daysRemaining === 1 ? 'Tag' : 'Tage';
-                                      return `⏰ Kostenloser Zugriff noch ${daysRemaining} ${daysText} verfügbar (3-Tage-Trial)`;
-                                    }
-                                    return '✓ Audio verfügbar - Klicke zum Abspielen';
-                                  })()}
-                                </p>
-                              </div>
-                            ) : (
-                              <div className="space-y-3">
-                                <p className="text-amber-600 text-sm text-center mb-3">
-                                  Für diese Geschichte ist noch kein Audio verfügbar.
-                                </p>
-                                {generatingAudioFor === story.id ? (
-                                  <div className="flex items-center justify-center gap-2 text-amber-600">
-                                    <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
-                                    <span>Audio wird generiert...</span>
-                                  </div>
-                                ) : (
-                                  <button
-                                    onClick={() => generateAudio(story.id)}
-                                    className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2 mx-auto font-medium"
-                                  >
-                                    <Volume2 className="w-5 h-5" />
-                                    Audio generieren
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* Pro-Version Hinweis für Text und Downloads */}
-                          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg sm:p-4 p-3">
-                            <div className="flex items-center justify-center gap-2 mb-3">
-                              <span className="text-2xl">👑</span>
-                              <h4 className="text-lg font-semibold text-purple-900">Pro-Version</h4>
-                            </div>
-                            <p className="text-purple-700 text-sm mb-4">
-                              Textanzeige, Bearbeitung und Downloads sind in der Pro-Version verfügbar
-                            </p>
-                            
-                            {/* Pro-Features Liste */}
-                            <div className="space-y-2 mb-4">
-                              <div className="flex items-center gap-2 text-sm text-purple-700">
-                                <span className="text-purple-500">📝</span>
-                                <span>Text anzeigen und bearbeiten</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-sm text-purple-700">
-                                <span className="text-purple-500">📄</span>
-                                <span>Text als TXT herunterladen</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-sm text-purple-700">
-                                <span className="text-purple-500">🎵</span>
-                                <span>Audio als MP3 herunterladen</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-sm text-purple-700">
-                                <span className="text-purple-500">🎤</span>
-                                <span>Stimme nachträglich ändern</span>
-                              </div>
-                            </div>
-                            
-                            
-                            <button className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-6 py-2 rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all duration-300 text-sm font-medium">
-                              Upgrade zu Pro
-                              </button>
-                          </div>
+
+                      {/* Audio Player */}
+                      {story.audio_url ? (
+                        <div className="mt-4">
+                          {/* Use enhanced player with BLS for Pro users (not first story), regular player otherwise */}
+                          {subscriptionStatus.isPro ? (
+                            <StoryPlayerWithBLS
+                              audioUrl={story.audio_url}
+                              title={story.title}
+                              subtitle={story.resource_figure?.name || null}
+                              resourceFigure={story.resource_figure}
+                              showBLS={true}
+                            />
+                          ) : (
+                            <DashboardAudioPlayer
+                              audioUrl={story.audio_url}
+                              title={story.title}
+                              subtitle={story.resource_figure?.name || null}
+                              resourceFigure={story.resource_figure}
+                            />
+                          )}
                         </div>
-                      </div>
+                      ) : (
+                        <div className="text-center py-4 text-amber-600">
+                          <p className="mb-4">Für diese Geschichte ist noch kein Audio verfügbar.</p>
+                          {generatingAudioFor === story.id ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+                              <span>Audio wird generiert...</span>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => generateAudio(story.id)}
+                              className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-md hover:shadow-lg inline-flex items-center gap-2 font-medium"
+                            >
+                              <Volume2 className="w-5 h-5" />
+                              Audio generieren
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </motion.div>
                   ))}
-                </div>
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -3780,6 +3833,7 @@ ${story.content}
         }}
       />
 
-    </div>
+      </div>
+    </BLSProvider>
   );
 }

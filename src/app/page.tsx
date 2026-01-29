@@ -6,11 +6,10 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
 import { isEnabled } from "@/lib/featureFlags";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, BookOpen, Heart } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import ResourceFigureSelection from "@/components/ResourceFigureSelection";
 import RelationshipSelection, { QuestionAnswer } from "@/components/RelationshipSelection";
 import NamePronunciationForm from "@/components/NamePronunciationForm";
-import StoryGeneration from "@/components/StoryGeneration";
 import VoiceSelection from "@/components/VoiceSelection";
 import AudioPlayback from "@/components/AudioPlayback";
 import AccountCreated from "@/components/AccountCreated";
@@ -19,6 +18,7 @@ import { useAppReset } from "@/components/providers/app-reset-provider";
 import Paywall from "@/components/Paywall";
 import { canCreateResource } from "@/lib/access";
 import { getOrCreateBrowserFingerprint } from "@/lib/browser-fingerprint";
+import { realFigures, fictionalFigures } from "@/data/figures";
 
 export interface ResourceFigure {
   id: string;
@@ -38,17 +38,6 @@ export interface AudioState {
   filename?: string;
 }
 
-interface SavedStory {
-  id: string;
-  timestamp: number;
-  resourceFigure: ResourceFigure;
-  questionAnswers: QuestionAnswer[];
-  generatedStory: string;
-  audioState: AudioState | null;
-  createdAt: string;
-  title?: string;
-}
-
 export interface AppState {
   currentStep: number;
   resourceFigure: ResourceFigure | null;
@@ -59,32 +48,8 @@ export interface AppState {
   currentQuestionIndex: number;
 }
 
-  const steps = [
-    {
-      number: 1,
-      title: "Ressourcenfigur",
-      icon: "🤗"
-    },
-    {
-      number: 2,
-      title: "Beziehung",
-      icon: "💝"
-    },
-    {
-      number: 3,
-      title: "Stimme wechseln",
-      icon: "🎤"
-    },
-    {
-      number: 4,
-      title: "Anhören",
-      icon: "🎧"
-    }
-  ];
-
-
 const initialAppState: AppState = {
-  currentStep: 1, // Start with resource figure selection (original landing page)
+  currentStep: 1,
   resourceFigure: null,
   questionAnswers: [],
   generatedStory: "",
@@ -93,7 +58,7 @@ const initialAppState: AppState = {
   currentQuestionIndex: 0
 };
 
-function RessourcenAppContent() {
+function RessourcenAppInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [appState, setAppState] = useState<AppState>(initialAppState);
@@ -104,103 +69,100 @@ function RessourcenAppContent() {
   const { setResetFunction } = useAppReset();
   const [userFullName, setUserFullName] = useState<string | null>(null);
   const [userPronunciationHint, setUserPronunciationHint] = useState<string | null>(null);
+  // For anonymous users, we store the name temporarily (not persisted)
+  const [anonymousUserName, setAnonymousUserName] = useState<string | null>(null);
+  const [anonymousUserPronunciationHint, setAnonymousUserPronunciationHint] = useState<string | null>(null);
   const [sparModus, setSparModus] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [storyGenerationError, setStoryGenerationError] = useState<string | null>(null);
-  
-  // Prüfe auf Reset-Code in URL und leite zur Reset-Seite weiter
+  const [isGeneratingStory, setIsGeneratingStory] = useState(false);
+  const [userDataLoaded, setUserDataLoaded] = useState(false);
+
   useEffect(() => {
     const code = searchParams.get('code');
     if (code && typeof window !== 'undefined') {
-      // Wenn ein Code vorhanden ist, könnte es ein Reset-Code sein
-      // Leite zur Reset-Seite weiter (die Seite prüft dann, ob es ein gültiger Reset-Code ist)
       const currentUrl = new URL(window.location.href);
       const email = currentUrl.searchParams.get('email');
       const isDev = currentUrl.searchParams.get('dev') === 'true';
-      
-      // Automatische Erkennung: Bestimme die richtige Origin
+
       let origin = window.location.origin;
-      
-      // Prüfe, ob wir auf localhost sind
-      const isLocalhost = window.location.hostname === 'localhost' || 
-                         window.location.hostname === '127.0.0.1';
-      
-      // Prüfe, ob wir auf Production sind
+
+      const isLocalhost = window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1';
+
       const isProductionUrl = window.location.hostname.includes('ressourcen.app');
-      
-      // Intelligente Erkennung für Development-Tests:
-      // Wenn dev=true Parameter vorhanden ist ODER wir auf localhost sind, verwende localhost:3000
-      // Wenn wir auf Production sind, aber der Benutzer möglicherweise auf localhost testet,
-      // prüfe ob localhost erreichbar ist (durch Prüfung, ob wir in einem Development-Kontext sind)
+
       if (isDev || isLocalhost) {
         origin = 'http://localhost:3000';
-        console.log('[Root Page] 🔍 Development-Modus erkannt (dev=' + isDev + ', localhost=' + isLocalhost + '), verwende localhost:3000');
-      } 
-      // Wenn wir auf Production sind, aber möglicherweise in Development testen,
-      // können wir versuchen, zu localhost weiterzuleiten, wenn localhost erreichbar ist
-      else if (isProductionUrl) {
-        // Prüfe, ob wir möglicherweise in Development sind (durch Prüfung der Referrer oder andere Hinweise)
-        // Für jetzt: Verwende Production-URL, aber der Benutzer kann den Link manuell ändern
-        origin = window.location.origin;
-        console.log('[Root Page] 🔍 Production-URL erkannt, verwende Production-URL');
-        console.log('[Root Page] 💡 Tipp: Wenn du auf localhost testest, ändere die Domain im Link von "ressourcen.app" zu "localhost:3000"');
       }
-      
-      // Erstelle Reset-URL mit Code und Email (falls vorhanden)
+      else if (isProductionUrl) {
+        origin = window.location.origin;
+      }
+
       const resetUrl = new URL('/auth/reset', origin);
       resetUrl.searchParams.set('code', code);
       if (email) {
         resetUrl.searchParams.set('email', email);
       }
-      
-      console.log('[Root Page] 🔄 Code parameter detected, redirecting to reset page:', {
-        code: code.substring(0, 20) + '...',
-        email: email || 'not provided',
-        isDev,
-        currentOrigin: window.location.origin,
-        currentHostname: window.location.hostname,
-        isLocalhost,
-        isProductionUrl,
-        targetOrigin: origin,
-        resetUrl: resetUrl.toString()
-      });
-      
-      // Verwende window.location.replace für sofortige Weiterleitung
+
       window.location.replace(resetUrl.toString());
     }
   }, [searchParams]);
-  
-  // Debug: Log current state
-  console.log('Current user state:', { 
-    user: user?.email, 
-    userFullName: userFullName, 
-    userPronunciationHint: userPronunciationHint,
-    featureEnabled: isEnabled('FEATURE_USER_NAME'),
-    envVar: process.env.NEXT_PUBLIC_FEATURE_USER_NAME
-  });
-  
-  // Debug: Log the actual values
-  console.log('User details:', {
-    email: user?.email,
-    fullName: userFullName,
-    pronunciationHint: userPronunciationHint,
-    isLoggedIn: !!user,
-    featureEnabled: isEnabled('FEATURE_USER_NAME')
-  });
-  
-  // Debug: Log sparModus state
-  console.log('SparModus state:', {
-    sparModus: sparModus,
-    type: typeof sparModus
-  });
 
   useEffect(() => {
     setMounted(true);
   }, []);
-  const [isGeneratingStory, setIsGeneratingStory] = useState(false);
-  const [userDataLoaded, setUserDataLoaded] = useState(false);
 
-  // Fetch user's full name from profiles (optional)
+  useEffect(() => {
+    const figureId = searchParams?.get('figure');
+    if (figureId && !appState.resourceFigure) {
+      const allFigures = [...realFigures, ...fictionalFigures];
+      const preselectedFigure = allFigures.find(f => f.id === figureId);
+
+      if (preselectedFigure) {
+        // Determine the correct step based on user authentication and name
+        let targetStep = 1;
+        if (!user) {
+          // Not logged in: go to step 2 (name input - required every time)
+          targetStep = 2;
+        } else if (userDataLoaded) {
+          // Logged in: check if name exists
+          if (!userFullName || userFullName.trim() === '') {
+            targetStep = 2; // Show name form
+          } else {
+            targetStep = 3; // Skip to relationship questions
+          }
+        } else {
+          // Wait for user data to load before deciding
+          return;
+        }
+
+        const ambivalentFigures = ['partner', 'teacher', 'sibling', 'best-friend', 'pet-dog', 'pet-cat'];
+        if (ambivalentFigures.includes(preselectedFigure.id)) {
+          const figureWithPronouns = {
+            ...preselectedFigure,
+            pronouns: preselectedFigure.id === 'best-friend' ? 'sie/ihr' : preselectedFigure.pronouns
+          };
+          setAppState(prev => ({
+            ...prev,
+            resourceFigure: figureWithPronouns,
+            currentStep: targetStep
+          }));
+        } else {
+          setAppState(prev => ({
+            ...prev,
+            resourceFigure: preselectedFigure,
+            currentStep: targetStep
+          }));
+        }
+
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('figure');
+        router.replace(newUrl.pathname + newUrl.search, { scroll: false });
+      }
+    }
+  }, [searchParams, user, userFullName, userDataLoaded, appState.resourceFigure, router]);
+
   useEffect(() => {
     const loadFullName = async () => {
       try {
@@ -223,17 +185,10 @@ function RessourcenAppContent() {
           return;
         }
         setUserFullName((data as any)?.full_name || null);
-        // Parse pronunciation hint to extract just the simple text (format: "hint|stress|stressLetter|shortVowel")
         const rawHint = (data as any)?.pronunciation_hint;
         const parsedHint = rawHint ? rawHint.split('|')[0] : null;
         setUserPronunciationHint(parsedHint);
         setUserDataLoaded(true);
-        console.log('Loaded user data:', {
-          fullName: (data as any)?.full_name,
-          pronunciationHint: rawHint,
-          parsedHint: parsedHint,
-          userDataLoaded: true
-        });
       } catch (e) {
         console.warn('Failed loading user full name');
         setUserFullName(null);
@@ -259,7 +214,6 @@ function RessourcenAppContent() {
     }));
   }, []);
 
-  // New handler for question index changes in step 2
   const handleQuestionIndexChange = useCallback((questionIndex: number) => {
     setAppState(prev => ({
       ...prev,
@@ -282,170 +236,109 @@ function RessourcenAppContent() {
     }));
   }, []);
 
-  const handleStorySave = useCallback(() => {
-    if (appState.audioState?.audioUrl) {
-      URL.revokeObjectURL(appState.audioState.audioUrl);
-    }
-    setAppState(initialAppState);
-  }, [appState.audioState?.audioUrl]);
-
-  const handleStoryDiscard = useCallback(() => {
-    if (appState.audioState?.audioUrl) {
-      URL.revokeObjectURL(appState.audioState.audioUrl);
-    }
-    setAppState(initialAppState);
-  }, [appState.audioState?.audioUrl]);
-
-  // Reset function for header link
   const handleResetToStart = useCallback(() => {
     if (appState.audioState?.audioUrl) {
       URL.revokeObjectURL(appState.audioState.audioUrl);
     }
     setAppState(initialAppState);
+    // Clear anonymous user data on reset (they need to enter name again for each resource)
+    setAnonymousUserName(null);
+    setAnonymousUserPronunciationHint(null);
   }, [appState.audioState?.audioUrl]);
 
-  // Register reset function with context
   useEffect(() => {
     setResetFunction(handleResetToStart);
   }, [setResetFunction, handleResetToStart]);
 
-  // Define canProceed before handleNextStep
-  const canProceed = 
+  const canProceed =
     (appState.currentStep === 1 && appState.resourceFigure) ||
-    (appState.currentStep === 2 && (() => {
-      // In Schritt 2: Prüfe, ob die aktuelle Frage beantwortet ist
+    (appState.currentStep === 2) || 
+    (appState.currentStep === 3 && (() => {
       const currentAnswer = appState.questionAnswers.find(a => {
-        const questionId = appState.currentQuestionIndex + 1; // Fragen sind 1-indexiert
+        const questionId = appState.currentQuestionIndex + 1;
         return a.questionId === questionId;
       });
-      
-      // Normale Behandlung für alle Fragen
+
       const selectedBlocksLength = currentAnswer?.selectedBlocks?.length || 0;
-      const hasEnoughAnswers = selectedBlocksLength >= 2;
-      
+      const hasEnoughAnswers = selectedBlocksLength >= 3;
+
       return hasEnoughAnswers;
     })()) ||
-    (appState.currentStep === 3) || // NamePronunciationForm (always can proceed)
     (appState.currentStep === 4 && appState.selectedVoice) ||
     (appState.currentStep === 5 && appState.selectedVoice) ||
     (appState.currentStep === 6 && appState.selectedVoice);
 
-  console.log('canProceed calculation:', {
-    currentStep: appState.currentStep,
-    resourceFigure: appState.resourceFigure,
-    canProceed,
-    step1Check: appState.currentStep === 1 && appState.resourceFigure,
-    step4Check: appState.currentStep === 4 && appState.generatedStory.trim().length > 0,
-    generatedStoryLength: appState.generatedStory?.length || 0
-  });
-
   const handleNextStep = useCallback(() => {
-    console.log('handleNextStep called', { 
-      currentStep: appState.currentStep, 
-      resourceFigure: appState.resourceFigure,
-      questionAnswers: appState.questionAnswers.length
-    });
-    
+
     const isStep1Complete = appState.currentStep === 1 && appState.resourceFigure;
-    
-    // Bestimme die erwartete Anzahl von Fragen basierend auf der Ressource
-    const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6;
-    
-    const isStep2Complete = appState.currentStep === 2 &&
-      appState.questionAnswers.length === expectedQuestionCount &&
-      appState.questionAnswers.every(a => a.answer.trim().length > 0 || a.selectedBlocks.length > 0);
-    // Step 3 is NamePronunciationForm (conditionally shown)
-    const isStep3Complete = appState.currentStep === 3;
+
     const isStep4Complete = appState.currentStep === 4 && appState.selectedVoice;
     const isStep5Complete = appState.currentStep === 5 && appState.selectedVoice;
     const isStep6Complete = appState.currentStep === 6 && appState.selectedVoice;
-
-    console.log('Step completion checks:', {
-      isStep1Complete,
-      isStep2Complete,
-      isStep3Complete,
-      isStep4Complete,
-      isStep5Complete,
-      isStep6Complete
-    });
-    
     if (isStep1Complete) {
-      // Paywall-Prüfung: Wenn User bereits 1 KI-generierte Ressource hat, prüfe Zugang BEVOR Step 2 startet
-      // Paywall ist standardmäßig aktiviert (nur deaktiviert wenn PAYWALL_DISABLED explizit auf true gesetzt ist)
       const paywallDisabled = isEnabled('PAYWALL_DISABLED');
-      const paywallEnabled = !paywallDisabled; // Standardmäßig aktiviert
-      
-      console.log(`[handleNextStep] Paywall check: disabled=${paywallDisabled}, enabled=${paywallEnabled}`);
-      
+      const paywallEnabled = !paywallDisabled;
+
       if (user && paywallEnabled) {
-        console.log('[handleNextStep] Step 1 complete, checking if user can create resource...');
-        
+
         const checkPaywall = async () => {
           try {
-            // WICHTIG: Zähle nur KI-generierte Ressourcen (ignoriere Audio-only)
-            // Gleiche Logik wie in canCreateResource
             const { data: existingStories } = await supabase
               .from('saved_stories')
               .select('id, is_audio_only')
               .eq('user_id', user.id);
-            
-            // Zähle nur KI-generierte Ressourcen (nicht Audio-only)
+
             const aiResourceCount = existingStories?.filter((s: any) => !s.is_audio_only).length || 0;
-            const totalResourceCount = existingStories?.length || 0;
-            console.log(`[handleNextStep] User has ${totalResourceCount} total resource(s), ${aiResourceCount} AI-generated`);
-            
-            // 1. KI-Ressource ist gratis (immer erlaubt)
             if (aiResourceCount === 0) {
-              console.log('[handleNextStep] First AI resource - allowing progression to step 2');
-              setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
+              if (!userDataLoaded) {
+                return;
+              }
+
+              if (!userFullName || userFullName.trim() === '') {
+                setAppState(prev => ({ ...prev, currentStep: 2 }));
+              } else {
+                setAppState(prev => ({ ...prev, currentStep: 3 }));
+              }
             } else {
-              // Ab der 2. KI-Ressource: Prüfe Zugang über canCreateResource
-              console.log(`[handleNextStep] User has ${aiResourceCount} AI-generated resource(s), checking access...`);
               const canCreate = await canCreateResource(user.id);
-              
-              console.log(`[handleNextStep] canCreateResource returned: ${canCreate} for user ${user.id}`);
-              
+
               if (!canCreate) {
-                console.log('[handleNextStep] User cannot create more resources - showing paywall');
                 setShowPaywall(true);
-                // Nicht weiterleiten - Paywall blockiert
                 return;
               } else {
-                console.log('[handleNextStep] User has access - allowing progression to step 2');
-                // WICHTIG: Prüfe nochmal explizit, ob User wirklich ein aktives Abo hat
-                // Falls canCreateResource fälschlicherweise true zurückgibt
                 const { hasActiveAccess } = await import('@/lib/access');
                 const hasAccess = await hasActiveAccess(user.id);
-                console.log(`[handleNextStep] hasActiveAccess check: ${hasAccess}`);
-                
+
                 if (!hasAccess) {
-                  console.log('[handleNextStep] User does NOT have active access - showing paywall despite canCreateResource=true');
                   setShowPaywall(true);
                   return;
                 }
-                
-                setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
+
+                if (!userDataLoaded) {
+                  return;
+                }
+
+                if (!userFullName || userFullName.trim() === '') {
+                  setAppState(prev => ({ ...prev, currentStep: 2 }));
+                } else {
+                  setAppState(prev => ({ ...prev, currentStep: 3 }));
+                }
               }
             }
           } catch (error) {
             console.error('[handleNextStep] Error checking paywall:', error);
-            // Bei Fehler: Blockiere Weiterleitung (Fail-Closed für Sicherheit)
             setShowPaywall(true);
           }
         };
-        
+
         checkPaywall();
         return;
       } else if (!user && paywallEnabled) {
-        // Unauthenticated User: Prüfe Browser-Fingerprint Rate-Limiting
-        console.log('[handleNextStep] Unauthenticated user - checking browser fingerprint rate limit...');
-        
+
         const checkAnonymousRateLimit = async () => {
           try {
             const fingerprint = await getOrCreateBrowserFingerprint();
-            console.log('[handleNextStep] Browser fingerprint:', fingerprint);
-            
-            // Prüfe Rate-Limit über API
+
             const response = await fetch('/api/check-anonymous-rate-limit', {
               method: 'POST',
               headers: {
@@ -455,96 +348,69 @@ function RessourcenAppContent() {
                 browserFingerprint: fingerprint,
               }),
             });
-            
+
             if (!response.ok) {
               const errorData = await response.json();
-              console.log('[handleNextStep] Rate limit exceeded:', errorData);
               setShowPaywall(true);
               return;
             }
-            
-            // Rate-Limit OK: Erlaube Weiterleitung
-            console.log('[handleNextStep] Rate limit OK - allowing progression to step 2');
-            setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
+
+            // Anonymous users always go to step 2 for name input (every resource creation)
+            setAppState(prev => ({ ...prev, currentStep: 2 }));
           } catch (error) {
             console.error('[handleNextStep] Error checking anonymous rate limit:', error);
-            // Bei Fehler: Erlaube Weiterleitung (Fail-Open für bessere UX)
-            setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
+            // Still go to step 2 for name input even on error
+            setAppState(prev => ({ ...prev, currentStep: 2 }));
           }
         };
-        
+
         checkAnonymousRateLimit();
         return;
       } else {
-        // Paywall deaktiviert oder nicht eingeloggt: Erlaube Weiterleitung
-        console.log('Moving from step', appState.currentStep, 'to', appState.currentStep + 1);
-        setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
+        if (!user) {
+          // Anonymous users always go to step 2 for name input
+          setAppState(prev => ({ ...prev, currentStep: 2 }));
+        } else {
+          if (!userDataLoaded) {
+            return;
+          }
+
+          if (!userFullName || userFullName.trim() === '') {
+            setAppState(prev => ({ ...prev, currentStep: 2 }));
+          } else {
+            setAppState(prev => ({ ...prev, currentStep: 3 }));
+          }
+        }
         return;
       }
     }
 
-        // In Schritt 2: Erlaube Navigation zwischen Fragen oder zum nächsten Schritt
-        if (appState.currentStep === 2) {
-          console.log('In step 2 - checking if we can proceed to next step');
+    if (appState.currentStep === 2) {
+      setAppState(prev => ({ ...prev, currentStep: 3 }));
+      return;
+    }
 
-          // Prüfe, ob die aktuelle Frage mindestens 2 Antworten hat
-          const currentAnswer = appState.questionAnswers[appState.currentQuestionIndex];
-          if (!currentAnswer || currentAnswer.selectedBlocks.length < 2) {
-            console.log('Current question needs at least 2 answers');
-            return;
-          }
-
-          // Prüfe, ob alle Fragen beantwortet sind
-          const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6;
-          const allQuestionsAnswered = appState.questionAnswers.length === expectedQuestionCount &&
-            appState.questionAnswers.every(a => a.answer.trim().length > 0 || a.selectedBlocks.length >= 2);
-
-          if (allQuestionsAnswered) {
-            // If user is not logged in, skip step 3 (no DB call needed)
-            if (!user) {
-              console.log('All questions answered, user not logged in, skipping name form and going directly to step 4 (voice selection)');
-              setAppState(prev => ({ ...prev, currentStep: 4, currentQuestionIndex: 0 }));
-              return;
-            }
-
-            // User is logged in - wait for user data to load before deciding
-            if (!userDataLoaded) {
-              console.log('User data not loaded yet, waiting...');
-              return;
-            }
-
-            // Check if user already has a name stored - if yes, skip to voice selection (step 4)
-            console.log('Checking name data:', {
-              userFullName,
-              userPronunciationHint,
-              userDataLoaded,
-              hasName: !!(userFullName && userFullName.trim() !== '')
-            });
-            if (!userFullName || userFullName.trim() === '') {
-              console.log('All questions answered, no user name, moving to step 3 (name form)');
-              setAppState(prev => ({ ...prev, currentStep: 3, currentQuestionIndex: 0 }));
-            } else {
-              console.log('All questions answered, user has name, skipping name form and going directly to step 4 (voice selection)');
-              setAppState(prev => ({ ...prev, currentStep: 4, currentQuestionIndex: 0 }));
-            }
-          } else {
-            console.log('Moving to next question');
-            // Navigiere zur nächsten Frage
-            const nextQuestionIndex = (appState.currentQuestionIndex + 1) % expectedQuestionCount;
-            setAppState(prev => ({ ...prev, currentQuestionIndex: nextQuestionIndex }));
-          }
-          return;
-        }
-
-    // Step 3 (NamePronunciationForm) is handled by the form's onNext callback
     if (appState.currentStep === 3) {
-      console.log('Step 3 complete, moving to step 4 (voice selection)');
-      setAppState(prev => ({ ...prev, currentStep: 4 }));
+
+      const currentAnswer = appState.questionAnswers[appState.currentQuestionIndex];
+      if (!currentAnswer || currentAnswer.selectedBlocks.length < 2) {
+        return;
+      }
+
+      const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6;
+      const allQuestionsAnswered = appState.questionAnswers.length === expectedQuestionCount &&
+        appState.questionAnswers.every(a => a.answer.trim().length > 0 || a.selectedBlocks.length >= 2);
+
+      if (allQuestionsAnswered) {
+        setAppState(prev => ({ ...prev, currentStep: 4, currentQuestionIndex: 0 }));
+      } else {
+        const nextQuestionIndex = (appState.currentQuestionIndex + 1) % expectedQuestionCount;
+        setAppState(prev => ({ ...prev, currentQuestionIndex: nextQuestionIndex }));
+      }
       return;
     }
 
     if (isStep4Complete || isStep5Complete || isStep6Complete) {
-      console.log('Moving to next step');
       setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
     }
   }, [appState.currentStep, appState.resourceFigure, appState.questionAnswers, appState.generatedStory, appState.selectedVoice, userFullName, userDataLoaded]);
@@ -553,53 +419,37 @@ function RessourcenAppContent() {
     setAppState(prev => {
       let newStep = Math.max(1, prev.currentStep - 1);
 
-      // When going back from Step 4 (VoiceSelection)
-      // If user is not logged in, go back to Step 2 (skipping name form)
-      // If user is logged in and has a name, go back to Step 2 (skipping name form)
-      // If user is logged in but doesn't have a name, go back to Step 3 (name form)
+      if (prev.currentStep === 3) {
+        // Always go back to step 2 (name form) for both logged-in and anonymous users
+        // For logged-in users with name already saved, they can skip through step 2 quickly
+        // For anonymous users, they always see step 2
+        newStep = 2;
+      }
+
       if (prev.currentStep === 4) {
-        newStep = (!user || (userFullName && userFullName.trim() !== '')) ? 2 : 3;
+        newStep = 3;
       }
 
       return {
         ...prev,
         currentStep: newStep,
-        // Reset question index when entering step 2
-        currentQuestionIndex: newStep === 2 ? 0 : prev.currentQuestionIndex
+        currentQuestionIndex: newStep === 3 ? 0 : prev.currentQuestionIndex
       };
     });
   }, [user, userFullName]);
 
   const handleUserDataUpdate = useCallback((fullName: string, pronunciationHint: string | null) => {
-    setUserFullName(fullName || null);
-    setUserPronunciationHint(pronunciationHint || null);
-  }, []);
-
-  const handleStepClick = useCallback((stepNumber: number) => {
-    // Bestimme die erwartete Anzahl von Fragen basierend auf der Ressource
-    const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6;
-
-    const canNavigate =
-      stepNumber === 1 ||
-      (stepNumber === 2 && appState.resourceFigure) ||
-      (stepNumber === 3 && appState.resourceFigure && appState.questionAnswers.length === expectedQuestionCount) ||
-      (stepNumber === 4 && appState.resourceFigure && appState.questionAnswers.length === expectedQuestionCount) ||
-      (stepNumber === 5 && appState.resourceFigure && appState.questionAnswers.length === expectedQuestionCount && appState.selectedVoice) ||
-      (stepNumber === 6 && appState.resourceFigure && appState.questionAnswers.length === expectedQuestionCount && appState.selectedVoice);
-
-    if (canNavigate) {
-      setAppState(prev => ({
-        ...prev,
-        currentStep: stepNumber,
-        // Reset question index when navigating to step 2
-        currentQuestionIndex: stepNumber === 2 ? 0 : prev.currentQuestionIndex
-      }));
+    if (user) {
+      // Logged-in user: update persistent state
+      setUserFullName(fullName || null);
+      setUserPronunciationHint(pronunciationHint || null);
+    } else {
+      // Anonymous user: update temporary state
+      setAnonymousUserName(fullName || null);
+      setAnonymousUserPronunciationHint(pronunciationHint || null);
     }
-  }, [appState.resourceFigure, appState.questionAnswers, appState.generatedStory, appState.selectedVoice]);
+  }, [user]);
 
-  const showNavigation = appState.currentStep > 1 || (canProceed && appState.currentStep <= 6);
-
-  // Starte Story-Erzeugung im Hintergrund ab Schritt 5 (Audio Playback), wenn noch leer UND eine Stimme ausgewählt wurde
   useEffect(() => {
     const run = async () => {
       if (!appState.resourceFigure) return;
@@ -607,50 +457,21 @@ function RessourcenAppContent() {
         setIsGeneratingStory(true);
         setStoryGenerationError(null); // Clear previous errors
         try {
+          // Use the appropriate name based on whether user is logged in
+          const effectiveUserName = user
+            ? userFullName
+            : anonymousUserName;
+          const effectivePronunciationHint = user
+            ? userPronunciationHint
+            : anonymousUserPronunciationHint;
+
           const requestBody = {
             selectedFigure: appState.resourceFigure,
             questionAnswers: appState.questionAnswers,
-            userName: isEnabled('FEATURE_USER_NAME') ? userFullName || undefined : undefined,
-            userPronunciationHint: isEnabled('FEATURE_USER_NAME') ? userPronunciationHint || undefined : undefined,
+            userName: isEnabled('FEATURE_USER_NAME') ? effectiveUserName || undefined : undefined,
+            userPronunciationHint: isEnabled('FEATURE_USER_NAME') ? effectivePronunciationHint || undefined : undefined,
             sparModus: sparModus
           };
-
-      console.log('Story generation request:', {
-        featureEnabled: isEnabled('FEATURE_USER_NAME'),
-        userFullName: userFullName,
-        userPronunciationHint: userPronunciationHint,
-        sparModus: sparModus,
-        requestBody: JSON.stringify(requestBody, null, 2)
-      });
-
-      console.log('Detailed request body:', JSON.stringify(requestBody, null, 2));
-
-      console.log('Story generation details:', {
-        userName: requestBody.userName,
-        userPronunciationHint: requestBody.userPronunciationHint,
-        sparModus: requestBody.sparModus,
-        willUseName: !!requestBody.userName,
-        willUseHint: !!requestBody.userPronunciationHint,
-        selectedFigure: requestBody.selectedFigure?.name,
-        questionAnswersCount: requestBody.questionAnswers?.length
-      });
-
-      console.log('User state check:', {
-        isLoggedIn: !!user,
-        userEmail: user?.email,
-        userFullName: userFullName,
-        userPronunciationHint: userPronunciationHint,
-        featureEnabled: isEnabled('FEATURE_USER_NAME'),
-        willSendUserName: isEnabled('FEATURE_USER_NAME') ? userFullName || undefined : undefined,
-        willSendPronunciationHint: isEnabled('FEATURE_USER_NAME') ? userPronunciationHint || undefined : undefined
-      });
-
-          console.log('SparModus check:', {
-            sparModus: sparModus,
-            requestBodySparModus: requestBody.sparModus,
-            isTrue: sparModus === true,
-            isFalse: sparModus === false
-          });
 
           const response = await fetch('/api/generate-story', {
             method: 'POST',
@@ -681,28 +502,7 @@ function RessourcenAppContent() {
       }
     };
     run();
-  }, [appState.currentStep, appState.resourceFigure, appState.questionAnswers, appState.selectedVoice, appState.generatedStory, isGeneratingStory, handleStoryGenerated, userFullName, userPronunciationHint, sparModus]);
-
-  // Helper function to get current step display info
-  const getCurrentStepInfo = () => {
-    if (appState.currentStep === 2) {
-      // Bestimme die Anzahl der Fragen basierend auf der Ressource
-      const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6;
-      
-      return {
-        title: `Question ${appState.currentQuestionIndex + 1} of ${expectedQuestionCount}`,
-        subtitle: "Relationship Questions",
-        icon: "💝"
-      };
-    }
-    
-    const currentStepData = steps[appState.currentStep - 1];
-    return {
-      title: `Step ${appState.currentStep} of ${steps.length}`,
-      subtitle: currentStepData.title,
-      icon: currentStepData.icon
-    };
-  };
+  }, [appState.currentStep, appState.resourceFigure, appState.questionAnswers, appState.selectedVoice, appState.generatedStory, isGeneratingStory, handleStoryGenerated, userFullName, userPronunciationHint, anonymousUserName, anonymousUserPronunciationHint, sparModus, user]);
 
   useEffect(() => {
     return () => {
@@ -722,25 +522,23 @@ function RessourcenAppContent() {
   }
 
   return (
-   <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
 
-        {/* Mobile Navigation - Weiter Button (nur ab Schritt 2, NICHT bei Audio/Schritt 4) */}
-        {appState.currentStep === 2 && (
-          <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
+      {/* Mobile Navigation - Weiter Button (nur ab Schritt 3, NICHT bei Audio/Schritt 5) */}
+      {appState.currentStep === 3 && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
           <motion.button
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: canProceed ? 1 : 0.5 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => {
-              console.log('Mobile button clicked', { canProceed, currentStep: appState.currentStep });
               handleNextStep();
             }}
             disabled={!canProceed}
-            className={`w-full px-4 py-3 text-white rounded-lg transition-all text-base font-semibold flex items-center justify-center gap-2 shadow-lg max-sm:text-sm ${
-              canProceed 
-                ? 'cursor-pointer' 
+            className={`w-full px-4 py-3 text-white rounded-lg transition-all text-base font-semibold flex items-center justify-center gap-2 shadow-lg max-sm:text-sm ${canProceed
+                ? 'cursor-pointer'
                 : 'cursor-not-allowed'
-            }`}
+              }`}
             style={{
               backgroundColor: 'rgb(217, 119, 6)',
               opacity: canProceed ? 1 : 0.5,
@@ -750,8 +548,8 @@ function RessourcenAppContent() {
             Weiter
             <ChevronRight className="w-5 h-5" />
           </motion.button>
-          </div>
-        )}
+        </div>
+      )}
 
       {/* Desktop Layout - OHNE Sidebar */}
       <div className="min-h-screen relative">
@@ -766,89 +564,89 @@ function RessourcenAppContent() {
               transition={{ duration: 0.15 }}
               className="h-full"
             >
-                {appState.currentStep === 1 && (
-                  <ResourceFigureSelection
-                    selectedFigure={appState.resourceFigure}
-                    onFigureSelect={handleResourceFigureSelect}
-                    onNext={handleNextStep}
-                  />
-                )}
+              {appState.currentStep === 1 && (
+                <ResourceFigureSelection
+                  selectedFigure={appState.resourceFigure}
+                  onFigureSelect={handleResourceFigureSelect}
+                  onNext={handleNextStep}
+                />
+              )}
 
-                {appState.currentStep === 2 && appState.resourceFigure && (
-                  <RelationshipSelection
-                    selectedFigure={appState.resourceFigure}
-                    questionAnswers={appState.questionAnswers}
-                    onAnswersChange={handleQuestionAnswersChange}
-                    onNext={handleNextStep}
-                    currentQuestionIndex={appState.currentQuestionIndex}
-                    onQuestionIndexChange={handleQuestionIndexChange}
-                  />
-                )}
+              {appState.currentStep === 2 && appState.resourceFigure && (
+                <NamePronunciationForm
+                  onNext={handleNextStep}
+                  onBack={handlePreviousStep}
+                  selectedFigure={appState.resourceFigure}
+                  userFullName={user ? userFullName : anonymousUserName}
+                  userPronunciationHint={user ? userPronunciationHint : anonymousUserPronunciationHint}
+                  onUserDataUpdate={handleUserDataUpdate}
+                />
+              )}
 
-                {appState.currentStep === 3 && appState.resourceFigure && (
-                  <NamePronunciationForm
-                    onNext={handleNextStep}
-                    onBack={handlePreviousStep}
-                    selectedFigure={appState.resourceFigure}
-                    userFullName={userFullName}
-                    userPronunciationHint={userPronunciationHint}
-                    onUserDataUpdate={handleUserDataUpdate}
-                  />
-                )}
+              {appState.currentStep === 3 && appState.resourceFigure && (
+                <RelationshipSelection
+                  selectedFigure={appState.resourceFigure}
+                  questionAnswers={appState.questionAnswers}
+                  onAnswersChange={handleQuestionAnswersChange}
+                  onNext={handleNextStep}
+                  currentQuestionIndex={appState.currentQuestionIndex}
+                  onQuestionIndexChange={handleQuestionIndexChange}
+                />
+              )}
 
-                {appState.currentStep === 4 && appState.resourceFigure && (
-                  <VoiceSelection
-                    onVoiceSelect={(voiceId) => {
-                      setAppState(prev => ({ ...prev, selectedVoice: voiceId }));
-                    }}
-                    onNext={handleNextStep}
-                    onPrevious={handlePreviousStep}
-                    selectedVoiceId={appState.selectedVoice}
-                    resourceFigure={appState.resourceFigure}
-                    onSparModusChange={setSparModus}
-                  />
-                )}
+              {appState.currentStep === 4 && appState.resourceFigure && (
+                <VoiceSelection
+                  onVoiceSelect={(voiceId) => {
+                    setAppState(prev => ({ ...prev, selectedVoice: voiceId }));
+                  }}
+                  onNext={handleNextStep}
+                  onPrevious={handlePreviousStep}
+                  selectedVoiceId={appState.selectedVoice}
+                  resourceFigure={appState.resourceFigure}
+                  onSparModusChange={setSparModus}
+                />
+              )}
 
-                {appState.currentStep === 5 && appState.resourceFigure && appState.selectedVoice && (
-                  <>
-                    {storyGenerationError && (
-                      <div className="max-w-4xl mx-auto mb-6 p-6 bg-red-50 border border-red-200 rounded-2xl">
-                        <div className="flex items-start gap-4">
-                          <div className="flex-shrink-0 text-3xl">⚠️</div>
-                          <div className="flex-1">
-                            <h3 className="text-lg font-semibold text-red-900 mb-2">
-                              Fehler bei der Story-Generierung
-                            </h3>
-                            <p className="text-red-700 mb-4">
-                              {storyGenerationError}
-                            </p>
-                            <button
-                              onClick={() => {
-                                setStoryGenerationError(null);
-                                setAppState(prev => ({ ...prev, generatedStory: '' }));
-                              }}
-                              className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                            >
-                              Erneut versuchen
-                            </button>
-                          </div>
+              {appState.currentStep === 5 && appState.resourceFigure && appState.selectedVoice && (
+                <>
+                  {storyGenerationError && (
+                    <div className="max-w-4xl mx-auto mb-6 p-6 bg-red-50 border border-red-200 rounded-2xl">
+                      <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0 text-3xl">⚠️</div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-red-900 mb-2">
+                            Fehler bei der Story-Generierung
+                          </h3>
+                          <p className="text-red-700 mb-4">
+                            {storyGenerationError}
+                          </p>
+                          <button
+                            onClick={() => {
+                              setStoryGenerationError(null);
+                              setAppState(prev => ({ ...prev, generatedStory: '' }));
+                            }}
+                            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                          >
+                            Erneut versuchen
+                          </button>
                         </div>
                       </div>
-                    )}
-                    <AudioPlayback
-                      selectedFigure={appState.resourceFigure}
-                      generatedStory={appState.generatedStory}
-                      onNext={handleNextStep}
-                      audioState={appState.audioState}
-                      onAudioStateChange={handleAudioStateChange}
-                      selectedVoiceId={appState.selectedVoice}
-                      sparModus={sparModus}
-                      questionAnswers={appState.questionAnswers}
-                      onShowAccountCreated={() => setShowAccountCreated(true)}
-                      storyGenerationError={storyGenerationError}
-                    />
-                  </>
-                )}
+                    </div>
+                  )}
+                  <AudioPlayback
+                    selectedFigure={appState.resourceFigure}
+                    generatedStory={appState.generatedStory}
+                    onNext={handleNextStep}
+                    audioState={appState.audioState}
+                    onAudioStateChange={handleAudioStateChange}
+                    selectedVoiceId={appState.selectedVoice}
+                    sparModus={sparModus}
+                    questionAnswers={appState.questionAnswers}
+                    onShowAccountCreated={() => setShowAccountCreated(true)}
+                    storyGenerationError={storyGenerationError}
+                  />
+                </>
+              )}
 
             </motion.div>
           </AnimatePresence>
@@ -857,19 +655,19 @@ function RessourcenAppContent() {
 
 
       {/* Saved Stories Modal */}
-      <SavedStoriesModal 
-        isOpen={showSavedStories} 
-        onClose={() => setShowSavedStories(false)} 
+      <SavedStoriesModal
+        isOpen={showSavedStories}
+        onClose={() => setShowSavedStories(false)}
       />
 
       {/* Account Created Modal */}
       {showAccountCreated && (
-        <AccountCreated 
+        <AccountCreated
           onClose={() => {
             setShowAccountCreated(false);
             // Weiterleitung zum Dashboard
             window.location.href = '/dashboard';
-          }} 
+          }}
         />
       )}
 
@@ -886,8 +684,12 @@ function RessourcenAppContent() {
 
 export default function RessourcenApp() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Laden...</div>}>
-      <RessourcenAppContent />
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
+        <div className="text-amber-600">Lade...</div>
+      </div>
+    }>
+      <RessourcenAppInner />
     </Suspense>
   );
 }

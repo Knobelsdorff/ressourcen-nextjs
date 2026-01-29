@@ -243,7 +243,8 @@ export function getQuestionsWithPronouns(selectedFigure: ResourceFigure) {
         if (block === "Du wirst deinen Weg finden") {
           return "Ich traue dir zu, deinen Weg zu gehen – und ich begleite dich.";
         }
-        if (block === "Du bist mein größtes Glück") {
+        // Ausnahme für Hund: Die Formulierung wurde bereits durch "Ich werde immer auf dich aufpassen, egal was ist" ersetzt
+        if (block === "Du bist mein größtes Glück" && selectedFigure.id !== "pet-dog") {
           return "Ich halte dich, auch wenn es schwer wird. Du musst das nicht alleine tragen.";
         }
         return block;

@@ -356,4 +356,12 @@
   body {
     @apply bg-background text-foreground;
     }
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Custom Overlay für Mobile Menu Sheet */
+[data-radix-dialog-overlay][data-state="open"] {
+  background-color: rgba(0, 0, 0, 0.2) !important;
 }

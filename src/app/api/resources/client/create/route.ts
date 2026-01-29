@@ -348,24 +348,46 @@ export async function POST(request: NextRequest) {
               // Sende Bestätigungs-Email an Admin
               try {
                 const { sendAdminConfirmationEmail } = await import('@/lib/email');
-                const adminEmail = user.email;
-                if (adminEmail) {
-                  const adminConfirmationResult = await sendAdminConfirmationEmail({
-                    to: adminEmail,
-                    clientEmail: normalizedClientEmail,
-                    resourceNames: [resourceName.trim()],
-                    success: true,
-                  });
+                
+                // Verwende feste Admin-E-Mail-Adresse aus Umgebungsvariable oder Session-E-Mail als Fallback
+                const adminEmailsList = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean);
+                const primaryAdminEmail = adminEmailsList[0] || 'safe@ressourcen.app'; // Fallback zu safe@ressourcen.app
+                const sessionAdminEmail = user.email; // Session-E-Mail als zusätzliche Info
+                
+                console.log(`[API/resources/client/create] 📧 Sending admin confirmation to: ${primaryAdminEmail} (session: ${sessionAdminEmail})`);
+                
+                // Sende an primäre Admin-E-Mail
+                const adminConfirmationResult = await sendAdminConfirmationEmail({
+                  to: primaryAdminEmail,
+                  clientEmail: normalizedClientEmail,
+                  resourceNames: [resourceName.trim()],
+                  success: true,
+                });
+                
+                if (adminConfirmationResult.success) {
+                  console.log(`[API/resources/client/create] ✅ Admin confirmation email sent successfully to: ${primaryAdminEmail}`);
+                } else {
+                  console.error(`[API/resources/client/create] ❌ Failed to send admin confirmation to ${primaryAdminEmail}:`, adminConfirmationResult.error);
                   
-                  if (adminConfirmationResult.success) {
-                    console.log('[API/resources/client/create] ✅ Admin confirmation email sent to:', adminEmail);
-                  } else {
-                    console.error('[API/resources/client/create] ❌ Failed to send admin confirmation:', adminConfirmationResult.error);
+                  // Fallback: Versuche Session-E-Mail, wenn primäre E-Mail fehlschlägt
+                  if (sessionAdminEmail && sessionAdminEmail !== primaryAdminEmail) {
+                    console.log(`[API/resources/client/create] 🔄 Trying fallback admin email: ${sessionAdminEmail}`);
+                    const fallbackResult = await sendAdminConfirmationEmail({
+                      to: sessionAdminEmail,
+                      clientEmail: normalizedClientEmail,
+                      resourceNames: [resourceName.trim()],
+                      success: true,
+                    });
+                    if (fallbackResult.success) {
+                      console.log(`[API/resources/client/create] ✅ Admin confirmation email sent to fallback: ${sessionAdminEmail}`);
+                    } else {
+                      console.error(`[API/resources/client/create] ❌ Fallback admin email also failed:`, fallbackResult.error);
+                    }
                   }
                 }
               } catch (adminEmailError: any) {
-                console.error('[API/resources/client/create] Error sending admin confirmation:', adminEmailError);
-                // Fehler ist nicht kritisch
+                console.error('[API/resources/client/create] ❌ Error sending admin confirmation email:', adminEmailError);
+                // Fehler ist nicht kritisch für den Hauptprozess, aber sollte geloggt werden
               }
             } else {
               console.error('[API/resources/client/create] ❌ Failed to send resource ready email:', emailResult.error);
@@ -373,16 +395,18 @@ export async function POST(request: NextRequest) {
               // Sende Fehler-Bestätigung an Admin
               try {
                 const { sendAdminConfirmationEmail } = await import('@/lib/email');
-                const adminEmail = user.email;
-                if (adminEmail) {
-                  await sendAdminConfirmationEmail({
-                    to: adminEmail,
-                    clientEmail: normalizedClientEmail,
-                    resourceNames: [resourceName.trim()],
-                    success: false,
-                    error: emailResult.error,
-                  });
-                }
+                
+                // Verwende feste Admin-E-Mail-Adresse aus Umgebungsvariable
+                const adminEmailsList = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean);
+                const primaryAdminEmail = adminEmailsList[0] || 'safe@ressourcen.app';
+                
+                await sendAdminConfirmationEmail({
+                  to: primaryAdminEmail,
+                  clientEmail: normalizedClientEmail,
+                  resourceNames: [resourceName.trim()],
+                  success: false,
+                  error: emailResult.error,
+                });
               } catch (adminEmailError: any) {
                 console.error('[API/resources/client/create] Error sending admin error notification:', adminEmailError);
               }

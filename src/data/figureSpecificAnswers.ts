@@ -274,16 +274,16 @@ export const figureSpecificData: FigureSpecificData = {
         "Verstehe mich weiterhin so gut",
         "Erinnere mich an meinen Wert",
         "Schenk mir weiterhin deine Liebe",
-        "Bleib gesund und glücklich",
+        "Bleib immer bei mir, egal was ist",
         "Lass mich immer bei dir willkommen sein"
       ]
     },
     6: {
       question: "Was würde sie dir idealerweise sagen?",
       prompt: "Teile die liebevollen Sätze, die deine Mama dir sagen würde.",
-      example: "Du bist mein Schatz und ich liebe dich bedingungslos.",
+      example: "Du bist mein Schatz und ich liebe dich über alles.",
       blocks: [
-        "Du bist mein Schatz und ich liebe dich bedingungslos",
+        "Du bist mein Schatz und ich liebe dich über alles",
         "Du bist genau richtig, so wie du bist",
         "Ich bin immer für dich da",
         "Ich bin so stolz auf dich",
@@ -448,16 +448,16 @@ export const figureSpecificData: FigureSpecificData = {
         "Verstehe mich weiterhin so gut",
         "Erinnere mich an meinen Wert",
         "Schenk mir weiterhin deine bedingungslose Liebe",
-        "Bleib gesund und glücklich",
+        "Bleib immer bei mir, egal was ist",
         "Lass mich immer bei dir willkommen sein"
       ]
     },
     6: {
       question: "Was würde er/sie dir idealerweise sagen?",
       prompt: "Teile die liebevollen Sätze, die dein Partner/deine Partnerin dir sagen würde.",
-      example: "Du bist mein Schatz und ich liebe dich bedingungslos.",
+      example: "Du bist mein Schatz und ich liebe dich über alles.",
       blocks: [
-        "Du bist mein Schatz und ich liebe dich bedingungslos",
+        "Du bist mein Schatz und ich liebe dich über alles",
         "Du bist genau richtig, so wie du bist",
         "Ich bin immer für dich da, egal was passiert",
         "Ich halte dich, auch wenn es schwer wird. Du musst das nicht alleine tragen.",
@@ -535,7 +535,7 @@ export const figureSpecificData: FigureSpecificData = {
         "Verstehe mich weiterhin so gut",
         "Erinnere mich an meine Stärken",
         "Schenk mir weiterhin deine Freundschaft",
-        "Bleib gesund und glücklich",
+        "Bleib immer bei mir, egal was ist",
         "Lass mich immer bei dir willkommen sein"
       ]
     },
@@ -622,7 +622,7 @@ export const figureSpecificData: FigureSpecificData = {
         "Verstehe mich weiterhin so gut",
         "Erinnere mich an meine Fähigkeiten",
         "Schenk mir weiterhin deine Weisheit",
-        "Bleib gesund und glücklich",
+        "Bleib immer bei mir, egal was ist",
         "Lass mich immer bei dir willkommen sein"
       ]
     },
@@ -707,7 +707,7 @@ export const figureSpecificData: FigureSpecificData = {
         "Bleib immer so ruhig und tröstend",
         "Sei immer da, wenn ich dich brauche",
         "Schenk mir weiterhin deine Gelassenheit",
-        "Bleib gesund und glücklich",
+        "Bleib immer bei mir, egal was ist",
         "Lass mich immer bei dir willkommen sein",
         "Bleib so anmutig und weise",
         "Lass mich immer dein Freund sein"
@@ -796,7 +796,7 @@ export const figureSpecificData: FigureSpecificData = {
         "Verstehe mich weiterhin so gut",
         "Erinnere mich an meine Stärken",
         "Schenk mir weiterhin deine Verbundenheit",
-        "Bleib gesund und glücklich",
+        "Bleib immer bei mir, egal was ist",
         "Lass mich immer bei dir willkommen sein"
       ]
     },
@@ -1117,22 +1117,22 @@ export const figureSpecificData: FigureSpecificData = {
         "Er/sie liegt eng an mir und wärmt mich",
         "Er/sie folgt mir überall hin",
         "Er/sie schaut mich mit treuen Augen an",
-        "Er/sie springt freudig auf, wenn ich komme",
+        "Er/sie springt sofort auf, um für mich da zu sein",
         "Er/sie beschützt mich vor Gefahren"
       ]
     },
     4: {
       question: "Durch was würdest du dich von ihm/ihr geliebt fühlen?",
       prompt: "Beschreibe, was dein Hund tut, um dir seine bedingungslose Liebe zu zeigen.",
-      example: "Er/sie glaubt an mich und zeigt es mir jeden Tag.",
+      example: "Er/sie stellt sich schützend vor mich, wenn eine Bedrohung erscheint.",
       blocks: [
-        "Er/sie glaubt an mich und zeigt es mir jeden Tag",
-        "Er/sie lehrt mich seine treuen Geheimnisse",
-        "Er/sie beschützt mich vor allen Gefahren",
-        "Er/sie erinnert mich an meine liebevollen Fähigkeiten",
-        "Er/sie macht sich Sorgen um mich und kümmert sich",
-        "Er/sie ist stolz auf mich, egal was ich tue",
-        "Er/sie akzeptiert mich so, wie ich bin"
+        "Er/sie stellt sich schützend vor mich, wenn eine Bedrohung erscheint",
+        "Er/sie hält immer zu mir, egal was ist",
+        "Er/sie ist immer wachsam und passt auf mich auf",
+        "Er/sie sucht meine Nähe auf",
+        "Er/sie macht sich Sorgen um mich und will, dass es mir gutgeht",
+        "Er/sie freut sich immer so, wenn ich da bin",
+        "Er/sie findet mich toll, so wie ich bin"
       ]
     },
     5: {
@@ -1142,24 +1142,23 @@ export const figureSpecificData: FigureSpecificData = {
       blocks: [
         "Bleib immer so treu und liebevoll",
         "Sei immer da, wenn ich dich brauche",
-        "Beschütze mich weiterhin",
-        "Bleib gesund und glücklich",
+        "Pass immer auf mich auf",
+        "Bleib immer bei mir, egal was ist",
         "Lass mich immer bei dir willkommen sein",
-        "Bleib so verspielt und fröhlich",
+        "Bleib immer so verspielt und fröhlich mit mir",
         "Lass mich immer dein bester Freund sein"
       ]
     },
     6: {
       question: "Was würde er/sie dir idealerweise sagen?",
       prompt: "Stelle dir vor, was dein Hund dir sagen würde.",
-      example: "Du bist mein bester Freund und ich liebe dich bedingungslos.",
+      example: "Du bist mein bester Freund und ich folge dir auf Schritt und Tritt.",
       blocks: [
         "Du bist mein bester Freund",
-        "Ich liebe dich bedingungslos",
-        "Ich bin immer für dich da",
-        "Du bist mein größtes Glück",
+        "Ich folge dir auf Schritt und Tritt",
+        "Ich werde immer auf dich aufpassen, egal was ist",
         "Ich vertraue dir vollkommen",
-        "Du bist mein Rudel",
+        "Ich möchte für immer bei dir bleiben",
         "Ich bin so stolz darauf, dein Hund zu sein"
       ]
     }
@@ -1301,9 +1300,9 @@ export const figureSpecificData: FigureSpecificData = {
       example: "Er glaubt an mich und zeigt es mir jeden Tag.",
       blocks: [
         "Er glaubt an mich und zeigt es mir jeden Tag",
-        "Er lehrt mich seine väterlichen Geheimnisse",
+        "Er bringt mir Dinge bei, die in meinem Leben wichtig sind",
         "Er beschützt mich vor allen Gefahren",
-        "Er erinnert mich an meine väterlichen Fähigkeiten",
+        "Er löst Probleme für mich, damit ich es leichter habe",
         "Er macht sich Sorgen um mich und kümmert sich",
         "Er ist stolz auf mich, egal was ich tue",
         "Er akzeptiert mich so, wie ich bin"
@@ -1319,16 +1318,16 @@ export const figureSpecificData: FigureSpecificData = {
         "Verstehe mich weiterhin so gut",
         "Erinnere mich an meinen Wert",
         "Schenk mir weiterhin deine bedingungslose Liebe",
-        "Bleib gesund und glücklich",
+        "Bleib immer bei mir, egal was ist",
         "Lass mich immer bei dir willkommen sein"
       ]
     },
     6: {
       question: "Welche tröstenden Worte sagt dir dein Ideal-Vater?",
       prompt: "Teile die liebevollen Sätze, die dein Ideal-Vater dir sagt.",
-      example: "Du bist mein Schatz und ich liebe dich bedingungslos.",
+      example: "Du bist mein Schatz und ich liebe dich über alles.",
       blocks: [
-        "Du bist mein Schatz und ich liebe dich bedingungslos",
+        "Du bist mein Schatz und ich liebe dich über alles",
         "Du bist genau richtig, so wie du bist",
         "Ich bin immer für dich da, egal was passiert",
         "Ich bin so stolz auf dich",
@@ -2451,16 +2450,16 @@ export const figureSpecificData: FigureSpecificData = {
         "Verstehe mich weiterhin so gut",
         "Erinnere mich an meinen Wert",
         "Schenk mir weiterhin deine bedingungslose Liebe",
-        "Bleib gesund und glücklich",
+        "Bleib immer bei mir, egal was ist",
         "Lass mich immer bei dir willkommen sein"
       ]
     },
     6: {
       question: "Welche tröstenden Worte sagt dir deine Ideal-Mutter?",
       prompt: "Teile die liebevollen Sätze, die deine Ideal-Mutter dir sagt.",
-      example: "Du bist mein Schatz und ich liebe dich bedingungslos.",
+      example: "Du bist mein Schatz und ich liebe dich über alles.",
       blocks: [
-        "Du bist mein Schatz und ich liebe dich bedingungslos",
+        "Du bist mein Schatz und ich liebe dich über alles",
         "Du bist genau richtig, so wie du bist",
         "Ich bin immer für dich da, egal was passiert",
         "Ich bin so stolz auf dich",

@@ -119,19 +119,22 @@ export async function POST(request: NextRequest) {
     // Bestimme origin aus Request-URL
     const requestUrl = new URL(request.url);
     let origin = requestUrl.origin;
-    
+
     if (!origin || origin === 'null') {
       const headersList = await request.headers;
-      origin = headersList.get('origin') || 
-               headersList.get('referer')?.split('/').slice(0, 3).join('/') || 
+      origin = headersList.get('origin') ||
+               headersList.get('referer')?.split('/').slice(0, 3).join('/') ||
                'http://localhost:3000';
     }
-    
+
+    // Normalisiere localhost URLs
     if (origin.includes('localhost') && !origin.includes(':')) {
       origin = 'http://localhost:3000';
     } else if (origin.includes('localhost') && !origin.includes(':3000')) {
       origin = origin.replace(/:\d+/, ':3000');
     }
+
+    console.log('[API/resources/client/create-batch] Detected origin:', origin);
 
     const createdResources: any[] = [];
     const errors: Array<{ resourceName: string; error: string }> = [];
@@ -265,12 +268,22 @@ export async function POST(request: NextRequest) {
         const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
         const userExists = existingUsers?.users.find(u => u.email?.toLowerCase() === normalizedClientEmail);
 
+        // All links redirect to dashboard - middleware will handle password check
         const redirectUrl = `${origin}/dashboard?resource=${createdResources[0].id}`;
-        
+
+        console.log('[API/resources/client/create-batch] Redirect URL:', {
+          redirectUrl,
+          origin
+        });
+
         let magicLink: string | null = null;
-        
+
         if (userExists) {
-          // User existiert bereits - generiere Magic Link für Login
+          // User existiert bereits
+          // Prüfe ob User schon ein Passwort gesetzt hat
+          const hasPasswordSet = userExists.user_metadata?.password_set === true;
+
+          // Update User Metadata
           await supabaseAdmin.auth.admin.updateUserById(
             userExists.id,
             {
@@ -282,31 +295,9 @@ export async function POST(request: NextRequest) {
               }
             }
           );
-          
-          const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
-            type: 'magiclink',
-            email: normalizedClientEmail,
-            options: {
-              redirectTo: redirectUrl,
-            }
-          });
 
-          if (!magicLinkError && magicLinkData?.properties?.action_link) {
-            magicLink = magicLinkData.properties.action_link;
-          }
-        } else {
-          // User existiert nicht - erstelle User
-          const { data: newUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
-            email: normalizedClientEmail,
-            email_confirm: true,
-            user_metadata: {
-              resource_id: createdResources[0].id,
-              resource_name: `${createdResources.length} Ressourcen`,
-              message: `Du hast ${createdResources.length} neue Ressourcen!`
-            }
-          });
-
-          if (!createUserError && newUser.user) {
+          if (hasPasswordSet) {
+            // User hat bereits ein Passwort - normale Magic Link für Login
             const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
               type: 'magiclink',
               email: normalizedClientEmail,
@@ -317,7 +308,83 @@ export async function POST(request: NextRequest) {
 
             if (!magicLinkError && magicLinkData?.properties?.action_link) {
               magicLink = magicLinkData.properties.action_link;
+              console.log('[API/resources/client/create-batch] Magic link generated for existing user with password');
+            } else {
+              console.error('[API/resources/client/create-batch] Error generating magic link:', magicLinkError);
             }
+          } else {
+            // User existiert aber hat kein Passwort - sende Recovery Link
+            // Recovery link geht zu dashboard, middleware fängt ab und redirected zu set-password
+            const { data: recoveryData, error: recoveryError } = await supabaseAdmin.auth.admin.generateLink({
+              type: 'recovery',
+              email: normalizedClientEmail,
+              options: {
+                redirectTo: redirectUrl,
+              }
+            });
+
+            if (!recoveryError && recoveryData?.properties?.action_link) {
+              magicLink = recoveryData.properties.action_link;
+
+              // Fix: Replace production URL with correct origin in the redirect_to parameter
+              const linkUrl = new URL(magicLink);
+              const currentRedirectTo = linkUrl.searchParams.get('redirect_to');
+              if (currentRedirectTo) {
+                // Replace any production URL with the current origin
+                const newRedirectTo = currentRedirectTo.replace(/https:\/\/[^\/]+/, origin);
+                linkUrl.searchParams.set('redirect_to', newRedirectTo);
+                magicLink = linkUrl.toString();
+              }
+
+              console.log('[API/resources/client/create-batch] Recovery link generated for existing user without password');
+              console.log('[API/resources/client/create-batch] Modified redirect_to:', linkUrl.searchParams.get('redirect_to'));
+            } else {
+              console.error('[API/resources/client/create-batch] Error generating recovery link:', recoveryError);
+            }
+          }
+        } else {
+          // User existiert nicht - erstelle neuen User ohne Passwort
+          const { data: newUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
+            email: normalizedClientEmail,
+            email_confirm: true,
+            user_metadata: {
+              resource_id: createdResources[0].id,
+              resource_name: `${createdResources.length} Ressourcen`,
+              message: `Du hast ${createdResources.length} neue Ressourcen!`,
+              password_set: false, // Markiere dass Passwort noch nicht gesetzt wurde
+            }
+          });
+
+          if (!createUserError && newUser.user) {
+            // Generiere Recovery Link - geht zu dashboard, middleware redirected zu set-password
+            const { data: recoveryData, error: recoveryError } = await supabaseAdmin.auth.admin.generateLink({
+              type: 'recovery',
+              email: normalizedClientEmail,
+              options: {
+                redirectTo: redirectUrl,
+              }
+            });
+
+            if (!recoveryError && recoveryData?.properties?.action_link) {
+              magicLink = recoveryData.properties.action_link;
+
+              // Fix: Replace production URL with correct origin in the redirect_to parameter
+              const linkUrl = new URL(magicLink);
+              const currentRedirectTo = linkUrl.searchParams.get('redirect_to');
+              if (currentRedirectTo) {
+                // Replace any production URL with the current origin
+                const newRedirectTo = currentRedirectTo.replace(/https:\/\/[^\/]+/, origin);
+                linkUrl.searchParams.set('redirect_to', newRedirectTo);
+                magicLink = linkUrl.toString();
+              }
+
+              console.log('[API/resources/client/create-batch] Recovery link generated for new user');
+              console.log('[API/resources/client/create-batch] Modified redirect_to:', linkUrl.searchParams.get('redirect_to'));
+            } else {
+              console.error('[API/resources/client/create-batch] Error generating recovery link:', recoveryError);
+            }
+          } else {
+            console.error('[API/resources/client/create-batch] Error creating new user:', createUserError);
           }
         }
 
@@ -327,10 +394,24 @@ export async function POST(request: NextRequest) {
             const { sendResourceReadyEmail } = await import('@/lib/email');
             // Sammle alle Ressourcennamen
             const resourceNames = createdResources.map((r: any) => r.title || r.resource_figure?.name || 'Unbenannte Ressource');
+
+            // Bestimme ob User neu ist (kein Passwort gesetzt hat)
+            const isNewUser = !userExists || userExists.user_metadata?.password_set !== true;
+
+            // Log magic link for testing (especially useful on localhost)
+            console.log('\n========================================');
+            console.log('🔗 MAGIC LINK FOR TESTING:');
+            console.log('========================================');
+            console.log('Email:', normalizedClientEmail);
+            console.log('Is New User:', isNewUser);
+            console.log('Link:', magicLink);
+            console.log('========================================\n');
+
             const emailResult = await sendResourceReadyEmail({
               to: normalizedClientEmail,
               resourceNames: resourceNames,
               magicLink: magicLink,
+              isNewUser: isNewUser,
             });
 
             if (emailResult.success) {
@@ -339,24 +420,46 @@ export async function POST(request: NextRequest) {
               // Sende Bestätigungs-Email an Admin
               try {
                 const { sendAdminConfirmationEmail } = await import('@/lib/email');
-                const adminEmail = user.email; // Admin-Email aus Session
-                if (adminEmail) {
-                  const adminConfirmationResult = await sendAdminConfirmationEmail({
-                    to: adminEmail,
-                    clientEmail: normalizedClientEmail,
-                    resourceNames: resourceNames,
-                    success: true,
-                  });
+                
+                // Verwende feste Admin-E-Mail-Adresse aus Umgebungsvariable oder Session-E-Mail als Fallback
+                const adminEmailsList = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean);
+                const primaryAdminEmail = adminEmailsList[0] || 'safe@ressourcen.app'; // Fallback zu safe@ressourcen.app
+                const sessionAdminEmail = user.email; // Session-E-Mail als zusätzliche Info
+                
+                console.log(`[API/resources/client/create-batch] 📧 Sending admin confirmation to: ${primaryAdminEmail} (session: ${sessionAdminEmail})`);
+                
+                // Sende an primäre Admin-E-Mail
+                const adminConfirmationResult = await sendAdminConfirmationEmail({
+                  to: primaryAdminEmail,
+                  clientEmail: normalizedClientEmail,
+                  resourceNames: resourceNames,
+                  success: true,
+                });
+                
+                if (adminConfirmationResult.success) {
+                  console.log(`[API/resources/client/create-batch] ✅ Admin confirmation email sent successfully to: ${primaryAdminEmail}`);
+                } else {
+                  console.error(`[API/resources/client/create-batch] ❌ Failed to send admin confirmation to ${primaryAdminEmail}:`, adminConfirmationResult.error);
                   
-                  if (adminConfirmationResult.success) {
-                    console.log(`[API/resources/client/create-batch] ✅ Admin confirmation email sent to: ${adminEmail}`);
-                  } else {
-                    console.error(`[API/resources/client/create-batch] ❌ Failed to send admin confirmation:`, adminConfirmationResult.error);
+                  // Fallback: Versuche Session-E-Mail, wenn primäre E-Mail fehlschlägt
+                  if (sessionAdminEmail && sessionAdminEmail !== primaryAdminEmail) {
+                    console.log(`[API/resources/client/create-batch] 🔄 Trying fallback admin email: ${sessionAdminEmail}`);
+                    const fallbackResult = await sendAdminConfirmationEmail({
+                      to: sessionAdminEmail,
+                      clientEmail: normalizedClientEmail,
+                      resourceNames: resourceNames,
+                      success: true,
+                    });
+                    if (fallbackResult.success) {
+                      console.log(`[API/resources/client/create-batch] ✅ Admin confirmation email sent to fallback: ${sessionAdminEmail}`);
+                    } else {
+                      console.error(`[API/resources/client/create-batch] ❌ Fallback admin email also failed:`, fallbackResult.error);
+                    }
                   }
                 }
               } catch (adminEmailError: any) {
-                console.error('[API/resources/client/create-batch] Error sending admin confirmation email:', adminEmailError);
-                // Fehler ist nicht kritisch
+                console.error('[API/resources/client/create-batch] ❌ Error sending admin confirmation email:', adminEmailError);
+                // Fehler ist nicht kritisch für den Hauptprozess, aber sollte geloggt werden
               }
             } else {
               console.error(`[API/resources/client/create-batch] ❌ Failed to send email:`, emailResult.error);
@@ -364,16 +467,18 @@ export async function POST(request: NextRequest) {
               // Sende Fehler-Bestätigung an Admin
               try {
                 const { sendAdminConfirmationEmail } = await import('@/lib/email');
-                const adminEmail = user.email;
-                if (adminEmail) {
-                  await sendAdminConfirmationEmail({
-                    to: adminEmail,
-                    clientEmail: normalizedClientEmail,
-                    resourceNames: resourceNames,
-                    success: false,
-                    error: emailResult.error,
-                  });
-                }
+                
+                // Verwende feste Admin-E-Mail-Adresse aus Umgebungsvariable
+                const adminEmailsList = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean);
+                const primaryAdminEmail = adminEmailsList[0] || 'safe@ressourcen.app';
+                
+                await sendAdminConfirmationEmail({
+                  to: primaryAdminEmail,
+                  clientEmail: normalizedClientEmail,
+                  resourceNames: resourceNames,
+                  success: false,
+                  error: emailResult.error,
+                });
               } catch (adminEmailError: any) {
                 console.error('[API/resources/client/create-batch] Error sending admin error notification:', adminEmailError);
               }

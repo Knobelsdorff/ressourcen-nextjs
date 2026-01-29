@@ -1,19 +1,22 @@
 /**
  * Email-Service für benutzerdefinierte Emails
- * Verwendet Supabase SMTP (wenn konfiguriert) oder nodemailer mit SMTP
+ * Verwendet Resend für Email-Versand
  */
+
+import { Resend } from 'resend';
 
 interface SendResourceReadyEmailParams {
   to: string;
   resourceName?: string; // Für Rückwärtskompatibilität
   resourceNames?: string[]; // Array von Ressourcennamen
   magicLink: string;
+  isNewUser?: boolean; // Ob der User neu ist und Passwort einrichten muss
 }
 
-const getEmailHTML = (resourceNames: string[], magicLink: string) => {
+const getEmailHTML = (resourceNames: string[], magicLink: string, isNewUser: boolean = false) => {
   const isMultiple = resourceNames.length > 1;
   const resourceNamesList = resourceNames.map(name => `<li style="margin-bottom: 8px;"><strong>"${name}"</strong></li>`).join('');
-  
+
   return `
 <!DOCTYPE html>
 <html>
@@ -25,46 +28,61 @@ const getEmailHTML = (resourceNames: string[], magicLink: string) => {
   <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
     <h1 style="color: white; margin: 0; font-size: 28px;">${isMultiple ? 'Deine Ressourcen sind bereit!' : 'Deine Ressource ist bereit!'}</h1>
   </div>
-  
+
   <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
     <p style="font-size: 16px; margin-bottom: 20px;">
       Hallo,
     </p>
-    
+
     <p style="font-size: 16px; margin-bottom: 20px;">
-      ${isMultiple 
+      ${isMultiple
         ? `Die folgenden ${resourceNames.length} Ressourcen wurden für dich erstellt und sind jetzt verfügbar:`
         : `Deine persönliche Ressource <strong>"${resourceNames[0]}"</strong> wurde für dich erstellt und ist jetzt verfügbar.`
       }
     </p>
-    
+
     ${isMultiple ? `
     <ul style="font-size: 16px; margin-bottom: 20px; padding-left: 20px; list-style-type: disc;">
       ${resourceNamesList}
     </ul>
     ` : ''}
-    
+
+    ${isNewUser ? `
+    <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px;">
+      <p style="font-size: 15px; margin: 0; color: #92400e;">
+        <strong>Wichtig:</strong> Dies ist dein erster Zugang. Bitte klicke auf den Button unten, um ein Passwort einzurichten.
+        Danach kannst du dich jederzeit mit deiner E-Mail und deinem Passwort anmelden.
+      </p>
+    </div>
+    ` : ''}
+
     <p style="font-size: 16px; margin-bottom: 30px;">
-      Klicke auf den Button unten, um dich anzumelden und auf ${isMultiple ? 'deine Ressourcen' : 'deine Ressource'} zuzugreifen:
+      Klicke auf den Button unten, um ${isNewUser ? 'dein Passwort einzurichten und' : 'dich anzumelden und'} auf ${isMultiple ? 'deine Ressourcen' : 'deine Ressource'} zuzugreifen:
     </p>
-    
+
     <div style="text-align: center; margin: 30px 0;">
-      <a href="${magicLink}" 
+      <a href="${magicLink}"
          style="display: inline-block; background: #f59e0b; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
-        Zur Ressource
+        ${isNewUser ? 'Passwort einrichten' : 'Zur Ressource'}
       </a>
     </div>
-    
+
     <p style="font-size: 14px; color: #6b7280; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
       Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br>
       <a href="${magicLink}" style="color: #f59e0b; word-break: break-all;">${magicLink}</a>
     </p>
-    
+
     <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
       Dieser Link ist 24 Stunden gültig.
     </p>
+
+    ${!isNewUser ? `
+    <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
+      <strong>Tipp:</strong> Du kannst dich auch jederzeit mit deiner E-Mail und deinem Passwort anmelden.
+    </p>
+    ` : ''}
   </div>
-  
+
   <div style="text-align: center; margin-top: 20px; padding: 20px; color: #6b7280; font-size: 12px;">
     <p>© ${new Date().getFullYear()} Ressourcen App - Andreas von Knobelsdorff</p>
   </div>
@@ -78,91 +96,72 @@ export async function sendResourceReadyEmail({
   resourceName,
   resourceNames,
   magicLink,
+  isNewUser = false,
 }: SendResourceReadyEmailParams): Promise<{ success: boolean; error?: string }> {
   try {
     // Normalisiere resourceNames Array (für Rückwärtskompatibilität)
     const names = resourceNames || (resourceName ? [resourceName] : []);
-    
+
     if (names.length === 0) {
       console.error('[Email] ❌ No resource names provided');
       return { success: false, error: 'Keine Ressourcennamen angegeben' };
     }
-    
+
     console.log('[Email] sendResourceReadyEmail called:', {
       to,
       resourceNames: names,
       count: names.length,
       hasMagicLink: !!magicLink,
-    });
-    
-    // Option 1: Nodemailer mit SMTP (für Supabase SMTP oder andere SMTP-Server)
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpPort = process.env.SMTP_PORT;
-    const smtpUser = process.env.SMTP_USER; // Username für SMTP-Authentifizierung (kann anders sein als Email)
-    const smtpPassword = process.env.SMTP_PASSWORD;
-    const smtpFrom = process.env.SMTP_FROM_EMAIL || 'noreply@ressourcen.app'; // Absender-Email (wird in Email angezeigt)
-
-    console.log('[Email] SMTP configuration check:', {
-      hasHost: !!smtpHost,
-      hasPort: !!smtpPort,
-      hasUser: !!smtpUser,
-      hasPassword: !!smtpPassword,
-      fromEmail: smtpFrom,
+      isNewUser,
     });
 
-    if (smtpHost && smtpPort && smtpUser && smtpPassword) {
+    // Verwende Resend für Email-Versand
+    const resendApiKey = process.env.RESEND_API_KEY;
+    const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@power-storys.de';
+
+    console.log('[Email] Resend configuration check:', {
+      hasApiKey: !!resendApiKey,
+      fromEmail: resendFromEmail,
+    });
+
+    if (resendApiKey) {
       try {
-        console.log('[Email] Attempting to send email via SMTP...');
-        const nodemailer = await import('nodemailer');
-        
-        const transporter = nodemailer.createTransport({
-          host: smtpHost,
-          port: parseInt(smtpPort),
-          secure: parseInt(smtpPort) === 465, // true for 465, false for andere Ports
-          auth: {
-            user: smtpUser,
-            pass: smtpPassword,
-          },
-        });
+        console.log('[Email] Attempting to send email via Resend...');
+        const resend = new Resend(resendApiKey);
 
-        // Teste SMTP-Verbindung
-        console.log('[Email] Verifying SMTP connection...');
-        await transporter.verify();
-        console.log('[Email] ✅ SMTP connection verified');
-
-        console.log('[Email] Sending email...');
         const isMultiple = names.length > 1;
-        const info = await transporter.sendMail({
-          from: `"Ressourcen App" <${smtpFrom}>`,
-          to: to,
-          subject: isMultiple ? `Deine ${names.length} Ressourcen sind bereit!` : 'Deine Ressource ist bereit!',
-          html: getEmailHTML(names, magicLink),
+        const subject = isNewUser
+          ? (isMultiple ? `Willkommen! ${names.length} Ressourcen warten auf dich` : 'Willkommen! Deine Ressource wartet auf dich')
+          : (isMultiple ? `Deine ${names.length} Ressourcen sind bereit!` : 'Deine Ressource ist bereit!');
+
+        const { data, error } = await resend.emails.send({
+          from: `Ressourcen App <${resendFromEmail}>`,
+          to: [to],
+          subject,
+          html: getEmailHTML(names, magicLink, isNewUser),
         });
 
-        console.log('[Email] ✅ Email sent via SMTP:', {
-          messageId: info.messageId,
-          response: info.response,
-          accepted: info.accepted,
-          rejected: info.rejected,
+        if (error) {
+          console.error('[Email] ❌ Resend email error:', error);
+          return { success: false, error: error.message || 'Resend error' };
+        }
+
+        console.log('[Email] ✅ Email sent via Resend:', {
+          id: data?.id,
         });
         return { success: true };
-      } catch (smtpError: any) {
-        console.error('[Email] ❌ SMTP email error:', {
-          message: smtpError?.message,
-          code: smtpError?.code,
-          command: smtpError?.command,
-          response: smtpError?.response,
-          responseCode: smtpError?.responseCode,
-          stack: smtpError?.stack,
+      } catch (resendError: any) {
+        console.error('[Email] ❌ Resend email error:', {
+          message: resendError?.message,
+          stack: resendError?.stack,
         });
-        // Fallback zu Logging
-        return { success: false, error: smtpError?.message || 'SMTP error' };
+        return { success: false, error: resendError?.message || 'Resend error' };
       }
     } else {
-      console.warn('[Email] ⚠️ SMTP not configured - missing environment variables');
+      console.warn('[Email] ⚠️ Resend not configured - missing RESEND_API_KEY');
     }
 
-    // Option 2: Fallback - Logge Email-Details (für Development/Testing)
+    // Fallback - Logge Email-Details (für Development/Testing)
     const isMultiple = names.length > 1;
     console.log('\n=== 📧 EMAIL VERSENDEN (Development/Testing Mode) ===');
     console.log('An:', to);
@@ -170,14 +169,11 @@ export async function sendResourceReadyEmail({
     console.log('Ressourcen:', names);
     console.log('Magic Link:', magicLink);
     console.log('\n⚠️  HINWEIS: Email wird nicht wirklich versendet.');
-    console.log('   Um Emails zu versenden, konfiguriere SMTP in .env.local:');
-    console.log('   SMTP_HOST=smtp.gmail.com (oder dein SMTP-Server)');
-    console.log('   SMTP_PORT=587');
-    console.log('   SMTP_USER=deine-email@gmail.com');
-    console.log('   SMTP_PASSWORD=dein-app-passwort');
-    console.log('   SMTP_FROM_EMAIL=noreply@ressourcen.app');
+    console.log('   Um Emails zu versenden, konfiguriere Resend in .env.local:');
+    console.log('   RESEND_API_KEY=your-api-key');
+    console.log('   RESEND_FROM_EMAIL=noreply@power-storys.de');
     console.log('==================================================\n');
-    
+
     // In Development: Magic Link in Console ausgeben
     if (process.env.NODE_ENV === 'development') {
       const isMultiple = names.length > 1;
@@ -297,7 +293,7 @@ export async function sendAdminConfirmationEmail({
       console.error('[Email] ❌ No resource names provided for admin confirmation');
       return { success: false, error: 'Keine Ressourcennamen angegeben' };
     }
-    
+
     console.log('[Email] sendAdminConfirmationEmail called:', {
       to,
       clientEmail,
@@ -305,62 +301,48 @@ export async function sendAdminConfirmationEmail({
       count: resourceNames.length,
       success,
     });
-    
-    // SMTP-Konfiguration (gleiche wie für Klienten-Emails)
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpPort = process.env.SMTP_PORT;
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPassword = process.env.SMTP_PASSWORD;
-    const smtpFrom = process.env.SMTP_FROM_EMAIL || 'noreply@ressourcen.app';
 
-    if (smtpHost && smtpPort && smtpUser && smtpPassword) {
+    // Verwende Resend für Email-Versand
+    const resendApiKey = process.env.RESEND_API_KEY;
+    const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@power-storys.de';
+
+    if (resendApiKey) {
       try {
-        console.log('[Email] Attempting to send admin confirmation email via SMTP...');
-        const nodemailer = await import('nodemailer');
-        
-        const transporter = nodemailer.createTransport({
-          host: smtpHost,
-          port: parseInt(smtpPort),
-          secure: parseInt(smtpPort) === 465,
-          auth: {
-            user: smtpUser,
-            pass: smtpPassword,
-          },
-        });
-
-        await transporter.verify();
-        console.log('[Email] ✅ SMTP connection verified for admin confirmation');
+        console.log('[Email] Attempting to send admin confirmation email via Resend...');
+        const resend = new Resend(resendApiKey);
 
         const isMultiple = resourceNames.length > 1;
-        const info = await transporter.sendMail({
-          from: `"Ressourcen App" <${smtpFrom}>`,
-          to: to,
-          subject: success 
+        const { data, error: resendError } = await resend.emails.send({
+          from: `Ressourcen App <${resendFromEmail}>`,
+          to: [to],
+          subject: success
             ? `✅ ${isMultiple ? `${resourceNames.length} Ressourcen` : 'Ressource'} erfolgreich an ${clientEmail} versendet`
             : `⚠️ Fehler beim Versenden an ${clientEmail}`,
           html: getAdminConfirmationEmailHTML(clientEmail, resourceNames, success, error),
         });
 
-        console.log('[Email] ✅ Admin confirmation email sent via SMTP:', {
-          messageId: info.messageId,
-          accepted: info.accepted,
-          rejected: info.rejected,
+        if (resendError) {
+          console.error('[Email] ❌ Resend error sending admin confirmation:', resendError);
+          return { success: false, error: resendError.message || 'Resend error' };
+        }
+
+        console.log('[Email] ✅ Admin confirmation email sent via Resend:', {
+          id: data?.id,
         });
         return { success: true };
-      } catch (smtpError: any) {
-        console.error('[Email] ❌ SMTP error sending admin confirmation:', {
-          message: smtpError?.message,
-          code: smtpError?.code,
+      } catch (resendError: any) {
+        console.error('[Email] ❌ Resend error sending admin confirmation:', {
+          message: resendError?.message,
         });
-        return { success: false, error: smtpError?.message || 'SMTP error' };
+        return { success: false, error: resendError?.message || 'Resend error' };
       }
     } else {
-      console.warn('[Email] ⚠️ SMTP not configured - admin confirmation email not sent');
+      console.warn('[Email] ⚠️ Resend not configured - admin confirmation email not sent');
       // Fallback: Logge in Development
       const isMultiple = resourceNames.length > 1;
       console.log('\n=== 📧 ADMIN-BESTÄTIGUNG (Development Mode) ===');
       console.log('An:', to);
-      console.log('Betreff:', success 
+      console.log('Betreff:', success
         ? `✅ ${isMultiple ? `${resourceNames.length} Ressourcen` : 'Ressource'} erfolgreich an ${clientEmail} versendet`
         : `⚠️ Fehler beim Versenden an ${clientEmail}`);
       console.log('Klient:', clientEmail);
@@ -368,6 +350,9 @@ export async function sendAdminConfirmationEmail({
       console.log('Erfolg:', success);
       if (error) console.log('Fehler:', error);
       console.log('==================================================\n');
+      
+      // WICHTIG: Wenn SMTP nicht konfiguriert ist, wurde die E-Mail NICHT versendet
+      return { success: false, error: 'SMTP nicht konfiguriert - E-Mail wurde nicht versendet' };
     }
 
     return { success: true };

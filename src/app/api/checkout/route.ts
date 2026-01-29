@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     }
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-    const origin = process.env.APP_BASE_URL ?? new URL(request.url).origin
+  const origin = process.env.APP_BASE_URL;
 
     // Verwende Price-ID aus Parameter oder Environment Variable
     const subscriptionPriceId = priceId || process.env.STRIPE_SUBSCRIPTION_PRICE_ID

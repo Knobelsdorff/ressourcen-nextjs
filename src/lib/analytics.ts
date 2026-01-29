@@ -6,7 +6,10 @@ export type AnalyticsEventType =
   | 'dashboard_visit'
   | 'audio_play_complete'
   | 'user_login'
-  | 'user_signup';
+  | 'user_signup'
+  | 'page_view'
+  | 'audio_complete'
+  | 'click_personalize';
 
 export interface AnalyticsEvent {
   eventType: AnalyticsEventType;
@@ -18,6 +21,8 @@ export interface AnalyticsEvent {
     playPosition?: number; // in Sekunden
     audioDuration?: number; // in Sekunden
     completed?: boolean; // ob vollständig abgespielt
+    page_path?: string; // für page_view Events
+    story_id?: string; // alternative zu storyId für audio_complete
   };
 }
 

@@ -279,6 +279,120 @@ function getPossessiveArticle(figureName: string, pronouns: string, context: 'no
   }
 }
 
+// Funktion zur Bestimmung des grammatikalischen Genus
+function getGrammaticalGender(figureName: string, pronouns: string): 'masculine' | 'feminine' | 'neuter' {
+  const primaryPronoun = pronouns.split('/')[0];
+  
+  if (primaryPronoun === 'er') return 'masculine';
+  if (primaryPronoun === 'sie') return 'feminine';
+  if (primaryPronoun === 'es') return 'neuter';
+  
+  // Fallback: Bestimme anhand des Namens
+  // Wenn der Name auf "-ung", "-heit", "-keit", "-schaft" endet → feminin
+  if (figureName.match(/(ung|heit|keit|schaft)$/i)) return 'feminine';
+  // Wenn der Name auf "-er" endet → maskulin
+  if (figureName.match(/er$/i)) return 'masculine';
+  
+  // Standard: feminin für abstrakte Begriffe
+  return 'feminine';
+}
+
+// Funktion für Dativ-Artikel bei "von"-Formulierungen
+function getDativeArticle(figureName: string, pronouns: string): string {
+  const gender = getGrammaticalGender(figureName, pronouns);
+  
+  switch (gender) {
+    case 'masculine':
+      return 'einem';
+    case 'feminine':
+      return 'einer';
+    case 'neuter':
+      return 'einem';
+    default:
+      return 'einer';
+  }
+}
+
+// Funktion zur Deklination des Namens im Dativ (für "von"-Formulierungen)
+function declineNameInDative(figureName: string): string {
+  const words = figureName.split(' ');
+  
+  if (words.length > 1) {
+    // Wenn der Name aus mehreren Wörtern besteht (z.B. "Wohlwollende Präsenz")
+    const firstWord = words[0]; // Adjektiv
+    const restOfWords = words.slice(1).join(' '); // Substantiv(e)
+    
+    // Dekliniere das Adjektiv im Dativ (feminin/maskulin/neutrum)
+    // Adjektive im Dativ enden auf -en (bei feminin/maskulin/neutrum nach "von einer/einem")
+    let declinedAdjective = firstWord;
+    
+    // Wenn das Adjektiv auf -e endet, ändere es zu -en
+    if (firstWord.match(/e$/i)) {
+      declinedAdjective = firstWord.replace(/e$/i, 'en');
+    } else if (firstWord.match(/er$/i)) {
+      // Wenn es auf -er endet, ändere es zu -en
+      declinedAdjective = firstWord.replace(/er$/i, 'en');
+    } else if (firstWord.match(/es$/i)) {
+      // Wenn es auf -es endet, ändere es zu -en
+      declinedAdjective = firstWord.replace(/es$/i, 'en');
+    }
+    
+    return `${declinedAdjective} ${restOfWords}`.toLowerCase();
+  }
+  
+  // Wenn nur ein Wort, gebe es einfach zurück (kleingeschrieben)
+  return figureName.toLowerCase();
+}
+
+// Funktion zur Erkennung abstrakter Begriffe im Namen
+function hasAbstractTermInName(figureName: string): boolean {
+  // Prüfe, ob der Name abstrakte Begriffe enthält, die leicht wiederholt werden könnten
+  const abstractTerms = ['präsenz', 'energie', 'kraft', 'liebe', 'wärme', 'ruhe', 'sicherheit', 'geborgenheit', 'stärke'];
+  const lowerName = figureName.toLowerCase();
+  
+  return abstractTerms.some(term => lowerName.includes(term));
+}
+
+// Funktion zur Bestimmung des bestimmten Artikels "diese/dieser/diesem/diesen" für abstrakte Custom-Figuren
+function getDemonstrativeArticle(figureName: string, pronouns: string, case_: 'nominative' | 'dative' | 'accusative' = 'nominative'): string {
+  const gender = getGrammaticalGender(figureName, pronouns);
+  
+  if (case_ === 'nominative') {
+    // Nominativ: "diese" (feminin/neutrum) oder "dieser" (maskulin)
+    return gender === 'masculine' ? 'dieser' : 'diese';
+  } else if (case_ === 'dative') {
+    // Dativ: "dieser" (feminin) oder "diesem" (maskulin/neutrum)
+    return gender === 'feminine' ? 'dieser' : 'diesem';
+  } else {
+    // Akkusativ: "diese" (feminin/neutrum) oder "diesen" (maskulin)
+    return gender === 'masculine' ? 'diesen' : 'diese';
+  }
+}
+
+// Funktion zur Bestimmung, ob eine Custom-Figur einen Artikel benötigt
+function needsArticleForCustomFigure(figureName: string, category: string): boolean {
+  // Nur für Custom-Figuren
+  if (category !== 'custom') return false;
+  
+  // Wenn der Name wie ein abstrakter Begriff klingt (z.B. "Wohlwollende Präsenz")
+  // oder wenn er mit Adjektiv beginnt, benötigt er einen Artikel
+  const words = figureName.split(' ');
+  if (words.length > 1) {
+    // Wenn das erste Wort ein Adjektiv ist (endet auf -e, -er, -es, -en)
+    const firstWord = words[0];
+    if (firstWord.match(/^(wohlwollende|sanfte|warme|starke|ruhige|liebevolle)/i)) {
+      return true;
+    }
+  }
+  
+  // Wenn der Name auf abstrakte Begriffe endet
+  if (figureName.match(/(präsenz|energie|kraft|liebe|wärme|ruhe|sicherheit)$/i)) {
+    return true;
+  }
+  
+  return false;
+}
+
 export function generateStoryPrompt({ selectedFigure, connectionDetails, userName, userPronunciationHint }: StoryPromptParams): string {
   const primaryPronoun = selectedFigure.pronouns.split('/')[0];
   const objectPronoun = selectedFigure.pronouns.split('/')[1];
@@ -344,6 +458,8 @@ Du bist ein*e einfühlsame*r, traumasensible*r Erzähler*in und schreibst eine h
 Dein Ziel ist es, eine sichere, emotional beruhigende und heilsame Geschichte zu erschaffen.  
 Verwende **einfaches Deutsch** mit **kurzen, klaren Sätzen**. Vermeide komplizierte Grammatik oder schwierige Wörter. Schreib in einem warmen, sanften Ton – wie ein liebevolles Gespräch.
 
+Beginne die Geschichte so, dass die Einleitung direkt zur spezifischen Situation der Ressourcenfigur oder des sicheren Ortes passt – sie sollte die konkrete Ausgangslage widerspiegeln, nicht allgemein sein.
+
 ---
 
 ### KONTEXT:
@@ -395,6 +511,34 @@ Zusatz: Wenn es natürlich und sanft passt, verwende den Namen "${userName}" ein
          - "Vor dir steht ${getPossessiveArticle(selectedFigure.name, selectedFigure.pronouns)} ${selectedFigure.name} ..." (NICHT "Vor dir steht ${selectedFigure.name} ...")
          - "${getPossessiveArticle(selectedFigure.name, selectedFigure.pronouns)} ${selectedFigure.name} ist bei dir" (NICHT "${selectedFigure.name} ist bei dir")
          - "Du sitzt mit ${getPossessiveArticle(selectedFigure.name, selectedFigure.pronouns)} ${selectedFigure.name} zusammen" (NICHT "Du sitzt mit ${selectedFigure.name} zusammen")
+     ` : ''}
+     ${selectedFigure.category === 'custom' && needsArticleForCustomFigure(selectedFigure.name, selectedFigure.category) ? `
+     - **WICHTIG - GRAMMATIK FÜR CUSTOM-FIGUREN:**
+       - Für "${selectedFigure.name}" verwende IMMER den richtigen Artikel bei "von"-Formulierungen.
+       - Bei Formulierungen mit "von" verwende: "von ${getDativeArticle(selectedFigure.name, selectedFigure.pronouns)} ${declineNameInDative(selectedFigure.name)}"
+       - Beispiele:
+         - "Du spürst die Anwesenheit von ${getDativeArticle(selectedFigure.name, selectedFigure.pronouns)} ${declineNameInDative(selectedFigure.name)}" (NICHT "von ${selectedFigure.name}")
+         - "Die Präsenz von ${getDativeArticle(selectedFigure.name, selectedFigure.pronouns)} ${declineNameInDative(selectedFigure.name)} umgibt dich" (NICHT "von ${selectedFigure.name}")
+       - Achte darauf, dass der Name im Dativ dekliniert wird (z.B. "wohlwollenden Präsenz" statt "wohlwollende Präsenz").
+     ` : ''}
+     ${selectedFigure.category === 'custom' && hasAbstractTermInName(selectedFigure.name) ? `
+     - **WICHTIG - VERMEIDE WIEDERHOLUNGEN UND ÄHNLICHE BEGRIFFE BEI CUSTOM-FIGUREN:**
+       - Der Name "${selectedFigure.name}" enthält abstrakte Begriffe wie "${selectedFigure.name.split(' ').filter(w => ['präsenz', 'energie', 'kraft', 'liebe', 'wärme', 'ruhe', 'sicherheit'].includes(w.toLowerCase())).join(', ')}".
+       - **VERMEIDE**, diese Begriffe im generierten Text zu wiederholen, wenn du bereits über die Figur sprichst.
+       - **VERMEIDE** auch ähnliche Adjektive im selben Satz, die zu ähnlich klingen (z.B. "wohltuend" und "wohlwollend" im selben Satz).
+       - Beispiel FALSCH: "Du spürst die wohltuende Präsenz von einer wohlwollenden Präsenz" (doppelt "Präsenz" + ähnliche Adjektive)
+       - Beispiel FALSCH: "Du spürst die wohltuende Anwesenheit von einer wohlwollenden Präsenz" (ähnliche Adjektive "wohltuend" und "wohlwollend" im selben Satz)
+       - Beispiel RICHTIG: "Du spürst, wie eine wohlwollende Präsenz dich umgibt" (keine Wiederholungen, keine ähnlichen Adjektive)
+       - Beispiel RICHTIG: "Du nimmst die sanfte Kraft von einer wohlwollenden Präsenz wahr" (unterschiedliche Adjektive)
+       - Wenn du bereits über die Figur sprichst, verwende alternative Formulierungen wie "Anwesenheit", "Gefühl", "Energie", "Kraft" statt den Begriff aus dem Namen zu wiederholen.
+       - Verwende unterschiedliche Adjektive, um Variation zu schaffen - vermeide es, Adjektive zu verwenden, die ähnlich zum Adjektiv im Namen klingen (z.B. bei "Wohlwollende Präsenz" vermeide "wohltuend", "wohlig", "wohlwollend" im selben Satz).
+     - **WICHTIG - BESTIMMTER ARTIKEL FÜR ABSTRAKTE CUSTOM-FIGUREN:**
+       - Da "${selectedFigure.name}" eine abstrakte, nicht-konkrete Figur ist, verwende IMMER den bestimmten Artikel "${getDemonstrativeArticle(selectedFigure.name, selectedFigure.pronouns, 'nominative')}" wenn du die Figur ohne Artikel verwendest.
+       - Beispiel FALSCH: "… denn wohlwollende Präsenz ist für dich da." → RICHTIG: "… denn ${getDemonstrativeArticle(selectedFigure.name, selectedFigure.pronouns, 'nominative')} ${selectedFigure.name.toLowerCase()} ist für dich da."
+       - Beispiel FALSCH: "Du bittest wohlwollende Präsenz …" → RICHTIG: "Du bittest ${getDemonstrativeArticle(selectedFigure.name, selectedFigure.pronouns, 'accusative')} ${selectedFigure.name.toLowerCase()} …"
+       - Beispiel FALSCH: "Du sprichst mit wohlwollende Präsenz …" → RICHTIG: "Du sprichst mit ${getDemonstrativeArticle(selectedFigure.name, selectedFigure.pronouns, 'dative')} ${declineNameInDative(selectedFigure.name)} …"
+       - **Regel:** Wenn die Figur ohne Artikel verwendet wird (nicht bei "von"-Formulierungen), verwende IMMER "${getDemonstrativeArticle(selectedFigure.name, selectedFigure.pronouns, 'nominative')}" im Nominativ, "${getDemonstrativeArticle(selectedFigure.name, selectedFigure.pronouns, 'accusative')}" im Akkusativ, oder "${getDemonstrativeArticle(selectedFigure.name, selectedFigure.pronouns, 'dative')}" im Dativ.
+       - Bei "von"-Formulierungen bleibt die bestehende Logik erhalten (z.B. "von einer wohlwollenden Präsenz").
      ` : ''}
    - **WICHTIG - TATSÄCHLICHE ANWESENHEIT FÜR ALLE RESSOURCENFIGUREN:**
      - Beschreibe ${selectedFigure.name} als **tatsächlich anwesend und real**, nicht nur als mentale Vorstellung oder Einbildung.
@@ -531,6 +675,8 @@ Du bist ein*e einfühlsame*r, traumasensible*r Erzähler*in und schreibst eine h
 Dein Ziel ist es, eine sichere, emotional beruhigende und heilsame Geschichte zu erschaffen.  
 Verwende **einfaches Deutsch** mit **kurzen, klaren Sätzen**. Vermeide komplizierte Grammatik oder schwierige Wörter. Schreib in einem warmen, sanften Ton – wie ein liebevolles Gespräch.
 
+Beginne die Geschichte so, dass die Einleitung direkt zur spezifischen Situation der Ressourcenfigur oder des sicheren Ortes passt – sie sollte die konkrete Ausgangslage widerspiegeln, nicht allgemein sein.
+
 ---
 
 ### KONTEXT:
@@ -653,6 +799,8 @@ Du bist ein*e einfühlsame*r, traumasensible*r Erzähler*in und schreibst eine h
 
 Dein Ziel ist es, eine sichere, emotional beruhigende und heilsame Geschichte zu erschaffen.  
 Verwende **einfaches Deutsch** mit **kurzen, klaren Sätzen**. Vermeide komplizierte Grammatik oder schwierige Wörter. Schreib in einem warmen, sanften Ton – wie ein liebevolles Gespräch.
+
+Beginne die Geschichte so, dass die Einleitung direkt zur spezifischen Situation der Ressourcenfigur oder des sicheren Ortes passt – sie sollte die konkrete Ausgangslage widerspiegeln, nicht allgemein sein.
 
 ---
 
@@ -804,6 +952,8 @@ Lilith ist eine **emanzipierte, selbstbestimmte und stolze** Figur, die die lese
 
 Verwende **einfaches Deutsch** mit **kurzen, klaren Sätzen**. Der Ton sollte **kraftvoll, ermutigend und verführerisch** sein – nicht sanft, sondern **stark und selbstbewusst**.
 
+Beginne die Geschichte so, dass die Einleitung direkt zur spezifischen Situation der Ressourcenfigur oder des sicheren Ortes passt – sie sollte die konkrete Ausgangslage widerspiegeln, nicht allgemein sein.
+
 ---
 
 ### KONTEXT:
@@ -913,6 +1063,8 @@ Du bist ein*e einfühlsame*r, traumasensible*r Erzähler*in und schreibst eine h
 
 Dein Ziel ist es, eine sichere, emotional beruhigende und heilsame Geschichte zu erschaffen.  
 Verwende **einfaches Deutsch** mit **kurzen, klaren Sätzen**. Vermeide komplizierte Grammatik oder schwierige Wörter. Schreib in einem warmen, sanften Ton – wie ein liebevolles Gespräch.
+
+Beginne die Geschichte so, dass die Einleitung direkt zur spezifischen Situation der Ressourcenfigur oder des sicheren Ortes passt – sie sollte die konkrete Ausgangslage widerspiegeln, nicht allgemein sein.
 
 ---
 

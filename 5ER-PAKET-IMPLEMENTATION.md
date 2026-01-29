@@ -2,7 +2,7 @@
 
 ## Übersicht
 
-Das 5er-Paket-System wurde implementiert:
+Das 5er-Paket-System wurde implementiert: 
 - **Preis:** 50€ einmalig
 - **Inhalt:** 4 weitere Ressourcen (insgesamt 5 mit der ersten kostenlosen)
 - **Zeitlimit:** Keines - dauerhafter Zugang

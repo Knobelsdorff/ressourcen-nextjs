@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Upload, Loader2, CheckCircle, AlertCircle, Plus, Trash2, Send } from "lucide-react";
 import AudioRecorder from "./AudioRecorder";
 import { createSPAClient } from "@/lib/supabase/client";
+import { indexedDBHelper } from "@/lib/indexedDB";
 
 interface ClientResourceModalProps {
   isOpen: boolean;
@@ -17,16 +18,6 @@ interface RecordedResource {
   name: string;
   audioBlob: Blob;
 }
-
-interface StoredResource {
-  id: string;
-  name: string;
-  audioBlobBase64: string;
-  mimeType: string;
-}
-
-const STORAGE_KEY = "client_resources_draft";
-const STORAGE_EMAIL_KEY = "client_email_draft";
 
 export default function ClientResourceModal({
   isOpen,
@@ -47,107 +38,141 @@ export default function ClientResourceModal({
     if (isOpen) {
       const loadStoredResources = async () => {
         try {
-          const stored = localStorage.getItem(STORAGE_KEY);
-          const storedEmail = localStorage.getItem(STORAGE_EMAIL_KEY);
-          
-          console.log('[ClientResourceModal] Loading from localStorage:', {
-            hasStored: !!stored,
-            hasEmail: !!storedEmail,
-            storedLength: stored?.length || 0
-          });
-          
-          if (storedEmail) {
-            setClientEmail(storedEmail);
+          // Check if IndexedDB is supported
+          if (!indexedDBHelper.isSupported()) {
+            console.warn("IndexedDB not supported, draft persistence disabled");
+            return;
           }
-          
-          if (stored) {
-            const storedResources: StoredResource[] = JSON.parse(stored);
-            console.log('[ClientResourceModal] Found stored resources:', storedResources.length);
-            
-            const restoredResources: RecordedResource[] = await Promise.all(
-              storedResources.map(async (sr) => {
-                // Konvertiere Base64 zurück zu Blob
-                const byteCharacters = atob(sr.audioBlobBase64);
-                const byteNumbers = new Array(byteCharacters.length);
-                for (let i = 0; i < byteCharacters.length; i++) {
-                  byteNumbers[i] = byteCharacters.charCodeAt(i);
+
+          // Try to load from IndexedDB first
+          let draftData = await indexedDBHelper.loadDraft();
+
+          // Migration: If no IndexedDB data, check localStorage (old storage method)
+          if (!draftData) {
+            const STORAGE_KEY = "client_resources_draft";
+            const STORAGE_EMAIL_KEY = "client_email_draft";
+            const storedLS = localStorage.getItem(STORAGE_KEY);
+            const storedEmailLS = localStorage.getItem(STORAGE_EMAIL_KEY);
+
+            if (storedLS || storedEmailLS) {
+              console.log("Migrating from localStorage to IndexedDB...");
+              try {
+                const migratedRecordings: any[] = [];
+
+                if (storedLS) {
+                  const storedResources = JSON.parse(storedLS);
+
+                  // Convert Base64 back to Blob
+                  for (const sr of storedResources) {
+                    const byteCharacters = atob(sr.audioBlobBase64);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                      byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: sr.mimeType });
+
+                    migratedRecordings.push({
+                      id: sr.id,
+                      name: sr.name,
+                      audioBlob: blob,
+                      mimeType: sr.mimeType,
+                      timestamp: Date.now(),
+                    });
+                  }
                 }
-                const byteArray = new Uint8Array(byteNumbers);
-                const blob = new Blob([byteArray], { type: sr.mimeType });
-                
-                return {
-                  id: sr.id,
-                  name: sr.name,
-                  audioBlob: blob,
-                };
-              })
-            );
-            
-            if (restoredResources.length > 0) {
-              console.log('[ClientResourceModal] Restored resources:', restoredResources.length);
-              setRecordedResources(restoredResources);
-            } else {
-              console.log('[ClientResourceModal] No resources to restore');
+
+                // Save to IndexedDB
+                await indexedDBHelper.saveDraft({
+                  recordings: migratedRecordings,
+                  clientEmail: storedEmailLS || "",
+                  lastUpdated: Date.now(),
+                });
+
+                // Clear old localStorage data
+                localStorage.removeItem(STORAGE_KEY);
+                localStorage.removeItem(STORAGE_EMAIL_KEY);
+
+                console.log("Migration completed successfully");
+
+                // Load the migrated data
+                draftData = await indexedDBHelper.loadDraft();
+              } catch (migrationErr) {
+                console.error("Error migrating from localStorage:", migrationErr);
+                // Clear localStorage on migration failure
+                localStorage.removeItem(STORAGE_KEY);
+                localStorage.removeItem(STORAGE_EMAIL_KEY);
+              }
             }
-          } else {
-            console.log('[ClientResourceModal] No stored data found in localStorage');
+          }
+
+          // Apply loaded data
+          if (draftData) {
+            if (draftData.clientEmail) {
+              setClientEmail(draftData.clientEmail);
+            }
+
+            if (draftData.recordings && draftData.recordings.length > 0) {
+              const restoredResources: RecordedResource[] = draftData.recordings.map((sr) => ({
+                id: sr.id,
+                name: sr.name,
+                audioBlob: sr.audioBlob,
+              }));
+
+              setRecordedResources(restoredResources);
+            }
           }
         } catch (err) {
-          console.error("Error loading stored resources:", err);
+          console.error("Error loading stored resources from IndexedDB:", err);
           // Bei Fehler: Lösche ungültige Daten
-          localStorage.removeItem(STORAGE_KEY);
-          localStorage.removeItem(STORAGE_EMAIL_KEY);
+          try {
+            await indexedDBHelper.clearDraft();
+          } catch (clearErr) {
+            console.error("Error clearing draft:", clearErr);
+          }
         }
       };
-      
+
       loadStoredResources();
     }
   }, [isOpen]);
 
-  // Speichere Ressourcen automatisch bei Änderungen
+  // Speichere Ressourcen und Email automatisch bei Änderungen
   useEffect(() => {
-    if (isOpen && recordedResources.length > 0) {
-      try {
-        // Konvertiere Blobs zu Base64 für localStorage
-        Promise.all(
-          recordedResources.map(async (resource) => {
-            const base64 = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                const base64String = (reader.result as string).split(',')[1];
-                resolve(base64String);
-              };
-              reader.onerror = reject;
-              reader.readAsDataURL(resource.audioBlob);
-            });
-            
-            return {
-              id: resource.id,
-              name: resource.name,
-              audioBlobBase64: base64,
-              mimeType: resource.audioBlob.type || 'audio/webm',
-            } as StoredResource;
-          })
-        ).then((storedResources) => {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(storedResources));
-        });
-      } catch (err) {
-        console.error("Error saving resources to localStorage:", err);
+    if (isOpen) {
+      const saveDraft = async () => {
+        try {
+          // Check if IndexedDB is supported
+          if (!indexedDBHelper.isSupported()) {
+            return;
+          }
+
+          // Save both recordings and email together
+          await indexedDBHelper.saveDraft({
+            recordings: recordedResources.map(r => ({
+              id: r.id,
+              name: r.name,
+              audioBlob: r.audioBlob,
+              mimeType: r.audioBlob.type || 'audio/webm',
+              timestamp: Date.now(),
+            })),
+            clientEmail: clientEmail.trim(),
+            lastUpdated: Date.now(),
+          });
+        } catch (err) {
+          console.error("Error saving draft to IndexedDB:", err);
+        }
+      };
+
+      // Only save if there's data to save
+      if (recordedResources.length > 0 || clientEmail.trim()) {
+        saveDraft();
       }
     }
-    // WICHTIG: localStorage wird NICHT gelöscht, wenn recordedResources leer ist,
+    // WICHTIG: IndexedDB wird NICHT gelöscht, wenn recordedResources leer ist,
     // damit die Daten nach Browser-Reload erhalten bleiben
-    // localStorage wird nur gelöscht nach erfolgreichem Versand (siehe handleSendAll)
-  }, [recordedResources, isOpen]);
-
-  // Speichere Email bei Änderungen
-  useEffect(() => {
-    if (isOpen && clientEmail.trim()) {
-      localStorage.setItem(STORAGE_EMAIL_KEY, clientEmail.trim());
-    } else if (!clientEmail.trim()) {
-      localStorage.removeItem(STORAGE_EMAIL_KEY);
-    }
-  }, [clientEmail, isOpen]);
+    // IndexedDB wird nur gelöscht nach erfolgreichem Versand (siehe handleSendAll)
+  }, [recordedResources, clientEmail, isOpen]);
 
   const handleRecordingComplete = (blob: Blob) => {
     setCurrentAudioBlob(blob);
@@ -282,10 +307,16 @@ export default function ClientResourceModal({
         setSuccess(true);
         setRecordedResources([]);
         setClientEmail("");
+
         // Lösche gespeicherte Daten nach erfolgreichem Versand
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(STORAGE_EMAIL_KEY);
-        
+        try {
+          if (indexedDBHelper.isSupported()) {
+            await indexedDBHelper.clearDraft();
+          }
+        } catch (clearErr) {
+          console.error("Error clearing draft after send:", clearErr);
+        }
+
         setTimeout(() => {
           setSuccess(false);
           if (onSuccess) {
@@ -522,4 +553,3 @@ export default function ClientResourceModal({
     </AnimatePresence>
   );
 }
-
