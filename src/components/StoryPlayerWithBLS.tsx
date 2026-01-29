@@ -37,7 +37,14 @@ export default function StoryPlayerWithBLS({
   const isUserPausingRef = useRef(false);
 
   const getEffectiveDuration = useCallback(() => {
-    return Math.max(duration, musicDuration) || duration;
+    // Handle NaN and invalid values
+    const validDuration = isFinite(duration) && duration > 0 ? duration : 0;
+    const validMusicDuration = isFinite(musicDuration) && musicDuration > 0 ? musicDuration : 0;
+
+    const maxDuration = Math.max(validDuration, validMusicDuration);
+
+    // If both are invalid, return 0 instead of NaN
+    return maxDuration > 0 ? maxDuration : 0;
   }, [duration, musicDuration]);
 
   // Seek to specific time (both voice and music) and resume playback if needed
@@ -268,47 +275,85 @@ export default function StoryPlayerWithBLS({
     } else {
       const audio = audioRef.current;
       const bgMusic = backgroundMusicRef.current;
+
+      // Wait for audio to be ready if it's not loaded yet
+      if (!audio.duration || !isFinite(audio.duration)) {
+        console.log('[StoryPlayerWithBLS] Audio not ready, waiting for metadata...');
+        try {
+          await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('Audio load timeout')), 5000);
+
+            const onLoadedMetadata = () => {
+              clearTimeout(timeout);
+              audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+              audio.removeEventListener('error', onError);
+              resolve(true);
+            };
+
+            const onError = () => {
+              clearTimeout(timeout);
+              audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+              audio.removeEventListener('error', onError);
+              reject(new Error('Audio load error'));
+            };
+
+            if (audio.readyState >= 1) {
+              clearTimeout(timeout);
+              resolve(true);
+            } else {
+              audio.addEventListener('loadedmetadata', onLoadedMetadata);
+              audio.addEventListener('error', onError);
+              if (audio.readyState === 0) {
+                audio.load();
+              }
+            }
+          });
+          console.log('[StoryPlayerWithBLS] Audio ready, duration:', audio.duration);
+        } catch (error) {
+          console.error('[StoryPlayerWithBLS] Failed to load audio:', error);
+          return;
+        }
+      }
+
       const voiceDuration = audio.duration || 0;
 
       try {
-        const beyondVoice = currentTime >= voiceDuration;
+        const beyondVoice = currentTime >= voiceDuration && voiceDuration > 0;
 
-        if (bgMusic) {
-          bgMusic.currentTime = currentTime;
+        if (bgMusic && bgMusic.duration && isFinite(bgMusic.duration)) {
+          bgMusic.currentTime = Math.min(currentTime, bgMusic.duration);
         }
 
-        if (beyondVoice) {
-          if (bgMusic) {
-            await bgMusic.play();
-            setIsPlaying(true);
+        if (beyondVoice && bgMusic && bgMusic.duration) {
+          await bgMusic.play();
+          setIsPlaying(true);
 
-            const trackMusicTime = setInterval(() => {
-              if (isUserPausingRef.current) {
-                clearInterval(trackMusicTime);
-                (window as any)._storyPlayerMusicTracker = null;
-                return;
-              }
-              if (bgMusic && !bgMusic.paused && !bgMusic.ended) {
-                setCurrentTime(bgMusic.currentTime);
-              } else if (bgMusic.paused) {
-                clearInterval(trackMusicTime);
-                (window as any)._storyPlayerMusicTracker = null;
-              } else {
-                clearInterval(trackMusicTime);
-                (window as any)._storyPlayerMusicTracker = null;
-                setIsPlaying(false);
-                setCurrentTime(0);
-              }
-            }, 100);
-            (window as any)._storyPlayerMusicTracker = trackMusicTime;
-          }
+          const trackMusicTime = setInterval(() => {
+            if (isUserPausingRef.current) {
+              clearInterval(trackMusicTime);
+              (window as any)._storyPlayerMusicTracker = null;
+              return;
+            }
+            if (bgMusic && !bgMusic.paused && !bgMusic.ended) {
+              setCurrentTime(bgMusic.currentTime);
+            } else if (bgMusic.paused) {
+              clearInterval(trackMusicTime);
+              (window as any)._storyPlayerMusicTracker = null;
+            } else {
+              clearInterval(trackMusicTime);
+              (window as any)._storyPlayerMusicTracker = null;
+              setIsPlaying(false);
+              setCurrentTime(0);
+            }
+          }, 100);
+          (window as any)._storyPlayerMusicTracker = trackMusicTime;
         } else {
           audio.currentTime = currentTime;
 
           const playPromises: Promise<void>[] = [];
           playPromises.push(audio.play());
 
-          if (bgMusic) {
+          if (bgMusic && bgMusic.duration && isFinite(bgMusic.duration)) {
             playPromises.push(bgMusic.play());
           }
 
@@ -437,7 +482,8 @@ export default function StoryPlayerWithBLS({
   }, [isDragging, getTimeFromPosition, seekToTime]);
 
   const formatTime = (seconds: number): string => {
-    if (isNaN(seconds)) return '0:00';
+    // Handle NaN, Infinity, and invalid values
+    if (!isFinite(seconds) || seconds < 0) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
