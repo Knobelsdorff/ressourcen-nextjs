@@ -34,7 +34,14 @@ export default function DashboardAudioPlayer({
 
   // Calculate effective duration (longer of voice or music)
   const getEffectiveDuration = useCallback(() => {
-    return Math.max(duration, musicDuration) || duration;
+    // Handle NaN and invalid values
+    const validDuration = isFinite(duration) && duration > 0 ? duration : 0;
+    const validMusicDuration = isFinite(musicDuration) && musicDuration > 0 ? musicDuration : 0;
+
+    const maxDuration = Math.max(validDuration, validMusicDuration);
+
+    // If both are invalid, return 0 instead of NaN
+    return maxDuration > 0 ? maxDuration : 0;
   }, [duration, musicDuration]);
 
 
@@ -358,46 +365,86 @@ export default function DashboardAudioPlayer({
       // Ensure both audios start together
       const audio = audioRef.current;
       const bgMusic = backgroundMusicRef.current;
+
+      // Wait for audio to be ready if it's not loaded yet
+      if (!audio.duration || !isFinite(audio.duration)) {
+        console.log('[DashboardAudioPlayer] Audio not ready, waiting for metadata...');
+        try {
+          await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('Audio load timeout')), 5000);
+
+            const onLoadedMetadata = () => {
+              clearTimeout(timeout);
+              audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+              audio.removeEventListener('error', onError);
+              resolve(true);
+            };
+
+            const onError = () => {
+              clearTimeout(timeout);
+              audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+              audio.removeEventListener('error', onError);
+              reject(new Error('Audio load error'));
+            };
+
+            if (audio.readyState >= 1) {
+              // Metadata already loaded
+              clearTimeout(timeout);
+              resolve(true);
+            } else {
+              audio.addEventListener('loadedmetadata', onLoadedMetadata);
+              audio.addEventListener('error', onError);
+              // Trigger load if not already loading
+              if (audio.readyState === 0) {
+                audio.load();
+              }
+            }
+          });
+          console.log('[DashboardAudioPlayer] Audio ready, duration:', audio.duration);
+        } catch (error) {
+          console.error('[DashboardAudioPlayer] Failed to load audio:', error);
+          return;
+        }
+      }
+
       const voiceDuration = audio.duration || 0;
 
       try {
         // Check if we're beyond voice duration (only music should play)
-        const beyondVoice = currentTime >= voiceDuration;
+        const beyondVoice = currentTime >= voiceDuration && voiceDuration > 0;
         console.log('[DashboardAudioPlayer] Resume at currentTime:', currentTime, 'voiceDuration:', voiceDuration, 'beyondVoice:', beyondVoice);
 
         // Sync background music to current time
-        if (bgMusic) {
-          bgMusic.currentTime = currentTime;
+        if (bgMusic && bgMusic.duration && isFinite(bgMusic.duration)) {
+          bgMusic.currentTime = Math.min(currentTime, bgMusic.duration);
         }
 
-        if (beyondVoice) {
+        if (beyondVoice && bgMusic && bgMusic.duration) {
           // Only play background music, voice already ended
-          if (bgMusic) {
-            await bgMusic.play();
-            setIsPlaying(true);
-            console.log('[DashboardAudioPlayer] Only music resumed (beyond voice duration)');
+          await bgMusic.play();
+          setIsPlaying(true);
+          console.log('[DashboardAudioPlayer] Only music resumed (beyond voice duration)');
 
-            // Start interval to track music time since voice won't update it
-            const trackMusicTime = setInterval(() => {
-              if (isUserPausingRef.current) {
-                clearInterval(trackMusicTime);
-                (window as any)._dashboardMusicTimeTracker = null;
-                return;
-              }
-              if (bgMusic && !bgMusic.paused && !bgMusic.ended) {
-                setCurrentTime(bgMusic.currentTime);
-              } else if (bgMusic.paused) {
-                clearInterval(trackMusicTime);
-                (window as any)._dashboardMusicTimeTracker = null;
-              } else {
-                clearInterval(trackMusicTime);
-                (window as any)._dashboardMusicTimeTracker = null;
-                setIsPlaying(false);
-                setCurrentTime(0);
-              }
-            }, 100);
-            (window as any)._dashboardMusicTimeTracker = trackMusicTime;
-          }
+          // Start interval to track music time since voice won't update it
+          const trackMusicTime = setInterval(() => {
+            if (isUserPausingRef.current) {
+              clearInterval(trackMusicTime);
+              (window as any)._dashboardMusicTimeTracker = null;
+              return;
+            }
+            if (bgMusic && !bgMusic.paused && !bgMusic.ended) {
+              setCurrentTime(bgMusic.currentTime);
+            } else if (bgMusic.paused) {
+              clearInterval(trackMusicTime);
+              (window as any)._dashboardMusicTimeTracker = null;
+            } else {
+              clearInterval(trackMusicTime);
+              (window as any)._dashboardMusicTimeTracker = null;
+              setIsPlaying(false);
+              setCurrentTime(0);
+            }
+          }, 100);
+          (window as any)._dashboardMusicTimeTracker = trackMusicTime;
         } else {
           // Normal case: play both voice and music
           audio.currentTime = currentTime;
@@ -405,7 +452,7 @@ export default function DashboardAudioPlayer({
           const playPromises: Promise<void>[] = [];
           playPromises.push(audio.play());
 
-          if (bgMusic) {
+          if (bgMusic && bgMusic.duration && isFinite(bgMusic.duration)) {
             playPromises.push(bgMusic.play());
           }
 
@@ -532,7 +579,8 @@ export default function DashboardAudioPlayer({
 
 
   const formatTime = (seconds: number): string => {
-    if (isNaN(seconds)) return '0:00';
+    // Handle NaN, Infinity, and invalid values
+    if (!isFinite(seconds) || seconds < 0) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
