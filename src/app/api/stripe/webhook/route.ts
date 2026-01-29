@@ -3,12 +3,6 @@ import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Supabase Client für Webhook-Verarbeitung
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
@@ -24,6 +18,16 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   console.log('[stripe/webhook] Request received')
   
+  // Supabase Client erst zur Laufzeit erstellen (verhindert Build/Dev-Crash ohne ENV)
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('[stripe/webhook] Supabase env not configured')
+    return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
+  }
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  )
+
   if (!process.env.STRIPE_SECRET_KEY) {
     console.error('[stripe/webhook] STRIPE_SECRET_KEY not configured')
     return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 })
