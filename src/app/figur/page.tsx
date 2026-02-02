@@ -19,7 +19,8 @@ const CURATED_FIGURE_IDS = [
 
 function getCuratedFigures(): ResourceFigure[] {
   const allFigures = [...realFigures, ...fictionalFigures];
-  return allFigures.filter(figure => CURATED_FIGURE_IDS.includes(figure.id));
+  const figureMap = new Map(allFigures.map(figure => [figure.id, figure]));
+  return CURATED_FIGURE_IDS.map(id => figureMap.get(id)).filter((figure): figure is ResourceFigure => figure !== undefined);
 }
 
 export default function FigurPage() {
