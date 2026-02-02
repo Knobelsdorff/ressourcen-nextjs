@@ -46,6 +46,28 @@ interface AudioPlaybackProps {
 
 // Voices will be loaded dynamically from API
 
+/**
+ * Generiert einen figurenspezifischen Text mit korrektem Artikel
+ * Sonderfall: Engel → "Die Engelsfigur ist nun für dich da."
+ * Alle anderen: Artikel basierend auf Pronomen + Figurenname
+ */
+function getFigurePresenceText(figure: ResourceFigure): string {
+  // Sonderfall: Engel
+  if (figure.id === 'angel') {
+    return 'Die Engelsfigur ist nun für dich da.';
+  }
+  
+  // Artikel basierend auf Pronomen bestimmen
+  let article = 'Die'; // Default
+  if (figure.pronouns === 'er/ihm') {
+    article = 'Der';
+  } else if (figure.pronouns === 'es/sein') {
+    article = 'Das';
+  }
+  
+  return `${article} ${figure.name} ist nun für dich da.`;
+}
+
 export default function AudioPlayback({
   selectedFigure,
   generatedStory,
@@ -1930,7 +1952,7 @@ export default function AudioPlayback({
           className="text-center sm:mb-8 mb-5"
         >
           <h2 className="text-2xl lg:text-3xl font-light text-amber-900 mb-4">
-            Deine Power Story
+            {selectedFigure.name}
           </h2>
           {/* Figure Icon */}
           <div className="flex justify-center mb-4">
@@ -1948,9 +1970,6 @@ export default function AudioPlayback({
               <span className="text-4xl">{selectedFigure.emoji}</span>
             )}
           </div>
-          <p className="text-amber-700">
-            {selectedFigure.name} ist bei dir
-          </p>
         </motion.div>
 
         {/* Main Audio Player Card */}
@@ -1971,7 +1990,7 @@ export default function AudioPlayback({
             >
               <p className="text-sm md:text-base text-amber-700/80 max-w-md mx-auto leading-relaxed space-y-1">
                 <span className="block">Du musst nichts tun.</span>
-                <span className="block">Die Geschichte ist gleich für dich da.</span>
+                <span className="block">{getFigurePresenceText(selectedFigure)}</span>
                 <span className="block">Du kannst einfach zuhören – oder jederzeit pausieren.</span>
               </p>
             </motion.div>
@@ -2128,7 +2147,7 @@ export default function AudioPlayback({
                     {/* Moment 1: Calm "after" text */}
                     <div className="text-center mb-6">
                       <h3 className="text-lg font-light text-amber-900 mb-3">
-                        Lass die Geschichte einen Moment nachwirken.
+                        Lass das Gehörte einen Moment nachwirken.
                       </h3>
                       <p className="text-sm md:text-base text-amber-700/80 max-w-md mx-auto leading-relaxed">
                         Du musst nichts festhalten oder verstehen.
