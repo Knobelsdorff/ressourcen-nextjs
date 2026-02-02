@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
@@ -43,6 +43,144 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
   const [mounted, setMounted] = useState(false);
   const [sparModus, setSparModus] = useState(false);
   const [showAllVoices, setShowAllVoices] = useState(false);
+  
+  // Dev Mode state (sessionStorage)
+  const [devMode, setDevMode] = useState(false);
+  const tapCountRef = useRef(0);
+  const tapTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTapTimeRef = useRef(0);
+  const hasScrolledRef = useRef(false);
+
+  // Initialize dev mode from sessionStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('ps_dev_mode') === 'true';
+      setDevMode(stored);
+    }
+  }, []);
+
+  const toggleDevMode = useCallback(() => {
+    setDevMode(prev => {
+      const newDevMode = !prev;
+      
+      if (typeof window !== 'undefined') {
+        if (newDevMode) {
+          sessionStorage.setItem('ps_dev_mode', 'true');
+          console.log('Dev mode enabled');
+        } else {
+          sessionStorage.removeItem('ps_dev_mode');
+          console.log('Dev mode disabled');
+        }
+      }
+      
+      return newDevMode;
+    });
+  }, []);
+
+  // Keyboard shortcut: Windows/Linux: Ctrl + Shift + D | macOS: Ctrl + Option + Shift + D
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Safety: ignore if any input/textarea/select is focused or contentEditable is active
+      const activeElement = document.activeElement;
+      if (activeElement && (
+        activeElement.tagName === 'INPUT' ||
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.tagName === 'SELECT' ||
+        (activeElement as HTMLElement).isContentEditable
+      )) {
+        return;
+      }
+
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const key = e.key.toLowerCase();
+      
+      // Windows/Linux: Ctrl + Shift + D
+      // macOS: Ctrl + Option(Alt) + Shift + D
+      if (isMac) {
+        if (e.ctrlKey && e.altKey && e.shiftKey && key === 'd') {
+          e.preventDefault();
+          toggleDevMode();
+        }
+      } else {
+        if (e.ctrlKey && e.shiftKey && key === 'd') {
+          e.preventDefault();
+          toggleDevMode();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleDevMode]);
+
+  // Multi-tap handler for H1 headline
+  const handleHeadlineTap = () => {
+    // Safety: ignore if any input/button is focused
+    const activeElement = document.activeElement;
+    if (activeElement && (
+      activeElement.tagName === 'INPUT' ||
+      activeElement.tagName === 'BUTTON' ||
+      activeElement.tagName === 'TEXTAREA'
+    )) {
+      return;
+    }
+
+    const now = Date.now();
+    const timeSinceLastTap = now - lastTapTimeRef.current;
+    
+    // Reset if more than 2 seconds passed
+    if (timeSinceLastTap > 2000) {
+      tapCountRef.current = 0;
+      hasScrolledRef.current = false;
+    }
+
+    // Cancel if user scrolled
+    if (hasScrolledRef.current) {
+      tapCountRef.current = 0;
+      hasScrolledRef.current = false;
+      return;
+    }
+
+    tapCountRef.current++;
+    lastTapTimeRef.current = now;
+
+    // Clear existing timer
+    if (tapTimerRef.current) {
+      clearTimeout(tapTimerRef.current);
+    }
+
+    // Set timer to reset after 2 seconds
+    tapTimerRef.current = setTimeout(() => {
+      if (tapCountRef.current < 7) {
+        tapCountRef.current = 0;
+      }
+    }, 2000);
+
+    // Check if we reached 7 taps
+    if (tapCountRef.current >= 7) {
+      tapCountRef.current = 0;
+      toggleDevMode();
+    }
+  };
+
+  // Track scroll to cancel tap sequence
+  useEffect(() => {
+    const handleScroll = () => {
+      hasScrolledRef.current = true;
+    };
+
+    const handleTouchMove = () => {
+      hasScrolledRef.current = true;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('touchmove', handleTouchMove);
+    };
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -309,10 +447,82 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
     setPlayingVoiceId(null);
   };
 
+  // Generiere figurenspezifische Subline mit korrektem Artikel
+  const getFigureSubline = (figure: typeof resourceFigure): string => {
+    if (!figure) {
+      return 'Höre kurz hinein und wähle die Stimme, die sich im Moment stimmig anfühlt.';
+    }
+
+    const figureId = figure.name.toLowerCase();
+    const figureName = figure.name;
+    const pronouns = figure.pronouns?.toLowerCase() || '';
+
+    // Sonderfälle mit spezifischer Formulierung
+    if (figureId.includes('mutter erde')) {
+      return 'Höre kurz hinein und wähle die Stimme, die sich für Mutter Erde im Moment stimmig anfühlt.';
+    }
+    
+    if (figureId.includes('erzengel michael')) {
+      return 'Höre kurz hinein und wähle die Stimme, die sich für den Erzengel Michael im Moment stimmig anfühlt.';
+    }
+    
+    if (figureId.includes('krafttier')) {
+      return 'Höre kurz hinein und wähle die Stimme, die sich für dein Krafttier im Moment stimmig anfühlt.';
+    }
+    
+    if (figureId.includes('bester freund') || figureId.includes('beste freundin')) {
+      if (pronouns.includes('sie')) {
+        return 'Höre kurz hinein und wähle die Stimme, die sich für deine beste Freundin im Moment stimmig anfühlt.';
+      }
+      return 'Höre kurz hinein und wähle die Stimme, die sich für deinen besten Freund im Moment stimmig anfühlt.';
+    }
+
+    // Ideal-Vater / Ideal-Mutter: natürliche Formulierung ohne Bindestrich
+    if (figureId.includes('ideal-vater')) {
+      return 'Höre kurz hinein und wähle die Stimme, die sich für deinen idealen Vater im Moment stimmig anfühlt.';
+    }
+    
+    if (figureId.includes('ideal-mutter')) {
+      return 'Höre kurz hinein und wähle die Stimme, die sich für deine ideale Mutter im Moment stimmig anfühlt.';
+    }
+    
+    if (figureId.includes('ideal-großfamilie')) {
+      return 'Höre kurz hinein und wähle die Stimme, die sich für deine ideale Großfamilie im Moment stimmig anfühlt.';
+    }
+
+    // Familienmitglieder und nahe Beziehungen: Possessivartikel
+    if (figureId.includes('oma') || figureId.includes('mama') || figureId.includes('mutter') || 
+        figureId.includes('tante') || figureId.includes('schwester') || figureId.includes('lehrerin') ||
+        figureId.includes('partnerin') || figureId.includes('göttliche mutter')) {
+      return `Höre kurz hinein und wähle die Stimme, die sich für deine ${figureName} im Moment stimmig anfühlt.`;
+    }
+    
+    if (figureId.includes('opa') || figureId.includes('papa') || figureId.includes('vater') ||
+        figureId.includes('onkel') || figureId.includes('bruder') || figureId.includes('lehrer') ||
+        figureId.includes('partner') || figureId.includes('göttlicher vater')) {
+      return `Höre kurz hinein und wähle die Stimme, die sich für deinen ${figureName} im Moment stimmig anfühlt.`;
+    }
+
+    // Standard: Artikel basierend auf Pronomen
+    if (pronouns.includes('er')) {
+      // Männlich: "den" für Akkusativ
+      return `Höre kurz hinein und wähle die Stimme, die sich für den ${figureName} im Moment stimmig anfühlt.`;
+    } else if (pronouns.includes('sie')) {
+      // Weiblich: "die" für Akkusativ
+      return `Höre kurz hinein und wähle die Stimme, die sich für die ${figureName} im Moment stimmig anfühlt.`;
+    } else if (pronouns.includes('es')) {
+      // Neutral: Possessivartikel
+      return `Höre kurz hinein und wähle die Stimme, die sich für dein ${figureName} im Moment stimmig anfühlt.`;
+    }
+
+    // Fallback: ohne Artikel
+    return `Höre kurz hinein und wähle die Stimme, die sich für ${figureName} im Moment stimmig anfühlt.`;
+  };
+
   if (!mounted || loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="text-amber-600 max-sm:text-sm">Lade verfügbare Stimmen...</div>
+        <div className="text-amber-600 max-sm:text-sm">Stimmen werden geladen...</div>
       </div>
     );
   }
@@ -320,43 +530,36 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
   return (
     <div className="space-y-6 max-w-7xl mx-auto sm:pt-8 pt-5 px-4 pb-10">
       <div className="text-center">
-        <h2 className="sm:text-2xl text-xl font-bold text-amber-900 mb-2">Stimme auswählen</h2>
-        <p className="text-amber-700 max-sm:text-sm">
-          {resourceFigure ? 
-            `Höre dir die passenden Stimmen für ${resourceFigure.name} an und wähle die, die am besten zu deiner Ressourcenfigur passt.` :
-            'Höre dir die verschiedenen Stimmen an und wähle die passende für deine Ressourcenfigur.'
-          }
+        <h2 
+          className="sm:text-2xl text-xl font-bold text-amber-900 mb-2"
+          data-dev-tap-target="true"
+          onClick={handleHeadlineTap}
+          style={{ cursor: 'default' }}
+        >
+          Eine Stimme für deine Geschichte
+        </h2>
+        <p className="text-amber-700 max-sm:text-sm mb-1">
+          {getFigureSubline(resourceFigure)}
         </p>
-        {resourceFigure && (
-          <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
-            <p className="text-sm text-amber-800">
-              <strong>Passende Stimmen für {resourceFigure.name}</strong>
-            </p>
-          </div>
-        )}
+        <p className="text-xs text-amber-600/70 mt-2">
+          Wenn nichts anderes ruft, kannst du bei der Empfehlung bleiben.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
         {(showAllVoices ? filteredVoices : filteredVoices.slice(0, 3)).map((voice, idx) => (
           <Card
             key={voice.id}
             className={`relative cursor-pointer transition-all duration-200 ${
               selectedVoiceId === voice.id
-                ? 'ring-2 ring-green-500 bg-[#f0fdf4]'
+                ? 'ring-2 ring-amber-400 bg-amber-50'
                 : 'hover:shadow-md hover:bg-amber-50'
             }`}
             onClick={() => onVoiceSelect(voice.id)}
           >
-            {/* Ausgewählt-Badge oben rechts */}
-            {selectedVoiceId === voice.id && (
-              <div className="absolute top-2 right-2 h-6 w-6 rounded-full bg-green-600 text-white flex items-center justify-center shadow">
-                <Check className="w-4 h-4" />
-              </div>
-            )}
-
             {/* Empfohlen-Label auf der ersten Karte, wenn nicht showAll */}
             {!showAllVoices && idx === 0 && (
-              <div className="absolute -top-2 left-2 text-[11px] bg-green-100 text-green-800 border border-green-200 rounded px-2 py-0.5">
+              <div className="absolute -top-2 left-2 text-[11px] bg-amber-100 text-amber-800 border border-amber-200 rounded px-2 py-0.5">
                 Empfohlen
               </div>
             )}
@@ -451,16 +654,16 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
                       playVoicePreview(voice);
                     }
                   }}
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-1 text-xs"
                 >
                   <span key={playingVoiceId === voice.id ? 'pause' : 'play'}>
                     {playingVoiceId === voice.id ? (
-                      <Pause className="h-4 w-4" />
+                      <Pause className="h-3.5 w-3.5" />
                     ) : (
-                      <Play className="h-4 w-4" />
+                      <Play className="h-3.5 w-3.5" />
                     )}
                   </span>
-                  {playingVoiceId === voice.id ? 'Stoppen' : 'Testen'}
+                  {playingVoiceId === voice.id ? 'Stoppen' : 'Reinhören'}
                 </Button>
 
               </div>
@@ -491,27 +694,29 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
         </div>
       )}
 
-      {/* Sparmodus Option */}
-      <div className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
-        <div className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            id="sparModus"
-            checked={sparModus}
-            onChange={(e) => {
-              setSparModus(e.target.checked);
-              onSparModusChange?.(e.target.checked);
-            }}
-            className="w-4 h-4 text-amber-600 bg-amber-100 border-amber-300 rounded focus:ring-amber-500 focus:ring-2"
-          />
-          <label htmlFor="sparModus" className="text-sm font-medium text-amber-800 cursor-pointer">
-            Sparmodus aktivieren (nur erster Satz wird als Audio generiert)
-          </label>
+      {/* Sparmodus Option - nur wenn Dev Mode aktiv */}
+      {devMode && (
+        <div className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="sparModus"
+              checked={sparModus}
+              onChange={(e) => {
+                setSparModus(e.target.checked);
+                onSparModusChange?.(e.target.checked);
+              }}
+              className="w-4 h-4 text-amber-600 bg-amber-100 border-amber-300 rounded focus:ring-amber-500 focus:ring-2"
+            />
+            <label htmlFor="sparModus" className="text-sm font-medium text-amber-800 cursor-pointer">
+              Sparmodus aktivieren (nur erster Satz wird als Audio generiert)
+            </label>
+          </div>
+          <p className="text-xs text-amber-600 mt-1 ml-7">
+            Günstiger und schneller - perfekt zum Testen
+          </p>
         </div>
-        <p className="text-xs text-amber-600 mt-1 ml-7">
-          Günstiger und schneller - perfekt zum Testen
-        </p>
-      </div>
+      )}
 
       {/* Navigation Buttons (nur Desktop) */}
       <div className="flex justify-center items-center mt-6 gap-4">
