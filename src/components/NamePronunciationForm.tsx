@@ -121,7 +121,7 @@ export default function NamePronunciationForm({
             className="bg-white rounded-[20px] shadow-[0px_5px_10px_0px_rgba(0,0,0,0.25)] sm:p-8 max-sm:px-4 max-sm:py-4"
           >
             {/* Header with Emoji and Figure Name */}
-            <div className="flex items-center justify-center gap-3 sm:mb-8 mb-5">
+            <div className="flex items-center justify-center gap-3 sm:mb-10 mb-6">
               <div className="text-4xl">
                 {selectedFigure.id === 'ideal-family' ? (
                   <IdealFamilyIconFinal size={48} className="w-12 h-12" />
@@ -143,10 +143,10 @@ export default function NamePronunciationForm({
             {/* Title */}
             <div className="text-center sm:mb-8 mb-5">
               <h2 className="sm:text-2xl text-xl text-gray-800 font-normal mb-2">
-                Personalisiere deine Geschichte
+                Deine Power Story – ganz in deinem Tempo
               </h2>
               <p className="text-sm text-gray-600">
-                Optional: Gib deinen Namen ein, damit er in der Geschichte verwendet wird
+                Wenn du magst, kann die Geschichte dich persönlich ansprechen.
               </p>
             </div>
 
@@ -155,7 +155,7 @@ export default function NamePronunciationForm({
               <div className="grid grid-cols-1 md:grid-cols-2 sm:gap-4 gap-3">
                 <div>
                   <label htmlFor="fullName" className="block text-sm font-semibold text-blue-900 mb-2">
-                    Vorname/Spitzname
+                    Vorname oder Spitzname (optional)
                   </label>
                   <input
                     type="text"
@@ -165,15 +165,14 @@ export default function NamePronunciationForm({
                     className="w-full px-3 py-2.5 border border-blue-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all"
                     placeholder="z.B. Andy, Maria, Tom"
                   />
-                  <p className="text-blue-600 text-xs mt-1">
-                    Wird in deinen Geschichten verwendet
+                  <p className="text-gray-600/75 text-xs mt-1.5">
+                    Nur wenn es sich stimmig anfühlt.
                   </p>
                 </div>
 
                 <div>
                   <label htmlFor="pronunciationHint" className="block text-sm font-semibold text-blue-900 mb-2">
-                    Aussprache-Hinweis
-                    <span className="text-blue-500 text-xs font-normal ml-1">(optional)</span>
+                    Aussprache (optional)
                   </label>
                   <input
                     type="text"
@@ -183,12 +182,8 @@ export default function NamePronunciationForm({
                     className="w-full px-3 py-2.5 border border-blue-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all"
                     placeholder="z.B. Andi (statt Andy)"
                   />
-                  <p className="mt-1 text-xs text-blue-600">
-                    Gib hier einfach den Namen ein, wie er ausgesprochen werden soll.
-                    <span className="font-semibold"> Beispiel: Wenn dein Name "Andy" ist, aber als "Andi" ausgesprochen werden soll, gib hier "Andi" ein.</span>
-                  </p>
-                  <p className="text-blue-600 text-xs mt-1">
-                    Der Name wird dann automatisch in der Geschichte durch diese Schreibweise ersetzt.
+                  <p className="text-gray-600/75 text-xs mt-1.5">
+                    Nur nötig, wenn dein Name oft falsch ausgesprochen wird.
                   </p>
                 </div>
               </div>

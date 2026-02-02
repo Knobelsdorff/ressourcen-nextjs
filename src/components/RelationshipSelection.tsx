@@ -245,50 +245,16 @@ export default function RelationshipSelection({
                 </div>
               )}
 
-              {/* Sparmodus Schalter bei Frage 6 - Admin oder Testmodus */}
-              {(() => {
-                const list = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
-                  .split(',')
-                  .map(e => e.trim().toLowerCase())
-                  .filter(Boolean);
-                const email = (user?.email || '').toLowerCase();
-                const isAdmin = email && list.includes(email);
-                const isTestMode = process.env.NODE_ENV === 'development';
-                const isLastQuestion = !(selectedFigure.category === 'place') && currentQuestionIndex === 5; // Q6 bei Personen
-                const isLastQuestionPlace = (selectedFigure.category === 'place') && currentQuestionIndex === 4; // Q5 bei Orten
 
-                if (!(isAdmin || isTestMode)) return null;
-                if (!(isLastQuestion || isLastQuestionPlace)) return null;
-
-                const current = (typeof window !== 'undefined' ? localStorage.getItem('admin_sparmodus') === '1' : false);
-                const isTestModeActive = (typeof window !== 'undefined' ? localStorage.getItem('test_sparmodus') === '1' : false);
-
-                return (
-                  <div className="flex items-center justify-center sm:mb-6 mb-4">
-                    <label className="inline-flex items-center gap-2 text-gray-800">
-                      <input
-                        type="checkbox"
-                        defaultChecked={isAdmin ? current : isTestModeActive}
-                        onChange={(e) => {
-                          try {
-                            if (isAdmin) {
-                              localStorage.setItem('admin_sparmodus', e.target.checked ? '1' : '0');
-                            } else {
-                              localStorage.setItem('test_sparmodus', e.target.checked ? '1' : '0');
-                            }
-                          } catch { }
-                        }}
-                      />
-                      <span className="text-sm">
-                        {isAdmin ? 'Sparmodus (nur erster Satz im Audio)' : 'Testmodus (nur erster Satz im Audio)'}
-                      </span>
-                    </label>
-                  </div>
-                );
-              })()}
+              {/* Calm helper hint above options */}
+              <div className="mb-4">
+                <p className="text-xs text-gray-500/80 text-center">
+                  Wähle die Aussagen, die sich im Moment am stimmigsten anfühlen.
+                </p>
+              </div>
 
               {/* Answer Blocks - 2 Column Layout (inkl. eigene Snippets) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 sm:gap-4 gap-3 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 sm:gap-4 gap-3 mb-8">
                 {[...currentQuestion.blocks, ...(currentAnswer.customBlocks || [])].map((block, index) => {
                   const personalizedBlock = block;
                   return (
@@ -343,8 +309,8 @@ export default function RelationshipSelection({
               </div>
 
               {/* Eigene Snippets hinzufügen */}
-              <div className="mb-8">
-                <Label htmlFor="custom-snippet" className="text-sm text-gray-800 mb-2 block">Eigenen Text hinzufügen:</Label>
+              <div className="mb-8 mt-6">
+                <Label htmlFor="custom-snippet" className="text-xs text-gray-600/80 mb-2 block">Eigene Worte (optional):</Label>
                 <div className="flex gap-2 mb-3">
                   <input
                     id="custom-snippet"
@@ -404,9 +370,7 @@ export default function RelationshipSelection({
                 </motion.button>
 
                 <div className="text-center">
-                  <p className="text-gray-600 text-sm mb-1">
-                    Frage {currentQuestionIndex + 1} von {questionsToUse.length}
-                  </p>
+                  {/* Progress indicator removed - only bottom progress bar shown */}
                 </div>
 
                 <motion.button
