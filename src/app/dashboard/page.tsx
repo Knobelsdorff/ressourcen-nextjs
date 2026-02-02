@@ -1064,11 +1064,6 @@ export default function Dashboard() {
           // Verwende alle relevanten Spalten inkl. audio_url und voice_id
           console.log('poopoo [Dashboard] Preparing to save pending story with audio data');
 
-          // Generiere autoSubtitle basierend auf der Figur
-          const generateAutoSubtitle = (figure: any): string => {
-            return `Eine Geschichte mit ${figure.name}`;
-          };
-
           const correctData = {
             user_id: user.id,
             title: storyData.selectedFigure.name,
@@ -1077,7 +1072,7 @@ export default function Dashboard() {
             question_answers: Array.isArray(storyData.questionAnswers) ? storyData.questionAnswers : [],
             audio_url: storyData.audioState?.audioUrl || null,
             voice_id: storyData.selectedVoiceId || storyData.audioState?.voiceId || null,
-            auto_subtitle: generateAutoSubtitle(storyData.selectedFigure)
+            auto_subtitle: null // Kein auto_subtitle beim ersten Speichern - User kann eigenen Satz eingeben
           };
 
           console.log('poopoo [Dashboard] Inserting pending story with data:', JSON.stringify({
@@ -3357,7 +3352,7 @@ ${story.content}
           className="text-center sm:mb-8 mb-4"
         >
           <h1 className="text-3xl md:text-4xl font-light text-amber-900 mb-2">
-            Willkommen in deinem Raum.
+            Willkommen in deinem Raum
           </h1>
         </motion.div>
 
