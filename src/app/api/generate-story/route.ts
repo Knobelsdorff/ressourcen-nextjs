@@ -3,6 +3,94 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { generateStoryPrompt } from '@/data/story-generation';
 
+/**
+ * Entfernt Doppelungen aus der generierten Story.
+ * Erkennt wiederholte Sätze, Phrasen und ähnliche Konstruktionen.
+ */
+function removeDuplications(story: string): string {
+  let cleaned = story;
+  
+  // Normalisiere Whitespace
+  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+  
+  // 1. Entferne wiederholte Sätze (z.B. "Du bittest Mutter Erde. Du bittest Mutter Erde")
+  // Erkenne Sätze, die mit demselben Anfang beginnen und sehr ähnlich sind
+  const sentences = cleaned.split(/(?<=[.!?])\s+/);
+  const uniqueSentences: string[] = [];
+  const seenPatterns = new Set<string>();
+  
+  for (let i = 0; i < sentences.length; i++) {
+    const sentence = sentences[i].trim();
+    if (!sentence) continue;
+    
+    // Normalisiere den Satz für Vergleich (kleinschreibung, entferne Interpunktion)
+    const normalized = sentence.toLowerCase()
+      .replace(/[.,!?;:]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    // Prüfe, ob dieser Satz oder ein sehr ähnlicher Satz bereits vorkam
+    let isDuplicate = false;
+    for (const seen of seenPatterns) {
+      // Wenn der Satz identisch ist oder sehr ähnlich (über 80% Übereinstimmung)
+      if (normalized === seen || 
+          (normalized.length > 10 && seen.length > 10 && 
+           (normalized.includes(seen.substring(0, Math.min(20, seen.length))) ||
+            seen.includes(normalized.substring(0, Math.min(20, normalized.length)))))) {
+        isDuplicate = true;
+        break;
+      }
+    }
+    
+    if (!isDuplicate) {
+      uniqueSentences.push(sentence);
+      seenPatterns.add(normalized);
+    }
+  }
+  
+  cleaned = uniqueSentences.join(' ');
+  
+  // 2. Entferne wiederholte Phrasen innerhalb von Sätzen
+  // (z.B. "und Mutter Erde versichert dir, und Mutter Erde versichert dir")
+  const phrasePatterns = [
+    // Wiederholte Phrasen mit Komma-Trennung
+    /\b([^,]{10,50}),\s*\1\b/gi,
+    // Wiederholte Phrasen mit "und" Trennung
+    /\b([^.!?]{10,50})\s+und\s+\1\b/gi,
+    // Wiederholte Phrasen mit "du" am Anfang
+    /\b(Du\s+[^.!?]{10,50})\s+\.\s*\1\b/gi,
+  ];
+  
+  for (const pattern of phrasePatterns) {
+    cleaned = cleaned.replace(pattern, (match, phrase) => {
+      // Entferne die Wiederholung, behalte nur einmal
+      return phrase;
+    });
+  }
+  
+  // 3. Entferne spezifische bekannte Doppelungen
+  const specificPatterns = [
+    // "Du bittest [Name]. Du bittest [Name]"
+    /\b(Du bittest [^.!?]+)\.\s*\1\b/gi,
+    // "Und [Name] versichert dir, und [Name] versichert dir"
+    /\b(Und [^.!?]+ versichert dir,)\s*\1/gi,
+    // "Und [Name] sagt zu dir, und [Name] sagt zu dir"
+    /\b(Und [^.!?]+ sagt zu dir:)\s*\1/gi,
+  ];
+  
+  for (const pattern of specificPatterns) {
+    cleaned = cleaned.replace(pattern, '$1');
+  }
+  
+  // 4. Normalisiere Whitespace erneut
+  cleaned = cleaned.replace(/\s+/g, ' ')
+    .replace(/\s+([.!?,:;])/g, '$1')
+    .replace(/([.!?])\s+/g, '$1 ')
+    .trim();
+  
+  return cleaned;
+}
+
 interface AnswerEntry {
   questionId: number;
   answer?: string;
@@ -199,6 +287,13 @@ Bearbeitete Geschichte:`;
       });
 
       story = completion.choices[0]?.message?.content || '';
+      
+      // Entferne Doppelungen aus der generierten Story
+      const originalLength = story.length;
+      story = removeDuplications(story);
+      if (originalLength !== story.length) {
+        console.log(`✓ Doppelungen entfernt: ${originalLength} -> ${story.length} Zeichen`);
+      }
       
       // Debug: Prüfe, ob SSML-Tags in der generierten Story enthalten sind
       const ssmlInStory = story.match(/<phoneme[^>]*>([^<]+)<\/phoneme>/g);

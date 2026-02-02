@@ -645,6 +645,11 @@ Zusatz: Wenn es natürlich und sanft passt, verwende den Namen "${userName}" ein
 - **Zitate separat und weich einfügen**
 - **Nur einfache, alltägliche Worte verwenden**
 - **Stell dir vor, du sprichst zu jemandem, der ruhig mit einer Tasse Tee im Sessel sitzt**
+- **WICHTIG - VERMEIDE DOPPELUNGEN:**
+  - **VERMEIDE** wiederholte Sätze oder Phrasen (z.B. NICHT: "Du bittest Mutter Erde. Du bittest Mutter Erde")
+  - **VERMEIDE** Wiederholungen innerhalb von Sätzen (z.B. NICHT: "und Mutter Erde versichert dir, und Mutter Erde versichert dir")
+  - Jeder Satz und jede Phrase sollte nur EINMAL vorkommen
+  - Wenn du etwas bereits gesagt hast, formuliere es anders oder lass es weg
 
 ---
 
@@ -770,6 +775,11 @@ Zusatz: Wenn es natürlich und sanft passt, verwende den Namen "${userName}" ein
 - **Zitate separat und weich einfügen**
 - **Nur einfache, alltägliche Worte verwenden**
 - **Stell dir vor, du sprichst zu jemandem, der ruhig mit einer Tasse Tee im Sessel sitzt**
+- **WICHTIG - VERMEIDE DOPPELUNGEN:**
+  - **VERMEIDE** wiederholte Sätze oder Phrasen (z.B. NICHT: "Du bittest Mutter Erde. Du bittest Mutter Erde")
+  - **VERMEIDE** Wiederholungen innerhalb von Sätzen (z.B. NICHT: "und Mutter Erde versichert dir, und Mutter Erde versichert dir")
+  - Jeder Satz und jede Phrase sollte nur EINMAL vorkommen
+  - Wenn du etwas bereits gesagt hast, formuliere es anders oder lass es weg
 
 ---
 
@@ -911,6 +921,11 @@ Zusatz: Wenn es natürlich und sanft passt, verwende den Namen "${userName}" ein
 - **Zitate separat und weich einfügen**
 - **Nur einfache, alltägliche Worte verwenden**
 - **Stell dir vor, du sprichst zu jemandem, der ruhig mit einer Tasse Tee im Sessel sitzt**
+- **WICHTIG - VERMEIDE DOPPELUNGEN:**
+  - **VERMEIDE** wiederholte Sätze oder Phrasen (z.B. NICHT: "Du bittest deinen Engel. Du bittest deinen Engel")
+  - **VERMEIDE** Wiederholungen innerhalb von Sätzen (z.B. NICHT: "und sie sagt zu dir, und sie sagt zu dir")
+  - Jeder Satz und jede Phrase sollte nur EINMAL vorkommen
+  - Wenn du etwas bereits gesagt hast, formuliere es anders oder lass es weg
 
 ---
 
@@ -1033,6 +1048,11 @@ Zusatz: Wenn es natürlich und kraftvoll passt, verwende den Namen "${userName}"
 - **Nur einfache, alltägliche Worte verwenden**
 - **Stell dir vor, du sprichst zu jemandem, der bereit ist, mutig zu sein und für sich selbst einzustehen**
 - **WICHTIG:** Der Ton sollte **verführerisch, ermutigend und kraftvoll** sein – NICHT sanft, mütterlich oder therapeutisch. Lilith verführt dich quasi dazu, mutig zu sein.
+- **WICHTIG - VERMEIDE DOPPELUNGEN:**
+  - **VERMEIDE** wiederholte Sätze oder Phrasen (z.B. NICHT: "Du bittest Lilith. Du bittest Lilith")
+  - **VERMEIDE** Wiederholungen innerhalb von Sätzen (z.B. NICHT: "und Lilith sagt zu dir, und Lilith sagt zu dir")
+  - Jeder Satz und jede Phrase sollte nur EINMAL vorkommen
+  - Wenn du etwas bereits gesagt hast, formuliere es anders oder lass es weg
 
 ---
 
@@ -1132,6 +1152,11 @@ Du darfst **nichts direkt aus den Antworten übernehmen**. Stattdessen:
 - **Sanftes Erzähltempo, emotional sichere Sprache**
 - **Nur einfache, alltägliche Worte verwenden**
 - **Stell dir vor, du sprichst zu jemandem, der ruhig mit einer Tasse Tee im Sessel sitzt**
+- **WICHTIG - VERMEIDE DOPPELUNGEN:**
+  - **VERMEIDE** wiederholte Sätze oder Phrasen (z.B. NICHT: "Du bist an deinem sicheren Ort. Du bist an deinem sicheren Ort")
+  - **VERMEIDE** Wiederholungen innerhalb von Sätzen (z.B. NICHT: "und du spürst die Ruhe, und du spürst die Ruhe")
+  - Jeder Satz und jede Phrase sollte nur EINMAL vorkommen
+  - Wenn du etwas bereits gesagt hast, formuliere es anders oder lass es weg
 
 ---
 
