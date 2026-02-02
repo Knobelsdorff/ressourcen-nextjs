@@ -24,6 +24,9 @@ import SubscriptionManagement from "@/components/SubscriptionManagement";
 import StoryPlayerWithBLS from "@/components/StoryPlayerWithBLS";
 import { BLSProvider } from "@/components/providers/bls-provider";
 import EditableSubtitle from "@/components/EditableSubtitle";
+import StoryActionsMenu from "@/components/StoryActionsMenu";
+import EditableTitle from "@/components/EditableTitle";
+import DeleteStoryDialog from "@/components/DeleteStoryDialog";
 
 interface SavedStory {
   id: string;
@@ -87,6 +90,7 @@ export default function Dashboard() {
   const [audioCurrentTime, setAudioCurrentTime] = useState<{ [key: string]: number }>({});
   const [audioDuration, setAudioDuration] = useState<{ [key: string]: number }>({});
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [renamingStoryId, setRenamingStoryId] = useState<string | null>(null);
   const adminResourceLoadingRef = useRef<string | null>(null); // Verhindere mehrfaches Laden derselben Ressource
   const [pendingStory, setPendingStory] = useState<any>(null);
   const [isSavingPendingStory, setIsSavingPendingStory] = useState(false);
@@ -1528,6 +1532,12 @@ export default function Dashboard() {
 
 
   const deleteStory = async (storyId: string) => {
+    // Prüfe ob es die erste Story ist
+    if (personalStories.length <= 1) {
+      console.warn('Cannot delete the first story');
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('saved_stories')
@@ -1536,10 +1546,11 @@ export default function Dashboard() {
 
       if (error) {
         console.error('Error deleting story:', error);
-        alert('Fehler beim Löschen der Geschichte');
+        alert('Fehler beim Löschen der Power Story');
       } else {
         // Aktualisiere die lokale Liste
         setStories(stories.filter(story => story.id !== storyId));
+        setPersonalStories(personalStories.filter(story => story.id !== storyId));
         setDeleteConfirmId(null); // Bestätigung schließen
       }
     } catch (err) {
@@ -1629,6 +1640,35 @@ export default function Dashboard() {
   // Hilfsfunktion: Gibt den anzuzeigenden Untertitel zurück (customSubtitle wenn vorhanden, sonst autoSubtitle)
   const getDisplaySubtitle = (story: SavedStory): string | null => {
     return story.custom_subtitle || story.auto_subtitle || null;
+  };
+
+  const saveTitle = async (storyId: string, newTitle: string) => {
+    try {
+      const { error } = await (supabase as any)
+        .from('saved_stories')
+        .update({ title: newTitle })
+        .eq('id', storyId);
+
+      if (error) {
+        console.error('[saveTitle] Error:', error);
+        throw error;
+      }
+
+      // Aktualisiere die lokale Liste
+      setStories(stories.map(story => 
+        story.id === storyId 
+          ? { ...story, title: newTitle }
+          : story
+      ));
+      setPersonalStories(personalStories.map(story => 
+        story.id === storyId 
+          ? { ...story, title: newTitle }
+          : story
+      ));
+    } catch (err) {
+      console.error('[saveTitle] Unexpected error:', err);
+      throw err;
+    }
   };
 
   // Temporäre Funktion zum Löschen aller Duplikate für einen User
@@ -3349,7 +3389,7 @@ ${story.content}
               }`}
             >
               <BookOpen className="w-5 h-5" />
-              <span className="max-sm:text-sm">Meine Ressourcen ({stories.length})</span>
+              <span className="max-sm:text-sm">Meine Power Storys ({stories.length})</span>
             </button>
 
             {/* Subscription Management Link - only for Pro users */}
@@ -3658,7 +3698,7 @@ ${story.content}
                   {/* Section 2: Personal Stories */}
                   <div className="bg-white rounded-2xl shadow-lg p-8">
                     <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-2xl font-bold text-amber-900">Deine persönlichen Geschichten</h2>
+                      <h2 className="text-2xl font-bold text-amber-900">Meine Power Storys</h2>
                       <button
                         onClick={async () => {
                           // Check if user can create more stories
@@ -3764,12 +3804,23 @@ ${story.content}
                       animate={{ opacity: 1, y: 0 }}
                       className="bg-amber-50 border border-amber-200 rounded-xl sm:p-6 p-4"
                     >
-                      <div className="flex justify-between items-start mb-4">
+                      <div className="flex justify-between items-start mb-4 group">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <h3 className="text-lg font-semibold text-amber-900">
-                              {story.title}
-                            </h3>
+                            {renamingStoryId === story.id ? (
+                              <EditableTitle
+                                value={story.title}
+                                autoEdit={true}
+                                onSave={async (newTitle) => {
+                                  await saveTitle(story.id, newTitle);
+                                  setRenamingStoryId(null);
+                                }}
+                              />
+                            ) : (
+                              <h3 className="text-lg font-semibold text-amber-900">
+                                {story.title}
+                              </h3>
+                            )}
                             {story.is_audio_only && (
                               <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
                                 Audio-only
@@ -3806,31 +3857,12 @@ ${story.content}
                             />
                           </div>
                         </div>
-                        <div className="flex sm:space-x-2">
-                          {deleteConfirmId === story.id ? (
-                            <div className="flex sm:space-x-2">
-                              <button
-                                onClick={() => deleteStory(story.id)}
-                                className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
-                              >
-                                Bestätigen
-                              </button>
-                              <button
-                                onClick={handleDeleteCancel}
-                                className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm"
-                              >
-                                Abbrechen
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => handleDeleteClick(story.id)}
-                              className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                              title="Geschichte löschen"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
+                        <div>
+                          <StoryActionsMenu
+                            onRename={() => setRenamingStoryId(story.id)}
+                            onDelete={() => handleDeleteClick(story.id)}
+                            canDelete={personalStories.length > 1}
+                          />
                         </div>
                       </div>
 
@@ -3912,6 +3944,18 @@ ${story.content}
             loadStories();
           }
         }}
+      />
+
+      {/* Delete Story Dialog */}
+      <DeleteStoryDialog
+        isOpen={deleteConfirmId !== null}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={() => {
+          if (deleteConfirmId) {
+            deleteStory(deleteConfirmId);
+          }
+        }}
+        storyTitle={deleteConfirmId ? personalStories.find(s => s.id === deleteConfirmId)?.title : undefined}
       />
 
       </div>
