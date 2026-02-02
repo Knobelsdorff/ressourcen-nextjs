@@ -34,7 +34,7 @@ export default function RootLayout({
           <main className="flex-1">
             {children}
           </main>
-          
+
           <Footer />
           
           <Analytics />
@@ -47,4 +47,4 @@ export default function RootLayout({
     </body>
     </html>
   );
-}
+}          
