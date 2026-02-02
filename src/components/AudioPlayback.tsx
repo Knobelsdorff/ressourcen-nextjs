@@ -1856,37 +1856,71 @@ export default function AudioPlayback({
             transition={{ delay: 0.2 }}
             className="bg-white rounded-3xl p-6 lg:p-8 shadow-xl border border-orange-100 mb-6"
           >
-            {/* Loading State */}
+            {/* Übergangsraum - ruhiger Ladebildschirm */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-center py-8"
+              className="text-center py-16 lg:py-20"
             >
-              <div className="flex justify-center sm:mb-6 mb-5">
-                <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+              {/* Figure Name */}
+              <h1 className="text-2xl lg:text-3xl font-light text-amber-900 mb-8">
+                {selectedFigure.name}
+              </h1>
+              
+              {/* Figure Icon */}
+              <div className="flex justify-center mb-12">
+                {selectedFigure.id === 'ideal-family' ? (
+                  <IdealFamilyIconFinal size={48} className="w-12 h-12" />
+                ) : selectedFigure.id === 'jesus' ? (
+                  <JesusIconFinal size={48} className="w-12 h-12" />
+                ) : selectedFigure.id === 'archangel-michael' ? (
+                  <ArchangelMichaelIconFinal size={48} className="w-12 h-12" />
+                ) : selectedFigure.id === 'angel' ? (
+                  <AngelIconFinal size={48} className="w-12 h-12" />
+                ) : selectedFigure.id === 'superhero' ? (
+                  <SuperheroIconFinal size={48} className="w-12 h-12" />
+                ) : (
+                  <span className="text-4xl">{selectedFigure.emoji}</span>
+                )}
               </div>
               
-              {/* Progress Bar */}
-              <div className="max-w-md mx-auto mb-4">
-                <div className="bg-amber-100 rounded-full h-3 mb-3">
+              {/* Breathing Circle */}
+              <div className="flex justify-center mb-8">
+                <motion.div
+                  className="w-20 h-20 lg:w-24 lg:h-24 rounded-full border-2 border-amber-400 relative"
+                  animate={{
+                    scale: [1, 1.15, 1],
+                  }}
+                  transition={{
+                    duration: 5.5,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                >
+                  {/* Light fill with pulsing opacity */}
                   <motion.div
-                    className="bg-gradient-to-r from-amber-500 to-orange-500 h-3 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${generationProgress}%` }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    className="absolute inset-0 rounded-full bg-amber-400"
+                    style={{ opacity: 0.08 }}
+                    animate={{
+                      opacity: [0.05, 0.1, 0.05],
+                    }}
+                    transition={{
+                      duration: 5.5,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
                   />
-                </div>
-                <div className="flex justify-between text-sm text-amber-600">
-                  <span>{generationProgress.toFixed(0)}%</span>
-                  <span>{generationStatus}</span>
-                </div>
+                </motion.div>
               </div>
               
-              <p className="text-amber-700 text-sm">
-                {generationProgress < 100 
-                  ? 'Bitte warten, während deine Geschichte in Audio umgewandelt wird...'
-                  : 'Audio erfolgreich generiert!'
-                }
+              {/* Haupttext */}
+              <h2 className="text-amber-800 text-xl lg:text-2xl font-medium mb-6">
+                Deine Power Story nimmt nun Gestalt an
+              </h2>
+              
+              {/* Sekundärtext */}
+              <p className="text-amber-600 text-sm lg:text-base opacity-70">
+                Es ist alles gut – du darfst dir jetzt einen Moment Zeit lassen
               </p>
             </motion.div>
           </motion.div>
@@ -1895,7 +1929,7 @@ export default function AudioPlayback({
     );
   }
 
-  // Show loading state with progress bar during audio generation
+  // Show loading state during audio generation - ruhiger Übergangsraum
   if (isGenerating) {
     return (
       <div className="min-h-screen p-4 lg:p-12">
@@ -1906,37 +1940,71 @@ export default function AudioPlayback({
             transition={{ delay: 0.2 }}
             className="bg-white rounded-3xl p-6 lg:p-8 shadow-xl border border-orange-100 mb-6"
           >
-            {/* Loading State with Progress */}
+            {/* Übergangsraum - ruhiger Ladebildschirm */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-center py-8"
+              className="text-center py-16 lg:py-20"
             >
-              <div className="flex justify-center mb-6">
-                <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+              {/* Figure Name */}
+              <h1 className="text-2xl lg:text-3xl font-light text-amber-900 mb-8">
+                {selectedFigure.name}
+              </h1>
+              
+              {/* Figure Icon */}
+              <div className="flex justify-center mb-12">
+                {selectedFigure.id === 'ideal-family' ? (
+                  <IdealFamilyIconFinal size={48} className="w-12 h-12" />
+                ) : selectedFigure.id === 'jesus' ? (
+                  <JesusIconFinal size={48} className="w-12 h-12" />
+                ) : selectedFigure.id === 'archangel-michael' ? (
+                  <ArchangelMichaelIconFinal size={48} className="w-12 h-12" />
+                ) : selectedFigure.id === 'angel' ? (
+                  <AngelIconFinal size={48} className="w-12 h-12" />
+                ) : selectedFigure.id === 'superhero' ? (
+                  <SuperheroIconFinal size={48} className="w-12 h-12" />
+                ) : (
+                  <span className="text-4xl">{selectedFigure.emoji}</span>
+                )}
               </div>
               
-              {/* Progress Bar */}
-              <div className="max-w-md mx-auto mb-4">
-                <div className="bg-amber-100 rounded-full h-3 mb-3">
+              {/* Breathing Circle */}
+              <div className="flex justify-center mb-8">
+                <motion.div
+                  className="w-20 h-20 lg:w-24 lg:h-24 rounded-full border-2 border-amber-400 relative"
+                  animate={{
+                    scale: [1, 1.15, 1],
+                  }}
+                  transition={{
+                    duration: 5.5,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                >
+                  {/* Light fill with pulsing opacity */}
                   <motion.div
-                    className="bg-gradient-to-r from-amber-500 to-orange-500 h-3 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${generationProgress}%` }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    className="absolute inset-0 rounded-full bg-amber-400"
+                    style={{ opacity: 0.08 }}
+                    animate={{
+                      opacity: [0.05, 0.1, 0.05],
+                    }}
+                    transition={{
+                      duration: 5.5,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
                   />
-                </div>
-                <div className="flex justify-between text-sm text-amber-600">
-                  <span>{generationProgress.toFixed(0)}%</span>
-                  <span>{generationStatus}</span>
-                </div>
+                </motion.div>
               </div>
               
-              <p className="text-amber-700 text-sm">
-                {generationProgress < 100 
-                  ? 'Bitte warten, während deine Geschichte in Audio umgewandelt wird...'
-                  : 'Audio erfolgreich generiert!'
-                }
+              {/* Haupttext */}
+              <h2 className="text-amber-800 text-xl lg:text-2xl font-medium mb-6">
+                Deine Power Story nimmt nun Gestalt an
+              </h2>
+              
+              {/* Sekundärtext */}
+              <p className="text-amber-600 text-sm lg:text-base opacity-70">
+                Es ist alles gut – du darfst dir jetzt einen Moment Zeit lassen
               </p>
             </motion.div>
           </motion.div>
