@@ -17,7 +17,7 @@ export default function EditableSubtitle({
   autoSubtitle,
   customSubtitle,
   onSave,
-  placeholder = "Wofür ist diese Geschichte für dich?",
+  placeholder = "Wofür ist diese Power Story für dich?",
   className = ""
 }: EditableSubtitleProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -82,8 +82,8 @@ export default function EditableSubtitle({
     }
   };
 
-  const displayValue = value || placeholder;
-  const isPlaceholder = !value;
+  const hasValue = !!value;
+  const displayText = hasValue ? value : "Noch ohne Beschreibung";
 
   if (isEditing) {
     return (
@@ -104,10 +104,10 @@ export default function EditableSubtitle({
   return (
     <motion.div
       onClick={handleClick}
-      className={`cursor-text ${isPlaceholder ? "text-amber-500/70" : "text-amber-700"} text-sm hover:text-amber-900 transition-colors ${className}`}
+      className={`cursor-text ${hasValue ? "text-amber-700" : "text-amber-400/60 italic text-xs"} text-sm hover:text-amber-900 transition-colors ${className}`}
       whileHover={{ opacity: 0.8 }}
     >
-      {displayValue}
+      {displayText}
     </motion.div>
   );
 }

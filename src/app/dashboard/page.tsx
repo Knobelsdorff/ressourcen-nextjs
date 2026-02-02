@@ -3804,9 +3804,9 @@ ${story.content}
                       animate={{ opacity: 1, y: 0 }}
                       className="bg-amber-50 border border-amber-200 rounded-xl sm:p-6 p-4"
                     >
-                      <div className="flex justify-between items-start mb-4 group">
+                      <div className="flex justify-between items-start mb-4 group pt-2">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
+                          <div className="flex items-center gap-2 mb-3">
                             {renamingStoryId === story.id ? (
                               <EditableTitle
                                 value={story.title}

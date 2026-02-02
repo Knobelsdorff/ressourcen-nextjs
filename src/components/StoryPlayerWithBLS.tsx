@@ -667,9 +667,11 @@ export default function StoryPlayerWithBLS({
             </div>
 
             {/* Status Text */}
-            <div className="text-center text-sm text-amber-600/70">
-              {isLoading ? 'Lädt...' : isPlaying ? 'Audio wird abgespielt' : 'Bereit zum Abspielen'}
-            </div>
+            {(isLoading || isPlaying) && (
+              <div className="text-center text-sm text-amber-600/70">
+                {isLoading ? 'Lädt...' : 'Audio wird abgespielt'}
+              </div>
+            )}
           </div>
 
           {/* Mobile BLS Toggle */}
