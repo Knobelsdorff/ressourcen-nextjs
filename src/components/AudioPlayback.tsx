@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, Volume2, Heart, ChevronRight, Loader2, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { ResourceFigure, AudioState } from "@/app/page";
+import { ResourceFigure, AudioState } from "@/lib/types/story";
 import { useAuth } from "@/components/providers/auth-provider";
 import { createSPAClient } from "@/lib/supabase/client";
 import { supabase } from "@/lib/supabase";
@@ -2239,9 +2239,9 @@ export default function AudioPlayback({
                             if (!user) {
                               router.push('/geschichte-speichern');
                             } else {
-                              // User is authenticated, reset state and navigate to start
+                              // User is authenticated, reset state and navigate to create-story
                               // Use window.location for a full page reload to ensure clean state
-                              window.location.href = '/';
+                              window.location.href = '/create-story';
                             }
                           }}
                           className="px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl shadow-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-200"

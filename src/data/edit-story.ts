@@ -1,4 +1,4 @@
-import { ResourceFigure } from '@/app/page';
+import { ResourceFigure } from '@/lib/types/story';
 
 interface AnswerEntry {
   questionId: number;

@@ -1,4 +1,4 @@
-import { ResourceFigure } from "@/app/page";
+import { ResourceFigure } from "@/lib/types/story";
 
 export const realFigures: ResourceFigure[] = [
   {
@@ -13,7 +13,7 @@ export const realFigures: ResourceFigure[] = [
     id: "grandpa",
     name: "Opa",
     emoji: "👴",
-    description: "Sanft, geduldig und hat immer spannende Geschichten",
+    description: "Sanft, geduldig und hat spannende Geschichten",
     category: "real",
     pronouns: "er/ihm"
   },
@@ -96,7 +96,7 @@ export const fictionalFigures: ResourceFigure[] = [
     id: "archangel-michael",
     name: "Erzengel Michael",
     emoji: "⚔️",
-    description: "Mächtiger Beschützer, kämpft für das Gute und setzt sich für dich ein",
+    description: "Mächtiger Beschützer, kämpft für das Gute",
     category: "fictional",
     pronouns: "er/ihm"
   },
@@ -128,7 +128,7 @@ export const fictionalFigures: ResourceFigure[] = [
     id: "divine-mother",
     name: "Göttliche Mutter",
     emoji: "✨",
-    description: "Allumfassende Liebe, Weisheit und bedingungslose Akzeptanz",
+    description: "Allumfassende Liebe, Weisheit und Akzeptanz",
     category: "fictional",
     pronouns: "sie/ihr"
   },
@@ -136,7 +136,7 @@ export const fictionalFigures: ResourceFigure[] = [
     id: "divine-father",
     name: "Göttlicher Vater",
     emoji: "🌟",
-    description: "Stärke, Führung und unerschütterliche Unterstützung",
+    description: "Stärke, Führung und Unterstützung",
     category: "fictional",
     pronouns: "er/ihm"
   },
@@ -144,7 +144,7 @@ export const fictionalFigures: ResourceFigure[] = [
     id: "ideal-father",
     name: "Ideal-Vater",
     emoji: "👨",
-    description: "Eine Art Zweitvater für dich, der sich immer für dich einsetzt",
+    description: "Eine Art Zweitvater für dich, der sich für dich einsetzt",
     category: "fictional",
     pronouns: "er/ihm"
   },
@@ -168,7 +168,7 @@ export const fictionalFigures: ResourceFigure[] = [
     id: "jesus",
     name: "Jesus",
     emoji: "custom-jesus",
-    description: "Barmherzig, liebevoll und voller Verständnis für deine Nöte",
+    description: "Barmherzig, liebevoll und voller Verständnis",
     category: "fictional",
     pronouns: "er/ihm"
   },
@@ -200,7 +200,7 @@ export const fictionalFigures: ResourceFigure[] = [
     id: "lilith",
     name: "Lilith",
     emoji: "🌙",
-    description: "Emanzipiert, selbstbestimmt und stolz auf ihre sexuelle Energie",
+    description: "Emanzipiert, selbstbestimmt und stolz auf ihre Energie",
     category: "fictional",
     pronouns: "sie/ihr"
   }

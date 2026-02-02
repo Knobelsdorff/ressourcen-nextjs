@@ -119,7 +119,7 @@ export default function AnkommenPage() {
             {error || 'Die Geschichte konnte nicht geladen werden.'}
           </p>
           <Button
-            onClick={() => router.push('/landingpage')}
+            onClick={() => router.push('/')}
             className="bg-amber-600 hover:bg-amber-700 text-white"
           >
             Zurück
@@ -140,7 +140,7 @@ export default function AnkommenPage() {
             Die Geschichte hat keine Audio-Datei.
           </p>
           <Button
-            onClick={() => router.push('/landingpage')}
+            onClick={() => router.push('/')}
             className="bg-amber-600 hover:bg-amber-700 text-white"
           >
             Zurück

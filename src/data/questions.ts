@@ -1,5 +1,5 @@
 import { Check, ChevronLeft, ChevronRight, ArrowRight, Eye, Heart, Shield, MessageCircle, Sparkles, Users } from "lucide-react";
-import { ResourceFigure } from "@/app/page";
+import { ResourceFigure } from "@/lib/types/story";
 import { getFigureSpecificBlocks, getFigureSpecificQuestion, getFigureSpecificPrompt, getFigureSpecificExample } from "./figureSpecificAnswers";
 
 export const questions = [

@@ -56,8 +56,8 @@ export default function Header() {
         // Element existiert - direkt scrollen
         scrollToAnchor('was-ist-eine-power-story');
       } else {
-        // Element existiert nicht - zur Landingpage mit Hash navigieren
-        router.push('/landingpage#was-ist-eine-power-story');
+        // Element existiert nicht - zur Homepage mit Hash navigieren
+        router.push('/#was-ist-eine-power-story');
       }
     }, 100);
   };

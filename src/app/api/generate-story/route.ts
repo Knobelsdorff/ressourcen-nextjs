@@ -1,4 +1,4 @@
-import { ResourceFigure } from '@/app/page';
+import { ResourceFigure } from '@/lib/types/story';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { generateStoryPrompt } from '@/data/story-generation';

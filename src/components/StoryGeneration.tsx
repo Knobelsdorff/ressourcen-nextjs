@@ -18,7 +18,7 @@ import {
   User,
   Bot
 } from "lucide-react";
-import { ResourceFigure } from "@/app/page";
+import { ResourceFigure } from "@/lib/types/story";
 import { isEnabled } from "@/lib/featureFlags";
 import { useAuth } from "@/components/providers/auth-provider";
 import { QuestionAnswer } from "@/components/RelationshipSelection";

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { motion } from "framer-motion";
 import { ArrowRight, ChevronLeft } from "lucide-react";
-import { ResourceFigure } from "@/app/page";
+import { ResourceFigure } from "@/lib/types/story";
 import { supabase } from "@/lib/supabase";
 import IdealFamilyIconFinal from './IdealFamilyIconFinal';
 import JesusIconFinal from './JesusIconFinal';

@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Check, ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
-import { ResourceFigure } from "@/app/page";
+import { ResourceFigure } from "@/lib/types/story";
 import { getQuestionsWithPronouns } from "@/data/questions";
 import { placeQuestions } from "@/data/placeQuestions";
 import IdealFamilyIconFinal from './IdealFamilyIconFinal';

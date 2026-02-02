@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { realFigures, fictionalFigures } from "@/data/figures";
-import { ResourceFigure } from "@/app/page";
+import { ResourceFigure } from "@/lib/types/story";
 import { trackEvent } from "@/lib/analytics";
 import JesusIconFinal from "@/components/JesusIconFinal";
 
@@ -45,7 +45,7 @@ export default function FigurPage() {
       },
     });
 
-    router.push(`/?figure=${figure.id}`);
+    router.push(`/create-story?figure=${figure.id}`);
   };
 
   return (

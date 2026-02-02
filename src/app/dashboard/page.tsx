@@ -3648,7 +3648,7 @@ ${story.content}
                       Erstelle deine erste persönliche Ressource, um sie hier zu sehen.
                     </p>
                     <button
-                      onClick={() => router.push('/figur')}
+                      onClick={() => router.push('/create-story')}
                       className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl shadow-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-200 inline-flex items-center gap-2"
                     >
                       <Plus className="w-5 h-5" />
@@ -3707,7 +3707,7 @@ ${story.content}
                             }
                           }
 
-                          router.push('/');
+                          router.push('/create-story');
                         }}
                         className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl shadow-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-200 flex items-center gap-2"
                       >

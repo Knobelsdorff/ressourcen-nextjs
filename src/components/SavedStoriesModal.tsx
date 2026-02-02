@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Heart, Clock, User, Trash2, Download, Volume2, Play, Pause, RotateCcw, ChevronLeft } from "lucide-react";
-import { ResourceFigure, AudioState } from "@/app/page";
+import { ResourceFigure, AudioState } from "@/lib/types/story";
 import { QuestionAnswer } from "@/components/RelationshipSelection";
 import { useAuth } from "@/components/providers/auth-provider";
 

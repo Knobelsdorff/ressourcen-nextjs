@@ -1,36 +1,20 @@
 "use client";
 
 import { useEffect } from "react";
-import HeroSection from "@/components/landing/HeroSection";
-import StakesSection from "@/components/landing/StakesSection";
-import ValuePropositionSection from "@/components/landing/ValuePropositionSection";
-import EmpathySection from "@/components/landing/EmpathySection";
-import PlanSection from "@/components/landing/PlanSection";
-import ExplanatoryParagraphSection from "@/components/landing/ExplanatoryParagraphSection";
-import { scrollToAnchor } from "@/lib/navigation-helpers";
+import { useRouter } from "next/navigation";
 
 export default function LandingPage() {
-  // Automatisches Scrollen zu Anchor, wenn Hash in URL vorhanden ist
+  const router = useRouter();
+  
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    
-    const hash = window.location.hash;
-    if (hash === "#was-ist-eine-power-story") {
-      // Kurze Verzögerung, damit die Seite vollständig geladen ist
-      setTimeout(() => {
-        scrollToAnchor("was-ist-eine-power-story");
-      }, 300);
-    }
-  }, []);
-
+    // Weiterleitung zu / mit Hash-Parameter falls vorhanden
+    const hash = typeof window !== "undefined" ? window.location.hash : "";
+    router.replace(`/${hash}`);
+  }, [router]);
+  
   return (
-    <div className="min-h-screen">
-      <HeroSection />
-      <StakesSection />
-      <ValuePropositionSection />
-      <EmpathySection />
-      <PlanSection />
-      <ExplanatoryParagraphSection />
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
+      <div className="text-amber-600">Lade...</div>
     </div>
   );
 }
