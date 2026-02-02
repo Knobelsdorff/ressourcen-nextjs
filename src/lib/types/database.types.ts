@@ -174,9 +174,11 @@ export type Database = {
       saved_stories: {
         Row: {
           audio_url: string | null
+          auto_subtitle: string | null
           client_email: string | null
           content: string | null
           created_at: string | null
+          custom_subtitle: string | null
           id: string
           is_audio_only: boolean | null
           question_answers: Json
@@ -188,9 +190,11 @@ export type Database = {
         }
         Insert: {
           audio_url?: string | null
+          auto_subtitle?: string | null
           client_email?: string | null
           content?: string | null
           created_at?: string | null
+          custom_subtitle?: string | null
           id?: string
           is_audio_only?: boolean | null
           question_answers: Json
@@ -202,9 +206,11 @@ export type Database = {
         }
         Update: {
           audio_url?: string | null
+          auto_subtitle?: string | null
           client_email?: string | null
           content?: string | null
           created_at?: string | null
+          custom_subtitle?: string | null
           id?: string
           is_audio_only?: boolean | null
           question_answers?: Json

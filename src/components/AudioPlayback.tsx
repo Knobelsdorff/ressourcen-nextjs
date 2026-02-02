@@ -467,6 +467,12 @@ export default function AudioPlayback({
         });
       });
       
+      // Generiere autoSubtitle basierend auf der Figur
+      const generateAutoSubtitle = (figure: any): string => {
+        // Einfacher autoSubtitle basierend auf dem Figurennamen
+        return `Eine Geschichte mit ${figure.name}`;
+      };
+
       const insertData = {
         user_id: user.id,
         title: selectedFigure.name,
@@ -474,7 +480,8 @@ export default function AudioPlayback({
         resource_figure: selectedFigure.name,
         question_answers: Array.isArray(questionAnswers) ? questionAnswers : [],
         audio_url: audioState?.audioUrl || null,
-        voice_id: selectedVoiceId || null
+        voice_id: selectedVoiceId || null,
+        auto_subtitle: generateAutoSubtitle(selectedFigure)
       };
 
       console.log('poopoo [AudioPlayback] About to INSERT story with data:', JSON.stringify({

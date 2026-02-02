@@ -23,6 +23,7 @@ import DashboardAudioPlayer from "@/components/DashboardAudioPlayer";
 import SubscriptionManagement from "@/components/SubscriptionManagement";
 import StoryPlayerWithBLS from "@/components/StoryPlayerWithBLS";
 import { BLSProvider } from "@/components/providers/bls-provider";
+import EditableSubtitle from "@/components/EditableSubtitle";
 
 interface SavedStory {
   id: string;
@@ -35,6 +36,8 @@ interface SavedStory {
   created_at: string;
   is_audio_only?: boolean;
   client_email?: string | null;
+  auto_subtitle?: string | null;
+  custom_subtitle?: string | null;
 }
 
 export default function Dashboard() {
@@ -1057,6 +1060,11 @@ export default function Dashboard() {
           // Verwende alle relevanten Spalten inkl. audio_url und voice_id
           console.log('poopoo [Dashboard] Preparing to save pending story with audio data');
 
+          // Generiere autoSubtitle basierend auf der Figur
+          const generateAutoSubtitle = (figure: any): string => {
+            return `Eine Geschichte mit ${figure.name}`;
+          };
+
           const correctData = {
             user_id: user.id,
             title: storyData.selectedFigure.name,
@@ -1064,7 +1072,8 @@ export default function Dashboard() {
             resource_figure: storyData.selectedFigure.name,
             question_answers: Array.isArray(storyData.questionAnswers) ? storyData.questionAnswers : [],
             audio_url: storyData.audioState?.audioUrl || null,
-            voice_id: storyData.selectedVoiceId || storyData.audioState?.voiceId || null
+            voice_id: storyData.selectedVoiceId || storyData.audioState?.voiceId || null,
+            auto_subtitle: generateAutoSubtitle(storyData.selectedFigure)
           };
 
           console.log('poopoo [Dashboard] Inserting pending story with data:', JSON.stringify({
@@ -1546,6 +1555,80 @@ export default function Dashboard() {
 
   const handleDeleteCancel = () => {
     setDeleteConfirmId(null);
+  };
+
+  const saveSubtitle = async (storyId: string, customSubtitle: string | null) => {
+    try {
+      const updateData = {
+        custom_subtitle: customSubtitle
+      };
+
+      console.log('[saveSubtitle] Updating story:', { storyId, customSubtitle, updateData });
+
+      const { data, error } = await (supabase as any)
+        .from('saved_stories')
+        .update(updateData)
+        .eq('id', storyId)
+        .select();
+
+      if (error) {
+        console.error('[saveSubtitle] Supabase error:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          fullError: error
+        });
+        
+        // Prüfe ob die Spalte möglicherweise nicht existiert
+        if (error.code === '42703' || error.message?.includes('column') || error.message?.includes('does not exist')) {
+          console.warn('[saveSubtitle] Column custom_subtitle might not exist. Please run the migration: supabase-subtitle-migration.sql');
+          // Fallback: Aktualisiere nur lokal, ohne Datenbank-Update
+          setStories(stories.map(story => 
+            story.id === storyId 
+              ? { ...story, custom_subtitle: customSubtitle }
+              : story
+          ));
+          setPersonalStories(personalStories.map(story => 
+            story.id === storyId 
+              ? { ...story, custom_subtitle: customSubtitle }
+              : story
+          ));
+          return; // Erfolgreich lokal aktualisiert, kein Fehler werfen
+        }
+        
+        throw error;
+      }
+
+      console.log('[saveSubtitle] Success:', data);
+
+      // Aktualisiere die lokale Liste
+      setStories(stories.map(story => 
+        story.id === storyId 
+          ? { ...story, custom_subtitle: customSubtitle }
+          : story
+      ));
+      setPersonalStories(personalStories.map(story => 
+        story.id === storyId 
+          ? { ...story, custom_subtitle: customSubtitle }
+          : story
+      ));
+    } catch (err: any) {
+      console.error('[saveSubtitle] Unexpected error:', {
+        message: err?.message,
+        details: err?.details,
+        hint: err?.hint,
+        code: err?.code,
+        stack: err?.stack,
+        fullError: err
+      });
+      throw err;
+    }
+  };
+
+  // Hilfsfunktion: Gibt den anzuzeigenden Untertitel zurück (customSubtitle wenn vorhanden, sonst autoSubtitle)
+  const getDisplaySubtitle = (story: SavedStory): string | null => {
+    return story.custom_subtitle || story.auto_subtitle || null;
   };
 
   // Temporäre Funktion zum Löschen aller Duplikate für einen User
@@ -3714,16 +3797,14 @@ ${story.content}
                               </label>
                             )}
                           </div>
-                          <p className="text-amber-700 text-sm mb-2">
-                            <strong>{getResourceTypeLabel(story.resource_figure)}:</strong> {story.resource_figure?.name || 'Unbekannt'}
-                          </p>
-                          <p className="text-amber-600 text-sm">
-                            <strong>Erstellt am:</strong> {new Date(story.created_at).toLocaleDateString('de-DE', { 
-                              day: '2-digit', 
-                              month: '2-digit', 
-                              year: 'numeric' 
-                            })}
-                          </p>
+                          <div className="mb-2">
+                            <EditableSubtitle
+                              value={getDisplaySubtitle(story)}
+                              autoSubtitle={story.auto_subtitle}
+                              customSubtitle={story.custom_subtitle}
+                              onSave={(value) => saveSubtitle(story.id, value || null)}
+                            />
+                          </div>
                         </div>
                         <div className="flex sm:space-x-2">
                           {deleteConfirmId === story.id ? (
@@ -3761,7 +3842,7 @@ ${story.content}
                             <StoryPlayerWithBLS
                               audioUrl={story.audio_url}
                               title={story.title}
-                              subtitle={story.resource_figure?.name || null}
+                              subtitle={getDisplaySubtitle(story)}
                               resourceFigure={story.resource_figure}
                               showBLS={true}
                             />
@@ -3769,7 +3850,7 @@ ${story.content}
                             <DashboardAudioPlayer
                               audioUrl={story.audio_url}
                               title={story.title}
-                              subtitle={story.resource_figure?.name || null}
+                              subtitle={getDisplaySubtitle(story)}
                               resourceFigure={story.resource_figure}
                             />
                           )}
