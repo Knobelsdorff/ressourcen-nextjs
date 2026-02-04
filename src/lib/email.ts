@@ -63,7 +63,7 @@ const getEmailHTML = (resourceNames: string[], magicLink: string, isNewUser: boo
     <div style="text-align: center; margin: 30px 0;">
       <a href="${magicLink}"
          style="display: inline-block; background: #f59e0b; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
-        ${isNewUser ? 'Passwort einrichten' : 'Zur Ressource'}
+        ${isNewUser ? 'Passwort einrichten' : 'Zur Power Story'}
       </a>
     </div>
 
