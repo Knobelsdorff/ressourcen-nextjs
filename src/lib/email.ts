@@ -132,11 +132,11 @@ export async function sendResourceReadyEmail({
 
         const isMultiple = names.length > 1;
         const subject = isNewUser
-          ? (isMultiple ? `Willkommen! ${names.length} Ressourcen warten auf dich` : 'Willkommen! Deine Ressource wartet auf dich')
-          : (isMultiple ? `Deine ${names.length} Ressourcen sind bereit!` : 'Deine Ressource ist bereit!');
+          ? (isMultiple ? `Willkommen! ${names.length} Power Storys warten auf dich` : 'Willkommen! Deine Power Story wartet auf dich')
+          : (isMultiple ? `Deine ${names.length} Power Storys sind bereit!` : 'Deine Power Story ist bereit!');
 
         const { data, error } = await resend.emails.send({
-          from: `Ressourcen App <${resendFromEmail}>`,
+          from: `Andreas <${resendFromEmail}>`,
           to: [to],
           subject,
           html: getEmailHTML(names, magicLink, isNewUser),
@@ -166,7 +166,7 @@ export async function sendResourceReadyEmail({
     const isMultiple = names.length > 1;
     console.log('\n=== 📧 EMAIL VERSENDEN (Development/Testing Mode) ===');
     console.log('An:', to);
-    console.log('Betreff:', isMultiple ? `Deine ${names.length} Ressourcen sind bereit!` : 'Deine Ressource ist bereit!');
+    console.log('Betreff:', isMultiple ? `Deine ${names.length} Power Storys sind bereit!` : 'Deine Power Story ist bereit!');
     console.log('Ressourcen:', names);
     console.log('Magic Link:', magicLink);
     console.log('\n⚠️  HINWEIS: Email wird nicht wirklich versendet.');
@@ -179,11 +179,11 @@ export async function sendResourceReadyEmail({
     if (process.env.NODE_ENV === 'development') {
       const isMultiple = names.length > 1;
       console.log('\n📧 EMAIL-VORSCHAU:');
-      console.log(`Betreff: ${isMultiple ? `Deine ${names.length} Ressourcen sind bereit!` : 'Deine Ressource ist bereit!'}`);
+      console.log(`Betreff: ${isMultiple ? `Deine ${names.length} Power Storys sind bereit!` : 'Deine Power Story ist bereit!'}`);
       if (isMultiple) {
-        console.log(`\nHallo,\n\nDie folgenden ${names.length} Ressourcen wurden für dich erstellt:\n${names.map(n => `- "${n}"`).join('\n')}\n\nKlicke auf diesen Link, um dich anzumelden:\n${magicLink}\n\nDieser Link ist 24 Stunden gültig.\n`);
+        console.log(`\nHallo,\n\nDie folgenden ${names.length} Power Storys wurden für dich erstellt:\n${names.map(n => `- "${n}"`).join('\n')}\n\nKlicke auf diesen Link, um dich anzumelden:\n${magicLink}\n\nDieser Link ist 24 Stunden gültig.\n`);
       } else {
-        console.log(`\nHallo,\n\nDeine persönliche Ressource "${names[0]}" wurde für dich erstellt und ist jetzt verfügbar.\n\nKlicke auf diesen Link, um dich anzumelden:\n${magicLink}\n\nDieser Link ist 24 Stunden gültig.\n`);
+        console.log(`\nHallo,\n\nDeine persönliche Power Story "${names[0]}" wurde für dich erstellt und ist jetzt verfügbar.\n\nKlicke auf diesen Link, um dich anzumelden:\n${magicLink}\n\nDieser Link ist 24 Stunden gültig.\n`);
       }
     }
 
@@ -226,7 +226,7 @@ const getAdminConfirmationEmailHTML = (
   
   <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
     <p style="font-size: 16px; margin-bottom: 20px;">
-      Beim Versenden der Ressourcen an <strong>${clientEmail}</strong> ist ein Fehler aufgetreten.
+      Beim Versenden der Power Storys an <strong>${clientEmail}</strong> ist ein Fehler aufgetreten.
     </p>
     
     <p style="font-size: 16px; margin-bottom: 20px; color: #ef4444;">
@@ -251,12 +251,12 @@ const getAdminConfirmationEmailHTML = (
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-    <h1 style="color: white; margin: 0; font-size: 28px;">✅ Ressourcen erfolgreich versendet</h1>
+    <h1 style="color: white; margin: 0; font-size: 28px;">✅ Power Storys erfolgreich versendet</h1>
   </div>
   
   <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
     <p style="font-size: 16px; margin-bottom: 20px;">
-      Die folgenden ${isMultiple ? `${resourceNames.length} Ressourcen` : 'Ressource'} wurde${isMultiple ? 'n' : ''} erfolgreich an <strong>${clientEmail}</strong> versendet:
+      Die folgenden ${isMultiple ? `${resourceNames.length} Power Storys` : 'Power Story'} wurde${isMultiple ? 'n' : ''} erfolgreich an <strong>${clientEmail}</strong> versendet:
     </p>
     
     ${isMultiple ? `
@@ -270,12 +270,12 @@ const getAdminConfirmationEmailHTML = (
     `}
     
     <p style="font-size: 14px; color: #6b7280; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-      Der Klient hat eine E-Mail mit Magic Link erhalten und kann sich nun anmelden, um auf ${isMultiple ? 'seine Ressourcen' : 'seine Ressource'} zuzugreifen.
+      Der Klient hat eine E-Mail mit Magic Link erhalten und kann sich nun anmelden, um auf ${isMultiple ? 'seine Power Storys' : 'seine Power Story'} zuzugreifen.
     </p>
   </div>
   
   <div style="text-align: center; margin-top: 20px; padding: 20px; color: #6b7280; font-size: 12px;">
-    <p>© ${new Date().getFullYear()} Ressourcen App - Andreas von Knobelsdorff</p>
+    <p>© ${new Date().getFullYear()} Power Storys - Andreas von Knobelsdorff</p>
   </div>
 </body>
 </html>
@@ -314,10 +314,10 @@ export async function sendAdminConfirmationEmail({
 
         const isMultiple = resourceNames.length > 1;
         const { data, error: resendError } = await resend.emails.send({
-          from: `Ressourcen App <${resendFromEmail}>`,
+          from: `Andreas <${resendFromEmail}>`,
           to: [to],
           subject: success
-            ? `✅ ${isMultiple ? `${resourceNames.length} Ressourcen` : 'Ressource'} erfolgreich an ${clientEmail} versendet`
+            ? `✅ ${isMultiple ? `${resourceNames.length} Power Storys` : 'Power Story'} erfolgreich an ${clientEmail} versendet`
             : `⚠️ Fehler beim Versenden an ${clientEmail}`,
           html: getAdminConfirmationEmailHTML(clientEmail, resourceNames, success, error),
         });
@@ -344,10 +344,10 @@ export async function sendAdminConfirmationEmail({
       console.log('\n=== 📧 ADMIN-BESTÄTIGUNG (Development Mode) ===');
       console.log('An:', to);
       console.log('Betreff:', success
-        ? `✅ ${isMultiple ? `${resourceNames.length} Ressourcen` : 'Ressource'} erfolgreich an ${clientEmail} versendet`
+        ? `✅ ${isMultiple ? `${resourceNames.length} Power Storys` : 'Power Story'} erfolgreich an ${clientEmail} versendet`
         : `⚠️ Fehler beim Versenden an ${clientEmail}`);
       console.log('Klient:', clientEmail);
-      console.log('Ressourcen:', resourceNames);
+      console.log('Power Storys:', resourceNames);
       console.log('Erfolg:', success);
       if (error) console.log('Fehler:', error);
       console.log('==================================================\n');
