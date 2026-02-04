@@ -26,7 +26,7 @@ const getEmailHTML = (resourceNames: string[], magicLink: string, isNewUser: boo
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-    <h1 style="color: white; margin: 0; font-size: 28px;">${isMultiple ? 'Deine Power Story ist bereit!' : 'Deine Power Story ist bereit!'}</h1>
+    <h1 style="color: white; margin: 0; font-size: 28px;">${isMultiple ? 'Deine Power Story ist bereit' : 'Deine Power Story ist bereit'}</h1>
   </div>
 
   <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
@@ -36,8 +36,8 @@ const getEmailHTML = (resourceNames: string[], magicLink: string, isNewUser: boo
 
     <p style="font-size: 16px; margin-bottom: 20px;">
       ${isMultiple
-        ? `Die folgenden ${resourceNames.length} Power Storys wurden für dich erstellt und sind jetzt verfügbar:`
-        : `Deine persönliche Power Story <strong>"${resourceNames[0]}"</strong> wurde für dich erstellt und ist jetzt verfügbar.`
+        ? `die folgenden ${resourceNames.length} Power Storys, die wir heute gemeinsam erstellt haben, sind jetzt für dich hinterlegt und jederzeit abrufbar:`
+        : `deine persönliche Power Story <strong>"${resourceNames[0]}"</strong>, die wir heute gemeinsam erstellt haben, ist jetzt für dich hinterlegt und jederzeit abrufbar.`
       }
     </p>
 
@@ -50,15 +50,10 @@ const getEmailHTML = (resourceNames: string[], magicLink: string, isNewUser: boo
     ${isNewUser ? `
     <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px;">
       <p style="font-size: 15px; margin: 0; color: #92400e;">
-        <strong>Wichtig:</strong> Dies ist dein erster Zugang. Bitte klicke auf den Button unten, um ein Passwort einzurichten.
-        Danach kannst du dich jederzeit mit deiner E-Mail und deinem Passwort anmelden.
+        <strong>Wichtig:</strong> Damit es für dich gespeichert bleibt und du sie in Ruhe anhören kannst, brauchst du einmalig ein eigenes Passwort. Danach kannst du dich jederzeit auf <a href="https://www.power-storys.de" target="_blank">www.power-storys.de</a> mit deiner E-Mail und deinem Passwort anmelden.
       </p>
     </div>
     ` : ''}
-
-    <p style="font-size: 16px; margin-bottom: 30px;">
-      Klicke auf den Button unten, um ${isNewUser ? 'dein Passwort einzurichten und' : 'dich anzumelden und'} auf ${isMultiple ? 'deine Power Storys' : 'deine Power Story'} zuzugreifen:
-    </p>
 
     <div style="text-align: center; margin: 30px 0;">
       <a href="${magicLink}"
