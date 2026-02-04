@@ -19,7 +19,8 @@ export async function POST(request: Request) {
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
     const requestUrl = new URL(request.url)
-    const origin = process.env.APP_BASE_URL ?? requestUrl.origin
+    // Verwende APP_BASE_URL aus Environment Variable, Fallback zu power-storys.de
+    const origin = process.env.APP_BASE_URL || 'https://www.power-storys.de'
     
     console.log('Customer Portal API: Request details', {
       origin,

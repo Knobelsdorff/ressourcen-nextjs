@@ -25,7 +25,9 @@ export async function POST(request: Request) {
     }
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-  const origin = process.env.APP_BASE_URL;
+    
+    // Verwende APP_BASE_URL aus Environment Variable, Fallback zu power-storys.de
+    const origin = process.env.APP_BASE_URL || 'https://www.power-storys.de'
 
     // Verwende Price-ID aus Parameter oder Environment Variable
     const subscriptionPriceId = priceId || process.env.STRIPE_SUBSCRIPTION_PRICE_ID
@@ -53,7 +55,10 @@ export async function POST(request: Request) {
       priceId: subscriptionPriceId,
       source: priceId ? 'parameter' : 'environment',
       paymentMethodTypes,
-      mode: 'subscription'
+      mode: 'subscription',
+      origin,
+      success_url: `${origin}/dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/dashboard?payment=cancelled`,
     })
 
     // Verwende Price-ID direkt (empfohlen für Production)
