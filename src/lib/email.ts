@@ -50,7 +50,7 @@ const getEmailHTML = (resourceNames: string[], magicLink: string, isNewUser: boo
     ${isNewUser ? `
     <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px;">
       <p style="font-size: 15px; margin: 0; color: #92400e;">
-        <strong>Wichtig:</strong> Damit es für dich gespeichert bleibt und du sie in Ruhe anhören kannst, brauchst du einmalig ein eigenes Passwort. Danach kannst du dich jederzeit auf <a href="https://www.power-storys.de" target="_blank">www.power-storys.de</a> mit deiner E-Mail und deinem Passwort anmelden.
+        <strong>Wichtig:</strong> Damit es für dich gespeichert bleibt und du sie in Ruhe anhören kannst, brauchst du einmalig ein eigenes Passwort. Danach kannst du dich jederzeit auf <a href="https://www.power-storys.de/zugang" target="_blank">www.power-storys.de/zugang</a> mit deiner E-Mail und deinem Passwort anmelden.
       </p>
     </div>
     ` : ''}
@@ -72,7 +72,7 @@ const getEmailHTML = (resourceNames: string[], magicLink: string, isNewUser: boo
     </p>
     ` : ''}
       <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
-      Herzliche Grüße</br>
+      Herzliche Grüße<br>
       <strong>Andreas</strong>
     </p>
 
@@ -80,7 +80,7 @@ const getEmailHTML = (resourceNames: string[], magicLink: string, isNewUser: boo
       Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br>
       <a href="${magicLink}" style="color: #f59e0b; word-break: break-all;">${magicLink}</a>
     </p>
-    
+
   </div>
 
   <div style="text-align: center; margin-top: 20px; padding: 20px; color: #6b7280; font-size: 12px;">
