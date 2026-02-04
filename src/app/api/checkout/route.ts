@@ -26,8 +26,12 @@ export async function POST(request: Request) {
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
     
-    // Verwende APP_BASE_URL aus Environment Variable, Fallback zu power-storys.de
-    const origin = process.env.APP_BASE_URL || 'https://www.power-storys.de'
+    // Bestimme origin: Für localhost verwende Request-URL, sonst APP_BASE_URL
+    const requestUrl = new URL(request.url)
+    const isLocalhost = requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1'
+    const origin = isLocalhost 
+      ? `${requestUrl.protocol}//${requestUrl.host}` // localhost:3000
+      : (process.env.APP_BASE_URL || 'https://www.power-storys.de') // Production
 
     // Verwende Price-ID aus Parameter oder Environment Variable
     const subscriptionPriceId = priceId || process.env.STRIPE_SUBSCRIPTION_PRICE_ID
@@ -44,9 +48,9 @@ export async function POST(request: Request) {
     }
 
     const paymentMethodTypes: Stripe.Checkout.SessionCreateParams.PaymentMethodType[] = [
+      'paypal',      // PayPal (sehr beliebt in DE, funktioniert gut für Abos) - ZUERST für bessere Sichtbarkeit
       'card',        // Kredit-/Debitkarten (universell, sofort)
       'sepa_debit',  // SEPA Lastschrift (günstig, perfekt für Subscriptions)
-      'paypal',      // PayPal (sehr beliebt in DE, funktioniert gut für Abos)
     ]
 
     console.log('Checkout API: Creating subscription session', { 
@@ -63,12 +67,17 @@ export async function POST(request: Request) {
 
     // Verwende Price-ID direkt (empfohlen für Production)
     // payment_method_types erzwingt explizit die angegebenen Methoden
+    // WICHTIG: payment_method_options nur für SEPA setzen, PayPal-Optionen weglassen
+    // (PayPal funktioniert besser ohne explizite Optionen, ähnlich wie Payment Links)
     const session = await stripe.checkout.sessions.create({
       payment_method_types: paymentMethodTypes,
+      payment_method_collection: 'always', // WICHTIG: Erzwingt Payment Method Collection für Subscriptions (benötigt für PayPal)
       payment_method_options: {
         sepa_debit: {
           // SEPA Direct Debit für Subscriptions
         },
+        // PayPal-Optionen weglassen - Stripe verwendet Standard-Konfiguration
+        // Dies entspricht dem Verhalten von Payment Links
       },
       line_items: [{ price: subscriptionPriceId, quantity: 1 }],
       mode: 'subscription',
@@ -84,7 +93,12 @@ export async function POST(request: Request) {
     console.log('Checkout API: Session created successfully', {
       sessionId: session.id,
       paymentMethodTypes: session.payment_method_types,
+      paymentMethodCollection: session.payment_method_collection,
       url: session.url,
+      // Debug: Prüfe ob PayPal gefiltert wurde
+      requestedPaymentMethods: paymentMethodTypes,
+      actualPaymentMethods: session.payment_method_types,
+      paypalIncluded: session.payment_method_types?.includes('paypal'),
     })
 
     return NextResponse.json({ sessionId: session.id, url: session.url })
