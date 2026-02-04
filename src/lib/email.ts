@@ -58,14 +58,9 @@ const getEmailHTML = (resourceNames: string[], magicLink: string, isNewUser: boo
     <div style="text-align: center; margin: 30px 0;">
       <a href="${magicLink}"
          style="display: inline-block; background: #f59e0b; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
-        ${isNewUser ? 'Passwort einrichten' : 'Zur Power Story'}
+        ${isNewUser ? 'Passwort einrichten' : 'Zu Power Storys'}
       </a>
     </div>
-
-    <p style="font-size: 14px; color: #6b7280; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-      Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br>
-      <a href="${magicLink}" style="color: #f59e0b; word-break: break-all;">${magicLink}</a>
-    </p>
 
     <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
       Dieser Link ist 24 Stunden gültig.
@@ -73,9 +68,19 @@ const getEmailHTML = (resourceNames: string[], magicLink: string, isNewUser: boo
 
     ${!isNewUser ? `
     <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
-      <strong>Tipp:</strong> Du kannst dich auch jederzeit mit deiner E-Mail und deinem Passwort anmelden.
+      <strong>Tipp:</strong> Wenn du magst, kannst du dort auch eigene Power Storys erstellen – zum Beispiel als weitere Unterstützung zwischen unseren Sitzungen.
     </p>
     ` : ''}
+      <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
+      Herzliche Grüße</br>
+      <strong>Andreas</strong>
+    </p>
+
+     <p style="font-size: 14px; color: #6b7280; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+      Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br>
+      <a href="${magicLink}" style="color: #f59e0b; word-break: break-all;">${magicLink}</a>
+    </p>
+    
   </div>
 
   <div style="text-align: center; margin-top: 20px; padding: 20px; color: #6b7280; font-size: 12px;">
