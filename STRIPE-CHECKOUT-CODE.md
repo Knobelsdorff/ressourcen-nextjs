@@ -1,16 +1,12 @@
+# Stripe Checkout Session Code Snippet
+
+## Complete Checkout Session Creation Code
+
+```typescript
 import Stripe from 'stripe'
 import { NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
-
-const PLAN_CONFIG = {
-  'subscription': {
-    price: 3900, // 39€ für monatliches Abo
-    productName: 'Ressourcen-App: Monatliches Abo',
-    description: 'Unbegrenzte Ressourcen, monatlich kündbar',
-    mode: 'subscription' as const,
-  },
-} as const
 
 export async function POST(request: Request) {
   try {
@@ -18,7 +14,6 @@ export async function POST(request: Request) {
     const priceId = body?.priceId as string | undefined
     const planType = (body?.planType as 'subscription' | undefined) ?? 'subscription'
     const userId = body?.userId as string | undefined
-    const mode = 'subscription' as const // Immer Subscription-Modus für Abo
 
     if (!process.env.STRIPE_SECRET_KEY) {
       return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 })
@@ -26,20 +21,20 @@ export async function POST(request: Request) {
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
     
-    // Bestimme origin: Für localhost verwende Request-URL, sonst APP_BASE_URL
+    // Determine origin: For localhost use Request URL, otherwise APP_BASE_URL
     const requestUrl = new URL(request.url)
     const isLocalhost = requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1'
     const origin = isLocalhost 
       ? `${requestUrl.protocol}//${requestUrl.host}` // localhost:3000
       : (process.env.APP_BASE_URL || 'https://www.power-storys.de') // Production
 
-    // Verwende Price-ID aus Parameter oder Environment Variable
+    // Use Price ID from parameter or Environment Variable
     const subscriptionPriceId = priceId || process.env.STRIPE_SUBSCRIPTION_PRICE_ID
 
     if (!subscriptionPriceId) {
-      console.error('Checkout API: No subscription price ID found. Please set STRIPE_SUBSCRIPTION_PRICE_ID in environment variables.')
+      console.error('Checkout API: No subscription price ID found.')
       return NextResponse.json({ 
-        error: 'Subscription price ID not configured. Please contact support.' 
+        error: 'Subscription price ID not configured.' 
       }, { status: 500 })
     }
 
@@ -47,32 +42,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
     }
 
-    // TEST: payment_method_types komplett weglassen (Support-Empfehlung)
-    // Support sagt: Wenn payment_method_types weggelassen wird, wählt Stripe alle aktivierten Methoden dynamisch aus
-    // Dies entspricht dem Verhalten von Payment Links
-    // const paymentMethodTypes: Stripe.Checkout.SessionCreateParams.PaymentMethodType[] = [
-    //   'paypal',      // PayPal (sehr beliebt in DE, funktioniert gut für Abos)
-    //   'card',        // Kredit-/Debitkarten (universell, sofort)
-    //   'sepa_debit',  // SEPA Lastschrift (günstig, perfekt für Subscriptions)
-    //   // 'klarna',   // Klarna (Buy Now Pay Later) - Aktiviert, aber wird nicht im Checkout angezeigt (siehe Support-Ticket)
-    // ]
-
-    console.log('Checkout API: Creating subscription session', { 
-      userId, 
-      planType,
-      priceId: subscriptionPriceId,
-      source: priceId ? 'parameter' : 'environment',
-      paymentMethodTypes: 'DYNAMIC (not set - Stripe will use all enabled methods)',
-      mode: 'subscription',
-      origin,
-      success_url: `${origin}/dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/dashboard?payment=cancelled`,
-    })
-
-    // Verwende Price-ID direkt (empfohlen für Production)
-    // payment_method_types weggelassen - Stripe verwendet alle aktivierten Methoden dynamisch
-    
-    // DEBUG: Prüfe Price-Konfiguration
+    // DEBUG: Check Price configuration
     try {
       const price = await stripe.prices.retrieve(subscriptionPriceId)
       console.log('Checkout API: Price details', {
@@ -86,12 +56,11 @@ export async function POST(request: Request) {
       console.error('Checkout API: Error retrieving price', priceError)
     }
     
-    // TEST: payment_method_types komplett weggelassen (Support-Empfehlung)
-    // Stripe wählt dann alle aktivierten Methoden dynamisch aus (wie Payment Links)
+    // CURRENT CONFIGURATION: payment_method_types removed - Stripe uses all enabled methods dynamically
+    // This works for Klarna, Card, SEPA - but NOT PayPal
     const session = await stripe.checkout.sessions.create({
-      // payment_method_types weggelassen - Stripe verwendet alle aktivierten Methoden
-      payment_method_collection: 'always', // WICHTIG: Erzwingt Payment Method Collection für Subscriptions
-      // payment_method_options komplett entfernt (Support-Empfehlung)
+      // payment_method_types removed - Stripe selects all enabled methods dynamically
+      payment_method_collection: 'always',
       line_items: [{ price: subscriptionPriceId, quantity: 1 }],
       mode: 'subscription',
       success_url: `${origin}/dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}`,
@@ -105,10 +74,9 @@ export async function POST(request: Request) {
 
     console.log('Checkout API: Session created successfully', {
       sessionId: session.id,
-      paymentMethodTypes: session.payment_method_types, // Stripe-seitig ausgewählte Methoden
+      paymentMethodTypes: session.payment_method_types, // Stripe-selected methods
       paymentMethodCollection: session.payment_method_collection,
       url: session.url,
-      // Debug: Prüfe welche Methoden Stripe dynamisch ausgewählt hat
       actualPaymentMethods: session.payment_method_types,
       paypalIncluded: session.payment_method_types?.includes('paypal'),
       klarnaIncluded: session.payment_method_types?.includes('klarna'),
@@ -126,3 +94,49 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: e.message ?? 'Unknown error' }, { status: 400 })
   }
 }
+```
+
+## Key Parameters Being Used
+
+```typescript
+{
+  // payment_method_types: NOT SET (removed for dynamic selection)
+  payment_method_collection: 'always',
+  line_items: [{ price: subscriptionPriceId, quantity: 1 }],
+  mode: 'subscription',
+  success_url: `${origin}/dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+  cancel_url: `${origin}/dashboard?payment=cancelled`,
+  client_reference_id: userId,
+  metadata: {
+    userId,
+    planType: 'subscription',
+  },
+}
+```
+
+## What We've Tried
+
+1. **With explicit `payment_method_types`**: `['paypal', 'card', 'sepa_debit']` - PayPal in response but not displayed
+2. **Without `payment_method_options`**: PayPal still not displayed
+3. **Without `payment_method_types`** (current): Klarna works, PayPal doesn't
+
+## Current Behavior
+
+- ✅ Klarna: Displayed
+- ✅ Card: Displayed
+- ✅ SEPA: Displayed
+- ❌ PayPal: Not displayed (even though enabled in Dashboard and works in Payment Links)
+
+## Environment Variables Used
+
+- `STRIPE_SECRET_KEY`: Live secret key
+- `STRIPE_SUBSCRIPTION_PRICE_ID`: `price_1STTTwRbChVRWy02O656rWmA`
+- `APP_BASE_URL`: `https://www.power-storys.de` (for production)
+
+## Price Details
+
+- Price ID: `price_1STTTwRbChVRWy02O656rWmA`
+- Amount: 15.00 EUR (1500 cents)
+- Currency: EUR
+- Type: Recurring (subscription)
+- Interval: Monthly

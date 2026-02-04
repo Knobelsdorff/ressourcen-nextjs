@@ -10,8 +10,29 @@ import Footer from "@/components/footer";
 import HeaderTherapy from "@/components/HeaderTherapy";
 
 export const metadata: Metadata = {
-  title: process.env.NEXT_PUBLIC_PRODUCTNAME,
-  description: "The best way to build your SaaS product.",
+  title: process.env.NEXT_PUBLIC_PRODUCTNAME || "Power Storys",
+  description: "Kurz innehalten, zuhören und spüren – Geschichten für mehr Entspannung im Alltag.",
+  openGraph: {
+    title: "Finde innere Ruhe mit Power Storys",
+    description: "Kurz innehalten, zuhören und spüren – Geschichten für mehr Entspannung im Alltag.",
+    url: "https://www.power-storys.de",
+    siteName: "Power Storys",
+    type: "website",
+    images: [
+      {
+        url: "https://www.power-storys.de/images/power-storys_logo.webp",
+        width: 1200,
+        height: 630,
+        alt: "Power Storys - Finde innere Ruhe",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Finde innere Ruhe mit Power Storys",
+    description: "Kurz innehalten, zuhören und spüren – Geschichten für mehr Entspannung im Alltag.",
+    images: ["https://www.power-storys.de/images/power-storys_logo.webp"],
+  },
 };
 
 export default function RootLayout({
