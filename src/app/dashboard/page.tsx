@@ -3801,7 +3801,7 @@ ${story.content}
                     >
                       <div className="flex justify-between items-start mb-4 group pt-2">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-3">
+                          <div className="flex items-center gap-3 mb-3">
                             {renamingStoryId === story.id ? (
                               <EditableTitle
                                 value={story.title}
@@ -3816,16 +3816,33 @@ ${story.content}
                                 {story.title}
                               </h3>
                             )}
-                            {story.is_audio_only && (
-                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
-                                Audio-only
-                              </span>
-                            )}
-                            {story.client_email && (
-                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium" title={`Für Klient: ${story.client_email}`}>
-                                Klient
-                              </span>
-                            )}
+                            {/* Badge für Story-Quelle */}
+                            {(() => {
+                              // Prüfe ob Story mit Andreas erstellt wurde (manuell aufgenommen)
+                              // Stories mit Andreas haben is_audio_only=true ODER client_email gesetzt
+                              const isAndreasCreated = story.is_audio_only === true || story.client_email !== null;
+                              
+                              if (isAndreasCreated) {
+                                return (
+                                  <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-[10px] font-medium">
+                                    Mit Andreas erstellt
+                                  </span>
+                                );
+                              }
+                              
+                              // User-created via product flow (AI-assisted)
+                              // Zeige Badge nur wenn sicher kategorisierbar (nicht Andreas-created)
+                              if (story.is_audio_only !== true && story.client_email === null) {
+                                return (
+                                  <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-[10px] font-medium">
+                                    Selbst erstellt
+                                  </span>
+                                );
+                              }
+                              
+                              // Wenn nicht eindeutig kategorisierbar, kein Badge
+                              return null;
+                            })()}
                             {/* Beispiel-Ressourcenfigur Checkbox (nur für Admins, nur wenn Audio vorhanden) */}
                             {isAdmin && story.audio_url && story.audio_url.trim() !== '' && (
                               <label className="flex items-center gap-2 cursor-pointer group">

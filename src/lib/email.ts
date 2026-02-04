@@ -119,10 +119,14 @@ export async function sendResourceReadyEmail({
     // Verwende Resend für Email-Versand
     const resendApiKey = process.env.RESEND_API_KEY;
     const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'andreas@power-storys.de';
+    const resendBccEmail = process.env.RESEND_BCC_EMAIL;
+    const resendReplyTo = process.env.RESEND_REPLY_TO;
 
     console.log('[Email] Resend configuration check:', {
       hasApiKey: !!resendApiKey,
       fromEmail: resendFromEmail,
+      bccEmail: resendBccEmail,
+      replyTo: resendReplyTo,
     });
 
     if (resendApiKey) {
@@ -135,12 +139,24 @@ export async function sendResourceReadyEmail({
           ? (isMultiple ? `Willkommen! ${names.length} Power Storys warten auf dich` : 'Willkommen! Deine Power Story wartet auf dich')
           : (isMultiple ? `Deine ${names.length} Power Storys sind bereit!` : 'Deine Power Story ist bereit!');
 
-        const { data, error } = await resend.emails.send({
+        const emailOptions: any = {
           from: `Andreas <${resendFromEmail}>`,
           to: [to],
           subject,
           html: getEmailHTML(names, magicLink, isNewUser),
-        });
+        };
+
+        // Füge BCC hinzu, falls konfiguriert
+        if (resendBccEmail) {
+          emailOptions.bcc = [resendBccEmail];
+        }
+
+        // Füge Reply-To hinzu, falls konfiguriert
+        if (resendReplyTo) {
+          emailOptions.replyTo = resendReplyTo;
+        }
+
+        const { data, error } = await resend.emails.send(emailOptions);
 
         if (error) {
           console.error('[Email] ❌ Resend email error:', error);
@@ -306,6 +322,8 @@ export async function sendAdminConfirmationEmail({
     // Verwende Resend für Email-Versand
     const resendApiKey = process.env.RESEND_API_KEY;
     const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'andreas@power-storys.de';
+    const resendBccEmail = process.env.RESEND_BCC_EMAIL;
+    const resendReplyTo = process.env.RESEND_REPLY_TO;
 
     if (resendApiKey) {
       try {
@@ -313,14 +331,26 @@ export async function sendAdminConfirmationEmail({
         const resend = new Resend(resendApiKey);
 
         const isMultiple = resourceNames.length > 1;
-        const { data, error: resendError } = await resend.emails.send({
+        const emailOptions: any = {
           from: `Andreas <${resendFromEmail}>`,
           to: [to],
           subject: success
             ? `✅ ${isMultiple ? `${resourceNames.length} Power Storys` : 'Power Story'} erfolgreich an ${clientEmail} versendet`
             : `⚠️ Fehler beim Versenden an ${clientEmail}`,
           html: getAdminConfirmationEmailHTML(clientEmail, resourceNames, success, error),
-        });
+        };
+
+        // Füge BCC hinzu, falls konfiguriert
+        if (resendBccEmail) {
+          emailOptions.bcc = [resendBccEmail];
+        }
+
+        // Füge Reply-To hinzu, falls konfiguriert
+        if (resendReplyTo) {
+          emailOptions.replyTo = resendReplyTo;
+        }
+
+        const { data, error: resendError } = await resend.emails.send(emailOptions);
 
         if (resendError) {
           console.error('[Email] ❌ Resend error sending admin confirmation:', resendError);
