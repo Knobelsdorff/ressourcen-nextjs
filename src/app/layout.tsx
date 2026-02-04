@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "https://www.power-storys.de/images/power-storys_logo.webp",
+        url: "https://www.power-storys.de/images/og-image.webp",
         width: 1200,
         height: 630,
         alt: "Power Storys - Finde innere Ruhe",
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Finde innere Ruhe mit Power Storys",
     description: "Kurz innehalten, zuhören und spüren – Geschichten für mehr Entspannung im Alltag.",
-    images: ["https://www.power-storys.de/images/power-storys_logo.webp"],
+    images: ["https://www.power-storys.de/images/og-image.webp"],
   },
 };
 
