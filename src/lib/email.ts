@@ -118,7 +118,7 @@ export async function sendResourceReadyEmail({
 
     // Verwende Resend für Email-Versand
     const resendApiKey = process.env.RESEND_API_KEY;
-    const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@power-storys.de';
+    const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'andreas@power-storys.de';
 
     console.log('[Email] Resend configuration check:', {
       hasApiKey: !!resendApiKey,
@@ -172,7 +172,7 @@ export async function sendResourceReadyEmail({
     console.log('\n⚠️  HINWEIS: Email wird nicht wirklich versendet.');
     console.log('   Um Emails zu versenden, konfiguriere Resend in .env.local:');
     console.log('   RESEND_API_KEY=your-api-key');
-    console.log('   RESEND_FROM_EMAIL=noreply@power-storys.de');
+    console.log('   RESEND_FROM_EMAIL=andreas@power-storys.de');
     console.log('==================================================\n');
 
     // In Development: Magic Link in Console ausgeben
@@ -305,7 +305,7 @@ export async function sendAdminConfirmationEmail({
 
     // Verwende Resend für Email-Versand
     const resendApiKey = process.env.RESEND_API_KEY;
-    const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@power-storys.de';
+    const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'andreas@power-storys.de';
 
     if (resendApiKey) {
       try {
