@@ -466,6 +466,11 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
       return 'Höre kurz hinein und wähle die Stimme, die sich für den Erzengel Michael im Moment stimmig anfühlt.';
     }
     
+    // Engel: spezielle Formulierung mit "Engelsfigur"
+    if (figureId.includes('engel') && !figureId.includes('erzengel')) {
+      return 'Höre kurz hinein und wähle die Stimme, die sich für die Engelsfigur im Moment stimmig anfühlt.';
+    }
+    
     if (figureId.includes('krafttier')) {
       return 'Höre kurz hinein und wähle die Stimme, die sich für dein Krafttier im Moment stimmig anfühlt.';
     }

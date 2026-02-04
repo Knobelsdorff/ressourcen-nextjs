@@ -1319,7 +1319,7 @@ export const figureSpecificData: FigureSpecificData = {
         "Erinnere mich an meinen Wert",
         "Schenk mir weiterhin deine bedingungslose Liebe",
         "Bleib immer bei mir, egal was ist",
-        "Lass mich immer bei dir willkommen sein"
+        "Darf ich bei dir immer willkommen sein"
       ]
     },
     6: {

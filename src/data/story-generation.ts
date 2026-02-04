@@ -588,6 +588,14 @@ Zusatz: Wenn es natürlich und sanft passt, verwende den Namen "${userName}" ein
    - Die Bitte soll herzlich und respektvoll sein, wie ein Gespräch mit einem lieben Menschen.
    - **VERMEIDE** Imperative wie "Beschütze mich weiterhin" oder "Sei immer da" – nutze stattdessen die höfliche Frageform mit "Kannst du ..." (Singular) oder "Könnt ihr ..." (Plural).
    - **Beachte:** Für "Erzengel Michael" wäre eine Bitte um Schutz passend, für "Oma" um Trost, für "Beste Freundin" um Unterstützung, etc.
+   ${selectedFigure.name === 'Ideal-Vater' || selectedFigure.id === 'ideal-father' ? `
+   - **WICHTIG - SPEZIELLE FORMULIERUNG FÜR IDEAL-VATER:**
+     - Wenn die Bitte etwas mit "willkommen sein" enthält, formuliere es IMMER als "darf ich bei dir immer willkommen sein?" (nicht "lass mich bei dir willkommen sein").
+     - Beispiel für Ideal-Vater:
+       > "Du bittest deinen idealen Vater:
+       
+       Kannst du bitte immer da sein, wenn ich dich brauche? Und darf ich bei dir immer willkommen sein?"
+   ` : ''}
    - Beispiel Singular: 
      > "Du bittest Erzengel Michael:
      

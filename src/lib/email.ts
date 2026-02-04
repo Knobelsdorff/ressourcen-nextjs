@@ -26,7 +26,7 @@ const getEmailHTML = (resourceNames: string[], magicLink: string, isNewUser: boo
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-    <h1 style="color: white; margin: 0; font-size: 28px;">${isMultiple ? 'Deine Ressourcen sind bereit!' : 'Deine Ressource ist bereit!'}</h1>
+    <h1 style="color: white; margin: 0; font-size: 28px;">${isMultiple ? 'Deine Power Story ist bereit!' : 'Deine Power Story ist bereit!'}</h1>
   </div>
 
   <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
@@ -36,8 +36,8 @@ const getEmailHTML = (resourceNames: string[], magicLink: string, isNewUser: boo
 
     <p style="font-size: 16px; margin-bottom: 20px;">
       ${isMultiple
-        ? `Die folgenden ${resourceNames.length} Ressourcen wurden für dich erstellt und sind jetzt verfügbar:`
-        : `Deine persönliche Ressource <strong>"${resourceNames[0]}"</strong> wurde für dich erstellt und ist jetzt verfügbar.`
+        ? `Die folgenden ${resourceNames.length} Power Storys wurden für dich erstellt und sind jetzt verfügbar:`
+        : `Deine persönliche Power Story <strong>"${resourceNames[0]}"</strong> wurde für dich erstellt und ist jetzt verfügbar.`
       }
     </p>
 
@@ -57,7 +57,7 @@ const getEmailHTML = (resourceNames: string[], magicLink: string, isNewUser: boo
     ` : ''}
 
     <p style="font-size: 16px; margin-bottom: 30px;">
-      Klicke auf den Button unten, um ${isNewUser ? 'dein Passwort einzurichten und' : 'dich anzumelden und'} auf ${isMultiple ? 'deine Ressourcen' : 'deine Ressource'} zuzugreifen:
+      Klicke auf den Button unten, um ${isNewUser ? 'dein Passwort einzurichten und' : 'dich anzumelden und'} auf ${isMultiple ? 'deine Power Storys' : 'deine Power Story'} zuzugreifen:
     </p>
 
     <div style="text-align: center; margin: 30px 0;">
@@ -84,7 +84,8 @@ const getEmailHTML = (resourceNames: string[], magicLink: string, isNewUser: boo
   </div>
 
   <div style="text-align: center; margin-top: 20px; padding: 20px; color: #6b7280; font-size: 12px;">
-    <p>© ${new Date().getFullYear()} Ressourcen App - Andreas von Knobelsdorff</p>
+    <p>© ${new Date().getFullYear()} Power Storys - Andreas von Knobelsdorff</p>
+    <p><a href="https://www.power-storys.de">www.power-storys.de</a></p>
   </div>
 </body>
 </html>
