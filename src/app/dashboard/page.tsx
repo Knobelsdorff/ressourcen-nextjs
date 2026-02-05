@@ -1245,6 +1245,12 @@ export default function Dashboard() {
     setPersonalStories(filteredStories);
   }, [stories, ankommenStory]);
 
+  // Check if user is an admin-created client (has stories created via ClientResourceModal)
+  // These users should NOT see the "Zum Ankommen" / "Wohlwollende Präsenz" section
+  const isAdminCreatedClient = stories.some(story =>
+    story.client_email !== null || story.is_audio_only === true
+  );
+
   // Lade Beispiel-Ressourcenfigur Konfiguration (nur für Admins)
   const fetchExampleResourceConfig = useCallback(async () => {
     if (!isAdmin || !user) return;
@@ -3678,8 +3684,8 @@ ${story.content}
                 </div>
               ) : (
                 <>
-                  {/* Section 1: Arrival Space (Ankommen) */}
-                  {ankommenStory && (
+                  {/* Section 1: Arrival Space (Ankommen) - Hidden for admin-created clients */}
+                  {ankommenStory && !isAdminCreatedClient && (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}

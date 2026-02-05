@@ -98,18 +98,9 @@ function CreateStoryInner() {
       const preselectedFigure = allFigures.find(f => f.id === figureId);
 
       if (preselectedFigure) {
-        let targetStep = 1;
-        if (!user) {
-          targetStep = 2;
-        } else if (userDataLoaded) {
-          if (!userFullName || userFullName.trim() === '') {
-            targetStep = 2;
-          } else {
-            targetStep = 3;
-          }
-        } else {
-          return;
-        }
+        // New step order: 1=Figure, 2=Questions, 3=Voice, 4=Name, 5+=Audio
+        // When coming from /figur with preselected figure, go directly to step 2 (Questions)
+        const targetStep = 2;
 
         const ambivalentFigures = ['partner', 'teacher', 'sibling', 'best-friend', 'pet-dog', 'pet-cat'];
         if (ambivalentFigures.includes(preselectedFigure.id)) {
@@ -226,10 +217,10 @@ function CreateStoryInner() {
     setResetFunction(handleResetToStart);
   }, [setResetFunction, handleResetToStart]);
 
+  // New step order: 1=Figure, 2=Questions, 3=Voice, 4=Name, 5+=Audio
   const canProceed =
     (appState.currentStep === 1 && appState.resourceFigure) ||
-    (appState.currentStep === 2) || 
-    (appState.currentStep === 3 && (() => {
+    (appState.currentStep === 2 && (() => {
       const currentAnswer = appState.questionAnswers.find(a => {
         const questionId = appState.currentQuestionIndex + 1;
         return a.questionId === questionId;
@@ -240,16 +231,20 @@ function CreateStoryInner() {
 
       return hasEnoughAnswers;
     })()) ||
-    (appState.currentStep === 4 && appState.selectedVoice) ||
+    (appState.currentStep === 3 && appState.selectedVoice) ||
+    (appState.currentStep === 4) || // Name step - always can proceed
     (appState.currentStep === 5 && appState.selectedVoice) ||
     (appState.currentStep === 6 && appState.selectedVoice);
 
+  // New step order: 1=Figure, 2=Questions, 3=Voice, 4=Name, 5+=Audio
   const handleNextStep = useCallback(() => {
     const isStep1Complete = appState.currentStep === 1 && appState.resourceFigure;
-    const isStep4Complete = appState.currentStep === 4 && appState.selectedVoice;
+    const isStep3Complete = appState.currentStep === 3 && appState.selectedVoice;
+    const isStep4Complete = appState.currentStep === 4; // Name step
     const isStep5Complete = appState.currentStep === 5 && appState.selectedVoice;
     const isStep6Complete = appState.currentStep === 6 && appState.selectedVoice;
-    
+
+    // Step 1 -> Step 2 (Questions)
     if (isStep1Complete) {
       const paywallDisabled = isEnabled('PAYWALL_DISABLED');
       const paywallEnabled = !paywallDisabled;
@@ -264,15 +259,8 @@ function CreateStoryInner() {
 
             const aiResourceCount = existingStories?.filter((s: any) => !s.is_audio_only).length || 0;
             if (aiResourceCount === 0) {
-              if (!userDataLoaded) {
-                return;
-              }
-
-              if (!userFullName || userFullName.trim() === '') {
-                setAppState(prev => ({ ...prev, currentStep: 2 }));
-              } else {
-                setAppState(prev => ({ ...prev, currentStep: 3 }));
-              }
+              // First resource is free - go to questions
+              setAppState(prev => ({ ...prev, currentStep: 2 }));
             } else {
               const canCreate = await canCreateResource(user.id);
 
@@ -288,15 +276,7 @@ function CreateStoryInner() {
                   return;
                 }
 
-                if (!userDataLoaded) {
-                  return;
-                }
-
-                if (!userFullName || userFullName.trim() === '') {
-                  setAppState(prev => ({ ...prev, currentStep: 2 }));
-                } else {
-                  setAppState(prev => ({ ...prev, currentStep: 3 }));
-                }
+                setAppState(prev => ({ ...prev, currentStep: 2 }));
               }
             }
           } catch (error) {
@@ -323,7 +303,6 @@ function CreateStoryInner() {
             });
 
             if (!response.ok) {
-              const errorData = await response.json();
               setShowPaywall(true);
               return;
             }
@@ -338,29 +317,13 @@ function CreateStoryInner() {
         checkAnonymousRateLimit();
         return;
       } else {
-        if (!user) {
-          setAppState(prev => ({ ...prev, currentStep: 2 }));
-        } else {
-          if (!userDataLoaded) {
-            return;
-          }
-
-          if (!userFullName || userFullName.trim() === '') {
-            setAppState(prev => ({ ...prev, currentStep: 2 }));
-          } else {
-            setAppState(prev => ({ ...prev, currentStep: 3 }));
-          }
-        }
+        setAppState(prev => ({ ...prev, currentStep: 2 }));
         return;
       }
     }
 
+    // Step 2 (Questions) - handle question progression and move to step 3 (Voice)
     if (appState.currentStep === 2) {
-      setAppState(prev => ({ ...prev, currentStep: 3 }));
-      return;
-    }
-
-    if (appState.currentStep === 3) {
       const currentAnswer = appState.questionAnswers[appState.currentQuestionIndex];
       if (!currentAnswer || currentAnswer.selectedBlocks.length < 2) {
         return;
@@ -371,7 +334,7 @@ function CreateStoryInner() {
         appState.questionAnswers.every(a => a.answer.trim().length > 0 || a.selectedBlocks.length >= 2);
 
       if (allQuestionsAnswered) {
-        setAppState(prev => ({ ...prev, currentStep: 4, currentQuestionIndex: 0 }));
+        setAppState(prev => ({ ...prev, currentStep: 3, currentQuestionIndex: 0 }));
       } else {
         const nextQuestionIndex = (appState.currentQuestionIndex + 1) % expectedQuestionCount;
         setAppState(prev => ({ ...prev, currentQuestionIndex: nextQuestionIndex }));
@@ -379,19 +342,39 @@ function CreateStoryInner() {
       return;
     }
 
-    if (isStep4Complete || isStep5Complete || isStep6Complete) {
+    // Step 3 (Voice) -> Step 4 (Name)
+    if (isStep3Complete) {
+      setAppState(prev => ({ ...prev, currentStep: 4 }));
+      return;
+    }
+
+    // Step 4 (Name) -> Step 5 (Audio)
+    if (isStep4Complete) {
+      setAppState(prev => ({ ...prev, currentStep: 5 }));
+      return;
+    }
+
+    if (isStep5Complete || isStep6Complete) {
       setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
     }
-  }, [appState.currentStep, appState.resourceFigure, appState.questionAnswers, appState.generatedStory, appState.selectedVoice, userFullName, userDataLoaded, user]);
+  }, [appState.currentStep, appState.resourceFigure, appState.questionAnswers, appState.generatedStory, appState.selectedVoice, user]);
 
+  // New step order: 1=Figure, 2=Questions, 3=Voice, 4=Name, 5+=Audio
   const handlePreviousStep = useCallback(() => {
     setAppState(prev => {
       let newStep = Math.max(1, prev.currentStep - 1);
 
+      // Step 2 (Questions) -> Step 1 (Figure)
+      if (prev.currentStep === 2) {
+        newStep = 1;
+      }
+
+      // Step 3 (Voice) -> Step 2 (Questions)
       if (prev.currentStep === 3) {
         newStep = 2;
       }
 
+      // Step 4 (Name) -> Step 3 (Voice)
       if (prev.currentStep === 4) {
         newStep = 3;
       }
@@ -399,10 +382,10 @@ function CreateStoryInner() {
       return {
         ...prev,
         currentStep: newStep,
-        currentQuestionIndex: newStep === 3 ? 0 : prev.currentQuestionIndex
+        currentQuestionIndex: newStep === 2 ? 0 : prev.currentQuestionIndex
       };
     });
-  }, [user, userFullName]);
+  }, []);
 
   const handleUserDataUpdate = useCallback((fullName: string, pronunciationHint: string | null) => {
     if (user) {
@@ -574,17 +557,6 @@ function CreateStoryInner() {
               )}
 
               {appState.currentStep === 2 && appState.resourceFigure && (
-                <NamePronunciationForm
-                  onNext={handleNextStep}
-                  onBack={handlePreviousStep}
-                  selectedFigure={appState.resourceFigure}
-                  userFullName={user ? userFullName : anonymousUserName}
-                  userPronunciationHint={user ? userPronunciationHint : anonymousUserPronunciationHint}
-                  onUserDataUpdate={handleUserDataUpdate}
-                />
-              )}
-
-              {appState.currentStep === 3 && appState.resourceFigure && (
                 <RelationshipSelection
                   selectedFigure={appState.resourceFigure}
                   questionAnswers={appState.questionAnswers}
@@ -595,7 +567,7 @@ function CreateStoryInner() {
                 />
               )}
 
-              {appState.currentStep === 4 && appState.resourceFigure && (
+              {appState.currentStep === 3 && appState.resourceFigure && (
                 <VoiceSelection
                   onVoiceSelect={(voiceId) => {
                     setAppState(prev => ({ ...prev, selectedVoice: voiceId }));
@@ -605,6 +577,17 @@ function CreateStoryInner() {
                   selectedVoiceId={appState.selectedVoice}
                   resourceFigure={appState.resourceFigure}
                   onSparModusChange={setSparModus}
+                />
+              )}
+
+              {appState.currentStep === 4 && appState.resourceFigure && (
+                <NamePronunciationForm
+                  onNext={handleNextStep}
+                  onBack={handlePreviousStep}
+                  selectedFigure={appState.resourceFigure}
+                  userFullName={user ? userFullName : anonymousUserName}
+                  userPronunciationHint={user ? userPronunciationHint : anonymousUserPronunciationHint}
+                  onUserDataUpdate={handleUserDataUpdate}
                 />
               )}
 
