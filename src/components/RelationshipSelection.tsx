@@ -339,8 +339,30 @@ export default function RelationshipSelection({
                 </div>
               </div>
 
-              {/* Mobile Zurück Button */}
-              <div className="lg:hidden mt-4">
+              {/* Mobile Navigation Buttons */}
+              <div className="lg:hidden mt-4 flex flex-col gap-3">
+                {/* Mobile Weiter Button */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleNextQuestion}
+                  disabled={!canProceedFromCurrentQuestion()}
+                  className="w-full px-4 max-sm:text-sm sm:py-3 py-2 bg-[#f0fdf4] text-black border border-[#22c55e] rounded-lg transition-all text-base font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {currentQuestionIndex === questionsToUse.length - 1 ? (
+                    <>
+                      Abschließen
+                      <ArrowRight className="w-5 h-5" />
+                    </>
+                  ) : (
+                    <>
+                      Weiter
+                      <ChevronRight className="w-5 h-5" />
+                    </>
+                  )}
+                </motion.button>
+
+                {/* Mobile Zurück Button */}
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
