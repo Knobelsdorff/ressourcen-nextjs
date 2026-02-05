@@ -2195,10 +2195,10 @@ export default function AudioPlayback({
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={togglePlayPause}
-                    disabled={isLoading || isLoadingAudio}
+                    disabled={isLoading || isLoadingAudio || (audioState?.audioUrl && !isAudioReady) as any}
                     className="sm:p-6 p-5 max-sm:w-[72px] max-sm:h-[72px] bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 text-white rounded-full shadow-xl hover:shadow-2xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {(isLoading || isLoadingAudio) ? (
+                    {(isLoading || isLoadingAudio || (audioState?.audioUrl && !isAudioReady)) ? (
                       <Loader2 className="w-7 h-7 animate-spin" />
                     ) : isPlaying ? (
                       <Pause className="w-7 h-7" />
