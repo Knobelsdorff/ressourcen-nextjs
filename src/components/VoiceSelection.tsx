@@ -526,8 +526,37 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
 
   if (!mounted || loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-amber-600 max-sm:text-sm">Stimmen werden geladen...</div>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center">
+          {/* Breathing Circle - consistent with AudioPlayback loader */}
+          <div className="flex justify-center mb-8">
+            <motion.div
+              className="w-20 h-20 lg:w-24 lg:h-24 rounded-full border-2 border-amber-400 relative"
+              animate={{
+                scale: [1, 1.15, 1],
+              }}
+              transition={{
+                duration: 5.5,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            >
+              <motion.div
+                className="absolute inset-0 rounded-full bg-amber-400"
+                style={{ opacity: 0.08 }}
+                animate={{
+                  opacity: [0.05, 0.1, 0.05],
+                }}
+                transition={{
+                  duration: 5.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+            </motion.div>
+          </div>
+          <p className="text-amber-700 max-sm:text-sm">Stimmen werden geladen...</p>
+        </div>
       </div>
     );
   }

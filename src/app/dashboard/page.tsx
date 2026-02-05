@@ -822,8 +822,7 @@ export default function Dashboard() {
 
         setStories(uniqueStories);
 
-        // Personal stories are all user stories (ankommenStory is loaded separately via loadExampleResource)
-        setPersonalStories(uniqueStories);
+        // Note: personalStories is now filtered via useEffect to exclude ankommenStory
 
         calculateUserStats(uniqueStories);
         
@@ -1224,6 +1223,27 @@ export default function Dashboard() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isAdmin]); // Nur user und isAdmin als Dependency, um Endlosschleife zu vermeiden
+
+  // Filter personalStories to exclude the ankommenStory (Wohlwollende Präsenz)
+  // This ensures the example resource only shows in "Zum Ankommen" section, not in "Meine Power Storys"
+  useEffect(() => {
+    // Always filter out "Wohlwollende Präsenz" by name/title, regardless of ID
+    const filteredStories = stories.filter(story => {
+      // Filter by ankommenStory ID if available
+      if (ankommenStory && story.id === ankommenStory.id) {
+        return false;
+      }
+      // Also forcefully filter by name "Wohlwollende Präsenz"
+      if (story.resource_figure?.name === 'Wohlwollende Präsenz') {
+        return false;
+      }
+      if (story.title === 'Wohlwollende Präsenz') {
+        return false;
+      }
+      return true;
+    });
+    setPersonalStories(filteredStories);
+  }, [stories, ankommenStory]);
 
   // Lade Beispiel-Ressourcenfigur Konfiguration (nur für Admins)
   const fetchExampleResourceConfig = useCallback(async () => {

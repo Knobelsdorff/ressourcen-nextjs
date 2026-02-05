@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
@@ -31,6 +31,7 @@ const initialAppState: AppState = {
   currentQuestionIndex: 0
 };
 
+
 function CreateStoryInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -49,13 +50,11 @@ function CreateStoryInner() {
   const [storyGenerationError, setStoryGenerationError] = useState<string | null>(null);
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
   const [userDataLoaded, setUserDataLoaded] = useState(false);
+  // Track if story generation was already attempted to prevent double-triggering
+  const storyGenerationAttempted = useRef(false);
 
-  // Auth guard: redirect to homepage if not authenticated
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/');
-    }
-  }, [user, authLoading, router]);
+  // Note: Anonymous users are allowed to create stories
+  // They will be prompted to create an account after story generation
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -195,11 +194,16 @@ function CreateStoryInner() {
   }, []);
 
   const handleStoryGenerated = useCallback((story: string) => {
-    setAppState(prev => ({
-      ...prev,
-      generatedStory: story,
-      audioState: null
-    }));
+    setAppState(prev => {
+      // Only reset audioState if the story content actually changed
+      const storyChanged = prev.generatedStory !== story;
+      return {
+        ...prev,
+        generatedStory: story,
+        // Only reset audio if story changed - prevents flickering on re-renders
+        audioState: storyChanged ? null : prev.audioState
+      };
+    });
   }, []);
 
   const handleAudioStateChange = useCallback((audioState: AudioState | null) => {
@@ -413,9 +417,24 @@ function CreateStoryInner() {
   useEffect(() => {
     const run = async () => {
       if (!appState.resourceFigure) return;
-      if (appState.currentStep >= 5 && appState.selectedVoice && !isGeneratingStory && !appState.generatedStory.trim()) {
+
+      // Skip if we already have a story (restored from localStorage or already generated)
+      if (appState.generatedStory && appState.generatedStory.trim().length > 0) {
+        console.log('[CreateStory] Story already exists, skipping generation');
+        return;
+      }
+
+      // Skip if already generating or already attempted
+      if (isGeneratingStory || storyGenerationAttempted.current) {
+        return;
+      }
+
+      if (appState.currentStep >= 5 && appState.selectedVoice) {
+        // Mark as attempted to prevent double-triggering
+        storyGenerationAttempted.current = true;
         setIsGeneratingStory(true);
         setStoryGenerationError(null);
+
         try {
           const effectiveUserName = user
             ? userFullName
@@ -454,6 +473,8 @@ function CreateStoryInner() {
           console.error('Story generation failed:', error);
           const errorMessage = error.message || 'Failed to generate story. Please try again.';
           setStoryGenerationError(errorMessage);
+          // Reset the attempt flag so user can retry
+          storyGenerationAttempted.current = false;
         } finally {
           setIsGeneratingStory(false);
         }
@@ -473,13 +494,36 @@ function CreateStoryInner() {
   if (!mounted || authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
-        <div className="text-amber-600">Lade...</div>
+        <div className="text-center">
+          {/* Breathing Circle - consistent loader */}
+          <motion.div
+            className="w-20 h-20 rounded-full border-2 border-amber-400 relative mx-auto mb-6"
+            animate={{
+              scale: [1, 1.15, 1],
+            }}
+            transition={{
+              duration: 5.5,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          >
+            <motion.div
+              className="absolute inset-0 rounded-full bg-amber-400"
+              style={{ opacity: 0.08 }}
+              animate={{
+                opacity: [0.05, 0.1, 0.05],
+              }}
+              transition={{
+                duration: 5.5,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
+          </motion.div>
+          <p className="text-amber-600">Lade...</p>
+        </div>
       </div>
     );
-  }
-
-  if (!user) {
-    return null; // Will redirect via useEffect
   }
 
   return (
@@ -512,9 +556,9 @@ function CreateStoryInner() {
 
       <div className="min-h-screen relative">
         <div className="flex-1 min-h-screen">
-          <AnimatePresence mode="sync">
+          <AnimatePresence mode="wait">
             <motion.div
-              key={appState.currentStep}
+              key={appState.currentStep >= 5 ? 'audio-playback' : appState.currentStep}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -564,7 +608,7 @@ function CreateStoryInner() {
                 />
               )}
 
-              {appState.currentStep === 5 && appState.resourceFigure && appState.selectedVoice && (
+              {appState.currentStep >= 5 && appState.resourceFigure && appState.selectedVoice && (
                 <>
                   {storyGenerationError && (
                     <div className="max-w-4xl mx-auto mb-6 p-6 bg-red-50 border border-red-200 rounded-2xl">
@@ -580,6 +624,7 @@ function CreateStoryInner() {
                           <button
                             onClick={() => {
                               setStoryGenerationError(null);
+                              storyGenerationAttempted.current = false;
                               setAppState(prev => ({ ...prev, generatedStory: '' }));
                             }}
                             className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
@@ -601,6 +646,7 @@ function CreateStoryInner() {
                     questionAnswers={appState.questionAnswers}
                     onShowAccountCreated={() => setShowAccountCreated(true)}
                     storyGenerationError={storyGenerationError}
+                    isGeneratingStory={isGeneratingStory}
                   />
                 </>
               )}

@@ -42,6 +42,7 @@ interface AudioPlaybackProps {
   questionAnswers?: any[];
   onShowAccountCreated?: () => void;
   storyGenerationError?: string | null;
+  isGeneratingStory?: boolean;
 }
 
 // Voices will be loaded dynamically from API
@@ -78,7 +79,8 @@ export default function AudioPlayback({
   sparModus = false,
   questionAnswers = [],
   onShowAccountCreated,
-  storyGenerationError = null
+  storyGenerationError = null,
+  isGeneratingStory = false
 }: AudioPlaybackProps) {
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
   const [availableVoices, setAvailableVoices] = useState<Voice[]>([]);
@@ -106,6 +108,7 @@ export default function AudioPlayback({
   const [musicDuration, setMusicDuration] = useState(0); // Duration of background music
   const [combinedDuration, setCombinedDuration] = useState(0); // Max of voice or music duration
   const [isLoadingAudio, setIsLoadingAudio] = useState(false); // Loading state for both audios
+  const [isAudioReady, setIsAudioReady] = useState(false); // Track when audio is actually playable
   const [hasAutoSaved, setHasAutoSaved] = useState(false); // Track ob bereits automatisch gespeichert wurde
   const [hasPlayedOnce, setHasPlayedOnce] = useState(false);
   const [hasStartedPlayback, setHasStartedPlayback] = useState(false); // Track ob User bereits Play gedrückt hat
@@ -184,12 +187,13 @@ export default function AudioPlayback({
     }
   }, [user, pendingStory]);
 
-  // Reset hasAutoSaved und hasStartedPlayback wenn sich die Story ändert (neue Story generiert)
+  // Reset states wenn sich die Story ändert (neue Story generiert)
   useEffect(() => {
     setHasAutoSaved(false);
     setHasStartedPlayback(false);
     setShowPostAudioPanel(false);
     setShowPostAudioCTA(false);
+    setIsAudioReady(false);
   }, [generatedStory]);
 
   // Automatisches Speichern: Speichere Ressource automatisch, sobald Story und Audio vorhanden sind
@@ -1260,11 +1264,13 @@ export default function AudioPlayback({
     const handleCanPlay = () => {
       // Audio ist bereit zum Abspielen
       setIsLoading(false);
+      setIsAudioReady(true);
       console.log('[AudioPlayback] Audio can play - ready state:', audio.readyState);
     };
     const handleCanPlayThrough = () => {
       // Audio ist vollständig geladen und kann durchgespielt werden
       setIsLoading(false);
+      setIsAudioReady(true);
       console.log('[AudioPlayback] Audio can play through - fully loaded');
     };
     const updateBuffered = () => setBufferedRanges(audio.buffered);
@@ -1923,8 +1929,13 @@ export default function AudioPlayback({
     );
   }
 
-  // Show loading state during audio generation - ruhiger Übergangsraum
-  if (isGenerating) {
+  // Show loading state during story OR audio generation - ruhiger Übergangsraum
+  // Use unified loader for consistent UX
+  const hasStory = generatedStory && generatedStory.trim().length > 0;
+  const hasAudio = audioState?.audioUrl;
+  // Show loader only while: generating story, generating audio, or no story/audio yet
+  const showUnifiedLoader = isGenerating || isGeneratingStory || (!hasStory && !storyGenerationError) || (hasStory && !hasAudio && !storyGenerationError);
+  if (showUnifiedLoader) {
     return (
       <div className="min-h-screen p-4 lg:p-12">
         <div className="max-w-4xl mx-auto">
