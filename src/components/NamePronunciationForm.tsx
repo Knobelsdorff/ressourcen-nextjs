@@ -37,6 +37,11 @@ export default function NamePronunciationForm({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
   // Load existing data on mount (only for logged-in users)
   useEffect(() => {
     const loadData = async () => {
