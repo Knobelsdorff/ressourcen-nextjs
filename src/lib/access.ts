@@ -384,6 +384,12 @@ export async function hasActiveAccess(userId: string): Promise<boolean> {
       userIdsMatch: session?.user?.id === userId,
     });
     
+    // Prüfe ob User ein Admin ist - Admins haben immer Zugriff
+    if (session?.user?.email && isAdminUser(session.user.email)) {
+      console.log(`[hasActiveAccess] User is admin (${session.user.email}) - granting unlimited access`);
+      return true;
+    }
+    
     console.log(`[hasActiveAccess] Checking access for user ${userId}`);
     // has_active_access ist nicht in den generierten Typen, existiert aber in der DB
     const { data, error } = await (supabase as any).rpc('has_active_access', {
