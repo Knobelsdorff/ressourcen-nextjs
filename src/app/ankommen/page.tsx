@@ -167,7 +167,7 @@ export default function AnkommenPage() {
             Du musst nichts tun.
           </h1>
           <p className="text-sm md:text-base text-amber-700/80 max-w-md mx-auto leading-relaxed">
-            Die Geschichte nun für dich da.
+            Eine wohlwollende Präsenz ist nun für dich da.
             <br />
             Du kannst einfach zuhören.
             <br />
