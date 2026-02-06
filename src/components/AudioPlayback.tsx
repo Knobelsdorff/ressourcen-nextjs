@@ -114,6 +114,7 @@ export default function AudioPlayback({
   const [hasStartedPlayback, setHasStartedPlayback] = useState(false); // Track ob User bereits Play gedrückt hat
   const [showPostAudioPanel, setShowPostAudioPanel] = useState(false); // Show calm "after" panel
   const [showPostAudioCTA, setShowPostAudioCTA] = useState(false); // Show CTA after delay
+  const [isFirstStoryPlayback, setIsFirstStoryPlayback] = useState<boolean | null>(null); // null = noch nicht geprüft
   const { user, session, signIn, signUp } = useAuth();
   const router = useRouter();
 
@@ -186,6 +187,51 @@ export default function AudioPlayback({
       }
     }
   }, [user, pendingStory]);
+
+  // Prüfe ob dies die erste Story-Wiedergabe ist
+  useEffect(() => {
+    const checkFirstStoryPlayback = async () => {
+      if (!user) {
+        // Fallback: Prüfe localStorage-Flag
+        const hasCreatedStory = localStorage.getItem('ps_has_created_story') === 'true';
+        setIsFirstStoryPlayback(!hasCreatedStory);
+        return;
+      }
+
+      try {
+        // Prüfe Anzahl der persönlichen Stories (nicht Audio-only)
+        const { data: existingStories, error } = await supabase
+          .from('saved_stories')
+          .select('id, is_audio_only')
+          .eq('user_id', user.id);
+
+        if (error) {
+          console.warn('[AudioPlayback] Error checking story count:', error);
+          // Fallback: Prüfe localStorage-Flag
+          const hasCreatedStory = localStorage.getItem('ps_has_created_story') === 'true';
+          setIsFirstStoryPlayback(!hasCreatedStory);
+          return;
+        }
+
+        // Zähle nur KI-generierte Ressourcen (nicht Audio-only)
+        const personalStoriesCount = existingStories?.filter((s: any) => !s.is_audio_only).length || 0;
+        const isFirst = personalStoriesCount === 0;
+        setIsFirstStoryPlayback(isFirst);
+
+        // Setze localStorage-Flag als Fallback für zukünftige Sessions
+        if (!isFirst) {
+          localStorage.setItem('ps_has_created_story', 'true');
+        }
+      } catch (err) {
+        console.warn('[AudioPlayback] Error checking first story playback:', err);
+        // Fallback: Prüfe localStorage-Flag
+        const hasCreatedStory = localStorage.getItem('ps_has_created_story') === 'true';
+        setIsFirstStoryPlayback(!hasCreatedStory);
+      }
+    };
+
+    checkFirstStoryPlayback();
+  }, [user]);
 
   // Reset states wenn sich die Story ändert (neue Story generiert)
   useEffect(() => {
@@ -362,6 +408,9 @@ export default function AudioPlayback({
           audio_url: data?.[0]?.audio_url,
           voice_id: data?.[0]?.voice_id
         }, null, 2));
+        // Setze localStorage-Flag für zukünftige Sessions (AudioPlayback wird nur für persönliche Stories verwendet)
+        localStorage.setItem('ps_has_created_story', 'true');
+        setIsFirstStoryPlayback(false);
         // Kein Popup - nur Console-Log
         // Lösche temporäre Daten
         localStorage.removeItem('pendingStory');
@@ -507,6 +556,11 @@ export default function AudioPlayback({
           voice_id: data?.[0]?.voice_id,
           title: data?.[0]?.title
         }, null, 2));
+        
+        // Setze localStorage-Flag für zukünftige Sessions (nur für persönliche Stories, nicht Audio-only)
+        // AudioPlayback wird nur für persönliche Stories verwendet, daher können wir das Flag sicher setzen
+        localStorage.setItem('ps_has_created_story', 'true');
+        setIsFirstStoryPlayback(false);
         
         // Track Resource Creation Event (nur wenn User eingeloggt ist)
         if (user && data && data[0]) {
@@ -2105,9 +2159,20 @@ export default function AudioPlayback({
               className="text-center mb-8"
             >
               <p className="text-sm md:text-base text-amber-700/80 max-w-md mx-auto leading-relaxed space-y-1">
-                <span className="block">Du musst nichts tun.</span>
-                <span className="block">{getFigurePresenceText(selectedFigure)}</span>
-                <span className="block">Du kannst einfach zuhören – oder jederzeit pausieren.</span>
+                {isFirstStoryPlayback === false ? (
+                  // Returning user: shorter version
+                  <>
+                    <span className="block">Du kannst dich jetzt einfach begleiten lassen –</span>
+                    <span className="block">in deinem eigenen Rhythmus.</span>
+                  </>
+                ) : (
+                  // First-time user: supportive guidance (default)
+                  <>
+                    <span className="block">Du musst nichts tun.</span>
+                    <span className="block">{getFigurePresenceText(selectedFigure)}</span>
+                    <span className="block">Du kannst einfach zuhören – oder jederzeit pausieren.</span>
+                  </>
+                )}
               </p>
             </motion.div>
           )}
@@ -2263,12 +2328,20 @@ export default function AudioPlayback({
                     {/* Moment 1: Calm "after" text */}
                     <div className="text-center mb-6">
                       <h3 className="text-lg font-light text-amber-900 mb-3">
-                        Lass das Gehörte einen Moment nachwirken.
+                        {isFirstStoryPlayback === false
+                          ? 'Vielleicht magst du dem Gehörten noch einen Moment Raum geben.'
+                          : 'Lass das Gehörte einen Moment nachwirken.'}
                       </h3>
                       <p className="text-sm md:text-base text-amber-700/80 max-w-md mx-auto leading-relaxed">
-                        Du musst nichts festhalten oder verstehen.
-                        <br />
-                        Manchmal reicht es, etwas wirken zu lassen.
+                        {isFirstStoryPlayback === false ? (
+                          'Oder du gehst einfach weiter, wenn es sich stimmig anfühlt.'
+                        ) : (
+                          <>
+                            Du musst nichts festhalten oder verstehen.
+                            <br />
+                            Manchmal reicht es, etwas wirken zu lassen.
+                          </>
+                        )}
                       </p>
                     </div>
 
@@ -2293,7 +2366,11 @@ export default function AudioPlayback({
                           }}
                           className="px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl shadow-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-200"
                         >
-                          {user ? 'Eine weitere persönliche Geschichte erstellen' : 'Diese Geschichte für mich behalten'}
+                          {user
+                            ? isFirstStoryPlayback === false
+                              ? 'Neue Power Story erstellen'
+                              : 'Eine weitere persönliche Geschichte erstellen'
+                            : 'Diese Geschichte für mich behalten'}
                         </button>
                       </motion.div>
                     )}
