@@ -511,7 +511,8 @@ function CreateStoryInner() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
-      {appState.currentStep === 3 && (
+      {/* Sticky mobile button for Questions step (step 2) */}
+      {appState.currentStep === 2 && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
           <motion.button
             initial={{ y: 20, opacity: 0 }}
