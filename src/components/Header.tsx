@@ -76,6 +76,23 @@ export default function Header() {
     router.push("/zugang");
   };
 
+  // Handler für "Neue Power Story erstellen"
+  const handleCreateStory = async () => {
+    setIsMobileMenuOpen(false);
+    if (user) {
+      const { canCreateResource } = await import('@/lib/access');
+      const canCreate = await canCreateResource(user.id);
+      
+      if (!canCreate) {
+        // Falls Paywall benötigt wird, könnte hier ein Modal geöffnet werden
+        // Für jetzt navigieren wir einfach zum Dashboard, wo die Paywall-Logik ist
+        router.push('/dashboard');
+        return;
+      }
+    }
+    router.push('/create-story');
+  };
+
   const handleLogout = async () => {
     await signOut();
   };
@@ -133,24 +150,18 @@ export default function Header() {
           <nav className="hidden md:flex items-center gap-6 md:gap-8">
             {user ? (
               <>
-                {/* Eingeloggte User: Navigation + Dashboard/Logout */}
+                {/* Eingeloggte User: Action-orientierte Navigation */}
                 <button
-                  onClick={handleWhatIsPowerStory}
-                  className="text-amber-900/80 font-medium hover:text-amber-900 hover:underline transition-colors py-2"
-                >
-                  Was ist eine Power Story?
-                </button>
-                <button
-                  onClick={handleDiscoverPowerStory}
+                  onClick={handleCreateStory}
                   className="bg-[#ce7106] hover:bg-amber-700 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:ring-offset-2"
                 >
-                  Eine Power Story entdecken
+                  Neue Power Story erstellen
                 </button>
                 <Link
                   href="/dashboard"
                   className="text-amber-900/80 font-medium hover:text-amber-900 hover:underline transition-colors py-2"
                 >
-                  Dashboard
+                  Meine Power Storys
                 </Link>
                 <button 
                   onClick={handleLogout}
@@ -235,23 +246,17 @@ export default function Header() {
                 {/* Eingeloggte User */}
                 <button
                   ref={firstMenuItemRef}
-                  onClick={handleDiscoverPowerStory}
+                  onClick={handleCreateStory}
                   className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-4 px-6 rounded-[20px] transition-colors text-center"
                 >
-                  Eine Power Story entdecken
-                </button>
-                <button
-                  onClick={handleWhatIsPowerStory}
-                  className="w-full text-left text-amber-900 font-medium hover:text-amber-700 transition-colors py-3 px-4 rounded-lg hover:bg-amber-50"
-                >
-                  Was ist eine Power Story?
+                  Neue Power Story erstellen
                 </button>
                 <Link
                   href="/dashboard"
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="block w-full text-left text-amber-900 font-medium hover:text-amber-700 transition-colors py-3 px-4 rounded-lg hover:bg-amber-50"
                 >
-                  Dashboard
+                  Meine Power Storys
                 </Link>
                 <button
                   onClick={() => {
