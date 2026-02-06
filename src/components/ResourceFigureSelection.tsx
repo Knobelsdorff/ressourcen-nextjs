@@ -268,7 +268,7 @@ export default function ResourceFigureSelection({
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white pb-20 lg:pb-0">
       {/* Hero Section */}
       <div className="text-center py-0 lg:py-16 px-0 lg:px-4 bg-white">
         <motion.div 

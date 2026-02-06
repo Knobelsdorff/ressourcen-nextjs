@@ -522,6 +522,33 @@ function CreateStoryInner() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
+      {/* Sticky mobile button for Figure selection step (step 1) */}
+      {appState.currentStep === 1 && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
+          <motion.button
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: canProceed ? 1 : 0.5 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              handleNextStep();
+            }}
+            disabled={!canProceed}
+            className={`w-full px-4 py-3 text-white rounded-lg transition-all text-base font-semibold flex items-center justify-center gap-2 shadow-lg max-sm:text-sm ${canProceed
+                ? 'cursor-pointer'
+                : 'cursor-not-allowed'
+              }`}
+            style={{
+              backgroundColor: 'rgb(217, 119, 6)',
+              opacity: canProceed ? 1 : 0.5,
+              transition: 'opacity 0.3s ease'
+            }}
+          >
+            Weiter
+            <ChevronRight className="w-5 h-5" />
+          </motion.button>
+        </div>
+      )}
+
       {/* Sticky mobile button for Questions step (step 2) */}
       {appState.currentStep === 2 && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
@@ -548,6 +575,34 @@ function CreateStoryInner() {
           </motion.button>
         </div>
       )}
+
+      {/* Sticky mobile button for Voice selection step (step 3) */}
+      {appState.currentStep === 3 && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
+          <motion.button
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: canProceed ? 1 : 0.5 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              handleNextStep();
+            }}
+            disabled={!canProceed}
+            className={`w-full px-4 py-3 text-white rounded-lg transition-all text-base font-semibold flex items-center justify-center gap-2 shadow-lg max-sm:text-sm ${canProceed
+                ? 'cursor-pointer'
+                : 'cursor-not-allowed'
+              }`}
+            style={{
+              backgroundColor: 'rgb(217, 119, 6)',
+              opacity: canProceed ? 1 : 0.5,
+              transition: 'opacity 0.3s ease'
+            }}
+          >
+            Weiter
+            <ChevronRight className="w-5 h-5" />
+          </motion.button>
+        </div>
+      )}
+
 
       <div className="min-h-screen relative">
         <div className="flex-1 min-h-screen">

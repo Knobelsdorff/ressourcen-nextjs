@@ -562,7 +562,7 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto sm:pt-8 pt-5 px-4 pb-10">
+    <div className="space-y-6 max-w-7xl mx-auto sm:pt-8 pt-5 px-4 pb-24 lg:pb-10">
       <div className="text-center">
         <h2 
           className="sm:text-2xl text-xl font-bold text-amber-900 mb-2"
@@ -753,7 +753,7 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
       )}
 
       {/* Navigation Buttons (nur Desktop) */}
-      <div className="flex justify-center items-center mt-6 gap-4">
+      <div className="hidden lg:flex justify-center items-center mt-6 gap-4">
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
