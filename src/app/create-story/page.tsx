@@ -164,9 +164,15 @@ function CreateStoryInner() {
   }, [user]);
 
   const handleResourceFigureSelect = useCallback((figure: ResourceFigure) => {
+    // Reset story generation flag when figure changes to allow new story generation
+    storyGenerationAttempted.current = false;
+    setStoryGenerationError(null);
     setAppState(prev => ({
       ...prev,
-      resourceFigure: figure
+      resourceFigure: figure,
+      // Reset story and audio when figure changes
+      generatedStory: '',
+      audioState: null
     }));
   }, []);
 
@@ -211,6 +217,10 @@ function CreateStoryInner() {
     setAppState(initialAppState);
     setAnonymousUserName(null);
     setAnonymousUserPronunciationHint(null);
+    // Reset story generation flag so a new story can be generated
+    storyGenerationAttempted.current = false;
+    setStoryGenerationError(null);
+    setIsGeneratingStory(false);
   }, [appState.audioState?.audioUrl]);
 
   useEffect(() => {
@@ -324,7 +334,8 @@ function CreateStoryInner() {
 
     // Step 2 (Questions) - handle question progression and move to step 3 (Voice)
     if (appState.currentStep === 2) {
-      const currentAnswer = appState.questionAnswers[appState.currentQuestionIndex];
+      const questionId = appState.currentQuestionIndex + 1;
+      const currentAnswer = appState.questionAnswers.find(a => a.questionId === questionId);
       if (!currentAnswer || currentAnswer.selectedBlocks.length < 2) {
         return;
       }

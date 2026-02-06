@@ -770,11 +770,39 @@ export default function AudioPlayback({
 
   // Setze die ausgewählte Stimme basierend auf selectedVoiceId
   useEffect(() => {
-    if (selectedVoiceId && availableVoices.length > 0) {
+    if (!selectedVoiceId) return;
+
+    if (availableVoices.length > 0) {
       const voice = availableVoices.find(v => v.id === selectedVoiceId);
       if (voice) {
+        console.log('[AudioPlayback] Found voice:', voice.id, voice.name);
         setSelectedVoice(voice);
+      } else {
+        // Voice not found in gender-filtered list
+        console.warn('[AudioPlayback] Voice not found in available voices, ID:', selectedVoiceId);
+        console.log('[AudioPlayback] Available voice IDs:', availableVoices.map(v => v.id));
+        // Fallback: create a minimal voice object to allow audio generation
+        const fallbackVoice: Voice = {
+          id: selectedVoiceId,
+          name: 'Selected Voice',
+          description: '',
+          gender: 'neutral',
+          emoji: '🎤'
+        };
+        setSelectedVoice(fallbackVoice);
       }
+    } else {
+      // No voices loaded yet - create fallback voice to allow audio generation to proceed
+      // This prevents getting stuck in loading state when API is slow or fails
+      console.log('[AudioPlayback] No voices loaded yet, creating fallback voice for ID:', selectedVoiceId);
+      const fallbackVoice: Voice = {
+        id: selectedVoiceId,
+        name: 'Selected Voice',
+        description: '',
+        gender: 'neutral',
+        emoji: '🎤'
+      };
+      setSelectedVoice(fallbackVoice);
     }
   }, [selectedVoiceId, availableVoices]);
   const [showVoiceSelection, setShowVoiceSelection] = useState(false);
@@ -939,6 +967,14 @@ export default function AudioPlayback({
     if (storyGenerationError || !generatedStory || generatedStory.trim().length === 0) {
       setIsGenerating(false);
       setError(null);
+      return;
+    }
+
+    // If we have a story but no voice loaded yet, keep showing loader but don't generate
+    if (!selectedVoice) {
+      // Voice not loaded yet - keep isGenerating true to show loader
+      // Audio will be generated once selectedVoice is set
+      console.log('[AudioPlayback] Waiting for voice to be loaded...');
       return;
     }
 
