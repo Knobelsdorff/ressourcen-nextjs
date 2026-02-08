@@ -53,8 +53,19 @@ function CreateStoryInner() {
   // Track if story generation was already attempted to prevent double-triggering
   const storyGenerationAttempted = useRef(false);
 
-  // Note: Anonymous users are allowed to create stories
-  // They will be prompted to create an account after story generation
+  // Access control: Anonymous users can only access if they came from /figur (have figure param)
+  // Logged in users can access directly
+  useEffect(() => {
+    if (authLoading) return; // Wait for auth to load
+
+    const figureId = searchParams?.get('figure');
+
+    // If user is not logged in and there's no figure param, redirect to homepage
+    if (!user && !figureId && !appState.resourceFigure) {
+      router.replace('/');
+      return;
+    }
+  }, [user, authLoading, searchParams, appState.resourceFigure, router]);
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -485,7 +496,11 @@ function CreateStoryInner() {
     };
   }, []);
 
-  if (!mounted || authLoading) {
+  // Check if anonymous user is trying to access directly (should redirect)
+  const figureParam = searchParams?.get('figure');
+  const shouldRedirect = !user && !figureParam && !appState.resourceFigure;
+
+  if (!mounted || authLoading || shouldRedirect) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
         <div className="text-center">
