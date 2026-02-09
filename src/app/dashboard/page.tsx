@@ -3684,42 +3684,10 @@ ${story.content}
                 </div>
               ) : (
                 <>
-                  {/* Section 1: Arrival Space (Ankommen) - Hidden for admin-created clients */}
-                  {ankommenStory && !isAdminCreatedClient && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.6 }}
-                      className="bg-white rounded-2xl shadow-lg p-8"
-                    >
-                      <div className="mb-6">
-                        <h2 className="text-2xl font-bold text-amber-900 mb-2">Zum Ankommen</h2>
-                        <p className="text-amber-700">Wann immer du möchtest.</p>
-                      </div>
-
-                      {ankommenStory.audio_url ? (
-                        <div className="max-w-lg mx-auto">
-                          <AnkommenAudioPlayer
-                            audioUrl={ankommenStory.audio_url}
-                            title={ankommenStory.title}
-                            subtitle={ankommenStory.resource_figure?.name || null}
-                          />
-                          <p className="text-center text-sm text-amber-600/70 mt-4">
-                            (immer kostenlos)
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="text-center py-4 text-amber-600">
-                          <p>Audio wird geladen...</p>
-                        </div>
-                      )}
-                    </motion.div>
-                  )}
-
-                  {/* Section 2: Personal Stories */}
+                  {/* Section 1: Personal Stories - PRIMARY */}
                   <div className="bg-white rounded-2xl shadow-lg p-8">
-                    <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-2xl font-bold text-amber-900">Meine Power Storys</h2>
+                    <div className="mb-6">
+                      <h2 className="text-2xl font-bold text-amber-900 mb-4">Meine Power Storys</h2>
                       <button
                         onClick={async () => {
                           // Check if user can create more stories
@@ -3949,6 +3917,38 @@ ${story.content}
                       </div>
                     )}
                   </div>
+
+                  {/* Section 2: Arrival Space (Ankommen) - SECONDARY - Hidden for admin-created clients */}
+                  {ankommenStory && !isAdminCreatedClient && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                      className="bg-white rounded-2xl shadow-lg p-6"
+                    >
+                      <div className="mb-6">
+                        <h2 className="text-xl font-semibold text-amber-700 mb-1">Zum Ankommen</h2>
+                        <p className="text-sm text-amber-600/80">Für ruhige Momente zwischendurch</p>
+                      </div>
+
+                      {ankommenStory.audio_url ? (
+                        <div className="max-w-lg mx-auto">
+                          <AnkommenAudioPlayer
+                            audioUrl={ankommenStory.audio_url}
+                            title={ankommenStory.title}
+                            subtitle={ankommenStory.resource_figure?.name || null}
+                          />
+                          <p className="text-center text-sm text-amber-600/70 mt-4">
+                            (immer kostenlos)
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="text-center py-4 text-amber-600">
+                          <p>Audio wird geladen...</p>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
                 </>
               )}
             </div>
