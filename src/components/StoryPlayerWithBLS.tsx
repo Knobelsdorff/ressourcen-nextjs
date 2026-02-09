@@ -5,6 +5,8 @@ import { Play, Pause, RotateCcw, Rewind, FastForward, Sparkles, Volume2, Chevron
 import { motion, AnimatePresence } from "framer-motion";
 import { getBackgroundMusicUrl, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
 import { useBLS } from "@/components/providers/bls-provider";
+import EditableSubtitle from "@/components/EditableSubtitle";
+import EditableTitle from "@/components/EditableTitle";
 
 interface StoryPlayerWithBLSProps {
   audioUrl: string;
@@ -13,6 +15,17 @@ interface StoryPlayerWithBLSProps {
   resourceFigure?: any;
   showBLS?: boolean;
   onEnded?: () => void;
+  editableSubtitle?: {
+    value: string | null;
+    autoSubtitle: string | null;
+    customSubtitle: string | null;
+    onSave: (value: string | null) => Promise<void>;
+  };
+  editableTitle?: {
+    isEditing: boolean;
+    onSave: (value: string) => Promise<void>;
+    onCancel: () => void;
+  };
 }
 
 export default function StoryPlayerWithBLS({
@@ -21,7 +34,9 @@ export default function StoryPlayerWithBLS({
   subtitle,
   resourceFigure,
   showBLS = false,
-  onEnded
+  onEnded,
+  editableSubtitle,
+  editableTitle
 }: StoryPlayerWithBLSProps) {
   // Generate unique ID for this instance based on audioUrl
   const instanceId = useMemo(() => audioUrl, [audioUrl]);
@@ -537,12 +552,41 @@ export default function StoryPlayerWithBLS({
                   Deine Geschichte
                 </span>
               </div>
-              <h3 className="text-xl md:text-2xl font-medium text-amber-900 mb-1">
-                {title}
-              </h3>
-              {subtitle && (
-                <p className="text-sm md:text-base text-amber-700/70">
-                  {subtitle}
+              {editableTitle?.isEditing ? (
+                <EditableTitle
+                  value={title}
+                  autoEdit={true}
+                  onSave={async (newTitle) => {
+                    await editableTitle.onSave(newTitle);
+                  }}
+                  onCancel={editableTitle.onCancel}
+                  className="text-xl md:text-2xl font-medium mb-1"
+                />
+              ) : (
+                <h3 className="text-xl md:text-2xl font-medium text-amber-900 mb-1">
+                  {title}
+                </h3>
+              )}
+              {editableSubtitle ? (
+                <div className="mt-1">
+                  <EditableSubtitle
+                    value={editableSubtitle.value}
+                    autoSubtitle={editableSubtitle.autoSubtitle}
+                    customSubtitle={editableSubtitle.customSubtitle}
+                    onSave={editableSubtitle.onSave}
+                    className="text-xs md:text-sm"
+                  />
+                </div>
+              ) : (
+                subtitle && (
+                  <p className="text-xs md:text-sm text-gray-400/70 italic mt-1">
+                    {subtitle}
+                  </p>
+                )
+              )}
+              {!editableSubtitle && !subtitle && (
+                <p className="text-xs md:text-sm text-gray-400/70 italic mt-1">
+                  Noch ohne Beschreibung
                 </p>
               )}
             </div>

@@ -20,7 +20,7 @@ export default function Header() {
   // All hooks must be called before any conditional returns
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const hamburgerButtonRef = useRef<HTMLButtonElement>(null);
-  const firstMenuItemRef = useRef<HTMLButtonElement>(null);
+  const firstMenuItemRef = useRef<HTMLElement>(null);
 
   // ESC-Taste zum Schließen des Mobile-Menüs
   useEffect(() => {
@@ -244,19 +244,20 @@ export default function Header() {
             {user ? (
               <>
                 {/* Eingeloggte User */}
-                <button
-                  ref={firstMenuItemRef}
-                  onClick={handleCreateStory}
-                  className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-4 px-6 rounded-[20px] transition-colors text-center"
-                >
-                  Neue Power Story erstellen
-                </button>
                 <Link
+                  ref={firstMenuItemRef as React.Ref<HTMLAnchorElement>}
                   href="/dashboard"
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="block w-full text-left text-amber-900 font-medium hover:text-amber-700 transition-colors py-3 px-4 rounded-lg hover:bg-amber-50"
                 >
-                  Meine Power Storys
+                  Dashboard
+                </Link>
+                <Link
+                  href="/dashboard/profile"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block w-full text-left text-amber-900 font-medium hover:text-amber-700 transition-colors py-3 px-4 rounded-lg hover:bg-amber-50"
+                >
+                  Profil
                 </Link>
                 <button
                   onClick={() => {
@@ -267,12 +268,18 @@ export default function Header() {
                 >
                   Abmelden
                 </button>
+                {/* Email als sekundärer Text */}
+                <div className="pt-4 border-t border-amber-100">
+                  <p className="text-xs text-amber-600/70 px-4">
+                    {user?.email}
+                  </p>
+                </div>
               </>
             ) : (
               <>
                 {/* Nicht eingeloggte User */}
                 <button
-                  ref={firstMenuItemRef}
+                  ref={firstMenuItemRef as React.Ref<HTMLButtonElement>}
                   onClick={handleDiscoverPowerStory}
                   className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-4 px-6 rounded-[20px] transition-colors text-center"
                 >

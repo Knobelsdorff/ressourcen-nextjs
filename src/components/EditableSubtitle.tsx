@@ -104,7 +104,7 @@ export default function EditableSubtitle({
   return (
     <motion.div
       onClick={handleClick}
-      className={`cursor-text ${hasValue ? "text-amber-700" : "text-amber-400/60 italic text-xs"} text-sm hover:text-amber-900 transition-colors ${className}`}
+      className={`cursor-text ${hasValue ? "text-amber-700" : "text-gray-400/70 italic"} hover:text-amber-900 transition-colors ${className}`}
       whileHover={{ opacity: 0.8 }}
     >
       {displayText}

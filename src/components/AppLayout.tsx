@@ -40,8 +40,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     return (
         <div className="min-h-screen bg-gray-100">
-            {/* Header ohne Sidebar */}
-            <div className="sticky top-0 z-10 flex items-center justify-between h-16 bg-white shadow-sm px-4">
+            {/* Header ohne Sidebar - nur auf Desktop sichtbar */}
+            <div className="hidden md:flex sticky top-0 z-10 items-center justify-between h-16 bg-white shadow-sm px-4">
                 <div className="flex items-center space-x-4">
                     <span className="text-xl font-semibold text-primary-600">{productName}</span>
                 </div>
@@ -56,7 +56,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                 {user ? getInitials(user.email as string)  : '??'}
                             </span>
                         </div>
-                        <span>{user?.email || 'Loading...'}</span>
                         <ChevronDown className="h-4 w-4"/>
                     </button>
 

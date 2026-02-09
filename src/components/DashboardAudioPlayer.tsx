@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Play, Pause, RotateCcw, Rewind, FastForward } from "lucide-react";
 import { motion } from "framer-motion";
 import { getBackgroundMusicUrl, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
+import EditableSubtitle from "@/components/EditableSubtitle";
+import EditableTitle from "@/components/EditableTitle";
 
 interface DashboardAudioPlayerProps {
   audioUrl: string;
@@ -11,6 +13,17 @@ interface DashboardAudioPlayerProps {
   subtitle?: string | null;
   resourceFigure?: any;
   onEnded?: () => void;
+  editableSubtitle?: {
+    value: string | null;
+    autoSubtitle: string | null;
+    customSubtitle: string | null;
+    onSave: (value: string | null) => Promise<void>;
+  };
+  editableTitle?: {
+    isEditing: boolean;
+    onSave: (value: string) => Promise<void>;
+    onCancel: () => void;
+  };
 }
 
 export default function DashboardAudioPlayer({
@@ -18,7 +31,9 @@ export default function DashboardAudioPlayer({
   title,
   subtitle,
   resourceFigure,
-  onEnded
+  onEnded,
+  editableSubtitle,
+  editableTitle
 }: DashboardAudioPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0); // Voice duration
@@ -593,12 +608,41 @@ export default function DashboardAudioPlayer({
     <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8">
       {/* Story Title */}
       <div className="text-center mb-6 md:mb-8">
-        <h3 className="text-xl md:text-2xl font-medium text-amber-900 mb-2">
-          {title}
-        </h3>
-        {subtitle && (
-          <p className="text-sm md:text-base text-amber-700/70">
-            {subtitle}
+        {editableTitle?.isEditing ? (
+          <EditableTitle
+            value={title}
+            autoEdit={true}
+            onSave={async (newTitle) => {
+              await editableTitle.onSave(newTitle);
+            }}
+            onCancel={editableTitle.onCancel}
+            className="text-xl md:text-2xl font-medium"
+          />
+        ) : (
+          <h3 className="text-xl md:text-2xl font-medium text-amber-900 mb-1">
+            {title}
+          </h3>
+        )}
+        {editableSubtitle ? (
+          <div className="mt-1">
+            <EditableSubtitle
+              value={editableSubtitle.value}
+              autoSubtitle={editableSubtitle.autoSubtitle}
+              customSubtitle={editableSubtitle.customSubtitle}
+              onSave={editableSubtitle.onSave}
+              className="text-xs md:text-sm justify-center"
+            />
+          </div>
+        ) : (
+          subtitle && (
+            <p className="text-xs md:text-sm text-gray-400/70 italic mt-1">
+              {subtitle}
+            </p>
+          )
+        )}
+        {!editableSubtitle && !subtitle && (
+          <p className="text-xs md:text-sm text-gray-400/70 italic mt-1">
+            Noch ohne Beschreibung
           </p>
         )}
       </div>
@@ -628,8 +672,14 @@ export default function DashboardAudioPlayer({
           />
         </div>
 
-        {/* Time Display */}
-        <div className="flex justify-between items-center text-sm text-amber-600">
+        {/* Time Display - Mobile: Only show total duration */}
+        <div className="flex justify-center items-center text-sm text-amber-600 md:hidden">
+          <span className="font-medium tabular-nums">
+            {formatTime(effectiveDuration)}
+          </span>
+        </div>
+        {/* Desktop: Keep original format */}
+        <div className="hidden md:flex justify-between items-center text-sm text-amber-600">
           <span className="font-medium tabular-nums">
             {formatTime(currentTime)}
           </span>
@@ -698,9 +748,9 @@ export default function DashboardAudioPlayer({
           <div className="w-[52px]"></div>
         </div>
 
-        {/* Status Text */}
+        {/* Status Text - Hidden on mobile */}
         {(isLoading || isPlaying) && (
-          <div className="text-center text-sm text-amber-600/70">
+          <div className="hidden md:block text-center text-sm text-amber-600/70">
             {isLoading ? 'Lädt...' : 'Audio wird abgespielt'}
           </div>
         )}

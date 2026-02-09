@@ -9,6 +9,7 @@ interface EditableTitleProps {
   maxLength?: number;
   className?: string;
   autoEdit?: boolean; // Wenn true, startet automatisch im Edit-Modus
+  onCancel?: () => void; // Optional: Callback beim Abbrechen (Escape)
 }
 
 export default function EditableTitle({
@@ -17,7 +18,8 @@ export default function EditableTitle({
   placeholder = "Neuer Name für diese Power Story",
   maxLength = 40,
   className = "",
-  autoEdit = false
+  autoEdit = false,
+  onCancel
 }: EditableTitleProps) {
   const [isEditing, setIsEditing] = useState(autoEdit);
   const [editValue, setEditValue] = useState(value);
@@ -88,6 +90,9 @@ export default function EditableTitle({
     } else if (e.key === "Escape") {
       setIsEditing(false);
       setEditValue(value);
+      if (onCancel) {
+        onCancel();
+      }
     }
   };
 

@@ -92,11 +92,11 @@ export default function AnkommenAudioPlayer({
     <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8 max-w-lg mx-auto">
       {/* Story Title */}
       <div className="text-center mb-6 md:mb-8">
-        <h2 className="text-2xl md:text-3xl font-medium text-amber-900 mb-2">
+        <h2 className="text-2xl md:text-3xl font-medium text-amber-900 mb-1">
           {title}
         </h2>
         {subtitle && (
-          <p className="text-sm md:text-base text-amber-700/70">
+          <p className="text-xs md:text-sm text-gray-400/70 italic mt-1">
             {subtitle}
           </p>
         )}
@@ -115,11 +115,7 @@ export default function AnkommenAudioPlayer({
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-between">
-          <span className="text-xs md:text-sm text-amber-700/70 font-medium tabular-nums">
-            {formatTime(currentTime)} / {formatTime(duration)}
-          </span>
-
+        <div className="flex flex-col items-center gap-3">
           <button
             onClick={togglePlayPause}
             onKeyDown={(e) => {
@@ -138,9 +134,11 @@ export default function AnkommenAudioPlayer({
             )}
           </button>
 
-          <span className="text-xs md:text-sm text-amber-700/70 font-medium w-16 md:w-20 text-right">
-            {isPlaying ? 'Läuft...' : 'Pausiert'}
-          </span>
+          {duration > 0 && (
+            <span className="text-xs md:text-sm text-gray-400/60 font-medium tabular-nums">
+              {formatTime(duration)}
+            </span>
+          )}
         </div>
       </div>
     </div>

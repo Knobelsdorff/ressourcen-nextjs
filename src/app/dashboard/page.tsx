@@ -46,7 +46,6 @@ interface SavedStory {
 export default function Dashboard() {
   const { user, session } = useAuth();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'profile' | 'stories'>('stories');
   
   // Prüfe ob User Full Admin ist (Analytics + Music)
   const isAdmin = (() => {
@@ -124,6 +123,7 @@ export default function Dashboard() {
   });
   const [loadingCustomerPortal, setLoadingCustomerPortal] = useState(false);
   const [resourceAccessStatus, setResourceAccessStatus] = useState<Record<string, { canAccess: boolean; isFirst: boolean; trialExpired: boolean; daysRemaining?: number }>>({});
+  const [hasSeenDashboardIntro, setHasSeenDashboardIntro] = useState<boolean | null>(null); // null = noch nicht geladen
   
   // Beispiel-Ressourcenfigur Konfiguration (nur für Admins)
   const [exampleResourceId, setExampleResourceId] = useState<string>("");
@@ -1207,6 +1207,80 @@ export default function Dashboard() {
     }
   };
 
+  // Lade has_seen_dashboard_intro Flag aus Supabase
+  const loadDashboardIntroFlag = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('has_seen_dashboard_intro')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) {
+        // Wenn das Feld nicht existiert, behandele es als false (erste Anzeige)
+        if (error.code === 'PGRST116' || error.message?.includes('column')) {
+          setHasSeenDashboardIntro(false);
+        } else {
+          console.error('Error loading dashboard intro flag:', error);
+          setHasSeenDashboardIntro(false); // Fallback: zeige Überschrift
+        }
+      } else {
+        setHasSeenDashboardIntro((data as any)?.has_seen_dashboard_intro ?? false);
+      }
+    } catch (err) {
+      console.error('Error loading dashboard intro flag:', err);
+      setHasSeenDashboardIntro(false); // Fallback: zeige Überschrift
+    }
+  }, [user]);
+
+  // Speichere has_seen_dashboard_intro Flag in Supabase
+  const markDashboardIntroAsSeen = useCallback(async () => {
+    if (!user || hasSeenDashboardIntro === true) return; // Bereits gespeichert oder kein User
+    
+    try {
+      // Versuche zuerst UPDATE, falls das Profil bereits existiert
+      const { error: updateError } = await (supabase as any)
+        .from('profiles')
+        .update({ has_seen_dashboard_intro: true })
+        .eq('id', user.id);
+      
+      if (updateError) {
+        // Falls UPDATE fehlschlägt (z.B. Profil existiert nicht), versuche INSERT
+        if (updateError.code === 'PGRST116' || updateError.message?.includes('column')) {
+          // Feld existiert nicht in der DB - ignoriere Fehler
+          console.warn('has_seen_dashboard_intro column does not exist in profiles table');
+          setHasSeenDashboardIntro(true); // Setze lokal auf true
+          return;
+        }
+        
+        // Versuche INSERT mit UPSERT
+        const { error: insertError } = await (supabase as any)
+          .from('profiles')
+          .upsert({ 
+            id: user.id,
+            email: user.email || '',
+            has_seen_dashboard_intro: true 
+          }, {
+            onConflict: 'id'
+          });
+        
+        if (insertError) {
+          console.error('Error saving dashboard intro flag:', insertError);
+        } else {
+          setHasSeenDashboardIntro(true);
+        }
+      } else {
+        setHasSeenDashboardIntro(true);
+      }
+    } catch (err) {
+      console.error('Error saving dashboard intro flag:', err);
+      // Setze lokal auf true, auch wenn DB-Update fehlschlägt
+      setHasSeenDashboardIntro(true);
+    }
+  }, [user, hasSeenDashboardIntro]);
+
   useEffect(() => {
     if (user) {
       loadStories();
@@ -1215,6 +1289,8 @@ export default function Dashboard() {
       loadFullName();
       // Lade Beispiel-Ressource (wie auf /ankommen Seite)
       loadExampleResource();
+      // Lade Dashboard Intro Flag
+      loadDashboardIntroFlag();
       
       // Lade Beispiel-Ressourcenfigur Konfiguration (nur für Admins)
       if (isAdmin) {
@@ -1223,6 +1299,18 @@ export default function Dashboard() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isAdmin]); // Nur user und isAdmin als Dependency, um Endlosschleife zu vermeiden
+
+  // Markiere Dashboard Intro als gesehen, wenn es zum ersten Mal angezeigt wird
+  useEffect(() => {
+    if (hasSeenDashboardIntro === false && user) {
+      // Warte kurz, dann markiere als gesehen (nachdem Überschrift angezeigt wurde)
+      const timer = setTimeout(() => {
+        markDashboardIntroAsSeen();
+      }, 1000); // 1 Sekunde Verzögerung
+      
+      return () => clearTimeout(timer);
+    }
+  }, [hasSeenDashboardIntro, user, markDashboardIntroAsSeen]);
 
   // Filter personalStories to exclude the ankommenStory (Wohlwollende Präsenz)
   // This ensures the example resource only shows in "Zum Ankommen" section, not in "Meine Power Storys"
@@ -3371,290 +3459,26 @@ ${story.content}
     <BLSProvider>
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
       <div className="max-w-6xl mx-auto px-4 sm:py-8 py-4">
-        {/* Header */}
+        {/* Header - Nur beim ersten Login anzeigen */}
+        {hasSeenDashboardIntro === false && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center sm:mb-8 mb-4"
+          >
+            <h1 className="text-2xl sm:text-2xl md:text-3xl font-light text-amber-900 mb-2">
+              Willkommen in deinem Raum
+            </h1>
+          </motion.div>
+        )}
+
+        {/* Content */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center sm:mb-8 mb-4"
-        >
-          <h1 className="text-3xl md:text-4xl font-light text-amber-900 mb-2">
-            Willkommen in deinem Raum
-          </h1>
-        </motion.div>
-
-        {/* Tab Navigation */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex justify-center sm:mb-8 mb-5"
-        >
-          <div className="bg-white w-full rounded-2xl shadow-lg p-3 lg:flex grid sm:grid-cols-2 grid-cols-1 sm:gap-3 gap-2 sm:space-x-2 ">
-            <button
-              onClick={() => setActiveTab('profile')}
-              className={`flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 ${
-                activeTab === 'profile'
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
-                  : 'text-gray-600 hover:text-amber-700 hover:bg-amber-50'
-              }`}
-            >
-              <Settings className="w-5 h-5" />
-              <span className="max-sm:text-sm">Profil</span>
-            </button>
-            
-            <button
-              onClick={() => setActiveTab('stories')}
-              className={`flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 ${
-                activeTab === 'stories'
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
-                  : 'text-gray-600 hover:text-amber-700 hover:bg-amber-50'
-              }`}
-            >
-              <BookOpen className="w-5 h-5" />
-              <span className="max-sm:text-sm">Meine Power Storys ({stories.length})</span>
-            </button>
-
-            {/* Subscription Management Link - only for Pro users */}
-            {subscriptionStatus.isPro && (
-              <button
-                onClick={() => router.push('/subscription')}
-                className="flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-lg"
-              >
-                <CreditCard className="w-5 h-5" />
-                <span className="max-sm:text-sm">Abo verwalten</span>
-              </button>
-            )}
-
-            {isAdmin && (
-              <button
-                onClick={() => router.push('/admin/analytics')}
-                className="flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 text-white bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 shadow-lg"
-              >
-                <BarChart3 className="w-5 h-5" />
-                <span className="max-sm:text-sm">Admin Analytics</span>
-              </button>
-            )}
-            
-            {isMusicAdmin && (
-              <button
-                onClick={() => router.push('/admin/music')}
-                className="flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 text-white bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 shadow-lg"
-              >
-                <Music className="w-5 h-5" />
-                <span className="max-sm:text-sm">Musik verwalten</span>
-              </button>
-            )}
-            
-            {(isAdmin || isMusicAdmin) && (
-              <button
-                onClick={() => setShowClientResourceModal(true)}
-                className="flex items-center space-x-2 flex-grow px-4 py-3 rounded-xl justify-center font-medium transition-all duration-300 text-white bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-lg"
-              >
-                <Volume2 className="w-5 h-5" />
-                <span className="max-sm:text-sm">Ressource für Klienten erstellen</span>
-              </button>
-            )}
-          </div>
-        </motion.div>
-
-        {/* Tab Content */}
-        <motion.div
-          key={activeTab}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.3 }}
         >
-          {activeTab === 'profile' ? (
-            <div className="sm:space-y-6 space-y-3">
-              {/* Basis-Informationen */}
-              <div className="bg-white rounded-2xl shadow-lg sm:p-6 p-3">
-                <div className="flex items-center sm:gap-3 gap-2 sm:mb-6 mb-4">
-                  <User className="w-6 h-6 text-amber-600" />
-                  <h2 className="sm:text-xl text-lg font-bold text-amber-900">Basis-Informationen</h2>
-                </div>
-              {user ? (
-                  <div className="sm:space-y-6 space-y-3">
-                    {/* E-Mail Info */}
-                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 sm:p-4 p-3 rounded-lg border border-amber-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Mail className="w-5 h-5 text-amber-600" />
-                        <span className="font-semibold text-amber-900">E-Mail-Adresse</span>
-                      </div>
-                      <p className="text-amber-800 text-sm font-medium">{user.email}</p>
-                    </div>
-                    
-                    {/* Personalisierungs-Einstellungen */}
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 sm:p-5 p-3 rounded-lg border border-blue-200">
-                      <div className="flex items-center gap-2 sm:mb-4 mb-3">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <h3 className="font-semibold text-blue-900">Personalisierung für Geschichten</h3>
-                      </div>
-                      
-                      <form onSubmit={saveFullName} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label htmlFor="fullName" className="block text-sm font-semibold text-blue-900 mb-2">
-                              Vorname/Spitzname
-                            </label>
-                            <input
-                              type="text"
-                              id="fullName"
-                              value={fullName}
-                              onChange={(e) => setFullName(e.target.value)}
-                              className="w-full px-3 py-2.5 border border-blue-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all"
-                              placeholder="z.B. Andy, Maria, Tom"
-                            />
-                            <p className="text-blue-600 text-xs mt-1.5">
-                              Wird in deinen Geschichten verwendet
-                            </p>
-                          </div>
-
-                          <div>
-                            <label htmlFor="pronunciationHint" className="block text-sm font-semibold text-blue-900 mb-2">
-                              Aussprache-Hinweis
-                              <span className="text-blue-500 text-xs font-normal ml-1">(optional)</span>
-                            </label>
-                            <input
-                              type="text"
-                              id="pronunciationHint"
-                              value={pronunciationHint}
-                              onChange={(e) => setPronunciationHint(e.target.value)}
-                              className="w-full px-3 py-2.5 border border-blue-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all"
-                              placeholder="z.B. Andi (statt Andy)"
-                            />
-                            <p className="mt-1 text-xs text-blue-600">
-                              Gib hier einfach den Namen ein, wie er ausgesprochen werden soll. 
-                              <span className="font-semibold"> Beispiel: Wenn dein Name "Andy" ist, aber als "Andi" ausgesprochen werden soll, gib hier "Andi" ein.</span>
-                            </p>
-                            <p className="text-blue-600 text-xs mt-1">
-                              Der Name wird dann automatisch in der Geschichte durch diese Schreibweise ersetzt.
-                            </p>
-                          </div>
-                        </div>
-                        
-                        {fullNameError && (
-                          <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">
-                            {fullNameError}
-                          </div>
-                        )}
-                        
-                        {fullNameSuccess && (
-                          <div className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-lg text-sm">
-                            {fullNameSuccess}
-                          </div>
-                        )}
-                        
-                        <div className="flex justify-end">
-                          <button
-                            type="submit"
-                            disabled={fullNameLoading}
-                            className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white sm:px-6 px-4 sm:py-2.5 py-2 rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold transition-all shadow-sm hover:shadow-md"
-                          >
-                            {fullNameLoading ? 'Speichern...' : 'Einstellungen speichern'}
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-              ) : (
-                <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-                  <p className="text-amber-700 text-sm">
-                    Bitte melde dich an, um dein Profil zu sehen.
-                  </p>
-                </div>
-              )}
-              </div>
-
-              {/* Nutzungs-Statistiken */}
-              <div className="bg-white rounded-2xl shadow-lg sm:p-6 p-3">
-                <div className="flex items-center gap-3 mb-4">
-                  <TrendingUp className="w-6 h-6 text-amber-600" />
-                  <h2 className="sm:text-xl text-lg font-bold text-amber-900">Nutzungs-Statistiken</h2>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-blue-50 p-4 rounded-lg text-center">
-                    <BookOpen className="sm:w-8 sm:h-8 w-6 h-6 text-blue-600 mx-auto mb-2" />
-                            <p className="sm:text-2xl text-base font-bold text-ellipsis overflow-hidden text-blue-900">{userStats.totalStories}</p>
-                            <p className="text-blue-700 text-sm">Ressourcen</p>
-                  </div>
-                  <div className="bg-purple-50 p-4 rounded-lg text-center">
-                    <Clock className="sm:w-8 sm:h-8 w-6 h-6 text-purple-600 mx-auto mb-2" />
-                    <p className="sm:text-2xl text-base font-bold text-ellipsis overflow-hidden text-purple-900">{userStats.totalAudioTime}</p>
-                    <p className="text-purple-700 text-sm">Min. Audio</p>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded-lg text-center">
-                    <Star className="sm:w-8 sm:h-8 w-6 h-6 text-green-600 mx-auto mb-2" />
-                    <p className="sm:text-lg text-base font-bold text-ellipsis overflow-hidden text-green-900">{userStats.favoriteFigure}</p>
-                    <p className="text-green-700 text-sm">Lieblingsfigur</p>
-                  </div>
-                  <div className="bg-orange-50 p-4 rounded-lg text-center">
-                    <Volume2 className="sm:w-8 sm:h-8 w-6 h-6 text-orange-600 mx-auto mb-2" />
-                    <p className="sm:text-lg text-base font-bold text-ellipsis overflow-hidden text-orange-900">{userStats.favoriteVoice}</p>
-                    <p className="text-orange-700 text-sm">Lieblingsstimme</p>
-                  </div>
-                </div>
-              </div>
-
-            
-              {/* Fallback für Nicht-Abonnenten */}
-              {!subscriptionStatus.isPro && (
-                <div className="bg-white rounded-2xl shadow-lg sm:p-6 p-3 text-center">
-                  <div className="max-w-md mx-auto">
-                    <Crown className="w-12 h-12 text-amber-600 mx-auto mb-4" />
-                    <h3 className="text-xl font-light text-amber-900 mb-2">
-                      Unbegrenzte Power Storys
-                    </h3>
-                    <p className="text-amber-700 mb-6">
-                      Erstelle so viele personalisierte Ressourcen wie du möchtest
-                    </p>
-                    <button
-                      onClick={() => setShowPaywall(true)}
-                      className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-300 font-medium max-sm:text-sm max-sm:w-full"
-                    >
-                      Unbegrenzte Ressourcen erstellen
-                    </button>
-                    <p className="text-xs text-amber-600 mt-2">
-                      Early Adopter Preis - 50% Rabatt
-                    </p>
-                  </div>
-                </div>
-              )}
-
-
-              {/* Account-Management */}
-              <div className="bg-white rounded-2xl shadow-lg sm:p-6 p-3">
-                <div className="flex items-center gap-3 mb-4">
-                  <Settings className="w-6 h-6 text-amber-600" />
-                  <h2 className="sm:text-xl text-lg font-bold text-amber-900">Account-Management</h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <ChangePassword/>
-                  <DeleteAccount/>
-                </div>
-              </div>
-
-              {/* Support */}
-              <div className="bg-white rounded-2xl shadow-lg sm:p-6 p-3">
-                <div className="flex items-center gap-3 mb-4">
-                  <HelpCircle className="w-6 h-6 text-amber-600" />
-                  <h2 className="sm:text-xl text-lg font-bold text-amber-900">Support & Hilfe</h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <button onClick={()=> router.push('faq')} className="flex items-center gap-3 sm:p-4 px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
-                    <HelpCircle className="w-5 h-5 text-blue-600" />
-                    <div className="text-left">
-                      <p className="font-medium text-blue-900">FAQ</p>
-                      <p className="text-blue-700 text-sm">Häufige Fragen</p>
-                    </div>
-                  </button>
-                  <ContactModal />
-                  <FeedbackModal />
-                  <BugModal />
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-8">
+          <div className="space-y-8">
               {loading ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4"></div>
@@ -3687,7 +3511,7 @@ ${story.content}
                   {/* Section 1: Personal Stories - PRIMARY */}
                   <div className="bg-white rounded-2xl shadow-lg p-8">
                     <div className="mb-6">
-                      <h2 className="text-2xl font-bold text-amber-900 mb-4">Meine Power Storys</h2>
+                      <h2 className="text-2xl font-bold text-amber-900 mb-6">Meine Power Storys</h2>
                       <button
                         onClick={async () => {
                           // Check if user can create more stories
@@ -3706,7 +3530,7 @@ ${story.content}
                         className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl shadow-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-200 flex items-center gap-2"
                       >
                         <Plus className="w-5 h-5" />
-                        Neue Power Story erstellen
+                        Neue Power Story
                       </button>
                     </div>
 
@@ -3795,21 +3619,8 @@ ${story.content}
                     >
                       <div className="flex justify-between items-start mb-4 group pt-2">
                         <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-3">
-                            {renamingStoryId === story.id ? (
-                              <EditableTitle
-                                value={story.title}
-                                autoEdit={true}
-                                onSave={async (newTitle) => {
-                                  await saveTitle(story.id, newTitle);
-                                  setRenamingStoryId(null);
-                                }}
-                              />
-                            ) : (
-                              <h3 className="text-lg font-semibold text-amber-900">
-                                {story.title}
-                              </h3>
-                            )}
+                          {/* Badges und Admin-Checkbox */}
+                          <div className="flex items-center gap-3 mb-3 flex-wrap">
                             {/* Badge für Story-Quelle */}
                             {(() => {
                               // Prüfe ob Story mit Andreas erstellt wurde (manuell aufgenommen)
@@ -3818,7 +3629,7 @@ ${story.content}
                               
                               if (isAndreasCreated) {
                                 return (
-                                  <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-[10px] font-medium">
+                                  <span className="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full text-[8px] font-medium">
                                     Mit Andreas erstellt
                                   </span>
                                 );
@@ -3828,7 +3639,7 @@ ${story.content}
                               // Zeige Badge nur wenn sicher kategorisierbar (nicht Andreas-created)
                               if (story.is_audio_only !== true && story.client_email === null) {
                                 return (
-                                  <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-[10px] font-medium">
+                                  <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full text-[8px] font-medium">
                                     Selbst erstellt
                                   </span>
                                 );
@@ -3854,14 +3665,6 @@ ${story.content}
                               </label>
                             )}
                           </div>
-                          <div className="mb-2">
-                            <EditableSubtitle
-                              value={getDisplaySubtitle(story)}
-                              autoSubtitle={story.auto_subtitle}
-                              customSubtitle={story.custom_subtitle}
-                              onSave={(value) => saveSubtitle(story.id, value || null)}
-                            />
-                          </div>
                         </div>
                         <div>
                           <StoryActionsMenu
@@ -3883,6 +3686,20 @@ ${story.content}
                               subtitle={getDisplaySubtitle(story)}
                               resourceFigure={story.resource_figure}
                               showBLS={true}
+                              editableSubtitle={{
+                                value: getDisplaySubtitle(story),
+                                autoSubtitle: story.auto_subtitle ?? null,
+                                customSubtitle: story.custom_subtitle ?? null,
+                                onSave: (value) => saveSubtitle(story.id, value || null)
+                              }}
+                              editableTitle={{
+                                isEditing: renamingStoryId === story.id,
+                                onSave: async (newTitle) => {
+                                  await saveTitle(story.id, newTitle);
+                                  setRenamingStoryId(null);
+                                },
+                                onCancel: () => setRenamingStoryId(null)
+                              }}
                             />
                           ) : (
                             <DashboardAudioPlayer
@@ -3890,6 +3707,20 @@ ${story.content}
                               title={story.title}
                               subtitle={getDisplaySubtitle(story)}
                               resourceFigure={story.resource_figure}
+                              editableSubtitle={{
+                                value: getDisplaySubtitle(story),
+                                autoSubtitle: story.auto_subtitle ?? null,
+                                customSubtitle: story.custom_subtitle ?? null,
+                                onSave: (value) => saveSubtitle(story.id, value || null)
+                              }}
+                              editableTitle={{
+                                isEditing: renamingStoryId === story.id,
+                                onSave: async (newTitle) => {
+                                  await saveTitle(story.id, newTitle);
+                                  setRenamingStoryId(null);
+                                },
+                                onCancel: () => setRenamingStoryId(null)
+                              }}
                             />
                           )}
                         </div>
@@ -3924,19 +3755,14 @@ ${story.content}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.6 }}
-                      className="bg-white rounded-2xl shadow-lg p-6"
+                      className="bg-white rounded-2xl shadow-lg p-6 mt-8 md:mt-12"
                     >
-                      <div className="mb-6">
-                        <h2 className="text-xl font-semibold text-amber-700 mb-1">Zum Ankommen</h2>
-                        <p className="text-sm text-amber-600/80">Für ruhige Momente zwischendurch</p>
-                      </div>
-
                       {ankommenStory.audio_url ? (
                         <div className="max-w-lg mx-auto">
                           <AnkommenAudioPlayer
                             audioUrl={ankommenStory.audio_url}
                             title={ankommenStory.title}
-                            subtitle={ankommenStory.resource_figure?.name || null}
+                            subtitle="Für ruhige Momente zwischendurch"
                           />
                           <p className="text-center text-sm text-amber-600/70 mt-4">
                             (immer kostenlos)
@@ -3952,7 +3778,6 @@ ${story.content}
                 </>
               )}
             </div>
-          )}
         </motion.div>
       </div>
 
