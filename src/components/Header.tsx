@@ -130,76 +130,105 @@ export default function Header() {
       {/* Header - Global auf allen Seiten */}
       <header className="bg-white border-b border-amber-100/60 lg:sticky lg:top-0 lg:z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 md:py-5 flex justify-between items-center">
-          {/* Logo */}
+          {/* Logo – eingeloggt: /dashboard, sonst Startseite */}
           <div className="flex items-center space-x-2">
-            <button 
-              className="flex items-center space-x-2 hover:opacity-80 transition-opacity cursor-pointer"
-              onClick={() => {
-                if (typeof window !== 'undefined') {
-                  localStorage.removeItem('appState');
-                  localStorage.removeItem('currentStep');
-                  localStorage.removeItem('questionAnswers');
-                  localStorage.removeItem('resourceFigure');
-                  window.location.href = '/';
-                }
-              }}
-            >
-              <Image
-                src="/images/power-storys_logo.webp"
-                alt="Power Storys Logo"
-                width={200}
-                height={60}
-                className="h-12 md:h-14 w-auto object-contain"
-                priority
-              />
-            </button>
+            {user ? (
+              <Link
+                href="/dashboard"
+                className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
+              >
+                <Image
+                  src="/images/power-storys_logo.webp"
+                  alt="Power Storys Logo"
+                  width={200}
+                  height={60}
+                  className="h-12 md:h-14 w-auto object-contain"
+                  priority
+                />
+              </Link>
+            ) : (
+              <button
+                type="button"
+                className="flex items-center space-x-2 hover:opacity-80 transition-opacity cursor-pointer"
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    localStorage.removeItem('appState');
+                    localStorage.removeItem('currentStep');
+                    localStorage.removeItem('questionAnswers');
+                    localStorage.removeItem('resourceFigure');
+                    window.location.href = '/';
+                  }
+                }}
+              >
+                <Image
+                  src="/images/power-storys_logo.webp"
+                  alt="Power Storys Logo"
+                  width={200}
+                  height={60}
+                  className="h-12 md:h-14 w-auto object-contain"
+                  priority
+                />
+              </button>
+            )}
           </div>
 
-          {/* Desktop Navigation (ab md) - Ruhig und therapeutisch-sanft */}
+          {/* Desktop Navigation (ab md) – Public vs. App Header */}
           <nav className="hidden md:flex items-center gap-6 md:gap-8">
             {user ? (
               <>
-                {/* Eingeloggte User: Action-orientierte Navigation */}
-                <button
-                  onClick={handleCreateStory}
-                  className="bg-[#ce7106] hover:bg-amber-700 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:ring-offset-2"
-                >
-                  Neue Power Story erstellen
-                </button>
+                {/* Orientierung: Textlinks */}
                 <Link
                   href="/dashboard"
-                  className="text-amber-900/80 font-medium hover:text-amber-900 hover:underline transition-colors py-2"
+                  className="text-amber-900/90 font-medium hover:text-amber-900 transition-colors py-2"
                 >
-                  Meine Power Storys
+                  Mein Raum
                 </Link>
-                <button 
+                <Link
+                  href="/dashboard/profil"
+                  className="text-amber-900/90 font-medium hover:text-amber-900 transition-colors py-2"
+                >
+                  Profil
+                </Link>
+                {/* Handlung: CTA klar vom Text getrennt */}
+                <button
+                  onClick={handleCreateStory}
+                  className="bg-amber-600/90 hover:bg-amber-600 text-white text-sm font-medium px-4 py-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400/20 focus:ring-offset-2 ml-2 self-center mt-0.5"
+                >
+                  + Neue Power Story
+                </button>
+                {/* Sekundäre Aktion: bewusst aus dem Fokus */}
+                <button
+                  type="button"
                   onClick={handleLogout}
-                  className="text-amber-900/80 font-normal hover:text-amber-900 hover:underline transition-colors py-2"
+                  className="text-amber-800/50 font-normal hover:text-amber-800/75 transition-colors py-2 ml-5"
+                  aria-label="Abmelden"
                 >
                   Abmelden
                 </button>
               </>
             ) : (
               <>
-                {/* Nicht eingeloggte User: Navigation + Anmelden */}
+                {/* Nicht eingeloggte User: erklärend + sanfter Einstieg */}
                 <button
+                  type="button"
                   onClick={handleWhatIsPowerStory}
-                  className="text-amber-900/80 font-medium hover:text-amber-900 hover:underline transition-colors py-2"
+                  className="text-amber-800/65 text-sm hover:text-amber-900/80 transition-colors py-2"
                 >
                   Was ist eine Power Story?
                 </button>
                 <button
+                  type="button"
                   onClick={handleDiscoverPowerStory}
-                  className="bg-[#ce7106] hover:bg-amber-700 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:ring-offset-2"
+                  className="bg-amber-600/90 hover:bg-amber-600 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:ring-offset-2"
                 >
                   Eine Power Story entdecken
                 </button>
-                <button 
-                  onClick={handleAccessClick}
-                  className="text-amber-900/80 font-normal hover:text-amber-900 hover:underline transition-colors py-2"
+                <Link
+                  href="/zugang"
+                  className="text-amber-900/90 font-medium hover:text-amber-900 transition-colors py-2"
                 >
                   Mein Zugang
-                </button>
+                </Link>
               </>
             )}
           </nav>
