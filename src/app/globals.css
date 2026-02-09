@@ -361,7 +361,95 @@
   }
 }
 
-/* Custom Overlay für Mobile Menu Sheet */
-[data-radix-dialog-overlay][data-state="open"] {
-  background-color: rgba(0, 0, 0, 0.2) !important;
+/* ============================================
+   MOBILE DRAWER - Custom Implementation
+   Ruhiges, stabiles Side-Drawer für Mobile Menu
+   ============================================ */
+
+.mobile-drawer-wrapper {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.mobile-drawer-wrapper.is-open {
+  pointer-events: auto;
+}
+
+/* Backdrop */
+.mobile-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(90, 70, 45, 0.18);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  transition: opacity 300ms ease-out;
+  will-change: opacity;
+}
+
+.mobile-drawer-wrapper.is-open .mobile-drawer-backdrop {
+  opacity: 1;
+  transition: opacity 300ms ease-out;
+}
+
+/* Reduced Motion: Backdrop */
+@media (prefers-reduced-motion: reduce) {
+  .mobile-drawer-backdrop {
+    transition: opacity 120ms linear;
+  }
+  
+  .mobile-drawer-wrapper.is-open .mobile-drawer-backdrop {
+    transition: opacity 120ms linear;
+  }
+}
+
+/* Drawer Panel */
+.mobile-drawer-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 75%;
+  max-width: 360px;
+  background: white;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  opacity: 0;
+  transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 360ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
+}
+
+.mobile-drawer-wrapper.is-open .mobile-drawer-panel {
+  transform: translateX(0);
+  opacity: 1;
+  transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 360ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Closing Animation */
+.mobile-drawer-wrapper:not(.is-open) .mobile-drawer-panel {
+  transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Reduced Motion: Drawer */
+@media (prefers-reduced-motion: reduce) {
+  .mobile-drawer-panel {
+    transition: transform 120ms linear,
+                opacity 120ms linear;
+  }
+  
+  .mobile-drawer-wrapper.is-open .mobile-drawer-panel {
+    transition: transform 120ms linear,
+                opacity 120ms linear;
+  }
+  
+  .mobile-drawer-wrapper:not(.is-open) .mobile-drawer-panel {
+    transition: transform 120ms linear,
+                opacity 120ms linear;
+  }
 }

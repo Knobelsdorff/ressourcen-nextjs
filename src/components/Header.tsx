@@ -7,10 +7,6 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { scrollToAnchor } from "@/lib/navigation-helpers";
 import { useRouter, usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-} from "@/components/ui/sheet";
 
 export default function Header() {
   const { user, signOut, loading } = useAuth();
@@ -21,6 +17,18 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const hamburgerButtonRef = useRef<HTMLButtonElement>(null);
   const firstMenuItemRef = useRef<HTMLElement>(null);
+
+  // Body scroll lock beim Öffnen des Menüs
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
 
   // ESC-Taste zum Schließen des Mobile-Menüs
   useEffect(() => {
@@ -209,99 +217,131 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Mobile Menu Sheet */}
-      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-        <SheetContent 
-          side="right" 
-          className="w-full sm:w-[400px] p-0 flex flex-col [&>button]:hidden"
-          onInteractOutside={(e) => {
-            e.preventDefault();
-          }}
-        >
-          {/* Header mit Logo und Close-Button */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-amber-100">
+      {/* Mobile Menu Drawer - Custom Implementation */}
+      <div
+        className={`mobile-drawer-wrapper ${isMobileMenuOpen ? 'is-open' : ''}`}
+        onClick={(e) => {
+          // Schließen bei Klick auf Backdrop
+          if (e.target === e.currentTarget) {
+            setIsMobileMenuOpen(false);
+            hamburgerButtonRef.current?.focus();
+          }
+        }}
+      >
+        {/* Backdrop */}
+        <div className="mobile-drawer-backdrop" />
+
+        {/* Drawer Panel */}
+        <div className="mobile-drawer-panel">
+          {/* Kopfbereich mit Logo und Close-Button */}
+          <div className="flex items-center justify-between px-6 py-5 border-b border-amber-100/50">
             <Image
               src="/images/power-storys_logo.webp"
               alt="Power Storys Logo"
-              width={160}
-              height={48}
-              className="h-10 w-auto object-contain"
+              width={140}
+              height={42}
+              className="h-8 w-auto object-contain opacity-90"
             />
             <button
               onClick={() => {
                 setIsMobileMenuOpen(false);
                 hamburgerButtonRef.current?.focus();
               }}
-              className="p-2 rounded-lg text-amber-900 hover:bg-amber-50 transition-colors"
+              className="min-h-[48px] min-w-[48px] p-2.5 rounded-lg text-amber-900/60 hover:text-amber-900/80 hover:bg-amber-50/40 transition-colors flex items-center justify-center"
               aria-label="Menü schließen"
             >
-              <X className="w-6 h-6" />
+              <X className="w-[18px] h-[18px]" />
             </button>
           </div>
 
           {/* Menü-Inhalte */}
-          <div className="flex-1 px-6 py-6 space-y-4">
+          <div className="flex-1 px-6 py-8 flex flex-col overflow-y-auto">
             {user ? (
               <>
-                {/* Eingeloggte User */}
-                <Link
-                  ref={firstMenuItemRef as React.Ref<HTMLAnchorElement>}
-                  href="/dashboard"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block w-full text-left text-amber-900 font-medium hover:text-amber-700 transition-colors py-3 px-4 rounded-lg hover:bg-amber-50"
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  href="/dashboard/profile"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block w-full text-left text-amber-900 font-medium hover:text-amber-700 transition-colors py-3 px-4 rounded-lg hover:bg-amber-50"
-                >
-                  Profil
-                </Link>
-                <button
-                  onClick={() => {
-                    handleLogout();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full text-left text-amber-900/80 font-normal hover:text-amber-700 transition-colors py-3 px-4 rounded-lg hover:bg-amber-50"
-                >
-                  Abmelden
-                </button>
-                {/* Email als sekundärer Text */}
-                <div className="pt-4 border-t border-amber-100">
-                  <p className="text-xs text-amber-600/70 px-4">
+                {/* Hauptnavigation */}
+                <div className="space-y-1">
+                  {/* Primärer Menüpunkt: Mein Raum */}
+                  <Link
+                    ref={firstMenuItemRef as React.Ref<HTMLAnchorElement>}
+                    href="/dashboard"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block w-full text-left text-amber-900 text-lg font-medium hover:text-amber-800 transition-colors min-h-[48px] py-4 px-4 rounded-lg hover:bg-amber-50/30 flex items-center"
+                  >
+                    Mein Raum
+                  </Link>
+                  
+                  {/* Sekundärer Menüpunkt: Profil */}
+                  <Link
+                    href="/dashboard/profil"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block w-full text-left text-amber-900/80 text-base font-normal hover:text-amber-900 transition-colors min-h-[48px] py-4 px-4 rounded-lg hover:bg-amber-50/30 flex items-center"
+                  >
+                    Profil
+                  </Link>
+                </div>
+
+                {/* Trennlinie */}
+                <div className="py-6">
+                  <div className="border-t border-amber-200/40"></div>
+                </div>
+
+                {/* Konto-Info */}
+                <div className="pb-6">
+                  <p className="text-xs text-gray-400/80 px-4 mb-1.5">
+                    Angemeldet als
+                  </p>
+                  <p className="text-xs text-gray-400/70 px-4 break-all">
                     {user?.email}
                   </p>
+                </div>
+
+                {/* Trennlinie */}
+                <div className="py-4">
+                  <div className="border-t border-amber-200/30"></div>
+                </div>
+
+                {/* Abmelden */}
+                <div className="pt-2">
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full text-left text-amber-900/60 text-sm font-normal hover:text-amber-900/75 transition-colors min-h-[48px] py-4 px-4 rounded-lg hover:bg-amber-50/30 flex items-center"
+                  >
+                    Abmelden
+                  </button>
                 </div>
               </>
             ) : (
               <>
                 {/* Nicht eingeloggte User */}
-                <button
-                  ref={firstMenuItemRef as React.Ref<HTMLButtonElement>}
-                  onClick={handleDiscoverPowerStory}
-                  className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-4 px-6 rounded-[20px] transition-colors text-center"
-                >
-                  Eine Power Story entdecken
-                </button>
-                <button
-                  onClick={handleWhatIsPowerStory}
-                  className="w-full text-left text-amber-900 font-medium hover:text-amber-700 transition-colors py-3 px-4 rounded-lg hover:bg-amber-50"
-                >
-                  Was ist eine Power Story?
-                </button>
-                <button
-                  onClick={handleAccessClick}
-                  className="w-full text-left text-amber-900/80 font-normal hover:text-amber-700 transition-colors py-3 px-4 rounded-lg hover:bg-amber-50"
-                >
-                  Mein Zugang
-                </button>
+                <div className="space-y-3">
+                  <button
+                    ref={firstMenuItemRef as React.Ref<HTMLButtonElement>}
+                    onClick={handleDiscoverPowerStory}
+                    className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-4 px-6 rounded-xl transition-colors text-center"
+                  >
+                    Eine Power Story entdecken
+                  </button>
+                  <button
+                    onClick={handleWhatIsPowerStory}
+                    className="w-full text-left text-amber-900 font-medium hover:text-amber-700 transition-colors py-3 px-4 rounded-lg hover:bg-amber-50/50"
+                  >
+                    Was ist eine Power Story?
+                  </button>
+                  <button
+                    onClick={handleAccessClick}
+                    className="w-full text-left text-amber-900/80 font-normal hover:text-amber-700 transition-colors py-3 px-4 rounded-lg hover:bg-amber-50/50"
+                  >
+                    Mein Zugang
+                  </button>
+                </div>
               </>
             )}
           </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+      </div>
 
     </>
   );

@@ -1,15 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { motion } from "framer-motion";
+import { supabase } from "@/lib/supabase";
 
 export default function UserProfile() {
   const { user, updateProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const [fullName, setFullName] = useState(user?.user_metadata?.full_name || '');
+  const [fullName, setFullName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
+
+  // Lade full_name aus der profiles-Tabelle
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', user.id)
+          .single();
+        
+        if (!error && data) {
+          setFullName((data as any)?.full_name || '');
+        } else {
+          // Fallback auf user_metadata
+          setFullName(user?.user_metadata?.full_name || '');
+        }
+      } catch (err) {
+        // Fallback auf user_metadata
+        setFullName(user?.user_metadata?.full_name || '');
+      }
+    };
+    
+    loadProfile();
+  }, [user]);
 
   const handleSave = async () => {
     if (!user) return;
@@ -18,15 +46,29 @@ export default function UserProfile() {
     setMessage('');
 
     try {
-      const { error } = await updateProfile({ full_name: fullName });
+      // Speichere sowohl in Supabase Auth als auch in profiles-Tabelle
+      const { error: updateError } = await updateProfile({ full_name: fullName });
       
-      if (error) {
-        setMessage(`Fehler: ${error.message}`);
-      } else {
-        setMessage('Profil erfolgreich aktualisiert!');
-        setIsEditing(false);
-        setTimeout(() => setMessage(''), 3000);
+      if (updateError) {
+        setMessage(`Fehler: ${updateError.message}`);
+        setIsSubmitting(false);
+        return;
       }
+
+      // Speichere auch in profiles-Tabelle
+      const { error: dbError } = await (supabase as any)
+        .from('profiles')
+        .update({ full_name: fullName.trim() || null })
+        .eq('id', user.id);
+      
+      if (dbError) {
+        console.error('Error saving to profiles table:', dbError);
+        // Nicht als Fehler anzeigen, da Auth-Update erfolgreich war
+      }
+      
+      setMessage('Profil erfolgreich aktualisiert!');
+      setIsEditing(false);
+      setTimeout(() => setMessage(''), 3000);
     } catch (err) {
       setMessage('Ein unerwarteter Fehler ist aufgetreten');
     } finally {
@@ -113,9 +155,21 @@ export default function UserProfile() {
                 {isSubmitting ? 'Wird gespeichert...' : 'Speichern'}
               </button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   setIsEditing(false);
-                  setFullName(user?.user_metadata?.full_name || '');
+                  // Lade den aktuellen Wert neu
+                  if (user) {
+                    try {
+                      const { data } = await supabase
+                        .from('profiles')
+                        .select('full_name')
+                        .eq('id', user.id)
+                        .single();
+                      setFullName((data as any)?.full_name || user?.user_metadata?.full_name || '');
+                    } catch {
+                      setFullName(user?.user_metadata?.full_name || '');
+                    }
+                  }
                 }}
                 className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-300 transition-colors"
               >
