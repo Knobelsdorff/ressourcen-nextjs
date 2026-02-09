@@ -103,6 +103,7 @@ export default function Header() {
 
   const handleLogout = async () => {
     await signOut();
+    router.push('/');
   };
 
   if (loading) {
@@ -220,19 +221,24 @@ export default function Header() {
       {/* Mobile Menu Drawer - Custom Implementation */}
       <div
         className={`mobile-drawer-wrapper ${isMobileMenuOpen ? 'is-open' : ''}`}
-        onClick={(e) => {
-          // Schließen bei Klick auf Backdrop
-          if (e.target === e.currentTarget) {
+      >
+        {/* Backdrop - Klick schließt Menü */}
+        <div 
+          className="mobile-drawer-backdrop"
+          onClick={() => {
             setIsMobileMenuOpen(false);
             hamburgerButtonRef.current?.focus();
-          }
-        }}
-      >
-        {/* Backdrop */}
-        <div className="mobile-drawer-backdrop" />
+          }}
+        />
 
         {/* Drawer Panel */}
-        <div className="mobile-drawer-panel">
+        <div 
+          className="mobile-drawer-panel"
+          onClick={(e) => {
+            // Verhindere, dass Klicks innerhalb des Panels das Menü schließen
+            e.stopPropagation();
+          }}
+        >
           {/* Kopfbereich mit Logo und Close-Button */}
           <div className="flex items-center justify-between px-6 py-5 border-b border-amber-100/50">
             <Image

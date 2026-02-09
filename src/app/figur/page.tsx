@@ -6,14 +6,10 @@ import { motion } from "framer-motion";
 import { realFigures, fictionalFigures } from "@/data/figures";
 import { ResourceFigure } from "@/lib/types/story";
 import { trackEvent } from "@/lib/analytics";
-import JesusIconFinal from "@/components/JesusIconFinal";
 
 const CURATED_FIGURE_IDS = [
   "angel",
-  "archangel-michael",
   "godmother",
-  "superhero",
-  "jesus",     
   "best-friend",
 ];
 
@@ -59,10 +55,10 @@ export default function FigurPage() {
           className="text-center mb-8 md:mb-12"
         >
           <h1 className="text-3xl md:text-4xl font-medium text-amber-900 mb-3 md:mb-4">
-            Wähle eine Figur, die sich im Moment stimmig anfühlt.
+            Schau, welche Figur ein kleines inneres Ja auslöst
           </h1>
           <p className="text-sm md:text-base text-amber-700/70 max-w-md mx-auto">
-            Wenn du unsicher bist: Engel ist ein guter Anfang.
+            Wenn nichts klar ist, kann der Engel ein guter Anfang sein
           </p>
         </motion.div>
 
@@ -71,7 +67,7 @@ export default function FigurPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6"
+          className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 max-w-3xl mx-auto"
         >
           {curatedFigures.map((figure, index) => (
             <motion.button
@@ -84,11 +80,7 @@ export default function FigurPage() {
               aria-label={`Wähle ${figure.name}`}
             >
               <div className="text-4xl md:text-5xl mb-3 md:mb-4 flex items-center justify-center">
-                {figure.emoji === 'custom-jesus' ? (
-                  <JesusIconFinal size={60} className="w-12 h-12 md:w-16 md:h-16" />
-                ) : (
-                  <span>{figure.emoji}</span>
-                )}
+                <span>{figure.emoji}</span>
               </div>
               <div className="text-base md:text-lg font-medium text-amber-900">
                 {figure.name}

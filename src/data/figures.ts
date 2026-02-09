@@ -43,7 +43,7 @@ export const realFigures: ResourceFigure[] = [
   },
   {
     id: "best-friend",
-    name: "Bester Freund/in",
+    name: "Bester Freund / Beste Freundin",
     emoji: "👫",
     description: "Immer da, verständnisvoll und loyal",
     category: "real",
