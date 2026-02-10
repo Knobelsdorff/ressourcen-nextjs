@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Play, Pause, RotateCcw, Rewind, FastForward } from "lucide-react";
+import { Play, Pause } from "lucide-react";
 import { motion } from "framer-motion";
 import { getBackgroundMusicUrl, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
 import EditableSubtitle from "@/components/EditableSubtitle";
@@ -104,21 +104,6 @@ export default function DashboardAudioPlayer({
       }
     }
   }, [isPlaying]);
-
-  // Skip backward 5 seconds
-  const skipBackward = useCallback(() => {
-    const newTime = Math.max(0, currentTime - 5);
-    console.log('[DashboardAudioPlayer] Skip backward to:', newTime);
-    seekToTime(newTime, true);
-  }, [currentTime, seekToTime]);
-
-  // Skip forward 5 seconds
-  const skipForward = useCallback(() => {
-    const effDuration = getEffectiveDuration();
-    const newTime = Math.min(effDuration, currentTime + 5);
-    console.log('[DashboardAudioPlayer] Skip forward to:', newTime);
-    seekToTime(newTime, true);
-  }, [currentTime, getEffectiveDuration, seekToTime]);
 
   // Initialize audio elements
   useEffect(() => {
@@ -484,23 +469,6 @@ export default function DashboardAudioPlayer({
     }
   };
 
-  const restart = () => {
-    if (!audioRef.current) return;
-
-    const wasPlaying = isPlaying;
-    audioRef.current.currentTime = 0;
-
-    if (backgroundMusicRef.current) {
-      backgroundMusicRef.current.currentTime = 0;
-    }
-
-    setCurrentTime(0);
-
-    if (wasPlaying) {
-      audioRef.current.play();
-    }
-  };
-
   // Get time from position (mouse or touch)
   const getTimeFromPosition = useCallback((clientX: number) => {
     const progressBar = progressBarRef.current;
@@ -688,33 +656,8 @@ export default function DashboardAudioPlayer({
           </span>
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center justify-center gap-3">
-          {/* Restart Button - Always visible */}
-          <motion.button
-            whileHover={{ scale: 1.1, rotate: -15 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={restart}
-            disabled={isLoading}
-            className="p-3 bg-gradient-to-br from-orange-100 to-amber-100 text-amber-700 rounded-full hover:from-orange-200 hover:to-amber-200 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Von vorne beginnen"
-          >
-            <RotateCcw className="w-5 h-5" />
-          </motion.button>
-
-          {/* Rewind 5s Button */}
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={skipBackward}
-            disabled={isLoading || currentTime <= 0}
-            className="p-3 bg-gradient-to-br from-orange-100 to-amber-100 text-amber-700 rounded-full hover:from-orange-200 hover:to-amber-200 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="5 Sekunden zurück"
-          >
-            <Rewind className="w-5 h-5" />
-          </motion.button>
-
-          {/* Play/Pause Button */}
+        {/* Controls – reduzierter, zentraler Play/Pause-Button */}
+        <div className="flex items-center justify-center">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -731,29 +674,7 @@ export default function DashboardAudioPlayer({
               <Play className="w-7 h-7 ml-1" />
             )}
           </motion.button>
-
-          {/* Forward 5s Button */}
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={skipForward}
-            disabled={isLoading || currentTime >= effectiveDuration}
-            className="p-3 bg-gradient-to-br from-orange-100 to-amber-100 text-amber-700 rounded-full hover:from-orange-200 hover:to-amber-200 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="5 Sekunden vorwärts"
-          >
-            <FastForward className="w-5 h-5" />
-          </motion.button>
-
-          {/* Spacer for symmetry */}
-          <div className="w-[52px]"></div>
         </div>
-
-        {/* Status Text - Hidden on mobile */}
-        {(isLoading || isPlaying) && (
-          <div className="hidden md:block text-center text-sm text-amber-600/70">
-            {isLoading ? 'Lädt...' : 'Audio wird abgespielt'}
-          </div>
-        )}
       </div>
     </div>
   );
