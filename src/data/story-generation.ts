@@ -7,11 +7,17 @@ interface StoryPromptParams {
   userPronunciationHint?: string;
 }
 
-// Funktion zur Bestimmung der geschlechtsspezifischen Anrede
+// Funktion zur Bestimmung der Namensansprache
 // name kann SSML-Tags enthalten (z.B. <phoneme alphabet="ipa" ph="Andie">Andy</phoneme>)
-// Die Funktion extrahiert den Namen für die Geschlechtsbestimmung, gibt aber die Anrede mit dem ursprünglichen Namen zurück
+// Die Funktion extrahiert den Namen nur für eine optionale Geschlechtsbestimmung,
+// gibt aber als Ergebnis ausschließlich den ursprünglichen Namen (mit optionalem Komma) zurück – ohne "Liebe"/"Lieber".
+// WICHTIG:
+// - Wenn KEIN Name übergeben wird (undefined/leer), wird null zurückgegeben → neutrale Formulierungen nur mit "du".
+// - Wenn ein Name vorhanden ist, wird IMMER genau dieser Name (mit Komma) zurückgegeben,
+//   damit der Name mindestens einmal in der Geschichte vorkommt, aber ohne Anredewörter wie "Liebe"/"Lieber".
 function getGenderSpecificGreeting(name: string): string | null {
-  if (!name || name.trim().length === 0) return 'Liebe/r';
+  // Kein Name übergeben → keine Namensansprache, Aufrufer sollen dann neutral ohne Namen formulieren
+  if (!name || name.trim().length === 0) return null;
   
   const originalName = name.trim();
   
@@ -22,7 +28,7 @@ function getGenderSpecificGreeting(name: string): string | null {
     nameForGenderCheck = ssmlMatch[1].trim(); // Extrahiere den Namen aus den SSML-Tags
   }
   
-  // Liste von typisch weiblichen Namen
+  // Liste von typisch weiblichen Namen (wird aktuell nur noch zur Info genutzt)
   const femaleNames = [
     'Maria', 'Anna', 'Lisa', 'Sarah', 'Emma', 'Sophie', 'Laura', 'Nina', 'Sandra', 'Petra',
     'Monika', 'Sabine', 'Claudia', 'Brigitte', 'Ursula', 'Gisela', 'Helga', 'Angela', 'Andrea',
@@ -33,7 +39,7 @@ function getGenderSpecificGreeting(name: string): string | null {
     'Natalie', 'Isabella'
   ];
   
-  // Liste von typisch männlichen Namen
+  // Liste von typisch männlichen Namen (wird aktuell nur noch zur Info genutzt)
   const maleNames = [
     'Andreas', 'Michael', 'Thomas', 'Stefan', 'Markus', 'Christian', 'Alexander', 'Daniel',
     'Matthias', 'Sebastian', 'Patrick', 'Martin', 'Oliver', 'Tobias', 'Benjamin', 'Philipp',
@@ -47,20 +53,22 @@ function getGenderSpecificGreeting(name: string): string | null {
   
   for (const femaleName of femaleNames) {
     if (femaleName.toLowerCase() === lowerName) {
-      // Verwende den ursprünglichen Namen (mit SSML-Tags, falls vorhanden) für die Anrede
-      return `Liebe ${originalName}`;
+      // Für bekannte weibliche Namen: gib nur den ursprünglichen Namen mit Komma zurück
+      return `${originalName},`;
     }
   }
   
   for (const maleName of maleNames) {
     if (maleName.toLowerCase() === lowerName) {
-      // Verwende den ursprünglichen Namen (mit SSML-Tags, falls vorhanden) für die Anrede
-      return `Lieber ${originalName}`;
+      // Für bekannte männliche Namen: gib nur den ursprünglichen Namen mit Komma zurück
+      return `${originalName},`;
     }
   }
   
-  // Für unbekannte Namen: Keine Personalisierung (wie bei nicht angemeldeten Usern)
-  return null;
+  // Für unbekannte Namen: ebenfalls nur den tatsächlichen Namen mit Komma zurückgeben.
+  // So wird sichergestellt, dass bei vorhandenem Namen IMMER mindestens einmal der Name in der Geschichte auftaucht –
+  // ohne zusätzliche Anredewörter wie "Liebe"/"Lieber".
+  return `${originalName},`;
 }
 
 // Funktion zur automatischen Aussprache-Hilfe für ElevenLabs
