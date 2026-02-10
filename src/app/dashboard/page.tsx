@@ -76,6 +76,38 @@ export default function Dashboard() {
   const [paymentSuccessMessage, setPaymentSuccessMessage] = useState<string>('');
   const [showClientResourceModal, setShowClientResourceModal] = useState(false);
   const [userAccess, setUserAccess] = useState<any>(null);
+
+  // Reagiere auf Header-CTA, der ein Custom Event sendet, um die Paywall zu öffnen,
+  // ohne die URL auf dem Dashboard zu verändern.
+  useEffect(() => {
+    const handler = () => setShowPaywall(true);
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("dashboard-open-paywall", handler);
+    }
+
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("dashboard-open-paywall", handler);
+      }
+    };
+  }, []);
+
+  // Optionaler Query-Parameter ?paywall=1:
+  // Ermöglicht, von anderen Seiten aus auf das Dashboard zu springen
+  // und dort die Paywall direkt als Overlay anzuzeigen.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("paywall") === "1") {
+      setShowPaywall(true);
+
+      // Query-Parameter aus der URL entfernen, damit die Adresse sauber bleibt.
+      url.searchParams.delete("paywall");
+      window.history.replaceState(null, "", url.pathname + url.search);
+    }
+  }, []);
   const [stories, setStories] = useState<SavedStory[]>([]);
   const [ankommenStory, setAnkommenStory] = useState<SavedStory | null>(null);
   const [personalStories, setPersonalStories] = useState<SavedStory[]>([]);

@@ -737,7 +737,10 @@ function CreateStoryInner() {
 
       {showPaywall && (
         <Paywall
-          onClose={() => setShowPaywall(false)}
+          onClose={() => {
+            setShowPaywall(false);
+            router.push("/dashboard");
+          }}
           message="Deine kostenlose erste Ressource ist bereits erstellt. Fühle dich jeden Tag sicher, geborgen und beschützt"
         />
       )}

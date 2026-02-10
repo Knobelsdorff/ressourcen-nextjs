@@ -85,20 +85,49 @@ export default function Header() {
   };
 
   // Handler für "Neue Power Story erstellen"
+  // Gleiche inhaltliche Logik wie der Button im Dashboard:
+  // - Mit aktivem Zugang: /create-story
+  // - Ohne aktiven Zugang: Paywall auf dem Dashboard (URL bleibt /dashboard)
   const handleCreateStory = async () => {
     setIsMobileMenuOpen(false);
+
+    // Nur eingeloggte Nutzer haben ein Abo-Konzept. Anonyme Nutzer folgen dem bestehenden Flow.
     if (user) {
-      const { canCreateResource } = await import('@/lib/access');
-      const canCreate = await canCreateResource(user.id);
-      
-      if (!canCreate) {
-        // Falls Paywall benötigt wird, könnte hier ein Modal geöffnet werden
-        // Für jetzt navigieren wir einfach zum Dashboard, wo die Paywall-Logik ist
-        router.push('/dashboard');
+      try {
+        const { hasActiveAccess } = await import("@/lib/access");
+        const hasAccess = await hasActiveAccess(user.id);
+
+        if (!hasAccess) {
+          // Kein aktives Abo:
+          // - Wenn wir bereits auf dem Dashboard sind: nur Paywall öffnen, keine Navigation
+          if (pathname === "/dashboard") {
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("dashboard-open-paywall"));
+            }
+            return;
+          }
+
+          // - Von anderen Seiten: erst sanft zum Dashboard navigieren,
+          //   dort wird die Paywall anhand des Query-Parameters geöffnet.
+          router.push("/dashboard?paywall=1");
+          return;
+        }
+      } catch (error) {
+        console.warn("[Header] Error checking active access for create-story CTA:", error);
+        // Im Zweifel kein Sprung nach /create-story ohne klaren Zugang
+        if (pathname === "/dashboard") {
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("dashboard-open-paywall"));
+          }
+          return;
+        }
+        router.push("/dashboard?paywall=1");
         return;
       }
     }
-    router.push('/create-story');
+
+    // Mit aktivem Zugang (oder anonymer Flow): regulär in den Create-Story-Prozess gehen
+    router.push("/create-story");
   };
 
   const handleLogout = async () => {
