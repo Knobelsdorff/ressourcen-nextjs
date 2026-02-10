@@ -3458,7 +3458,7 @@ ${story.content}
 
         return (
     <BLSProvider>
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 pb-10 sm:pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:py-8 py-4">
         {/* Header - Nur beim ersten Login anzeigen */}
         {hasSeenDashboardIntro === false && (
@@ -3512,7 +3512,7 @@ ${story.content}
                   {/* Section 1: Personal Stories - PRIMARY */}
                   <div className="bg-white rounded-2xl shadow-lg p-8">
                     <div className="mb-6">
-                      <h2 className="text-2xl font-bold text-amber-900 mb-6">Meine Power Storys</h2>
+                      <h2 className="text-xl font-semibold text-amber-900 mb-6">Meine Power Storys</h2>
                       <button
                         onClick={async () => {
                           // Check if user can create more stories
@@ -3544,7 +3544,7 @@ ${story.content}
                         </p>
                       </div>
                     ) : (
-                      <div className="space-y-4">
+                      <div className="space-y-6">
                   {/* Temporäre Ressource anzeigen - nur wenn Benutzer nicht eingeloggt ist */}
                   {pendingStory && !user && (
                     <motion.div

@@ -11,7 +11,7 @@ export default function Footer() {
   }
   
   return (
-    <footer className="bg-white border-t border-orange-100 sm:py-8 py-4">
+    <footer className="bg-white border-t border-orange-100/70 sm:py-9 py-5">
       <div className="max-w-7xl mx-auto px-4 text-center">
         <div className="text-amber-700 mb-6 text-lg">
           Entwickelt mit therapeutischer Erfahrung – für deinen Alltag
