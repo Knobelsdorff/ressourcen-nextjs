@@ -123,6 +123,7 @@ export default function Dashboard() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [renamingStoryId, setRenamingStoryId] = useState<string | null>(null);
   const adminResourceLoadingRef = useRef<string | null>(null); // Verhindere mehrfaches Laden derselben Ressource
+  const initialDataLoadedForUserRef = useRef<string | null>(null); // Track which user's data is already loaded
   const [pendingStory, setPendingStory] = useState<any>(null);
   const [isSavingPendingStory, setIsSavingPendingStory] = useState(false);
   const hasCheckedPendingRef = useRef(false);
@@ -1315,6 +1316,15 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (user) {
+      // Skip reloading if we already loaded data for this user.
+      // This prevents audio playback from being interrupted when
+      // the user object reference changes (e.g. after auth token refresh).
+      if (initialDataLoadedForUserRef.current === user.id) {
+        console.log('Dashboard: Data already loaded for user, skipping reload to preserve audio playback');
+        return;
+      }
+      initialDataLoadedForUserRef.current = user.id;
+
       loadStories();
       loadUserAccess();
       // Lade den vollständigen Namen
@@ -1323,7 +1333,7 @@ export default function Dashboard() {
       loadExampleResource();
       // Lade Dashboard Intro Flag
       loadDashboardIntroFlag();
-      
+
       // Lade Beispiel-Ressourcenfigur Konfiguration (nur für Admins)
       if (isAdmin) {
         fetchExampleResourceConfig();

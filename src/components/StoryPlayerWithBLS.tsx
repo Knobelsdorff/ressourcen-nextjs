@@ -58,6 +58,62 @@ export default function StoryPlayerWithBLS({
   const mobileVideoRef = useRef<HTMLVideoElement | null>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
   const isUserPausingRef = useRef(false);
+  const wakeLockRef = useRef<any>(null);
+
+  // Screen Wake Lock: prevent phone from sleeping while audio is playing
+  const requestWakeLock = useCallback(async () => {
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+        console.log('[StoryPlayerWithBLS] Wake Lock acquired');
+        wakeLockRef.current.addEventListener('release', () => {
+          console.log('[StoryPlayerWithBLS] Wake Lock released');
+        });
+      } catch (err: any) {
+        console.warn('[StoryPlayerWithBLS] Wake Lock request failed:', err.message);
+      }
+    }
+  }, []);
+
+  const releaseWakeLock = useCallback(async () => {
+    if (wakeLockRef.current) {
+      try {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
+      } catch (err) {
+        // Already released
+      }
+    }
+  }, []);
+
+  // Manage wake lock based on playing state
+  useEffect(() => {
+    if (isPlaying) {
+      requestWakeLock();
+    } else {
+      releaseWakeLock();
+    }
+  }, [isPlaying, requestWakeLock, releaseWakeLock]);
+
+  // Re-acquire wake lock when tab becomes visible (if still playing)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isPlaying) {
+        requestWakeLock();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isPlaying, requestWakeLock]);
+
+  // Release wake lock on unmount
+  useEffect(() => {
+    return () => {
+      releaseWakeLock();
+    };
+  }, [releaseWakeLock]);
 
   const getEffectiveDuration = useCallback(() => {
     // Handle NaN and invalid values

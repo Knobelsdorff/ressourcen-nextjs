@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 
@@ -156,10 +156,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('AuthProvider: onAuthStateChange event:', event);
+
+        // On TOKEN_REFRESHED, the user hasn't changed - only the access token.
+        // Avoid updating user/session state to prevent unnecessary re-renders
+        // that would destroy active audio playback on the dashboard
+        // (e.g. when phone wakes from sleep and Supabase refreshes the token).
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('AuthProvider: Token refreshed, skipping state update to preserve audio playback');
+          setLoading(false);
+          return;
+        }
+
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
-        
+
         // Track login event
         if (event === 'SIGNED_IN' && session?.user) {
           try {

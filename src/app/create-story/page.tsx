@@ -364,9 +364,15 @@ function CreateStoryInner() {
       return;
     }
 
-    // Step 3 (Voice) -> Step 4 (Name)
+    // Step 3 (Voice) -> Step 4 (Name) or skip to Step 5 if logged-in user already has name
     if (isStep3Complete) {
-      setAppState(prev => ({ ...prev, currentStep: 4 }));
+      if (user && userFullName && userFullName.trim() !== '') {
+        // Logged-in user already has a name saved - skip name step
+        setAppState(prev => ({ ...prev, currentStep: 5 }));
+      } else {
+        // Anonymous user (always ask) or logged-in user without name
+        setAppState(prev => ({ ...prev, currentStep: 4 }));
+      }
       return;
     }
 
@@ -401,13 +407,22 @@ function CreateStoryInner() {
         newStep = 3;
       }
 
+      // Step 5 (Audio) -> Step 4 (Name) or Step 3 (Voice) if name already saved
+      if (prev.currentStep === 5) {
+        if (user && userFullName && userFullName.trim() !== '') {
+          newStep = 3; // Skip name step, go back to voice
+        } else {
+          newStep = 4; // Go back to name step
+        }
+      }
+
       return {
         ...prev,
         currentStep: newStep,
         currentQuestionIndex: newStep === 2 ? 0 : prev.currentQuestionIndex
       };
     });
-  }, []);
+  }, [user, userFullName]);
 
   const handleUserDataUpdate = useCallback((fullName: string, pronunciationHint: string | null) => {
     if (user) {
