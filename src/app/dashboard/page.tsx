@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, Volume2, User, Mail, Calendar, Clock, Star, Trophy, Target, Shield, HelpCircle, MessageCircle, Bug, Key, Trash, Crown, Zap, TrendingUp, Play, Pause, BarChart3, Lock, Music, RefreshCw, Plus, RotateCcw, CreditCard, Sparkles } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
@@ -3566,6 +3567,40 @@ ${story.content}
                         Neue Power Story
                       </button>
                     </div>
+
+                    {/* Admin-Bereich: Musikverwaltung, Analytics, Manuelle Ressource (nur für Admins sichtbar) */}
+                    {(isAdmin || isMusicAdmin) && (
+                      <div className="mb-6 flex flex-wrap items-center gap-3 p-4 bg-amber-50/80 border border-amber-200 rounded-xl">
+                        {isMusicAdmin && (
+                          <Link
+                            href="/admin/music"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors"
+                          >
+                            <Music className="w-4 h-4" />
+                            Musik verwalten
+                          </Link>
+                        )}
+                        {isAdmin && (
+                          <Link
+                            href="/admin/analytics"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition-colors"
+                          >
+                            <BarChart3 className="w-4 h-4" />
+                            Admin Analytics
+                          </Link>
+                        )}
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => setShowClientResourceModal(true)}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+                          >
+                            <Volume2 className="w-4 h-4" />
+                            Manuelle Ressource erstellen (Audio)
+                          </button>
+                        )}
+                      </div>
+                    )}
 
                     {personalStories.length === 0 ? (
                       <div className="text-center py-8">
