@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Play, Pause } from "lucide-react";
 import { motion } from "framer-motion";
 import { trackEvent } from "@/lib/analytics";
@@ -22,6 +22,31 @@ export default function AnkommenAudioPlayer({
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const wakeLockRef = useRef<any>(null);
+
+  // Screen Wake Lock: prevent phone from sleeping during playback
+  const requestWakeLock = useCallback(async () => {
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+      } catch (err) {
+        // Wake lock request failed (e.g. low battery)
+      }
+    }
+  }, []);
+
+  const releaseWakeLock = useCallback(async () => {
+    if (wakeLockRef.current) {
+      try { await wakeLockRef.current.release(); } catch (err) {}
+      wakeLockRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isPlaying) { requestWakeLock(); } else { releaseWakeLock(); }
+  }, [isPlaying, requestWakeLock, releaseWakeLock]);
+
+  useEffect(() => { return () => { releaseWakeLock(); }; }, [releaseWakeLock]);
 
   useEffect(() => {
     // Erstelle Audio-Element

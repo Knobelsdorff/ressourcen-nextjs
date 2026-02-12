@@ -46,6 +46,62 @@ export default function DashboardAudioPlayer({
   const backgroundMusicRef = useRef<HTMLAudioElement | null>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
   const isUserPausingRef = useRef(false); // Track if user initiated pause
+  const wakeLockRef = useRef<any>(null); // Screen Wake Lock to prevent phone sleep during playback
+
+  // Screen Wake Lock: prevent phone from sleeping while audio is playing
+  const requestWakeLock = useCallback(async () => {
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+        console.log('[DashboardAudioPlayer] Wake Lock acquired - screen will stay on');
+        wakeLockRef.current.addEventListener('release', () => {
+          console.log('[DashboardAudioPlayer] Wake Lock released');
+        });
+      } catch (err: any) {
+        console.warn('[DashboardAudioPlayer] Wake Lock request failed:', err.message);
+      }
+    }
+  }, []);
+
+  const releaseWakeLock = useCallback(async () => {
+    if (wakeLockRef.current) {
+      try {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
+      } catch (err) {
+        // Already released
+      }
+    }
+  }, []);
+
+  // Re-acquire wake lock when tab becomes visible again (if still playing)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isPlaying) {
+        requestWakeLock();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isPlaying, requestWakeLock]);
+
+  // Manage wake lock based on playing state
+  useEffect(() => {
+    if (isPlaying) {
+      requestWakeLock();
+    } else {
+      releaseWakeLock();
+    }
+  }, [isPlaying, requestWakeLock, releaseWakeLock]);
+
+  // Release wake lock on unmount
+  useEffect(() => {
+    return () => {
+      releaseWakeLock();
+    };
+  }, [releaseWakeLock]);
 
   // Calculate effective duration (longer of voice or music)
   const getEffectiveDuration = useCallback(() => {
