@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
-import { Check } from 'lucide-react';
+import { Check, ChevronDown } from 'lucide-react';
 import { realFigures, fictionalFigures } from '@/data/figures';
 import { ResourceFigure } from '@/lib/types/story';
 import IdealFamilyIconFinal from './IdealFamilyIconFinal';
@@ -225,17 +225,17 @@ export default function ResourceFigureSelection({
         whileHover={{ scale: 1.02, y: -2 }}
         whileTap={{ scale: 0.98 }}
         onClick={() => handleFigureClick(figure)}
-        className={`w-full h-52 sm:h-[17rem] relative cursor-pointer transition-all ${
+        className={`w-full h-[14.5rem] sm:h-[18rem] relative cursor-pointer transition-all ${
           isSelected ? 'ring-4 ring-amber-500 ring-offset-2' : ''
         }`}
       >
-        <div className={`w-full h-full rounded-2xl shadow-lg border-2 ${
+        <div className={`w-full h-full rounded-2xl shadow-lg border-2 flex flex-col ${
           isSelected 
             ? 'border-amber-500 bg-gradient-to-br from-amber-100 to-orange-100' 
             : 'border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50 hover:border-amber-400'
         }`}>
-          <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center">
-            {/* Fixed-size icon container for visual normalization */}
+          <div className="w-full h-full flex flex-col items-center justify-start p-4 text-center">
+            {/* Fixed-size icon container */}
             <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mb-3 flex-shrink-0">
               {figure.id === 'ideal-family' ? (
                 <IdealFamilyIconFinal size={60} className="w-full h-full object-contain" />
@@ -251,14 +251,12 @@ export default function ResourceFigureSelection({
                 <span className="text-4xl sm:text-5xl">{figure.emoji}</span>
               )}
             </div>
-            <h3 className="text-base sm:text-lg font-semibold text-amber-900 mb-2 flex-shrink-0">
+            {/* Titel: feste Mindesthöhe (2 Zeilen), damit Beschreibung immer auf gleicher Höhe startet */}
+            <h3 className="text-base sm:text-lg font-semibold text-amber-900 mb-2 min-h-[2.5em] flex items-center justify-center flex-shrink-0">
               {figure.name}
             </h3>
-            <p className="text-xs sm:text-sm text-amber-700 leading-snug h-10 sm:h-12 overflow-hidden flex-shrink-0" style={{
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical'
-            }}>
+            {/* Beschreibung: feste Mindesthöhe (3 Zeilen), 2–3 Zeilen Text – Karten bleiben gleich hoch */}
+            <p className="text-xs sm:text-sm text-amber-700 leading-snug min-h-[3.75em] sm:min-h-[4em] flex-shrink-0 text-center w-full">
               {figure.description}
             </p>
           </div>
@@ -335,24 +333,36 @@ export default function ResourceFigureSelection({
               transition={{ duration: 0.3 }}
               className="text-center"
             >
-              {/* Initial 5 Fictional Figures */}
+              {/* Initial Fictional Figures: 4 auf Mobile (2×2), 5 auf Desktop */}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 max-w-7xl mx-auto sm:px-4 mb-2 mt-2">
-                {getInitialFictionalFigures().map(figure => renderFigureCard(figure))}
+                {getInitialFictionalFigures().map((figure, index) => (
+                  <div
+                    key={figure.id}
+                    className={index === 4 ? 'hidden sm:block' : ''}
+                  >
+                    {renderFigureCard(figure)}
+                  </div>
+                ))}
               </div>
 
-              {/* Weitere fiktive Figuren anzeigen */}
-              {!showMoreFictional && getAdditionalFictionalFigures().length > 0 && (
-                <div className="text-center mb-6">
+              {/* Weitere fiktive Figuren anzeigen (nur sichtbar, bis aktiviert; danach CTA entfernt) */}
+              {!showMoreFictional && (getAdditionalFictionalFigures().length > 0 || getInitialFictionalFigures().length > 4) && (
+                <div className="text-center mt-8 sm:mt-7 mb-2">
                   <button
+                    type="button"
                     onClick={() => setShowMoreFictional(true)}
-                    className="text-amber-700 hover:text-amber-800 text-sm sm:text-base underline decoration-amber-400 hover:decoration-amber-500 transition-colors"
+                    className="inline-flex items-center justify-center gap-1.5 text-amber-700/90 hover:text-amber-800 text-sm sm:text-base underline decoration-amber-400/80 hover:decoration-amber-500/90 transition-colors duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-amber-400/70 focus:ring-offset-2 rounded"
                   >
-                    Weitere fiktive Figuren anzeigen
+                    <ChevronDown
+                      className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600/90 flex-shrink-0"
+                      aria-hidden
+                    />
+                    <span>Weitere fiktive Figuren anzeigen</span>
                   </button>
                 </div>
               )}
 
-              {/* Additional Fictional Figures */}
+              {/* Additional Fictional Figures (Mobile: inkl. 5. Figur; Desktop: nur Zusatzfiguren); eng unter Grid, wenn CTA weg */}
               <AnimatePresence>
                 {showMoreFictional && (
                   <motion.div
@@ -360,29 +370,32 @@ export default function ResourceFigureSelection({
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.3 }}
+                    className="mt-3 sm:mt-4 md:mt-6"
                   >
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 max-w-7xl mx-auto sm:px-4">
+                      {/* 5. Figur nur auf Mobile in „Mehr“-Bereich sichtbar */}
+                      {getInitialFictionalFigures().length > 4 && (
+                        <div className="sm:hidden">
+                          {renderFigureCard(getInitialFictionalFigures()[4])}
+                        </div>
+                      )}
                       {getAdditionalFictionalFigures().map(figure => renderFigureCard(figure))}
                       {/* Custom Figure Card */}
                       <motion.div
                         whileHover={{ scale: 1.02, y: -2 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => setShowCustomForm(true)}
-                        className="w-full h-52 sm:h-[17rem] relative cursor-pointer transition-all"
+                        className="w-full h-[14.5rem] sm:h-[18rem] relative cursor-pointer transition-all"
                       >
-                        <div className="w-full h-full rounded-2xl shadow-lg border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-indigo-50 hover:border-blue-400">
-                          <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center">
+                        <div className="w-full h-full rounded-2xl shadow-lg border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-indigo-50 hover:border-blue-400 flex flex-col">
+                          <div className="w-full h-full flex flex-col items-center justify-start p-4 text-center">
                             <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mb-3 flex-shrink-0">
                               <span className="text-4xl sm:text-5xl">➕</span>
                             </div>
-                            <h3 className="text-base sm:text-lg font-semibold text-blue-900 mb-2 flex-shrink-0">
+                            <h3 className="text-base sm:text-lg font-semibold text-blue-900 mb-2 min-h-[2.5em] flex items-center justify-center flex-shrink-0">
                               Eigene Figur
                             </h3>
-                            <p className="text-xs sm:text-sm text-blue-700 leading-snug h-10 sm:h-12 overflow-hidden flex-shrink-0" style={{
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical'
-                            }}>
+                            <p className="text-xs sm:text-sm text-blue-700 leading-snug min-h-[3.75em] sm:min-h-[4em] flex-shrink-0 text-center w-full">
                               Erstelle deine eigene, personalisierte Figur
                             </p>
                           </div>
@@ -463,24 +476,36 @@ export default function ResourceFigureSelection({
               transition={{ duration: 0.3 }}
               className="text-center"
             >
-              {/* Initial Real Figures */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 max-w-7xl mx-auto sm:px-4 mb-4 mt-2">
-                {getInitialRealFigures().map(figure => renderFigureCard(figure))}
+              {/* Initial Real Figures: 4 auf Mobile (2×2), 5 auf Desktop */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 max-w-7xl mx-auto sm:px-4 mb-2 mt-2">
+                {getInitialRealFigures().map((figure, index) => (
+                  <div
+                    key={figure.id}
+                    className={index === 4 ? 'hidden sm:block' : ''}
+                  >
+                    {renderFigureCard(figure)}
+                  </div>
+                ))}
               </div>
 
-              {/* Weitere reale Personen anzeigen */}
-              {!showMoreReal && getAdditionalRealFigures().length > 0 && (
-                <div className="text-center mb-6">
+              {/* Weitere reale Personen anzeigen (nur sichtbar bis aktiviert) */}
+              {!showMoreReal && (getAdditionalRealFigures().length > 0 || getInitialRealFigures().length > 4) && (
+                <div className="text-center mt-8 sm:mt-7 mb-2">
                   <button
+                    type="button"
                     onClick={() => setShowMoreReal(true)}
-                    className="text-amber-700 hover:text-amber-800 text-sm sm:text-base underline decoration-amber-400 hover:decoration-amber-500 transition-colors"
+                    className="inline-flex items-center justify-center gap-1.5 text-amber-700/90 hover:text-amber-800 text-sm sm:text-base underline decoration-amber-400/80 hover:decoration-amber-500/90 transition-colors duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-amber-400/70 focus:ring-offset-2 rounded"
                   >
-                    Weitere reale Personen anzeigen
+                    <ChevronDown
+                      className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600/90 flex-shrink-0"
+                      aria-hidden
+                    />
+                    <span>Weitere reale Personen anzeigen</span>
                   </button>
                 </div>
               )}
 
-              {/* Additional Real Figures */}
+              {/* Additional Real Figures (Mobile: inkl. 5. Figur; Desktop: nur Zusatzfiguren) */}
               <AnimatePresence>
                 {showMoreReal && (
                   <motion.div
@@ -488,29 +513,31 @@ export default function ResourceFigureSelection({
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.3 }}
+                    className="mt-3 sm:mt-4 md:mt-6"
                   >
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 max-w-7xl mx-auto sm:px-4">
+                      {getInitialRealFigures().length > 4 && (
+                        <div className="sm:hidden">
+                          {renderFigureCard(getInitialRealFigures()[4])}
+                        </div>
+                      )}
                       {getAdditionalRealFigures().map(figure => renderFigureCard(figure))}
                       {/* Custom Figure Card */}
                       <motion.div
                         whileHover={{ scale: 1.02, y: -2 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => setShowCustomForm(true)}
-                        className="w-full h-52 sm:h-[17rem] relative cursor-pointer transition-all"
+                        className="w-full h-[14.5rem] sm:h-[18rem] relative cursor-pointer transition-all"
                       >
-                        <div className="w-full h-full rounded-2xl shadow-lg border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-indigo-50 hover:border-blue-400">
-                          <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center">
+                        <div className="w-full h-full rounded-2xl shadow-lg border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-indigo-50 hover:border-blue-400 flex flex-col">
+                          <div className="w-full h-full flex flex-col items-center justify-start p-4 text-center">
                             <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mb-3 flex-shrink-0">
                               <span className="text-4xl sm:text-5xl">➕</span>
                             </div>
-                            <h3 className="text-base sm:text-lg font-semibold text-blue-900 mb-2 flex-shrink-0">
+                            <h3 className="text-base sm:text-lg font-semibold text-blue-900 mb-2 min-h-[2.5em] flex items-center justify-center flex-shrink-0">
                               Eigene Figur
                             </h3>
-                            <p className="text-xs sm:text-sm text-blue-700 leading-snug h-10 sm:h-12 overflow-hidden flex-shrink-0" style={{
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical'
-                            }}>
+                            <p className="text-xs sm:text-sm text-blue-700 leading-snug min-h-[3.75em] sm:min-h-[4em] flex-shrink-0 text-center w-full">
                               Erstelle deine eigene, personalisierte Figur
                             </p>
                           </div>
@@ -591,24 +618,36 @@ export default function ResourceFigureSelection({
               transition={{ duration: 0.3 }}
               className="text-center"
             >
-              {/* Initial Place Figures */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 max-w-7xl mx-auto sm:px-4 mb-4 mt-2">
-                {getInitialPlaceFigures().map(figure => renderFigureCard(figure))}
+              {/* Initial Place Figures: 4 auf Mobile (2×2), 5 auf Desktop */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 max-w-7xl mx-auto sm:px-4 mb-2 mt-2">
+                {getInitialPlaceFigures().map((figure, index) => (
+                  <div
+                    key={figure.id}
+                    className={index === 4 ? 'hidden sm:block' : ''}
+                  >
+                    {renderFigureCard(figure)}
+                  </div>
+                ))}
               </div>
 
-              {/* Weitere Orte anzeigen */}
-              {!showMorePlaces && getAdditionalPlaceFigures().length > 0 && (
-                <div className="text-center mb-6">
+              {/* Weitere Orte anzeigen (nur sichtbar bis aktiviert) */}
+              {!showMorePlaces && (getAdditionalPlaceFigures().length > 0 || getInitialPlaceFigures().length > 4) && (
+                <div className="text-center mt-8 sm:mt-7 mb-2">
                   <button
+                    type="button"
                     onClick={() => setShowMorePlaces(true)}
-                    className="text-amber-700 hover:text-amber-800 text-sm sm:text-base underline decoration-amber-400 hover:decoration-amber-500 transition-colors"
+                    className="inline-flex items-center justify-center gap-1.5 text-amber-700/90 hover:text-amber-800 text-sm sm:text-base underline decoration-amber-400/80 hover:decoration-amber-500/90 transition-colors duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-amber-400/70 focus:ring-offset-2 rounded"
                   >
-                    Weitere Orte anzeigen
+                    <ChevronDown
+                      className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600/90 flex-shrink-0"
+                      aria-hidden
+                    />
+                    <span>Weitere Orte anzeigen</span>
                   </button>
                 </div>
               )}
 
-              {/* Additional Place Figures */}
+              {/* Additional Place Figures (Mobile: inkl. 5. Ort; Desktop: nur Zusatzorte) */}
               <AnimatePresence>
                 {showMorePlaces && (
                   <motion.div
@@ -616,29 +655,31 @@ export default function ResourceFigureSelection({
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.3 }}
+                    className="mt-3 sm:mt-4 md:mt-6"
                   >
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 max-w-7xl mx-auto sm:px-4">
+                      {getInitialPlaceFigures().length > 4 && (
+                        <div className="sm:hidden">
+                          {renderFigureCard(getInitialPlaceFigures()[4])}
+                        </div>
+                      )}
                       {getAdditionalPlaceFigures().map(figure => renderFigureCard(figure))}
                       {/* Custom Place Card */}
                       <motion.div
                         whileHover={{ scale: 1.02, y: -2 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => setShowCustomForm(true)}
-                        className="w-full h-52 sm:h-[17rem] relative cursor-pointer transition-all"
+                        className="w-full h-[14.5rem] sm:h-[18rem] relative cursor-pointer transition-all"
                       >
-                        <div className="w-full h-full rounded-2xl shadow-lg border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-indigo-50 hover:border-blue-400">
-                          <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center">
+                        <div className="w-full h-full rounded-2xl shadow-lg border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-indigo-50 hover:border-blue-400 flex flex-col">
+                          <div className="w-full h-full flex flex-col items-center justify-start p-4 text-center">
                             <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mb-3 flex-shrink-0">
                               <span className="text-4xl sm:text-5xl">➕</span>
                             </div>
-                            <h3 className="text-base sm:text-lg font-semibold text-blue-900 mb-2 flex-shrink-0">
+                            <h3 className="text-base sm:text-lg font-semibold text-blue-900 mb-2 min-h-[2.5em] flex items-center justify-center flex-shrink-0">
                               Eigenen Ort
                             </h3>
-                            <p className="text-xs sm:text-sm text-blue-700 leading-snug h-10 sm:h-12 overflow-hidden flex-shrink-0" style={{
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical'
-                            }}>
+                            <p className="text-xs sm:text-sm text-blue-700 leading-snug min-h-[3.75em] sm:min-h-[4em] flex-shrink-0 text-center w-full">
                               Erstelle deinen eigenen sicheren Ort
                             </p>
                           </div>
