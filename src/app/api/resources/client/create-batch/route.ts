@@ -20,6 +20,32 @@ function isAdminUser(email: string | undefined): boolean {
          musicAdminEmails.includes(email.toLowerCase());
 }
 
+/**
+ * Findet einen Auth-User anhand der E-Mail per Pagination (listUsers liefert nur eine begrenzte Anzahl).
+ * So werden auch bestehende User erkannt, die nicht auf der ersten Seite stehen.
+ */
+async function findUserByEmail(
+  supabaseAdmin: Awaited<ReturnType<typeof createServerAdminClient>>,
+  email: string
+): Promise<{ id: string; email?: string; user_metadata?: Record<string, unknown> } | null> {
+  const normalized = email.trim().toLowerCase();
+  let page = 1;
+  const perPage = 1000;
+  while (true) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+    if (error) {
+      console.warn('[API/resources/client/create-batch] listUsers error:', error.message);
+      return null;
+    }
+    const user = data?.users?.find((u) => u.email?.toLowerCase() === normalized) ?? null;
+    if (user) return user;
+    if (!data?.users?.length || (data.users.length < perPage)) return null;
+    page++;
+    if (page > 50) break; // Sicherheitslimit
+  }
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Erstelle Supabase Client für Session-Check
@@ -264,9 +290,8 @@ export async function POST(request: NextRequest) {
     // Wenn Ressourcen erstellt wurden, sende Email mit Magic Link
     if (createdResources.length > 0) {
       try {
-        // Prüfe ob User bereits existiert
-        const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-        const userExists = existingUsers?.users.find(u => u.email?.toLowerCase() === normalizedClientEmail);
+        // Prüfe ob User bereits existiert (per Pagination, da listUsers nur eine Seite liefert)
+        let userExists = await findUserByEmail(supabaseAdmin, normalizedClientEmail);
 
         // All links redirect to dashboard - middleware will handle password check
         const redirectUrl = `${origin}/dashboard?resource=${createdResources[0].id}`;
@@ -384,7 +409,55 @@ export async function POST(request: NextRequest) {
               console.error('[API/resources/client/create-batch] Error generating recovery link:', recoveryError);
             }
           } else {
-            console.error('[API/resources/client/create-batch] Error creating new user:', createUserError);
+            // User existiert bereits (z. B. nicht auf erster listUsers-Seite) – Link für bestehenden User erzeugen
+            const isEmailExists =
+              (createUserError as { code?: string; status?: number })?.code === 'email_exists' ||
+              (createUserError as { code?: string; status?: number })?.status === 422;
+            if (isEmailExists) {
+              console.log('[API/resources/client/create-batch] User already registered (email_exists), looking up and generating link');
+              userExists = await findUserByEmail(supabaseAdmin, normalizedClientEmail);
+              if (userExists) {
+                const hasPasswordSet = userExists.user_metadata?.password_set === true;
+                await supabaseAdmin.auth.admin.updateUserById(userExists.id, {
+                  user_metadata: {
+                    ...userExists.user_metadata,
+                    resource_id: createdResources[0].id,
+                    resource_name: `${createdResources.length} Ressourcen`,
+                    message: `Du hast ${createdResources.length} neue Ressourcen!`,
+                  },
+                });
+                if (hasPasswordSet) {
+                  const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
+                    type: 'magiclink',
+                    email: normalizedClientEmail,
+                    options: { redirectTo: redirectUrl },
+                  });
+                  if (!magicLinkError && magicLinkData?.properties?.action_link) {
+                    magicLink = magicLinkData.properties.action_link;
+                    console.log('[API/resources/client/create-batch] Magic link generated for existing user (after email_exists)');
+                  }
+                } else {
+                  const { data: recoveryData, error: recoveryError } = await supabaseAdmin.auth.admin.generateLink({
+                    type: 'recovery',
+                    email: normalizedClientEmail,
+                    options: { redirectTo: redirectUrl },
+                  });
+                  if (!recoveryError && recoveryData?.properties?.action_link) {
+                    magicLink = recoveryData.properties.action_link;
+                    const linkUrl = new URL(magicLink);
+                    const currentRedirectTo = linkUrl.searchParams.get('redirect_to');
+                    if (currentRedirectTo) {
+                      const newRedirectTo = currentRedirectTo.replace(/https:\/\/[^/]+/, origin);
+                      linkUrl.searchParams.set('redirect_to', newRedirectTo);
+                      magicLink = linkUrl.toString();
+                    }
+                    console.log('[API/resources/client/create-batch] Recovery link generated for existing user (after email_exists)');
+                  }
+                }
+              }
+            } else {
+              console.error('[API/resources/client/create-batch] Error creating new user:', createUserError);
+            }
           }
         }
 

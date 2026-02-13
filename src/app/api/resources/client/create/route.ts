@@ -20,6 +20,31 @@ function isAdminUser(email: string | undefined): boolean {
          musicAdminEmails.includes(email.toLowerCase());
 }
 
+/**
+ * Findet einen Auth-User anhand der E-Mail per Pagination (listUsers liefert nur eine begrenzte Anzahl).
+ */
+async function findUserByEmail(
+  supabaseAdmin: Awaited<ReturnType<typeof createServerAdminClient>>,
+  email: string
+): Promise<{ id: string; email?: string; user_metadata?: Record<string, unknown> } | null> {
+  const normalized = email.trim().toLowerCase();
+  let page = 1;
+  const perPage = 1000;
+  while (true) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+    if (error) {
+      console.warn('[API/resources/client/create] listUsers error:', error.message);
+      return null;
+    }
+    const user = data?.users?.find((u) => u.email?.toLowerCase() === normalized) ?? null;
+    if (user) return user;
+    if (!data?.users?.length || (data.users.length < perPage)) return null;
+    page++;
+    if (page > 50) break;
+  }
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Erstelle Supabase Client für Session-Check
@@ -221,9 +246,8 @@ export async function POST(request: NextRequest) {
     // Wenn clientEmail vorhanden, sende benutzerdefinierte Email mit Magic-Link
     if (normalizedClientEmail) {
       try {
-        // Prüfe ob User bereits existiert
-        const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-        const userExists = existingUsers?.users.find(u => u.email?.toLowerCase() === normalizedClientEmail);
+        // Prüfe ob User bereits existiert (per Pagination, da listUsers nur eine Seite liefert)
+        let userExists = await findUserByEmail(supabaseAdmin, normalizedClientEmail);
 
         // Bestimme origin aus Request-URL (zuverlässiger als Header)
         const requestUrl = new URL(request.url);
@@ -301,8 +325,34 @@ export async function POST(request: NextRequest) {
           });
 
           if (createUserError) {
-            console.error('Error creating user:', createUserError);
-            // Fehler ist nicht kritisch - Ressource wurde gespeichert
+            const isEmailExists =
+              (createUserError as { code?: string; status?: number })?.code === 'email_exists' ||
+              (createUserError as { code?: string; status?: number })?.status === 422;
+            if (isEmailExists) {
+              console.log('[API/resources/client/create] User already registered (email_exists), looking up and generating link');
+              userExists = await findUserByEmail(supabaseAdmin, normalizedClientEmail);
+              if (userExists) {
+                await supabaseAdmin.auth.admin.updateUserById(userExists.id, {
+                  user_metadata: {
+                    ...userExists.user_metadata,
+                    resource_id: dbData.id,
+                    resource_name: resourceName.trim(),
+                    message: 'Deine Ressource ist bereit!',
+                  },
+                });
+                const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
+                  type: 'magiclink',
+                  email: normalizedClientEmail,
+                  options: { redirectTo: redirectUrl },
+                });
+                if (!magicLinkError && magicLinkData?.properties?.action_link) {
+                  magicLink = magicLinkData.properties.action_link;
+                  console.log('[API/resources/client/create] Magic link generated for existing user (after email_exists)');
+                }
+              }
+            } else {
+              console.error('Error creating user:', createUserError);
+            }
           } else if (newUser.user) {
             // Generiere Magic Link für neuen User
             const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
