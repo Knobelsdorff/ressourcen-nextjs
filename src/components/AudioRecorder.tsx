@@ -162,16 +162,30 @@ export default function AudioRecorder({
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || !isRecording) return;
+
+    // Puffer leeren: letzten Chunk anfordern, damit nichts verloren geht (start(1000) = 1s-Chunks)
+    if (recorder.state === 'recording' || recorder.state === 'paused') {
+      try {
+        recorder.requestData();
+      } catch (_) {
+        // requestData() nicht in allen Browsern/States unterstützt
+      }
+    }
+
+    // Kurz warten, damit ondataavailable für den letzten Chunk noch feuert, bevor onstop den Blob baut
+    setTimeout(() => {
+      if (mediaRecorderRef.current) {
+        mediaRecorderRef.current.stop();
+      }
       setIsRecording(false);
       setIsPaused(false);
-      
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
-    }
+    }, 150);
   };
 
   const pauseRecording = () => {
