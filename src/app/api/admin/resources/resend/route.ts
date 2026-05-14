@@ -3,25 +3,77 @@ import { createServerClient } from '@supabase/ssr';
 import { Database } from '@/lib/types/database.types';
 import { createServerAdminClient } from '@/lib/supabase/serverAdminClient';
 
-/**
- * Prüft ob der aktuelle User ein Admin ist (Full Admin)
- */
 function isAdminUser(email: string | undefined): boolean {
   if (!email) return false;
   const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
     .split(',')
-    .map(e => e.trim().toLowerCase())
+    .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
   return adminEmails.includes(email.toLowerCase());
 }
 
-/**
- * API-Endpoint zum erneuten Versenden von Klienten-Ressourcen
- * Generiert einen neuen Magic Link und versendet die E-Mail erneut
- */
+async function findUserByEmail(
+  supabaseAdmin: Awaited<ReturnType<typeof createServerAdminClient>>,
+  email: string
+): Promise<{ id: string; email?: string; user_metadata?: Record<string, unknown> } | null> {
+  const normalized = email.trim().toLowerCase();
+  let page = 1;
+  const perPage = 1000;
+  while (true) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+    if (error) {
+      console.warn('[API/admin/resources/resend] listUsers error:', error.message);
+      return null;
+    }
+    const user = data?.users?.find((u) => u.email?.toLowerCase() === normalized) ?? null;
+    if (user) return user;
+    if (!data?.users?.length || data.users.length < perPage) return null;
+    page++;
+    if (page > 50) break;
+  }
+  return null;
+}
+
+function rewriteRecoveryRedirectTo(magicLink: string, origin: string): string {
+  try {
+    const linkUrl = new URL(magicLink);
+    const currentRedirectTo = linkUrl.searchParams.get('redirect_to');
+    if (currentRedirectTo) {
+      const newRedirectTo = currentRedirectTo.replace(/https:\/\/[^/]+/, origin);
+      linkUrl.searchParams.set('redirect_to', newRedirectTo);
+      return linkUrl.toString();
+    }
+  } catch {
+    /* ignore */
+  }
+  return magicLink;
+}
+
+function resolveOrigin(request: NextRequest): string {
+  const requestUrl = new URL(request.url);
+  let origin = requestUrl.origin;
+
+  if (!origin || origin === 'null') {
+    const headersList = request.headers;
+    origin =
+      headersList.get('origin') ||
+      headersList.get('referer')?.split('/').slice(0, 3).join('/') ||
+      process.env.APP_BASE_URL ||
+      'https://www.power-storys.de';
+  }
+
+  if (origin.includes('localhost') && !origin.includes(':')) {
+    origin = 'http://localhost:3000';
+  } else if (origin.includes('localhost') && !origin.includes(':3000')) {
+    origin = origin.replace(/:\d+/, ':3000');
+  }
+
+  return origin;
+}
+
+/** Erneutes Versenden der Klienten-E-Mail (neuer Magic/Recovery-Link), Logik wie create-batch. */
 export async function POST(request: NextRequest) {
   try {
-    // Erstelle Supabase Client für Session-Check
     const supabase = createServerClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -39,25 +91,19 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    // Prüfe Authentifizierung
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Prüfe ob User Admin ist
     if (!isAdminUser(user.email)) {
-      return NextResponse.json(
-        { error: 'Forbidden - Admin access required' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
 
-    // Parse Request Body
     const body = await request.json();
     const { resourceId, clientEmail } = body;
 
@@ -68,10 +114,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verwende Admin Client um RLS zu umgehen
     const supabaseAdmin = await createServerAdminClient();
 
-    // Finde Ressource(n)
     let query = (supabaseAdmin as any)
       .from('saved_stories')
       .select('id, title, client_email, audio_url, resource_figure, created_at');
@@ -93,124 +137,177 @@ export async function POST(request: NextRequest) {
     }
 
     if (!resources || resources.length === 0) {
-      return NextResponse.json(
-        { error: 'Keine Ressourcen gefunden' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Keine Ressourcen gefunden' }, { status: 404 });
     }
 
-    // Für jede Ressource: Generiere Magic Link und versende E-Mail
     const normalizedClientEmail = resources[0].client_email?.toLowerCase().trim();
-    
+
     if (!normalizedClientEmail) {
-      return NextResponse.json(
-        { error: 'Ressource hat keine client_email' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Ressource hat keine client_email' }, { status: 400 });
     }
 
-    // Bestimme origin für Magic Link
-    const requestUrl = new URL(request.url);
-    let origin = requestUrl.origin;
-    if (!origin || origin === 'null') {
-      const headersList = await request.headers;
-      origin = headersList.get('origin') || 
-               headersList.get('referer')?.split('/').slice(0, 3).join('/') || 
-               'https://www.ressourcen.app';
-    }
+    const origin = resolveOrigin(request);
+    const redirectUrl = `${origin}/dashboard?resource=${resources[0].id}`;
+    const resourceCount = resources.length;
+    const resourceLabel =
+      resourceCount > 1 ? `${resourceCount} Ressourcen` : resources[0].title || 'Deine Ressource';
 
-    // Prüfe ob User existiert
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const userExists = existingUsers?.users.find(u => u.email?.toLowerCase() === normalizedClientEmail);
-
+    let userExists = await findUserByEmail(supabaseAdmin, normalizedClientEmail);
     let magicLink: string | null = null;
 
     if (userExists) {
-      // User existiert - generiere Magic Link für Login
-      const redirectUrl = `${origin}/dashboard?resource=${resources[0].id}`;
-      
-      const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'magiclink',
-        email: normalizedClientEmail,
-        options: {
-          redirectTo: redirectUrl,
+      const hasPasswordSet = userExists.user_metadata?.password_set === true;
+
+      await supabaseAdmin.auth.admin.updateUserById(userExists.id, {
+        user_metadata: {
+          ...userExists.user_metadata,
+          resource_id: resources[0].id,
+          resource_name: resourceLabel,
+          message:
+            resourceCount > 1
+              ? `Du hast ${resourceCount} neue Ressourcen!`
+              : 'Deine Ressource ist bereit!',
         },
       });
 
-      if (!magicLinkError && magicLinkData?.properties?.action_link) {
-        magicLink = magicLinkData.properties.action_link;
+      if (hasPasswordSet) {
+        const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
+          type: 'magiclink',
+          email: normalizedClientEmail,
+          options: { redirectTo: redirectUrl },
+        });
+        if (!magicLinkError && magicLinkData?.properties?.action_link) {
+          magicLink = magicLinkData.properties.action_link;
+        } else {
+          console.error('[API/admin/resources/resend] magiclink error:', magicLinkError);
+        }
+      } else {
+        const { data: recoveryData, error: recoveryError } = await supabaseAdmin.auth.admin.generateLink({
+          type: 'recovery',
+          email: normalizedClientEmail,
+          options: { redirectTo: redirectUrl },
+        });
+        if (!recoveryError && recoveryData?.properties?.action_link) {
+          magicLink = rewriteRecoveryRedirectTo(recoveryData.properties.action_link, origin);
+        } else {
+          console.error('[API/admin/resources/resend] recovery error:', recoveryError);
+        }
       }
     } else {
-      // User existiert nicht - erstelle User
-      const redirectUrl = `${origin}/dashboard?resource=${resources[0].id}`;
-      
       const { data: newUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
         email: normalizedClientEmail,
         email_confirm: true,
         user_metadata: {
           resource_id: resources[0].id,
-          resource_name: resources.length > 1 ? `${resources.length} Ressourcen` : resources[0].title,
-          message: 'Deine Ressource ist bereit!'
-        }
+          resource_name: resourceLabel,
+          message:
+            resourceCount > 1
+              ? `Du hast ${resourceCount} neue Ressourcen!`
+              : 'Deine Ressource ist bereit!',
+          password_set: false,
+        },
       });
 
       if (!createUserError && newUser.user) {
-        const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
-          type: 'magiclink',
+        const { data: recoveryData, error: recoveryError } = await supabaseAdmin.auth.admin.generateLink({
+          type: 'recovery',
           email: normalizedClientEmail,
-          options: {
-            redirectTo: redirectUrl,
-          },
+          options: { redirectTo: redirectUrl },
         });
-
-        if (!magicLinkError && magicLinkData?.properties?.action_link) {
-          magicLink = magicLinkData.properties.action_link;
+        if (!recoveryError && recoveryData?.properties?.action_link) {
+          magicLink = rewriteRecoveryRedirectTo(recoveryData.properties.action_link, origin);
+        } else {
+          console.error('[API/admin/resources/resend] recovery (new user) error:', recoveryError);
+        }
+      } else {
+        const isEmailExists =
+          (createUserError as { code?: string; status?: number })?.code === 'email_exists' ||
+          (createUserError as { code?: string; status?: number })?.status === 422;
+        if (isEmailExists) {
+          userExists = await findUserByEmail(supabaseAdmin, normalizedClientEmail);
+          if (userExists) {
+            const hasPasswordSet = userExists.user_metadata?.password_set === true;
+            await supabaseAdmin.auth.admin.updateUserById(userExists.id, {
+              user_metadata: {
+                ...userExists.user_metadata,
+                resource_id: resources[0].id,
+                resource_name: resourceLabel,
+                message:
+                  resourceCount > 1
+                    ? `Du hast ${resourceCount} neue Ressourcen!`
+                    : 'Deine Ressource ist bereit!',
+              },
+            });
+            if (hasPasswordSet) {
+              const { data: magicLinkData, error: magicLinkError } =
+                await supabaseAdmin.auth.admin.generateLink({
+                  type: 'magiclink',
+                  email: normalizedClientEmail,
+                  options: { redirectTo: redirectUrl },
+                });
+              if (!magicLinkError && magicLinkData?.properties?.action_link) {
+                magicLink = magicLinkData.properties.action_link;
+              }
+            } else {
+              const { data: recoveryData, error: recoveryError } =
+                await supabaseAdmin.auth.admin.generateLink({
+                  type: 'recovery',
+                  email: normalizedClientEmail,
+                  options: { redirectTo: redirectUrl },
+                });
+              if (!recoveryError && recoveryData?.properties?.action_link) {
+                magicLink = rewriteRecoveryRedirectTo(recoveryData.properties.action_link, origin);
+              }
+            }
+          }
+        } else {
+          console.error('[API/admin/resources/resend] createUser error:', createUserError);
         }
       }
     }
 
     if (!magicLink) {
-      return NextResponse.json(
-        { error: 'Fehler beim Generieren des Magic Links' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Fehler beim Generieren des Zugangslinks' }, { status: 500 });
     }
 
-    // Versende E-Mail erneut
+    const userForFlag = await findUserByEmail(supabaseAdmin, normalizedClientEmail);
+    const isNewUser = !userForFlag || userForFlag.user_metadata?.password_set !== true;
+
     const { sendResourceReadyEmail } = await import('@/lib/email');
-    const resourceNames = resources.map((r: any) => r.title || r.resource_figure?.name || 'Unbenannte Ressource');
-    
+    const resourceNames = resources.map(
+      (r: any) => r.title || r.resource_figure?.name || 'Unbenannte Ressource'
+    );
+
     const emailResult = await sendResourceReadyEmail({
       to: normalizedClientEmail,
-      resourceNames: resourceNames,
-      magicLink: magicLink,
+      resourceNames,
+      magicLink,
+      isNewUser,
     });
 
     if (!emailResult.success) {
       return NextResponse.json(
-        { 
-          error: 'E-Mail konnte nicht versendet werden',
-          details: emailResult.error 
-        },
+        { error: 'E-Mail konnte nicht versendet werden', details: emailResult.error },
         { status: 500 }
       );
     }
 
-    // Sende Bestätigungs-Email an Admin
     try {
       const { sendAdminConfirmationEmail } = await import('@/lib/email');
-      const adminEmailsList = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean);
+      const adminEmailsList = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
+        .split(',')
+        .map((e) => e.trim())
+        .filter(Boolean);
       const primaryAdminEmail = adminEmailsList[0] || 'safe@ressourcen.app';
-      
+
       await sendAdminConfirmationEmail({
         to: primaryAdminEmail,
         clientEmail: normalizedClientEmail,
-        resourceNames: resourceNames,
+        resourceNames,
         success: true,
       });
-    } catch (adminEmailError: any) {
-      console.error('[API/admin/resources/resend] Error sending admin confirmation:', adminEmailError);
-      // Nicht kritisch
+    } catch (adminEmailError: unknown) {
+      console.error('[API/admin/resources/resend] admin confirmation:', adminEmailError);
     }
 
     return NextResponse.json({
@@ -219,14 +316,11 @@ export async function POST(request: NextRequest) {
       resourceId: resources[0].id,
       clientEmail: normalizedClientEmail,
       resourceName: resourceNames[0],
-      resourceCount: resources.length,
+      resourceCount: resourceNames.length,
     });
-
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[API/admin/resources/resend] Error:', error);
-    return NextResponse.json(
-      { error: 'Interner Serverfehler', details: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Interner Serverfehler', details: message }, { status: 500 });
   }
 }

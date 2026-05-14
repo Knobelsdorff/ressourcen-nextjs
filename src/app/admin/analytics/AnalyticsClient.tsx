@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useRef, useEffect } from "react";
+import { useState, useTransition, useRef, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   BarChart3,
@@ -16,11 +16,21 @@ import {
   Pause,
   Calendar,
   TrendingUp,
+  Mail,
 } from "lucide-react";
 import Link from "next/link";
 import { questions } from "@/data/questions";
 import { DataTable } from "@/components/DataTable";
 import type { AnalyticsEvent, AnalyticsStats } from "./actions";
+
+interface SentResource {
+  id: string;
+  title: string | null;
+  client_email: string | null;
+  created_at: string;
+  audio_url: string | null;
+  resource_figure?: { name?: string } | string | null;
+}
 
 interface AnalyticsClientProps {
   initialEvents: AnalyticsEvent[];
@@ -51,6 +61,50 @@ export function AnalyticsClient({
   const [duration, setDuration] = useState(0);
   const timeUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [resendingResourceId, setResendingResourceId] = useState<string | null>(null);
+  const [sentResources, setSentResources] = useState<SentResource[]>([]);
+  const [sentResourcesLoading, setSentResourcesLoading] = useState(true);
+  const [sentResourcesError, setSentResourcesError] = useState<string | null>(null);
+  const [sentListSearch, setSentListSearch] = useState("");
+
+  const loadSentResources = useCallback(async () => {
+    setSentResourcesLoading(true);
+    setSentResourcesError(null);
+    try {
+      const response = await fetch("/api/admin/resources/list-sent", {
+        credentials: "same-origin",
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || "Liste konnte nicht geladen werden.");
+      }
+      setSentResources(Array.isArray(data.resources) ? data.resources : []);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Unbekannter Fehler";
+      setSentResourcesError(msg);
+      setSentResources([]);
+    } finally {
+      setSentResourcesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSentResources();
+  }, [loadSentResources]);
+
+  const filteredSentResources = useMemo(() => {
+    const q = sentListSearch.trim().toLowerCase();
+    if (!q) return sentResources;
+    return sentResources.filter((r) => {
+      const email = (r.client_email || "").toLowerCase();
+      const title = (r.title || "").toLowerCase();
+      const fig =
+        typeof r.resource_figure === "object" && r.resource_figure?.name
+          ? String(r.resource_figure.name).toLowerCase()
+          : "";
+      return email.includes(q) || title.includes(q) || fig.includes(q);
+    });
+  }, [sentResources, sentListSearch]);
 
   // Cleanup audio element
   useEffect(() => {
@@ -181,6 +235,37 @@ export function AnalyticsClient({
       console.error("Error loading resource by name:", error);
       setShowResourceDetails(false);
       alert("Fehler beim Laden der Ressource: " + (error.message || "Unbekannter Fehler"));
+    }
+  };
+
+
+  const handleResendClientEmail = async (resourceId: string | undefined) => {
+    if (!resourceId) {
+      alert("Keine Story-ID – Versand nicht möglich.");
+      return;
+    }
+    setResendingResourceId(resourceId);
+    try {
+      const response = await fetch("/api/admin/resources/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ resourceId }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        alert(data.error || data.details || "Versand fehlgeschlagen.");
+        return;
+      }
+      alert(
+        `E-Mail wurde erneut an ${data.clientEmail || "Klient:in"} gesendet.`
+      );
+      void loadSentResources();
+    } catch (e: any) {
+      console.error("Resend error:", e);
+      alert(e?.message || "Netzwerkfehler beim Versand.");
+    } finally {
+      setResendingResourceId(null);
     }
   };
 
@@ -536,6 +621,128 @@ export function AnalyticsClient({
           </div>
         )}
 
+        {/* Versendete Power Storys (Klient:innen) – aus saved_stories, unabhängig von Analytics-Events */}
+        <div className="bg-white rounded-xl shadow-lg sm:p-6 p-3 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <h2 className="sm:text-xl text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Mail className="w-6 h-6 text-green-600" />
+              <span>Versendete Power Storys (Klient:innen)</span>
+            </h2>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <input
+                type="search"
+                placeholder="E-Mail oder Titel filtern…"
+                value={sentListSearch}
+                onChange={(e) => setSentListSearch(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-full sm:w-64"
+              />
+              <button
+                type="button"
+                onClick={() => void loadSentResources()}
+                disabled={sentResourcesLoading}
+                className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-amber-300 text-amber-900 hover:bg-amber-50 text-sm disabled:opacity-50 whitespace-nowrap"
+              >
+                <RefreshCw className={`w-4 h-4 ${sentResourcesLoading ? "animate-spin" : ""}`} />
+                Liste aktualisieren
+              </button>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mb-3">
+            Hier erscheinen alle Stories mit Klient:innen-E-Mail (z. B. aus dem Batch-Versand), auch wenn sie
+            nicht in der Analytics-Tabelle „Ressourcen-Erstellung“ auftauchen.
+          </p>
+          {sentResourcesError ? (
+            <p className="text-red-600 text-sm">{sentResourcesError}</p>
+          ) : null}
+          {sentResourcesLoading && sentResources.length === 0 ? (
+            <div className="flex items-center gap-2 text-gray-600 py-8 justify-center">
+              <RefreshCw className="w-5 h-5 animate-spin text-amber-600" />
+              <span>Lade versendete Storys…</span>
+            </div>
+          ) : (
+            <DataTable<SentResource>
+              data={filteredSentResources}
+              columns={[
+                {
+                  key: "created_at",
+                  label: "Zeitpunkt",
+                  sortable: true,
+                  render: (value) => formatDate(value),
+                  width: "180px",
+                },
+                {
+                  key: "client_email",
+                  label: "Klient:innen-E-Mail",
+                  sortable: true,
+                  render: (value) => (
+                    <span className="font-medium text-gray-900">{value || "—"}</span>
+                  ),
+                },
+                {
+                  key: "title",
+                  label: "Titel / Figur",
+                  sortable: true,
+                  render: (_value, row) => (
+                    <span className="text-gray-800">
+                      {row.title ||
+                        (typeof row.resource_figure === "object" &&
+                        row.resource_figure &&
+                        "name" in row.resource_figure
+                          ? (row.resource_figure as { name: string }).name
+                          : null) ||
+                        "—"}
+                    </span>
+                  ),
+                },
+                {
+                  key: "id",
+                  label: "Story-ID",
+                  sortable: true,
+                  render: (value: string) => (
+                    <span title={value} className="font-mono text-xs text-gray-500 cursor-help">
+                      {value ? `${value.substring(0, 8)}…` : "—"}
+                    </span>
+                  ),
+                  width: "110px",
+                },
+                {
+                  key: "_resendSent",
+                  label: "E-Mail",
+                  sortable: false,
+                  align: "center" as const,
+                  width: "140px",
+                  render: (_v, row) =>
+                    row.id && row.client_email ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleResendClientEmail(row.id);
+                        }}
+                        disabled={resendingResourceId === row.id}
+                        className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Zugangs-E-Mail erneut senden"
+                      >
+                        <Mail className="w-3.5 h-3.5" />
+                        {resendingResourceId === row.id ? "…" : "Erneut"}
+                      </button>
+                    ) : (
+                      <span className="text-gray-400 text-xs">—</span>
+                    ),
+                },
+              ]}
+              pageSize={15}
+              searchable={false}
+              exportable={true}
+              emptyMessage={
+                sentListSearch.trim()
+                  ? "Keine Treffer für die Suche."
+                  : "Keine versendeten Stories mit Klient:innen-E-Mail."
+              }
+            />
+          )}
+        </div>
+
         {/* User-Statistiken */}
         <DataTable
           data={userData}
@@ -651,6 +858,31 @@ export function AnalyticsClient({
               width: "120px",
             },
             {
+              key: "_resend",
+              label: "E-Mail",
+              sortable: false,
+              align: "center" as const,
+              width: "140px",
+              render: (_value, row: AnalyticsEvent) =>
+                row.story_id ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleResendClientEmail(row.story_id);
+                    }}
+                    disabled={resendingResourceId === row.story_id}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Zugangs-E-Mail erneut an Klient:in senden"
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    {resendingResourceId === row.story_id ? "…" : "Erneut"}
+                  </button>
+                ) : (
+                  <span className="text-gray-400 text-xs">—</span>
+                ),
+            },
+            {
               key: "voice_id",
               label: "Stimme",
               sortable: true,
@@ -741,6 +973,12 @@ export function AnalyticsClient({
                       : selectedResource.resource_figure?.name || "Unbekannt"}
                   </h2>
                 )}
+                {!selectedResource.loading && selectedResource.client_email && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    Klient:innen-E-Mail:{" "}
+                    <span className="font-medium">{selectedResource.client_email}</span>
+                  </p>
+                )}
               </div>
               <button
                 onClick={closeResourceModal}
@@ -819,11 +1057,15 @@ export function AnalyticsClient({
               )}
             </div>
 
-            {/* Footer mit Abspielen-Button */}
-            {!selectedResource.loading && selectedResource.audio_url && (
-              <div className="p-6 border-t flex items-center justify-between">
+            {/* Footer: E-Mail erneut senden / Abspielen */}
+            {!selectedResource.loading &&
+              (selectedResource.audio_url ||
+                (selectedResource.id && selectedResource.client_email)) && (
+              <div className="p-6 border-t flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-4">
-                  {isPlayingResource && resourceAudioElement && (
+                  {selectedResource.audio_url &&
+                    isPlayingResource &&
+                    resourceAudioElement && (
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <span>
                         {Math.floor(currentTime)}s / {Math.floor(duration)}s
@@ -831,24 +1073,39 @@ export function AnalyticsClient({
                     </div>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
-                  {isPlayingResource ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  {selectedResource.id && selectedResource.client_email ? (
                     <button
-                      onClick={handlePauseAudio}
-                      className="px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                      type="button"
+                      onClick={() => handleResendClientEmail(selectedResource.id)}
+                      disabled={resendingResourceId === selectedResource.id}
+                      className="px-4 py-3 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-lg font-medium transition-colors flex items-center gap-2 border border-amber-300 disabled:opacity-50"
                     >
-                      <Pause className="w-5 h-5" />
-                      Pausieren
+                      <Mail className="w-5 h-5" />
+                      {resendingResourceId === selectedResource.id
+                        ? "Sende…"
+                        : "E-Mail erneut senden"}
                     </button>
-                  ) : (
-                    <button
-                      onClick={handlePlayAudio}
-                      className="px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-                    >
-                      <PlayCircle className="w-5 h-5" />
-                      Ressource abspielen
-                    </button>
-                  )}
+                  ) : null}
+                  {selectedResource.audio_url ? (
+                    isPlayingResource ? (
+                      <button
+                        onClick={handlePauseAudio}
+                        className="px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                      >
+                        <Pause className="w-5 h-5" />
+                        Pausieren
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handlePlayAudio}
+                        className="px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                      >
+                        <PlayCircle className="w-5 h-5" />
+                        Ressource abspielen
+                      </button>
+                    )
+                  ) : null}
                 </div>
               </div>
             )}

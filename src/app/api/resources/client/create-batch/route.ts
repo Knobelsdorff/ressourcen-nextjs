@@ -165,6 +165,14 @@ export async function POST(request: NextRequest) {
     const createdResources: any[] = [];
     const errors: Array<{ resourceName: string; error: string }> = [];
 
+    let resourceCreatedTrackingUserId = user.id;
+    if (normalizedClientEmail) {
+      const clientForTrack = await findUserByEmail(supabaseAdmin, normalizedClientEmail);
+      if (clientForTrack) {
+        resourceCreatedTrackingUserId = clientForTrack.id;
+      }
+    }
+
     // Verarbeite alle Ressourcen
     for (const resource of resources) {
       try {
@@ -278,6 +286,37 @@ export async function POST(request: NextRequest) {
 
         createdResources.push(dbData);
         console.log(`[API/resources/client/create-batch] ✅ Created resource: ${resource.name}`);
+
+        if (dbData?.id) {
+          try {
+            const serviceRoleKey =
+              process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.PRIVATE_SUPABASE_SERVICE_KEY;
+            if (serviceRoleKey) {
+              const { createClient } = await import('@supabase/supabase-js');
+              const trackingSupabase = createClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                serviceRoleKey
+              );
+              const { error: trackError } = await (trackingSupabase as any)
+                .from('user_analytics')
+                .insert({
+                  user_id: resourceCreatedTrackingUserId,
+                  event_type: 'resource_created',
+                  story_id: dbData.id,
+                  resource_figure_name: resource.name.trim(),
+                  voice_id: null,
+                });
+              if (trackError) {
+                console.error(
+                  '[API/resources/client/create-batch] resource_created track:',
+                  trackError
+                );
+              }
+            }
+          } catch (trackErr) {
+            console.error('[API/resources/client/create-batch] analytics track error:', trackErr);
+          }
+        }
       } catch (error: any) {
         console.error(`[API/resources/client/create-batch] Error processing resource ${resource.name}:`, error);
         errors.push({

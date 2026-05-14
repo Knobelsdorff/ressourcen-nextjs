@@ -630,6 +630,24 @@ export default function Dashboard() {
     }
   }, []);
 
+  // Gemeinsamer Handler für „Neue Power Story“ und CTA unter Wohlwollende Präsenz (Paywall oder /create-story)
+  const handleCreateStoryClick = useCallback(async () => {
+    if (user) {
+      try {
+        const { canCreateResource } = await import('@/lib/access');
+        const canCreate = await canCreateResource(user.id);
+        if (!canCreate) {
+          setShowPaywall(true);
+          return;
+        }
+      } catch (e) {
+        setShowPaywall(true);
+        return;
+      }
+    }
+    router.push('/create-story');
+  }, [user, router]);
+
   // Lade Geschichten aus Supabase
   const loadStories = useCallback(async () => {
     if (!user) {
@@ -1376,12 +1394,6 @@ export default function Dashboard() {
     });
     setPersonalStories(filteredStories);
   }, [stories, ankommenStory]);
-
-  // Check if user is an admin-created client (has stories created via ClientResourceModal)
-  // These users should NOT see the "Zum Ankommen" / "Wohlwollende Präsenz" section
-  const isAdminCreatedClient = stories.some(story =>
-    story.client_email !== null || story.is_audio_only === true
-  );
 
   // Lade Beispiel-Ressourcenfigur Konfiguration (nur für Admins)
   const fetchExampleResourceConfig = useCallback(async () => {
@@ -3557,20 +3569,7 @@ ${story.content}
                     <div className="mb-6">
                       <h2 className="text-xl font-semibold text-amber-900 mb-6">Meine Power Storys</h2>
                       <button
-                        onClick={async () => {
-                          // Check if user can create more stories
-                          if (user) {
-                            const { canCreateResource } = await import('@/lib/access');
-                            const canCreate = await canCreateResource(user.id);
-
-                            if (!canCreate) {
-                              setShowPaywall(true);
-                              return;
-                            }
-                          }
-
-                          router.push('/create-story');
-                        }}
+                        onClick={handleCreateStoryClick}
                         className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl shadow-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-200 flex items-center gap-2"
                       >
                         <Plus className="w-5 h-5" />
@@ -3827,8 +3826,8 @@ ${story.content}
                     )}
                   </div>
 
-                  {/* Section 2: Arrival Space (Ankommen) - SECONDARY - Hidden for admin-created clients */}
-                  {ankommenStory && !isAdminCreatedClient && (
+                  {/* Section 2: Arrival Space (Ankommen) - SECONDARY - Für alle sichtbar (auch Praxis-Klienten) */}
+                  {ankommenStory && (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -3845,6 +3844,30 @@ ${story.content}
                           <p className="text-center text-sm text-amber-600/70 mt-4">
                             (immer kostenlos)
                           </p>
+                          {/* CTA: Eigene Power Story erstellen (ruhig, sekundär) */}
+                          <div className="mt-6 pt-5 border-t border-amber-100">
+                            <p className="text-center text-sm font-medium text-amber-900 mb-1">
+                              {stories.filter((s: SavedStory) => !s.is_audio_only).length === 0
+                                ? 'Möchtest du jetzt deine erste eigene Power Story erstellen?'
+                                : 'Möchtest du eine weitere Power Story erstellen?'}
+                            </p>
+                            <p className="text-center text-xs text-gray-500 mb-4 max-w-sm mx-auto leading-snug">
+                              In 2–3 Minuten. In deinem Tempo. In Anlehnung an die Arbeit, die wir gemeinsam begonnen haben.
+                            </p>
+                            <div className="flex justify-center">
+                              <button
+                                type="button"
+                                onClick={handleCreateStoryClick}
+                                className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl text-sm font-medium text-amber-800 bg-amber-50 border border-amber-200 hover:bg-amber-100 hover:border-amber-300 transition-colors"
+                              >
+                                <Plus className="w-4 h-4 flex-shrink-0" />
+                                Eine Power Story in deinem Stil entwickeln
+                              </button>
+                            </div>
+                            <p className="text-center text-xs text-gray-500/70 mt-3 max-w-sm mx-auto leading-snug">
+                              Viele Klient:innen nutzen ihre eigenen Power Storys als sanfte Erinnerung an unsere gemeinsame Arbeit.
+                            </p>
+                          </div>
                         </div>
                       ) : (
                         <div className="text-center py-4 text-amber-600">
