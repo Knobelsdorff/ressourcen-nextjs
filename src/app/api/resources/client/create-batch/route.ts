@@ -183,19 +183,29 @@ export async function POST(request: NextRequest) {
 
         // Neue Methode: URL ist bereits vorhanden (direkter Upload vom Client)
         if (resource.audioUrl) {
+          const cleanUrl = resource.audioUrl.split('?')[0].toLowerCase();
+          const allowedUrlExtensions = ['.mp3', '.mp4', '.m4a'];
+          const hasAllowedExtension = allowedUrlExtensions.some((ext) => cleanUrl.endsWith(ext));
+          if (!hasAllowedExtension) {
+            errors.push({
+              resourceName: resource.name,
+              error: 'Nur MP3 oder M4A/MP4 sind für stabile Wiedergabe auf Safari erlaubt'
+            });
+            continue;
+          }
           publicUrl = resource.audioUrl;
           console.log(`[API/resources/client/create-batch] Using provided URL for ${resource.name}`);
         } 
         // Alte Methode: Datei hochladen
         else if (resource.audioFile) {
           // Validierung
-          const allowedTypes = ['.webm', '.mp3', '.mp4', '.ogg', '.m4a'];
+          const allowedTypes = ['.mp3', '.mp4', '.m4a'];
           const fileExtension = resource.audioFile.name.toLowerCase().substring(resource.audioFile.name.lastIndexOf('.'));
           
           if (!allowedTypes.some(type => resource.audioFile!.name.toLowerCase().endsWith(type))) {
             errors.push({
               resourceName: resource.name,
-              error: 'Nur Audio-Dateien (WebM, MP3, MP4, OGG, M4A) sind erlaubt'
+              error: 'Nur Audio-Dateien im Format MP3 oder M4A/MP4 sind erlaubt (Safari-kompatibel)'
             });
             continue;
           }
@@ -209,10 +219,9 @@ export async function POST(request: NextRequest) {
           const arrayBuffer = await resource.audioFile.arrayBuffer();
 
           // Bestimme Content-Type
-          let contentType = 'audio/webm';
+          let contentType = 'audio/mpeg';
           if (fileExtension === '.mp3') contentType = 'audio/mpeg';
           else if (fileExtension === '.mp4' || fileExtension === '.m4a') contentType = 'audio/mp4';
-          else if (fileExtension === '.ogg') contentType = 'audio/ogg';
 
           // Upload zu Supabase Storage
           const { data: uploadData, error: uploadError } = await supabaseAdmin.storage

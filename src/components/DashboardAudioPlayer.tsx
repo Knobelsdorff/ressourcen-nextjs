@@ -8,6 +8,7 @@ import EditableSubtitle from "@/components/EditableSubtitle";
 import EditableTitle from "@/components/EditableTitle";
 
 interface DashboardAudioPlayerProps {
+  storyId?: string;
   audioUrl: string;
   title: string;
   subtitle?: string | null;
@@ -27,6 +28,7 @@ interface DashboardAudioPlayerProps {
 }
 
 export default function DashboardAudioPlayer({
+  storyId,
   audioUrl,
   title,
   subtitle,
@@ -35,6 +37,94 @@ export default function DashboardAudioPlayer({
   editableSubtitle,
   editableTitle
 }: DashboardAudioPlayerProps) {
+  const getAudioExtension = useCallback((url: string): string => {
+    try {
+      const parsed = new URL(url);
+      const pathname = parsed.pathname.toLowerCase();
+      const idx = pathname.lastIndexOf(".");
+      return idx >= 0 ? pathname.substring(idx) : "";
+    } catch {
+      const clean = (url || "").split("?")[0].toLowerCase();
+      const idx = clean.lastIndexOf(".");
+      return idx >= 0 ? clean.substring(idx) : "";
+    }
+  }, []);
+
+  const isSafariBrowser = useCallback(() => {
+    if (typeof navigator === "undefined") return false;
+    const ua = navigator.userAgent;
+    const isSafari = /Safari/i.test(ua) && !/Chrome|CriOS|Chromium|Edg|OPR/i.test(ua);
+    return isSafari;
+  }, []);
+
+  const isSafariCompatibleFormat = useCallback((ext: string) => {
+    // Safari reliably supports mp3 and mp4/m4a
+    return [".mp3", ".mp4", ".m4a", ""].includes(ext);
+  }, []);
+
+  const getSafariFallbackCandidates = useCallback((url: string): string[] => {
+    try {
+      const parsed = new URL(url);
+      const pathname = parsed.pathname;
+      const match = pathname.match(/\.(webm|ogg)$/i);
+      if (!match) return [];
+      const withoutExt = pathname.replace(/\.(webm|ogg)$/i, "");
+      return [
+        `${parsed.origin}${withoutExt}_safari.mp3`,
+        `${parsed.origin}${withoutExt}.mp3`,
+        `${parsed.origin}${withoutExt}.m4a`,
+      ];
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const findWorkingSafariFallbackUrl = useCallback(
+    async (url: string): Promise<string | null> => {
+      const candidates = getSafariFallbackCandidates(url);
+      for (const candidate of candidates) {
+        try {
+          const response = await fetch(candidate, { method: "HEAD", cache: "no-cache" });
+          if (response.ok) {
+            return candidate;
+          }
+        } catch {
+          // ignore and try next candidate
+        }
+      }
+      return null;
+    },
+    [getSafariFallbackCandidates]
+  );
+
+  const tryOnDemandMigration = useCallback(
+    async (targetStoryId?: string): Promise<string | null> => {
+      if (!targetStoryId) return null;
+      try {
+        const response = await fetch("/api/audio/migrate-on-demand", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ storyId: targetStoryId }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data?.audioUrl) {
+          console.warn("[DashboardAudioPlayer] on-demand migration failed", {
+            storyId: targetStoryId,
+            status: response.status,
+            data,
+          });
+          return null;
+        }
+        return data.audioUrl as string;
+      } catch (err) {
+        console.warn("[DashboardAudioPlayer] on-demand migration request failed", err);
+        return null;
+      }
+    },
+    []
+  );
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0); // Voice duration
   const [musicDuration, setMusicDuration] = useState(0); // Background music duration
@@ -42,11 +132,54 @@ export default function DashboardAudioPlayer({
   const [isLoading, setIsLoading] = useState(true);
   const [isMusicLoaded, setIsMusicLoaded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [effectiveAudioUrl, setEffectiveAudioUrl] = useState(audioUrl);
+  const [isResolvingSafariFallback, setIsResolvingSafariFallback] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const backgroundMusicRef = useRef<HTMLAudioElement | null>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
   const isUserPausingRef = useRef(false); // Track if user initiated pause
   const wakeLockRef = useRef<any>(null); // Screen Wake Lock to prevent phone sleep during playback
+
+  useEffect(() => {
+    setEffectiveAudioUrl(audioUrl);
+  }, [audioUrl]);
+
+  useEffect(() => {
+    const resolveFallback = async () => {
+      const ext = getAudioExtension(audioUrl);
+      if (!isSafariBrowser() || isSafariCompatibleFormat(ext)) {
+        setEffectiveAudioUrl(audioUrl);
+        return;
+      }
+      setIsResolvingSafariFallback(true);
+      const migratedUrl = await tryOnDemandMigration(storyId);
+      if (migratedUrl) {
+        setEffectiveAudioUrl(migratedUrl);
+      } else {
+        const fallbackUrl = await findWorkingSafariFallbackUrl(audioUrl);
+        if (fallbackUrl) {
+          console.log("[DashboardAudioPlayer] Using Safari fallback URL", {
+            original: audioUrl,
+            fallback: fallbackUrl,
+          });
+          setEffectiveAudioUrl(fallbackUrl);
+        } else {
+          setEffectiveAudioUrl(audioUrl);
+        }
+      }
+      setIsResolvingSafariFallback(false);
+    };
+
+    void resolveFallback();
+  }, [
+    audioUrl,
+    findWorkingSafariFallbackUrl,
+    tryOnDemandMigration,
+    storyId,
+    getAudioExtension,
+    isSafariBrowser,
+    isSafariCompatibleFormat,
+  ]);
 
   // Screen Wake Lock: prevent phone from sleeping while audio is playing
   const requestWakeLock = useCallback(async () => {
@@ -169,20 +302,36 @@ export default function DashboardAudioPlayer({
     console.log('poopoo [DashboardAudioPlayer] resourceFigure:', resourceFigure);
 
     // Create main audio element
-    const audio = new Audio(audioUrl);
+    const audio = new Audio(effectiveAudioUrl);
     audio.preload = 'metadata';
     audioRef.current = audio;
 
     // Add error handler for audio loading
     audio.addEventListener('error', (e) => {
+      const ext = getAudioExtension(audioUrl);
       console.error('poopoo [DashboardAudioPlayer] AUDIO LOAD ERROR:', {
         error: audio.error,
         errorCode: audio.error?.code,
         errorMessage: audio.error?.message,
-        audioUrl: audioUrl,
+        audioUrl: effectiveAudioUrl,
+        extension: ext,
+        browser: typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
         networkState: audio.networkState,
         readyState: audio.readyState
       });
+
+      // Best effort: zusätzliche Header-Diagnose für MIME-Probleme
+      fetch(effectiveAudioUrl, { method: "HEAD", cache: "no-cache" })
+        .then((res) => {
+          console.error('poopoo [DashboardAudioPlayer] AUDIO HEAD DEBUG:', {
+            status: res.status,
+            contentType: res.headers.get("content-type"),
+            contentLength: res.headers.get("content-length"),
+          });
+        })
+        .catch((headErr) => {
+          console.warn('[DashboardAudioPlayer] HEAD debug failed:', headErr);
+        });
     });
 
     // Load background music asynchronously
@@ -394,7 +543,7 @@ export default function DashboardAudioPlayer({
         backgroundMusicRef.current.src = '';
       }
     };
-  }, [audioUrl, resourceFigure, onEnded]);
+  }, [effectiveAudioUrl, resourceFigure, onEnded, getAudioExtension]);
 
   const togglePlayPause = async () => {
     if (!audioRef.current) return;
@@ -417,6 +566,19 @@ export default function DashboardAudioPlayer({
       }, 100);
     } else {
       console.log('[DashboardAudioPlayer] User clicked PLAY button');
+
+      const ext = getAudioExtension(effectiveAudioUrl);
+      if (isSafariBrowser() && !isSafariCompatibleFormat(ext)) {
+        console.error('[DashboardAudioPlayer] Safari format guard triggered', {
+          audioUrl: effectiveAudioUrl,
+          extension: ext,
+          userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
+        });
+        alert(
+          "Diese Audio-Datei ist in Safari voraussichtlich nicht kompatibel (z. B. WebM/OGG). Bitte in Chrome öffnen oder die Datei als MP3/M4A neu hochladen."
+        );
+        return;
+      }
 
       // Ensure both audios start together
       const audio = audioRef.current;
@@ -724,6 +886,8 @@ export default function DashboardAudioPlayer({
           >
             {isLoading ? (
               <div className="w-7 h-7 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : isResolvingSafariFallback ? (
+              <div className="w-7 h-7 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : isPlaying ? (
               <Pause className="w-7 h-7" />
             ) : (
@@ -731,6 +895,11 @@ export default function DashboardAudioPlayer({
             )}
           </motion.button>
         </div>
+        {isResolvingSafariFallback && (
+          <p className="text-center text-xs text-amber-700">
+            Audio wird Safari-kompatibel vorbereitet…
+          </p>
+        )}
       </div>
     </div>
   );
