@@ -3780,6 +3780,7 @@ ${story.content}
                             />
                           ) : (
                             <DashboardAudioPlayer
+                              storyId={story.id}
                               audioUrl={story.audio_url}
                               title={story.title}
                               subtitle={getDisplaySubtitle(story)}

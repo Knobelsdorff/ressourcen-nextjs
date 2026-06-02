@@ -3,6 +3,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { validateAudioToken } from '@/lib/audio-token';
 import { createServerAdminClient } from '@/lib/supabase/serverAdminClient';
 
+function getMimeTypeFromFilename(filename: string): string {
+  const lower = filename.toLowerCase();
+  if (lower.endsWith('.mp3')) return 'audio/mpeg';
+  if (lower.endsWith('.m4a') || lower.endsWith('.mp4')) return 'audio/mp4';
+  if (lower.endsWith('.ogg')) return 'audio/ogg';
+  if (lower.endsWith('.webm')) return 'audio/webm';
+  return 'application/octet-stream';
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -43,10 +52,14 @@ export async function GET(request: NextRequest) {
     // Konvertiere Blob zu ArrayBuffer
     const arrayBuffer = await audioData.arrayBuffer();
 
+    const inferredMime = getMimeTypeFromFilename(filename);
+    const blobMime = audioData.type || '';
+    const mimeType = blobMime && blobMime !== 'application/octet-stream' ? blobMime : inferredMime;
+
     // Stream Audio zurück
     return new NextResponse(arrayBuffer, {
       headers: {
-        'Content-Type': 'audio/mpeg',
+        'Content-Type': mimeType,
         'Content-Length': arrayBuffer.byteLength.toString(),
         'Cache-Control': 'private, max-age=3600', // 1 Stunde Cache
         'Accept-Ranges': 'bytes',

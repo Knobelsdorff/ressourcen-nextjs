@@ -15,6 +15,24 @@ function isAdminUser(email: string | undefined): boolean {
   return adminEmails.includes(email.toLowerCase());
 }
 
+function getAudioExtension(audioUrl: string | null): string | null {
+  if (!audioUrl) return null;
+  try {
+    const parsed = new URL(audioUrl);
+    const pathname = parsed.pathname.toLowerCase();
+    const idx = pathname.lastIndexOf('.');
+    return idx >= 0 ? pathname.substring(idx) : null;
+  } catch {
+    const clean = audioUrl.split('?')[0].toLowerCase();
+    const idx = clean.lastIndexOf('.');
+    return idx >= 0 ? clean.substring(idx) : null;
+  }
+}
+
+function isSafariCompatible(ext: string | null): boolean {
+  return ext === '.mp3' || ext === '.mp4' || ext === '.m4a';
+}
+
 /**
  * API-Endpoint zum Abrufen aller versendeten Ressourcen (mit client_email)
  */
@@ -74,9 +92,28 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const enrichedResources = (resources || []).map((r: any) => {
+      const ext = getAudioExtension(r.audio_url || null);
+      return {
+        ...r,
+        audio_format: ext,
+        is_safari_compatible: isSafariCompatible(ext),
+      };
+    });
+
+    const formatSummary = enrichedResources.reduce(
+      (acc: Record<string, number>, r: any) => {
+        const key = r.audio_format || 'unknown';
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      },
+      {}
+    );
+
     return NextResponse.json({
       success: true,
-      resources: resources || [],
+      resources: enrichedResources,
+      formatSummary,
     });
 
   } catch (error: any) {

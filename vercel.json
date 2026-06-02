@@ -9,6 +9,14 @@
     "src/app/api/admin/music/upload/route.ts": {
       "maxDuration": 120,
       "memory": 1024
+    },
+    "src/app/api/audio/migrate-on-demand/route.ts": {
+      "maxDuration": 120,
+      "memory": 1024
+    },
+    "src/app/api/admin/audio/migrate-formats/route.ts": {
+      "maxDuration": 120,
+      "memory": 1024
     }
   }
 }
