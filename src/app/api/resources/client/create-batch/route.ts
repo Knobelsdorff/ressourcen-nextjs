@@ -184,12 +184,12 @@ export async function POST(request: NextRequest) {
         // Neue Methode: URL ist bereits vorhanden (direkter Upload vom Client)
         if (resource.audioUrl) {
           const cleanUrl = resource.audioUrl.split('?')[0].toLowerCase();
-          const allowedUrlExtensions = ['.mp3', '.mp4', '.m4a'];
+          const allowedUrlExtensions = ['.webm', '.ogg', '.mp3', '.mp4', '.m4a'];
           const hasAllowedExtension = allowedUrlExtensions.some((ext) => cleanUrl.endsWith(ext));
           if (!hasAllowedExtension) {
             errors.push({
               resourceName: resource.name,
-              error: 'Nur MP3 oder M4A/MP4 sind für stabile Wiedergabe auf Safari erlaubt'
+              error: 'Unbekanntes Audio-Format (erlaubt: WebM, OGG, MP3, M4A/MP4)'
             });
             continue;
           }
@@ -199,13 +199,13 @@ export async function POST(request: NextRequest) {
         // Alte Methode: Datei hochladen
         else if (resource.audioFile) {
           // Validierung
-          const allowedTypes = ['.mp3', '.mp4', '.m4a'];
+          const allowedTypes = ['.webm', '.ogg', '.mp3', '.mp4', '.m4a'];
           const fileExtension = resource.audioFile.name.toLowerCase().substring(resource.audioFile.name.lastIndexOf('.'));
           
           if (!allowedTypes.some(type => resource.audioFile!.name.toLowerCase().endsWith(type))) {
             errors.push({
               resourceName: resource.name,
-              error: 'Nur Audio-Dateien im Format MP3 oder M4A/MP4 sind erlaubt (Safari-kompatibel)'
+              error: 'Unbekanntes Audio-Format (erlaubt: WebM, OGG, MP3, M4A/MP4)'
             });
             continue;
           }
@@ -219,9 +219,11 @@ export async function POST(request: NextRequest) {
           const arrayBuffer = await resource.audioFile.arrayBuffer();
 
           // Bestimme Content-Type
-          let contentType = 'audio/mpeg';
+          let contentType = 'audio/webm';
           if (fileExtension === '.mp3') contentType = 'audio/mpeg';
           else if (fileExtension === '.mp4' || fileExtension === '.m4a') contentType = 'audio/mp4';
+          else if (fileExtension === '.ogg') contentType = 'audio/ogg';
+          else if (fileExtension === '.webm') contentType = 'audio/webm';
 
           // Upload zu Supabase Storage
           const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
@@ -334,6 +336,9 @@ export async function POST(request: NextRequest) {
         });
       }
     }
+
+    let clientEmailSent = false;
+    let clientEmailError: string | undefined;
 
     // Wenn Ressourcen erstellt wurden, sende Email mit Magic Link
     if (createdResources.length > 0) {
@@ -536,6 +541,7 @@ export async function POST(request: NextRequest) {
             });
 
             if (emailResult.success) {
+              clientEmailSent = true;
               console.log(`[API/resources/client/create-batch] ✅ Email sent successfully to: ${normalizedClientEmail}`);
               
               // Sende Bestätigungs-Email an Admin
@@ -583,6 +589,7 @@ export async function POST(request: NextRequest) {
                 // Fehler ist nicht kritisch für den Hauptprozess, aber sollte geloggt werden
               }
             } else {
+              clientEmailError = emailResult.error;
               console.error(`[API/resources/client/create-batch] ❌ Failed to send email:`, emailResult.error);
               
               // Sende Fehler-Bestätigung an Admin
@@ -605,12 +612,34 @@ export async function POST(request: NextRequest) {
               }
             }
           } catch (emailError: any) {
+            clientEmailError = emailError?.message || 'email_send_exception';
             console.error('[API/resources/client/create-batch] Error sending email:', emailError);
           }
+        } else {
+          clientEmailError = 'magic_link_not_generated';
+          console.error('[API/resources/client/create-batch] No magic link generated, email not sent');
         }
       } catch (emailError: any) {
+        clientEmailError = emailError?.message || 'email_process_exception';
         console.error('[API/resources/client/create-batch] Error processing email:', emailError);
       }
+    }
+
+    if (createdResources.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          created: 0,
+          total: resources.length,
+          errors:
+            errors.length > 0
+              ? errors
+              : [{ resourceName: '—', error: 'Keine Ressource konnte gespeichert werden' }],
+          resources: [],
+          emailSent: false,
+        },
+        { status: 400 }
+      );
     }
 
     return NextResponse.json({
@@ -619,7 +648,8 @@ export async function POST(request: NextRequest) {
       total: resources.length,
       errors: errors.length > 0 ? errors : undefined,
       resources: createdResources,
-      emailSent: createdResources.length > 0 && !!normalizedClientEmail,
+      emailSent: clientEmailSent,
+      emailError: clientEmailSent ? undefined : clientEmailError,
     });
   } catch (error: any) {
     console.error('Client resource batch creation API error:', error);

@@ -74,6 +74,13 @@ Success criteria:
 - Kein manuelles `apt install ffmpeg` auf Vercel nötig.
 - Migrate-Routen: 120s Timeout, 1024 MB RAM (`vercel.json`).
 
+## Manueller Klienten-Versand (ClientResourceModal)
+
+- Admin-Recorder lädt **WebM** hoch; `POST /api/resources/client/create-batch` akzeptiert WebM/OGG/MP3/M4A.
+- **Versand** funktioniert in jedem Browser (Chrome, iPad, Mac).
+- **Safari (Klientin):** erstes Abspielen triggert `POST /api/audio/migrate-on-demand` → `_safari.mp3`.
+- API: `emailSent` nur bei erfolgreichem Resend; bei `created: 0` → HTTP 400 mit `errors`.
+
 ## 7) Monitoring
 
 - Watch server logs:

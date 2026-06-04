@@ -294,15 +294,35 @@ export default function ClientResourceModal({
         throw new Error(`Server-Fehler: ${response.status} ${response.statusText}. ${text.substring(0, 200)}`);
       }
 
+      const formatApiErrors = (apiErrors?: Array<{ resourceName?: string; error?: string }>) => {
+        if (!apiErrors?.length) return null;
+        return apiErrors
+          .map((e) => (e.resourceName ? `"${e.resourceName}": ${e.error}` : e.error))
+          .filter(Boolean)
+          .join(" ");
+      };
+
       if (!response.ok) {
         console.error("API Error:", data);
-        const errorMessage = data.details 
-          ? `${data.error}: ${data.details}`
-          : data.error || "Fehler beim Versenden der Ressourcen.";
+        const apiErrorsText = formatApiErrors(data.errors);
+        const errorMessage = apiErrorsText
+          ? apiErrorsText
+          : data.details
+            ? `${data.error}: ${data.details}`
+            : data.error || "Fehler beim Versenden der Ressourcen.";
         throw new Error(errorMessage);
       }
 
-      // Zeige Erfolgsmeldung
+      const created = typeof data.created === "number" ? data.created : 0;
+
+      if (created === 0) {
+        const apiErrorsText = formatApiErrors(data.errors);
+        throw new Error(
+          apiErrorsText || "Keine Ressource konnte gespeichert werden. Bitte erneut versuchen."
+        );
+      }
+
+      // Zeige Erfolgsmeldung nur wenn Ressource(n) angelegt und E-Mail versendet
       if (data.emailSent) {
         setSuccess(true);
         setRecordedResources([]);
@@ -325,7 +345,10 @@ export default function ClientResourceModal({
           onClose();
         }, 3000);
       } else {
-        throw new Error("E-Mail konnte nicht versendet werden.");
+        const detail = data.emailError ? ` (${data.emailError})` : "";
+        throw new Error(
+          `Ressource wurde gespeichert, aber die E-Mail konnte nicht versendet werden${detail}. Bitte prüfe Resend/Vercel-Logs oder sende den Link manuell erneut.`
+        );
       }
 
     } catch (err: any) {
