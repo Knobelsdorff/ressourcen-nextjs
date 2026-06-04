@@ -219,7 +219,7 @@ export async function POST(request: NextRequest) {
           const arrayBuffer = await resource.audioFile.arrayBuffer();
 
           // Bestimme Content-Type
-          let contentType = 'audio/webm';
+          let contentType = 'audio/mpeg';
           if (fileExtension === '.mp3') contentType = 'audio/mpeg';
           else if (fileExtension === '.mp4' || fileExtension === '.m4a') contentType = 'audio/mp4';
           else if (fileExtension === '.ogg') contentType = 'audio/ogg';
