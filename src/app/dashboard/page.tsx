@@ -45,7 +45,7 @@ interface SavedStory {
 }
 
 export default function Dashboard() {
-  const { user, session } = useAuth();
+  const { user, session, loading: authLoading } = useAuth();
   const router = useRouter();
   
   // Prüfe ob User Full Admin ist (Analytics + Music)
@@ -660,26 +660,24 @@ export default function Dashboard() {
     setError('');
     
     try {
-      // Versuche zuerst pending Ressourcen zuzuordnen
-      const resourcesAssigned = await assignPendingResources();
-      
-      // Wenn Ressourcen zugeordnet wurden, warte kurz bevor wir neu laden
-      if (resourcesAssigned) {
-        // Kurze Pause, damit die DB-Update abgeschlossen ist
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-
       console.log('poopoo [Dashboard] Fetching stories for user:', user.id);
 
-      const { data, error } = await supabase
-        .from('saved_stories')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      const mineResponse = await fetch('/api/resources/mine', { credentials: 'include' });
+      const mineData = await mineResponse.json().catch(() => ({}));
 
-      console.log('poopoo [Dashboard] Supabase response:', {
+      if (!mineResponse.ok) {
+        throw new Error(mineData.error || mineData.details || 'Fehler beim Laden der Geschichten');
+      }
+
+      if (mineData.assignedCount > 0) {
+        console.log(`Dashboard: mine API assigned ${mineData.assignedCount} pending resources`);
+      }
+
+      const data = mineData.stories as SavedStory[] | undefined;
+
+      console.log('poopoo [Dashboard] mine API response:', {
         storiesCount: data?.length,
-        error: error?.message
+        assignedCount: mineData.assignedCount,
       });
 
       // Log each story's audio_url
@@ -696,10 +694,7 @@ export default function Dashboard() {
         });
       }
 
-      if (error) {
-        console.error('Error loading stories:', error);
-        setError(`Fehler beim Laden der Geschichten: ${error.message}`);
-      } else {
+      {
         console.log('Stories loaded successfully:', data);
         
         // Entferne Duplikate BEVOR wir sie setzen
@@ -1332,6 +1327,17 @@ export default function Dashboard() {
       setHasSeenDashboardIntro(true);
     }
   }, [user, hasSeenDashboardIntro]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      const returnTo =
+        typeof window !== 'undefined'
+          ? `${window.location.pathname}${window.location.search}`
+          : '/dashboard';
+      router.replace(`/zugang?returnTo=${encodeURIComponent(returnTo)}`);
+    }
+  }, [authLoading, user, router]);
 
   useEffect(() => {
     if (user) {
@@ -3510,6 +3516,17 @@ ${story.content}
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [audioElements, backgroundMusicElements]);
+
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4" />
+          <p className="text-gray-600">Lade deinen Bereich…</p>
+        </div>
+      </div>
+    );
+  }
 
         return (
     <BLSProvider>
