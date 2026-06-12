@@ -181,11 +181,19 @@ function ResetPasswordInner() {
         }
         try {
           setSubmitting(true);
-          const { error } = await supabase.auth.updateUser({ password });
+          const { error } = await supabase.auth.updateUser({
+            password,
+            data: {
+              password_set: true,
+              password_set_at: new Date().toISOString(),
+            },
+          });
           if (error) {
             setError(error.message);
           } else {
-            setMessage("Passwort wurde aktualisiert. Du wirst weitergeleitet…");
+            setMessage(
+              "Passwort wurde aktualisiert. Du wirst weitergeleitet… Speichere www.power-storys.de/zugang als Lesezeichen für deinen nächsten Besuch."
+            );
             setTimeout(() => {
               window.location.href = '/dashboard';
             }, 1000);
