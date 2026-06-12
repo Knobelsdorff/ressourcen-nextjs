@@ -116,6 +116,10 @@ function SetPasswordInner() {
           <p className="text-amber-700">
             Bitte richte dein Passwort ein, um fortzufahren.
           </p>
+          <p className="text-amber-600 text-sm mt-3">
+            Der E-Mail-Link funktioniert nur einmal. Speichere danach{' '}
+            <strong>www.power-storys.de/zugang</strong> als Lesezeichen für deinen nächsten Besuch.
+          </p>
         </div>
 
         {!ready && (

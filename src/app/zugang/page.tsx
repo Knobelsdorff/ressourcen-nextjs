@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { createSPAClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,8 +13,17 @@ import { Loader2, Mail, Lock } from "lucide-react";
 
 type ViewState = "magic-link" | "magic-link-success" | "password-login";
 
-export default function ZugangPage() {
+function getSafeReturnTo(param: string | null): string {
+  if (!param || !param.startsWith('/') || param.startsWith('//')) {
+    return '/dashboard';
+  }
+  return param;
+}
+
+function ZugangPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = getSafeReturnTo(searchParams.get('returnTo'));
   const { user } = useAuth();
   const [viewState, setViewState] = useState<ViewState>("magic-link");
   const [email, setEmail] = useState("");
@@ -27,9 +36,9 @@ export default function ZugangPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      router.push("/dashboard");
+      router.push(returnTo);
     }
-  }, [user, router]);
+  }, [user, router, returnTo]);
 
   const handleMagicLinkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +56,7 @@ export default function ZugangPage() {
 
       const supabase = createSPAClient();
       const origin = typeof window !== "undefined" ? window.location.origin : "";
-      const redirectTo = `${origin}/dashboard`;
+      const redirectTo = `${origin}${returnTo}`;
 
       const { error: magicLinkError } = await supabase.auth.signInWithOtp({
         email: normalizedEmail,
@@ -105,8 +114,7 @@ export default function ZugangPage() {
         return;
       }
 
-      // Success - redirect to dashboard
-      router.push("/dashboard");
+      router.push(returnTo);
     } catch (err: any) {
       setError(err.message || "Ein unerwarteter Fehler ist aufgetreten.");
       setIsLoading(false);
@@ -356,5 +364,19 @@ export default function ZugangPage() {
         </motion.div>
       </div>
     </div>
+  );
+}
+
+export default function ZugangPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+        </div>
+      }
+    >
+      <ZugangPageInner />
+    </Suspense>
   );
 }

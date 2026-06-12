@@ -5,6 +5,10 @@
 
 import { Resend } from 'resend';
 
+function getAppBaseUrl(): string {
+  return process.env.APP_BASE_URL || 'https://www.power-storys.de';
+}
+
 interface SendResourceReadyEmailParams {
   to: string;
   resourceName?: string; // Für Rückwärtskompatibilität
@@ -14,6 +18,8 @@ interface SendResourceReadyEmailParams {
 }
 
 const getEmailHTML = (resourceNames: string[], magicLink: string, isNewUser: boolean = false) => {
+  const appBaseUrl = getAppBaseUrl();
+  const zugangUrl = `${appBaseUrl}/zugang`;
   const isMultiple = resourceNames.length > 1;
   const resourceNamesList = resourceNames.map(name => `<li style="margin-bottom: 8px;"><strong>"${name}"</strong></li>`).join('');
 
@@ -50,7 +56,7 @@ const getEmailHTML = (resourceNames: string[], magicLink: string, isNewUser: boo
     ${isNewUser ? `
     <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px;">
       <p style="font-size: 15px; margin: 0; color: #92400e;">
-        <strong>Wichtig:</strong> Damit es für dich gespeichert bleibt und du sie in Ruhe anhören kannst, brauchst du einmalig ein eigenes Passwort. Danach kannst du dich jederzeit auf <a href="https://www.power-storys.de/zugang" target="_blank">www.power-storys.de/zugang</a> mit deiner E-Mail und deinem Passwort anmelden.
+        <strong>Wichtig:</strong> Der Button-Link funktioniert <strong>nur einmal</strong> (zum Passwort einrichten). Speichere danach <a href="${zugangUrl}" target="_blank">${zugangUrl}</a> als Lesezeichen — dort meldest du dich künftig mit E-Mail und Passwort an.
       </p>
     </div>
     ` : ''}
@@ -63,7 +69,7 @@ const getEmailHTML = (resourceNames: string[], magicLink: string, isNewUser: boo
     </div>
 
     <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
-      Dieser Link ist 24 Stunden gültig.
+      Dieser E-Mail-Link ist einmalig und 24 Stunden gültig. Für spätere Besuche: <a href="${zugangUrl}" style="color: #f59e0b;">${zugangUrl}</a>
     </p>
 
     ${!isNewUser ? `
@@ -85,7 +91,7 @@ const getEmailHTML = (resourceNames: string[], magicLink: string, isNewUser: boo
 
   <div style="text-align: center; margin-top: 20px; padding: 20px; color: #6b7280; font-size: 12px;">
     <p>© ${new Date().getFullYear()} Power Storys - Andreas von Knobelsdorff</p>
-    <p><a href="https://www.power-storys.de">www.power-storys.de</a></p>
+    <p><a href="${appBaseUrl}">${appBaseUrl.replace(/^https?:\/\//, '')}</a></p>
   </div>
 </body>
 </html>
