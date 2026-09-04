@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { Database } from '@/lib/types/database.types';
 import { createServerAdminClient } from '@/lib/supabase/serverAdminClient';
+import { getEmailBaseUrl } from '@/lib/app-url';
 
 /**
  * Prüft ob der aktuelle User ein Admin ist (Full Admin oder Music Admin)
@@ -249,26 +250,11 @@ export async function POST(request: NextRequest) {
         // Prüfe ob User bereits existiert (per Pagination, da listUsers nur eine Seite liefert)
         let userExists = await findUserByEmail(supabaseAdmin, normalizedClientEmail);
 
-        // Bestimme origin aus Request-URL (zuverlässiger als Header)
-        const requestUrl = new URL(request.url);
-        let origin = requestUrl.origin;
-        
-        // Fallback: Prüfe Header falls origin nicht aus URL bestimmbar
-        if (!origin || origin === 'null') {
-          const headersList = await request.headers;
-          origin = headersList.get('origin') || 
-                   headersList.get('referer')?.split('/').slice(0, 3).join('/') || 
-                   'http://localhost:3000';
-        }
-        
-        // Für localhost: Stelle sicher, dass Port 3000 verwendet wird
-        if (origin.includes('localhost') && !origin.includes(':')) {
-          origin = 'http://localhost:3000';
-        } else if (origin.includes('localhost') && !origin.includes(':3000')) {
-          // Ersetze Port falls vorhanden
-          origin = origin.replace(/:\d+/, ':3000');
-        }
-        
+        // Basis-URL für Email-Links: immer APP_BASE_URL (in Produktion),
+        // niemals der Request-Origin – der ist auf dem Server das gebundene
+        // Interface (z.B. http://0.0.0.0:3000) und macht Links unbrauchbar.
+        const origin = getEmailBaseUrl(request.headers.get('origin'));
+
         console.log('[API/resources/client/create] Determined origin:', origin);
         const redirectUrl = `${origin}/dashboard?resource=${dbData.id}`;
         console.log('[API/resources/client/create] Redirect URL:', redirectUrl);

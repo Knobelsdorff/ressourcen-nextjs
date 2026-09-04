@@ -4,10 +4,7 @@
  */
 
 import { Resend } from 'resend';
-
-function getAppBaseUrl(): string {
-  return process.env.APP_BASE_URL || 'https://www.power-storys.de';
-}
+import { getAppBaseUrl } from './app-url';
 
 interface SendResourceReadyEmailParams {
   to: string;

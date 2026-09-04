@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { Database } from '@/lib/types/database.types';
 import { createServerAdminClient } from '@/lib/supabase/serverAdminClient';
+import { getEmailBaseUrl, withRedirectTo } from '@/lib/app-url';
 
 /**
  * Prüft ob der aktuelle User ein Admin ist (Full Admin oder Music Admin)
@@ -142,23 +143,10 @@ export async function POST(request: NextRequest) {
     // Verwende Admin Client für Storage Upload (umgeht RLS)
     const supabaseAdmin = await createServerAdminClient();
 
-    // Bestimme origin aus Request-URL
-    const requestUrl = new URL(request.url);
-    let origin = requestUrl.origin;
-
-    if (!origin || origin === 'null') {
-      const headersList = await request.headers;
-      origin = headersList.get('origin') ||
-               headersList.get('referer')?.split('/').slice(0, 3).join('/') ||
-               'http://localhost:3000';
-    }
-
-    // Normalisiere localhost URLs
-    if (origin.includes('localhost') && !origin.includes(':')) {
-      origin = 'http://localhost:3000';
-    } else if (origin.includes('localhost') && !origin.includes(':3000')) {
-      origin = origin.replace(/:\d+/, ':3000');
-    }
+    // Basis-URL für Email-Links: immer APP_BASE_URL (in Produktion),
+    // niemals der Request-Origin – der ist auf dem Server das gebundene
+    // Interface (z.B. http://0.0.0.0:3000) und macht Links unbrauchbar.
+    const origin = getEmailBaseUrl(request.headers.get('origin'));
 
     console.log('[API/resources/client/create-batch] Detected origin:', origin);
 
@@ -404,18 +392,11 @@ export async function POST(request: NextRequest) {
             if (!recoveryError && recoveryData?.properties?.action_link) {
               magicLink = recoveryData.properties.action_link;
 
-              // Fix: Replace production URL with correct origin in the redirect_to parameter
-              const linkUrl = new URL(magicLink);
-              const currentRedirectTo = linkUrl.searchParams.get('redirect_to');
-              if (currentRedirectTo) {
-                // Replace any production URL with the current origin
-                const newRedirectTo = currentRedirectTo.replace(/https:\/\/[^\/]+/, origin);
-                linkUrl.searchParams.set('redirect_to', newRedirectTo);
-                magicLink = linkUrl.toString();
-              }
+              // redirect_to explizit auf die öffentliche App-URL setzen
+              magicLink = withRedirectTo(magicLink, redirectUrl);
 
               console.log('[API/resources/client/create-batch] Recovery link generated for existing user without password');
-              console.log('[API/resources/client/create-batch] Modified redirect_to:', linkUrl.searchParams.get('redirect_to'));
+              console.log('[API/resources/client/create-batch] Modified redirect_to:', redirectUrl);
             } else {
               console.error('[API/resources/client/create-batch] Error generating recovery link:', recoveryError);
             }
@@ -446,18 +427,11 @@ export async function POST(request: NextRequest) {
             if (!recoveryError && recoveryData?.properties?.action_link) {
               magicLink = recoveryData.properties.action_link;
 
-              // Fix: Replace production URL with correct origin in the redirect_to parameter
-              const linkUrl = new URL(magicLink);
-              const currentRedirectTo = linkUrl.searchParams.get('redirect_to');
-              if (currentRedirectTo) {
-                // Replace any production URL with the current origin
-                const newRedirectTo = currentRedirectTo.replace(/https:\/\/[^\/]+/, origin);
-                linkUrl.searchParams.set('redirect_to', newRedirectTo);
-                magicLink = linkUrl.toString();
-              }
+              // redirect_to explizit auf die öffentliche App-URL setzen
+              magicLink = withRedirectTo(magicLink, redirectUrl);
 
               console.log('[API/resources/client/create-batch] Recovery link generated for new user');
-              console.log('[API/resources/client/create-batch] Modified redirect_to:', linkUrl.searchParams.get('redirect_to'));
+              console.log('[API/resources/client/create-batch] Modified redirect_to:', redirectUrl);
             } else {
               console.error('[API/resources/client/create-batch] Error generating recovery link:', recoveryError);
             }
@@ -497,13 +471,7 @@ export async function POST(request: NextRequest) {
                   });
                   if (!recoveryError && recoveryData?.properties?.action_link) {
                     magicLink = recoveryData.properties.action_link;
-                    const linkUrl = new URL(magicLink);
-                    const currentRedirectTo = linkUrl.searchParams.get('redirect_to');
-                    if (currentRedirectTo) {
-                      const newRedirectTo = currentRedirectTo.replace(/https:\/\/[^/]+/, origin);
-                      linkUrl.searchParams.set('redirect_to', newRedirectTo);
-                      magicLink = linkUrl.toString();
-                    }
+                    magicLink = withRedirectTo(magicLink, redirectUrl);
                     console.log('[API/resources/client/create-batch] Recovery link generated for existing user (after email_exists)');
                   }
                 }
