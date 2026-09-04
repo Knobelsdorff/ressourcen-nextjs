@@ -12,86 +12,214 @@ interface SendResourceReadyEmailParams {
   resourceNames?: string[]; // Array von Ressourcennamen
   magicLink: string;
   isNewUser?: boolean; // Ob der User neu ist und Passwort einrichten muss
+  /** Ablaufdatum des Zugangslinks – wird in der E-Mail als Datum genannt. */
+  expiresAt?: Date;
 }
 
-const getEmailHTML = (resourceNames: string[], magicLink: string, isNewUser: boolean = false) => {
+/** Formatiert ein Datum als "4. November 2026". */
+const formatGermanDate = (date: Date): string =>
+  new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'long', year: 'numeric' }).format(date);
+
+/**
+ * Gestaltung folgt der App: warmes Amber/Orange, weiche Rundungen, viel Luft.
+ * Tabellen-Layout und Inline-Styles, weil Outlook & Co. weder Flexbox noch
+ * <style>-Blöcke zuverlässig unterstützen.
+ */
+const getEmailHTML = (
+  resourceNames: string[],
+  magicLink: string,
+  isNewUser: boolean = false,
+  expiresAt?: Date
+) => {
   const appBaseUrl = getAppBaseUrl();
   const zugangUrl = `${appBaseUrl}/zugang`;
   const isMultiple = resourceNames.length > 1;
-  const resourceNamesList = resourceNames.map(name => `<li style="margin-bottom: 8px;"><strong>"${name}"</strong></li>`).join('');
 
-  return `
-<!DOCTYPE html>
-<html>
+  const resourceItems = resourceNames
+    .map(
+      (name) => `
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #fde9c8;">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td width="26" valign="top" style="font-size: 15px; line-height: 24px; color: #d97706;">&#9834;</td>
+                      <td style="font-size: 16px; line-height: 24px; color: #7c2d12; font-weight: 600;">${name}</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>`
+    )
+    .join('');
+
+  const gueltigkeit = expiresAt
+    ? `Dieser Link bleibt bis zum <strong style="color: #7c2d12;">${formatGermanDate(expiresAt)}</strong> gültig &ndash; du kannst ihn so oft öffnen, wie du magst.`
+    : `Bewahre diese E-Mail auf &ndash; über den Link kommst du jederzeit zu deiner Power Story.`;
+
+  return `<!DOCTYPE html>
+<html lang="de">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>Deine Power Story</title>
 </head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-    <h1 style="color: white; margin: 0; font-size: 28px;">${isMultiple ? 'Deine Power Story ist bereit' : 'Deine Power Story ist bereit'}</h1>
+<body style="margin: 0; padding: 0; background-color: #fffbf5; -webkit-font-smoothing: antialiased;">
+
+  <!-- Preheader: erscheint in der Inbox-Vorschau, bleibt im Text unsichtbar -->
+  <div style="display: none; max-height: 0; overflow: hidden; opacity: 0; color: transparent;">
+    ${isMultiple ? `${resourceNames.length} Power Storys warten auf dich.` : `Deine Power Story „${resourceNames[0]}" wartet auf dich.`}
   </div>
 
-  <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
-    <p style="font-size: 16px; margin-bottom: 20px;">
-      Hallo,
-    </p>
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #fffbf5; padding: 32px 16px;">
+    <tr>
+      <td align="center">
 
-    <p style="font-size: 16px; margin-bottom: 20px;">
-      ${isMultiple
-        ? `die folgenden ${resourceNames.length} Power Storys, die wir heute gemeinsam erstellt haben, sind jetzt für dich hinterlegt und jederzeit abrufbar:`
-        : `deine persönliche Power Story <strong>"${resourceNames[0]}"</strong>, die wir heute gemeinsam erstellt haben, ist jetzt für dich hinterlegt und jederzeit abrufbar.`
-      }
-    </p>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 560px; margin: 0 auto;">
 
-    ${isMultiple ? `
-    <ul style="font-size: 16px; margin-bottom: 20px; padding-left: 20px; list-style-type: disc;">
-      ${resourceNamesList}
-    </ul>
-    ` : ''}
+          <!-- Kopf -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #fb923c 0%, #f59e0b 100%); background-color: #f59e0b; padding: 44px 40px 40px; border-radius: 20px 20px 0 0; text-align: center;">
+              <div style="font-size: 34px; line-height: 34px; margin-bottom: 14px;">&#10024;</div>
+              <h1 style="margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: 27px; line-height: 34px; font-weight: 400; color: #ffffff;">
+                ${isMultiple ? 'Deine Power Storys sind bereit' : 'Deine Power Story ist bereit'}
+              </h1>
+            </td>
+          </tr>
 
-    ${isNewUser ? `
-    <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px;">
-      <p style="font-size: 15px; margin: 0; color: #92400e;">
-        <strong>Wichtig:</strong> Der Button-Link funktioniert <strong>nur einmal</strong> (zum Passwort einrichten). Speichere danach <a href="${zugangUrl}" target="_blank">${zugangUrl}</a> als Lesezeichen — dort meldest du dich künftig mit E-Mail und Passwort an.
-      </p>
-    </div>
-    ` : ''}
+          <!-- Inhalt -->
+          <tr>
+            <td style="background-color: #ffffff; padding: 40px; border-left: 1px solid #fde9c8; border-right: 1px solid #fde9c8;">
 
-    <div style="text-align: center; margin: 30px 0;">
-      <a href="${magicLink}"
-         style="display: inline-block; background: #f59e0b; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
-        ${isNewUser ? 'Passwort einrichten' : 'Zu Power Storys'}
-      </a>
-    </div>
+              <p style="margin: 0 0 18px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 17px; line-height: 27px; color: #7c2d12;">
+                Hallo,
+              </p>
 
-    <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
-      Dieser E-Mail-Link ist einmalig und 24 Stunden gültig. Für spätere Besuche: <a href="${zugangUrl}" style="color: #f59e0b;">${zugangUrl}</a>
-    </p>
+              <p style="margin: 0 0 26px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 17px; line-height: 27px; color: #92400e;">
+                ${
+                  isMultiple
+                    ? `die folgenden ${resourceNames.length} Power Storys, die wir gemeinsam erstellt haben, sind jetzt für dich hinterlegt:`
+                    : `deine persönliche Power Story, die wir gemeinsam erstellt haben, ist jetzt für dich hinterlegt und jederzeit abrufbar.`
+                }
+              </p>
 
-    ${!isNewUser ? `
-    <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
-      <strong>Tipp:</strong> Wenn du magst, kannst du dort auch eigene Power Storys erstellen – zum Beispiel als weitere Unterstützung zwischen unseren Sitzungen.
-    </p>
-    ` : ''}
-      <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
-      Herzliche Grüße<br>
-      <strong>Andreas</strong>
-    </p>
+              <!-- Ressourcen -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #fffbeb; border: 1px solid #fde9c8; border-radius: 14px; padding: 6px 22px; margin-bottom: 30px;">
+                ${
+                  isMultiple
+                    ? resourceItems
+                    : `
+                <tr>
+                  <td style="padding: 16px 0;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td width="30" valign="top" style="font-size: 17px; line-height: 26px; color: #d97706;">&#9834;</td>
+                        <td style="font-family: Georgia, 'Times New Roman', serif; font-size: 19px; line-height: 26px; color: #7c2d12;">${resourceNames[0]}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>`
+                }
+              </table>
 
-     <p style="font-size: 14px; color: #6b7280; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-      Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br>
-      <a href="${magicLink}" style="color: #f59e0b; word-break: break-all;">${magicLink}</a>
-    </p>
+              <!-- Button -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td align="center" style="padding-bottom: 26px;">
+                    <a href="${magicLink}"
+                       style="display: inline-block; background-color: #d97706; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 600; line-height: 20px; text-decoration: none; padding: 17px 44px; border-radius: 999px;">
+                      ${isNewUser ? 'Power Story öffnen' : 'Zu deiner Power Story'}
+                    </a>
+                  </td>
+                </tr>
+              </table>
 
-  </div>
+              <!-- Gültigkeit -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-top: 1px solid #fef3c7; padding-top: 22px;">
+                <tr>
+                  <td style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 14px; line-height: 23px; color: #a16207;">
+                    ${gueltigkeit}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-top: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 14px; line-height: 23px; color: #a16207;">
+                    Wenn du magst, kannst du dir im Bereich <a href="${zugangUrl}" style="color: #d97706; text-decoration: underline;">Zugang</a> ein Passwort einrichten &ndash; dann kommst du auch ohne diese E-Mail hinein. Nötig ist das nicht.
+                  </td>
+                </tr>
+              </table>
 
-  <div style="text-align: center; margin-top: 20px; padding: 20px; color: #6b7280; font-size: 12px;">
-    <p>© ${new Date().getFullYear()} Power Storys - Andreas von Knobelsdorff</p>
-    <p><a href="${appBaseUrl}">${appBaseUrl.replace(/^https?:\/\//, '')}</a></p>
-  </div>
+              <p style="margin: 30px 0 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 17px; line-height: 27px; color: #7c2d12;">
+                Herzliche Grüße<br>
+                <strong style="font-weight: 600;">Andreas</strong>
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- Ersatz-Link -->
+          <tr>
+            <td style="background-color: #ffffff; padding: 0 40px 34px; border-left: 1px solid #fde9c8; border-right: 1px solid #fde9c8; border-bottom: 1px solid #fde9c8; border-radius: 0 0 20px 20px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-top: 1px solid #fef3c7; padding-top: 22px;">
+                <tr>
+                  <td style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 13px; line-height: 21px; color: #b45309;">
+                    Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br>
+                    <a href="${magicLink}" style="color: #d97706; word-break: break-all; text-decoration: none;">${magicLink}</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Fuß -->
+          <tr>
+            <td align="center" style="padding: 26px 20px 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 12px; line-height: 20px; color: #c2954a;">
+              Power Storys &middot; Andreas von Knobelsdorff<br>
+              <a href="${appBaseUrl}" style="color: #c2954a; text-decoration: none;">${appBaseUrl.replace(/^https?:\/\//, '')}</a>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
-</html>
+</html>`;
+};
+
+/** Text-Variante – verbessert die Zustellbarkeit und hilft Screenreadern. */
+const getEmailText = (
+  resourceNames: string[],
+  magicLink: string,
+  expiresAt?: Date
+): string => {
+  const appBaseUrl = getAppBaseUrl();
+  const isMultiple = resourceNames.length > 1;
+
+  const intro = isMultiple
+    ? `die folgenden ${resourceNames.length} Power Storys, die wir gemeinsam erstellt haben, sind jetzt für dich hinterlegt:\n\n${resourceNames.map((n) => `  - ${n}`).join('\n')}`
+    : `deine persönliche Power Story "${resourceNames[0]}", die wir gemeinsam erstellt haben, ist jetzt für dich hinterlegt und jederzeit abrufbar.`;
+
+  const gueltigkeit = expiresAt
+    ? `Dieser Link bleibt bis zum ${formatGermanDate(expiresAt)} gültig - du kannst ihn so oft öffnen, wie du magst.`
+    : `Bewahre diese E-Mail auf - über den Link kommst du jederzeit zu deiner Power Story.`;
+
+  return `Hallo,
+
+${intro}
+
+Hier geht es zu deiner Power Story:
+${magicLink}
+
+${gueltigkeit}
+
+Wenn du magst, kannst du dir unter ${appBaseUrl}/zugang ein Passwort einrichten -
+dann kommst du auch ohne diese E-Mail hinein. Nötig ist das nicht.
+
+Herzliche Grüße
+Andreas
+
+--
+Power Storys - Andreas von Knobelsdorff
+${appBaseUrl.replace(/^https?:\/\//, '')}
 `;
 };
 
@@ -101,6 +229,7 @@ export async function sendResourceReadyEmail({
   resourceNames,
   magicLink,
   isNewUser = false,
+  expiresAt,
 }: SendResourceReadyEmailParams): Promise<{ success: boolean; error?: string }> {
   try {
     // Normalisiere resourceNames Array (für Rückwärtskompatibilität)
@@ -146,7 +275,8 @@ export async function sendResourceReadyEmail({
           from: `Andreas <${resendFromEmail}>`,
           to: [to],
           subject,
-          html: getEmailHTML(names, magicLink, isNewUser),
+          html: getEmailHTML(names, magicLink, isNewUser, expiresAt),
+          text: getEmailText(names, magicLink, expiresAt),
         };
 
         // Füge BCC hinzu, falls konfiguriert
@@ -194,16 +324,12 @@ export async function sendResourceReadyEmail({
     console.log('   RESEND_FROM_EMAIL=andreas@power-storys.de');
     console.log('==================================================\n');
 
-    // In Development: Magic Link in Console ausgeben
+    // In Development: Email-Text in Console ausgeben (identisch zur Text-Variante)
     if (process.env.NODE_ENV === 'development') {
       const isMultiple = names.length > 1;
       console.log('\n📧 EMAIL-VORSCHAU:');
       console.log(`Betreff: ${isMultiple ? `Deine ${names.length} Power Storys sind bereit!` : 'Deine Power Story ist bereit!'}`);
-      if (isMultiple) {
-        console.log(`\nHallo,\n\nDie folgenden ${names.length} Power Storys wurden für dich erstellt:\n${names.map(n => `- "${n}"`).join('\n')}\n\nKlicke auf diesen Link, um dich anzumelden:\n${magicLink}\n\nDieser Link ist 24 Stunden gültig.\n`);
-      } else {
-        console.log(`\nHallo,\n\nDeine persönliche Power Story "${names[0]}" wurde für dich erstellt und ist jetzt verfügbar.\n\nKlicke auf diesen Link, um dich anzumelden:\n${magicLink}\n\nDieser Link ist 24 Stunden gültig.\n`);
-      }
+      console.log(getEmailText(names, magicLink, expiresAt));
     }
 
     return { success: true };

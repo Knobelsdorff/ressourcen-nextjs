@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { Database } from '@/lib/types/database.types';
 import { createServerAdminClient } from '@/lib/supabase/serverAdminClient';
 import { getEmailBaseUrl, withRedirectTo } from '@/lib/app-url';
+import { createInvite } from '@/lib/invites';
 
 function isAdminUser(email: string | undefined): boolean {
   if (!email) return false;
@@ -246,6 +247,23 @@ export async function POST(request: NextRequest) {
     const userForFlag = await findUserByEmail(supabaseAdmin, normalizedClientEmail);
     const isNewUser = !userForFlag || userForFlag.user_metadata?.password_set !== true;
 
+    // Langzeit-Zugangslink erzeugen (60 Tage, beliebig oft nutzbar).
+    // Schlägt das fehl, bleibt der Supabase-Link als Fallback stehen.
+    let inviteExpiresAt: Date | undefined;
+    try {
+      const invite = await createInvite({
+        email: normalizedClientEmail,
+        userId: userForFlag?.id ?? null,
+        resourceId: resources[0].id,
+        createdBy: user.id,
+      });
+      magicLink = invite.url;
+      inviteExpiresAt = invite.expiresAt;
+      console.log('[API/admin/resources/resend] Langzeit-Zugangslink erstellt, gültig bis', invite.expiresAt.toISOString());
+    } catch (inviteError) {
+      console.error('[API/admin/resources/resend] Invite fehlgeschlagen, nutze Supabase-Link:', inviteError);
+    }
+
     const { sendResourceReadyEmail } = await import('@/lib/email');
     const resourceNames = resources.map(
       (r: any) => r.title || r.resource_figure?.name || 'Unbenannte Ressource'
@@ -256,6 +274,7 @@ export async function POST(request: NextRequest) {
       resourceNames,
       magicLink,
       isNewUser,
+      expiresAt: inviteExpiresAt,
     });
 
     if (!emailResult.success) {

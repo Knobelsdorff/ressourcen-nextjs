@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { Database } from '@/lib/types/database.types';
 import { createServerAdminClient } from '@/lib/supabase/serverAdminClient';
 import { getEmailBaseUrl } from '@/lib/app-url';
+import { createInvite } from '@/lib/invites';
 
 /**
  * Prüft ob der aktuelle User ein Admin ist (Full Admin oder Music Admin)
@@ -364,18 +365,36 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        // Langzeit-Zugangslink erzeugen (60 Tage, beliebig oft nutzbar).
+        // Schlägt das fehl, bleibt der bisherige Supabase-Link als Fallback stehen.
+        let inviteExpiresAt: Date | undefined;
+        try {
+          const invite = await createInvite({
+            email: normalizedClientEmail,
+            userId: userExists?.id ?? null,
+            resourceId: dbData.id,
+            createdBy: user.id,
+          });
+          magicLink = invite.url;
+          inviteExpiresAt = invite.expiresAt;
+          console.log('[API/resources/client/create] Langzeit-Zugangslink erstellt, gültig bis', invite.expiresAt.toISOString());
+        } catch (inviteError) {
+          console.error('[API/resources/client/create] Invite fehlgeschlagen, nutze Supabase-Link:', inviteError);
+        }
+
         // Sende benutzerdefinierte Email mit Magic Link (falls vorhanden)
         if (magicLink) {
           try {
             console.log('[API/resources/client/create] Attempting to send email to:', normalizedClientEmail);
             console.log('[API/resources/client/create] Magic link available:', !!magicLink);
             console.log('[API/resources/client/create] Resource name:', resourceName.trim());
-            
+
             const { sendResourceReadyEmail } = await import('@/lib/email');
             const emailResult = await sendResourceReadyEmail({
               to: normalizedClientEmail,
               resourceNames: [resourceName.trim()],
               magicLink: magicLink,
+              expiresAt: inviteExpiresAt,
             });
 
             if (emailResult.success) {

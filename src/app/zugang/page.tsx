@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Mail, Lock } from "lucide-react";
+import { Loader2, Mail, Lock, Clock } from "lucide-react";
 
 type ViewState = "magic-link" | "magic-link-success" | "password-login";
 
@@ -25,6 +25,9 @@ function ZugangPageInner() {
   const searchParams = useSearchParams();
   const returnTo = getSafeReturnTo(searchParams.get('returnTo'));
   const { user } = useAuth();
+  // Gesetzt, wenn jemand über einen abgelaufenen Zugangslink hierher kam.
+  const linkFehler = searchParams.get('fehler');
+  const [zeigeLinkHinweis, setZeigeLinkHinweis] = useState(!!linkFehler);
   const [viewState, setViewState] = useState<ViewState>("magic-link");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -50,6 +53,27 @@ function ZugangPageInner() {
       
       if (!normalizedEmail || !normalizedEmail.includes("@")) {
         setError("Bitte gib eine gültige E-Mail-Adresse ein.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Nach einem abgelaufenen Zugangslink: neuen Langzeit-Link anfordern
+      // statt eines 24h-Codes – sonst landet die Person gleich wieder hier.
+      if (zeigeLinkHinweis) {
+        const res = await fetch("/api/auth/request-access-link", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: normalizedEmail }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setError(data.error || "Fehler beim Senden des Zugangslinks.");
+          setIsLoading(false);
+          return;
+        }
+
+        setViewState("magic-link-success");
         setIsLoading(false);
         return;
       }
@@ -165,8 +189,37 @@ function ZugangPageInner() {
             Dein Zugang
           </h1>
           <p className="text-base md:text-lg text-amber-700 mb-8 leading-relaxed">
-            Wenn du schon eine persönliche Geschichte erstellt hast, kannst du hier zurück in deinen Raum.
+            {zeigeLinkHinweis
+              ? "Kein Problem – wir schicken dir einfach einen neuen Link."
+              : "Wenn du schon eine persönliche Geschichte erstellt hast, kannst du hier zurück in deinen Raum."}
           </p>
+
+          {/* Hinweis nach einem abgelaufenen oder ungültigen Zugangslink */}
+          <AnimatePresence>
+            {zeigeLinkHinweis && viewState !== "magic-link-success" && (
+              <motion.div
+                key="link-hinweis"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="flex gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+                  <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="text-sm text-amber-800 leading-relaxed">
+                    <p className="font-medium mb-1">
+                      {linkFehler === "fehler"
+                        ? "Dieser Link konnte nicht geöffnet werden."
+                        : "Dieser Link ist nicht mehr gültig."}
+                    </p>
+                    <p className="text-amber-700">
+                      Gib unten deine E-Mail-Adresse ein – du bekommst sofort einen neuen Zugang.
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Magic Link Success State */}
           <AnimatePresence mode="wait">
@@ -196,6 +249,7 @@ function ZugangPageInner() {
                   onClick={() => {
                     setViewState("magic-link");
                     setEmail("");
+                    setZeigeLinkHinweis(false);
                   }}
                   variant="outline"
                   className="w-full"
@@ -240,7 +294,7 @@ function ZugangPageInner() {
                         Wird gesendet...
                       </>
                     ) : (
-                      "Zugangslink senden"
+                      zeigeLinkHinweis ? "Neuen Link anfordern" : "Zugangslink senden"
                     )}
                   </Button>
 

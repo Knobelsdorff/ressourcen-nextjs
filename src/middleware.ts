@@ -48,9 +48,13 @@ export async function middleware(request: NextRequest) {
 
         const { data: { user } } = await supabase.auth.getUser()
 
+        // Sessions aus einem Langzeit-Zugangslink dürfen ohne Passwort ins
+        // Dashboard. Das Passwort ist dort ein Angebot, keine Hürde.
+        const viaInvite = request.cookies.has('ps_invite')
+
         // If user is logged in but hasn't set password, redirect to set-password
         // ONLY redirect if password_set is explicitly false (not undefined/null for existing users)
-        if (user && user.user_metadata?.password_set === false) {
+        if (user && user.user_metadata?.password_set === false && !viaInvite) {
             console.log('[Middleware] User needs to set password, redirecting to /auth/set-password')
             const setPasswordUrl = new URL('/auth/set-password', request.url)
             // Preserve any query parameters (like resource ID)
