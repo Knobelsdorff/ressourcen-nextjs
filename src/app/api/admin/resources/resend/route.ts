@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { Database } from '@/lib/types/database.types';
 import { createServerAdminClient } from '@/lib/supabase/serverAdminClient';
+import { getEmailBaseUrl, withRedirectTo } from '@/lib/app-url';
+import { createInvite } from '@/lib/invites';
 
 function isAdminUser(email: string | undefined): boolean {
   if (!email) return false;
@@ -34,41 +36,13 @@ async function findUserByEmail(
   return null;
 }
 
-function rewriteRecoveryRedirectTo(magicLink: string, origin: string): string {
-  try {
-    const linkUrl = new URL(magicLink);
-    const currentRedirectTo = linkUrl.searchParams.get('redirect_to');
-    if (currentRedirectTo) {
-      const newRedirectTo = currentRedirectTo.replace(/https:\/\/[^/]+/, origin);
-      linkUrl.searchParams.set('redirect_to', newRedirectTo);
-      return linkUrl.toString();
-    }
-  } catch {
-    /* ignore */
-  }
-  return magicLink;
-}
-
+/**
+ * Basis-URL für Email-Links: immer APP_BASE_URL (in Produktion), niemals der
+ * Request-Origin – der ist auf dem Server das gebundene Interface
+ * (z.B. http://0.0.0.0:3000) und macht Links unbrauchbar.
+ */
 function resolveOrigin(request: NextRequest): string {
-  const requestUrl = new URL(request.url);
-  let origin = requestUrl.origin;
-
-  if (!origin || origin === 'null') {
-    const headersList = request.headers;
-    origin =
-      headersList.get('origin') ||
-      headersList.get('referer')?.split('/').slice(0, 3).join('/') ||
-      process.env.APP_BASE_URL ||
-      'https://www.power-storys.de';
-  }
-
-  if (origin.includes('localhost') && !origin.includes(':')) {
-    origin = 'http://localhost:3000';
-  } else if (origin.includes('localhost') && !origin.includes(':3000')) {
-    origin = origin.replace(/:\d+/, ':3000');
-  }
-
-  return origin;
+  return getEmailBaseUrl(request.headers.get('origin'));
 }
 
 /** Erneutes Versenden der Klienten-E-Mail (neuer Magic/Recovery-Link), Logik wie create-batch. */
@@ -188,7 +162,7 @@ export async function POST(request: NextRequest) {
           options: { redirectTo: redirectUrl },
         });
         if (!recoveryError && recoveryData?.properties?.action_link) {
-          magicLink = rewriteRecoveryRedirectTo(recoveryData.properties.action_link, origin);
+          magicLink = withRedirectTo(recoveryData.properties.action_link, redirectUrl);
         } else {
           console.error('[API/admin/resources/resend] recovery error:', recoveryError);
         }
@@ -215,7 +189,7 @@ export async function POST(request: NextRequest) {
           options: { redirectTo: redirectUrl },
         });
         if (!recoveryError && recoveryData?.properties?.action_link) {
-          magicLink = rewriteRecoveryRedirectTo(recoveryData.properties.action_link, origin);
+          magicLink = withRedirectTo(recoveryData.properties.action_link, redirectUrl);
         } else {
           console.error('[API/admin/resources/resend] recovery (new user) error:', recoveryError);
         }
@@ -256,7 +230,7 @@ export async function POST(request: NextRequest) {
                   options: { redirectTo: redirectUrl },
                 });
               if (!recoveryError && recoveryData?.properties?.action_link) {
-                magicLink = rewriteRecoveryRedirectTo(recoveryData.properties.action_link, origin);
+                magicLink = withRedirectTo(recoveryData.properties.action_link, redirectUrl);
               }
             }
           }
@@ -273,6 +247,23 @@ export async function POST(request: NextRequest) {
     const userForFlag = await findUserByEmail(supabaseAdmin, normalizedClientEmail);
     const isNewUser = !userForFlag || userForFlag.user_metadata?.password_set !== true;
 
+    // Langzeit-Zugangslink erzeugen (60 Tage, beliebig oft nutzbar).
+    // Schlägt das fehl, bleibt der Supabase-Link als Fallback stehen.
+    let inviteExpiresAt: Date | undefined;
+    try {
+      const invite = await createInvite({
+        email: normalizedClientEmail,
+        userId: userForFlag?.id ?? null,
+        resourceId: resources[0].id,
+        createdBy: user.id,
+      });
+      magicLink = invite.url;
+      inviteExpiresAt = invite.expiresAt;
+      console.log('[API/admin/resources/resend] Langzeit-Zugangslink erstellt, gültig bis', invite.expiresAt.toISOString());
+    } catch (inviteError) {
+      console.error('[API/admin/resources/resend] Invite fehlgeschlagen, nutze Supabase-Link:', inviteError);
+    }
+
     const { sendResourceReadyEmail } = await import('@/lib/email');
     const resourceNames = resources.map(
       (r: any) => r.title || r.resource_figure?.name || 'Unbenannte Ressource'
@@ -283,6 +274,7 @@ export async function POST(request: NextRequest) {
       resourceNames,
       magicLink,
       isNewUser,
+      expiresAt: inviteExpiresAt,
     });
 
     if (!emailResult.success) {

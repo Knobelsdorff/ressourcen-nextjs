@@ -46,7 +46,7 @@ export default function StoryActionsMenu({
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-1.5 text-amber-400 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors"
+        className="p-1.5 text-primary-400 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
         aria-label="Story-Aktionen"
       >
         <MoreVertical className="w-5 h-5" />
@@ -59,18 +59,18 @@ export default function StoryActionsMenu({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-amber-100 py-1 z-50 min-w-[180px]"
+            className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-primary-100 py-1 z-50 min-w-[180px]"
           >
             <button
               onClick={handleRename}
-              className="w-full text-left px-4 py-2 text-sm text-amber-900 hover:bg-amber-50 transition-colors"
+              className="w-full text-left px-4 py-2 text-sm text-primary-900 hover:bg-primary-50 transition-colors"
             >
               Umbenennen
             </button>
             {canDelete && (
               <button
                 onClick={handleDelete}
-                className="w-full text-left px-4 py-2 text-sm text-amber-900 hover:bg-amber-50 transition-colors"
+                className="w-full text-left px-4 py-2 text-sm text-primary-900 hover:bg-primary-50 transition-colors"
               >
                 Power Story entfernen
               </button>

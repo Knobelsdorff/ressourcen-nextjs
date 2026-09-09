@@ -2,10 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Upload, Loader2, CheckCircle, AlertCircle, Plus, Trash2, Send } from "lucide-react";
+import { X, Loader2, CheckCircle, AlertCircle, Plus, Trash2, Check, ArrowRight } from "lucide-react";
 import AudioRecorder from "./AudioRecorder";
 import { createSPAClient } from "@/lib/supabase/client";
 import { indexedDBHelper } from "@/lib/indexedDB";
+
+// Beschriftung der drei Schritte (links nach rechts)
+const STEPS = ["Aufnehmen", "Sammlung", "Versenden"] as const;
 
 interface ClientResourceModalProps {
   isOpen: boolean;
@@ -32,6 +35,17 @@ export default function ClientResourceModal({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
+
+  // Stepper: 1 = Aufnehmen, 2 = Sammlung prüfen, 3 = Versenden
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  // Eigener Zähler für den Recorder-Reset. Darf NIE aus recordedResources.length
+  // abgeleitet werden – beim Löschen wiederholt sich der Wert sonst und React
+  // recycelt die alte Recorder-Instanz (Aufnahme scheint zu verschwinden).
+  const [recorderKey, setRecorderKey] = useState(0);
+  // Anzahl und Empfänger der versendeten Ressourcen für die Erfolgsmeldung
+  // (werden nach dem Versand geleert, daher separat gemerkt)
+  const [sentCount, setSentCount] = useState(0);
+  const [sentEmail, setSentEmail] = useState("");
 
   // Lade gespeicherte Ressourcen beim Öffnen des Modals
   useEffect(() => {
@@ -120,6 +134,9 @@ export default function ClientResourceModal({
               }));
 
               setRecordedResources(restoredResources);
+              // Gespeicherte Aufnahmen sofort sichtbar machen, statt auf
+              // Schritt 1 zu starten (sonst wirkt es, als wäre nichts da)
+              setStep(2);
             }
           }
         } catch (err) {
@@ -174,7 +191,7 @@ export default function ClientResourceModal({
     // IndexedDB wird nur gelöscht nach erfolgreichem Versand (siehe handleSendAll)
   }, [recordedResources, clientEmail, isOpen]);
 
-  const handleRecordingComplete = (blob: Blob) => {
+  const handleRecordingComplete = (blob: Blob | null) => {
     setCurrentAudioBlob(blob);
     setError("");
   };
@@ -200,10 +217,19 @@ export default function ClientResourceModal({
     setCurrentResourceName("");
     setCurrentAudioBlob(null);
     setError("");
+    // Recorder für die nächste Aufnahme frisch aufsetzen
+    setRecorderKey((k) => k + 1);
+    // Nach dem Hinzufügen direkt zur Übersicht
+    setStep(2);
   };
 
   const handleRemoveFromQueue = (id: string) => {
-    setRecordedResources(recordedResources.filter(r => r.id !== id));
+    const remaining = recordedResources.filter(r => r.id !== id);
+    setRecordedResources(remaining);
+    // Ohne Aufnahmen gibt es nichts zu prüfen oder zu versenden
+    if (remaining.length === 0) {
+      setStep(1);
+    }
   };
 
   const handleSendAll = async () => {
@@ -324,7 +350,10 @@ export default function ClientResourceModal({
 
       // Zeige Erfolgsmeldung nur wenn Ressource(n) angelegt und E-Mail versendet
       if (data.emailSent) {
+        // Anzahl vor dem Leeren merken, damit die Erfolgsmeldung stimmt
         setSuccess(true);
+        setSentCount(recordedResources.length);
+        setSentEmail(clientEmail.trim());
         setRecordedResources([]);
         setClientEmail("");
 
@@ -368,6 +397,9 @@ export default function ClientResourceModal({
     setCurrentAudioBlob(null);
     setError("");
     setSuccess(false);
+    setStep(1);
+    // Recorder beim nächsten Öffnen frisch aufsetzen
+    setRecorderKey((k) => k + 1);
     // recordedResources und clientEmail bleiben erhalten (werden beim nächsten Öffnen aus localStorage geladen)
     onClose();
   };
@@ -378,102 +410,164 @@ export default function ClientResourceModal({
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-white sm:rounded-2xl rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+          initial={{ opacity: 0, y: 8, scale: 0.99 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 8, scale: 0.99 }}
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          className="bg-white sm:rounded-2xl rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
         >
-          {/* Header */}
-          <div className="flex items-center justify-between sm:p-6 p-3 border-b">
-            <h2 className="sm:text-2xl text-xl font-bold text-gray-900">
-              Ressource für Klienten erstellen
-            </h2>
-            <button
-              onClick={handleClose}
-              disabled={isUploading}
-              className="sm:p-2 p-1.5 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50"
-            >
-              <X className="sm:w-6 sm:h-6 w-5 h-5" />
-            </button>
+          {/* Header mit Stepper */}
+          <div className="sm:px-8 sm:pt-7 sm:pb-5 p-4 border-b border-amber-200">
+            <div className="flex items-start justify-between sm:mb-6 mb-5">
+              <div>
+                <h2 className="sm:text-2xl text-lg font-light text-amber-900">
+                  Ressource für Klienten erstellen
+                </h2>
+                <p className="sm:text-sm text-xs text-amber-700 mt-1">
+                  Du kannst mehrere Aufnahmen sammeln und gemeinsam versenden.
+                </p>
+              </div>
+              <button
+                onClick={handleClose}
+                disabled={isUploading}
+                className="sm:p-2 p-1.5 -mr-1 text-amber-700 hover:text-amber-900 hover:bg-amber-50 rounded-full transition-colors disabled:opacity-50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Stepper: links nach rechts */}
+            <nav aria-label="Fortschritt">
+              <ol className="flex items-center gap-2">
+                {STEPS.map((label, index) => {
+                  const stepNumber = (index + 1) as 1 | 2 | 3;
+                  const isDone = stepNumber < step;
+                  const isCurrent = stepNumber === step;
+                  const canGo =
+                    stepNumber < step ||
+                    (stepNumber === 2 && recordedResources.length > 0);
+
+                  return (
+                    <li
+                      key={label}
+                      className="flex items-center gap-2 flex-1 last:flex-none"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => canGo && setStep(stepNumber)}
+                        disabled={!canGo && !isCurrent}
+                        aria-current={isCurrent ? "step" : undefined}
+                        className={`flex items-center gap-2 rounded-md transition-colors ${
+                          canGo ? "cursor-pointer" : "cursor-default"
+                        }`}
+                      >
+                        <span
+                          className={`w-6 h-6 flex items-center justify-center rounded-full border text-xs tabular-nums transition-colors ${
+                            isCurrent
+                              ? "bg-amber-700 border-amber-700 text-white"
+                              : isDone
+                              ? "bg-white border-amber-700 text-amber-800"
+                              : "bg-white border-amber-300 text-amber-400"
+                          }`}
+                        >
+                          {isDone ? <Check className="w-3.5 h-3.5" /> : stepNumber}
+                        </span>
+                        <span
+                          className={`text-sm whitespace-nowrap max-sm:hidden ${
+                            isCurrent
+                              ? "text-amber-900 font-medium"
+                              : isDone
+                              ? "text-amber-800"
+                              : "text-amber-400"
+                          }`}
+                        >
+                          {label}
+                        </span>
+                      </button>
+                      {index < STEPS.length - 1 && (
+                        <span
+                          aria-hidden="true"
+                          className={`h-px flex-1 min-w-[12px] ${
+                            isDone ? "bg-amber-700" : "bg-amber-200"
+                          }`}
+                        />
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+              {/* Aktueller Schritt auf Mobile als Text */}
+              <p className="sm:hidden text-sm text-amber-900 font-medium mt-3">
+                {STEPS[step - 1]}
+              </p>
+            </nav>
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto sm:p-6 p-3 sm:space-y-6 space-y-3">
-            {/* Erfolgs-Meldung */}
-            {success && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="p-4 bg-green-50 border-2 border-green-300 rounded-xl"
-              >
-                <div className="flex items-center space-x-3 mb-2">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
-                  <span className="text-green-800 font-medium">
-                    {recordedResources.length > 0 ? `${recordedResources.length} Ressourcen erfolgreich erstellt!` : "Ressource erfolgreich erstellt!"}
-                  </span>
-                </div>
-                {clientEmail && (
-                  <p className="text-green-700 text-sm mt-2">
-                    Eine Email wurde an {clientEmail} verschickt. Die Ressourcen erscheinen nicht in deinem Dashboard, sondern werden dem Klienten nach Login/Registrierung zugeordnet.
-                  </p>
-                )}
-              </motion.div>
-            )}
-
-            {/* Fehler-Meldung */}
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="sm:p-4 p-3 max-sm:flex-col max-sm:gap-2 max-sm:items-start bg-red-50 border-2 border-red-300 rounded-xl flex items-center sm:space-x-3"
-              >
-                <AlertCircle className="w-6 h-6 text-red-600" />
-                <span className="text-red-800 max-sm:text-sm">{error}</span>
-              </motion.div>
-            )}
-
-            {/* Liste der aufgenommenen Ressourcen */}
-            {recordedResources.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4"
-              >
-                <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5" />
-                  Aufgenommene Ressourcen ({recordedResources.length})
-                </h3>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {recordedResources.map((resource) => (
-                    <div
-                      key={resource.id}
-                      className="flex items-center justify-between bg-white p-3 rounded-lg border border-blue-100"
-                    >
-                      <span className="font-medium text-gray-900">{resource.name}</span>
-                      <button
-                        onClick={() => handleRemoveFromQueue(resource.id)}
-                        className="text-red-600 hover:text-red-800 p-1 rounded transition-colors"
-                        title="Entfernen"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+          <div className="flex-1 overflow-y-auto sm:px-8 sm:py-7 p-4">
+            {/* Status-Meldungen */}
+            <AnimatePresence initial={false}>
+              {success && (
+                <motion.div
+                  key="success"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex sm:items-center items-start gap-3 sm:px-5 px-4 sm:py-4 py-3 mb-6 bg-amber-50 border border-amber-400 rounded-lg">
+                    <CheckCircle className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5 sm:mt-0" />
+                    <div className="min-w-0">
+                      <p className="text-amber-900 max-sm:text-sm">
+                        {sentCount > 1
+                          ? `${sentCount} Ressourcen erfolgreich versendet`
+                          : "Ressource erfolgreich versendet"}
+                      </p>
+                      {sentEmail && (
+                        <p className="text-amber-700 sm:text-sm text-xs mt-1 leading-snug">
+                          Eine Email wurde an {sentEmail} verschickt. Die Ressourcen erscheinen nicht in deinem Dashboard, sondern werden dem Klienten nach Login/Registrierung zugeordnet.
+                        </p>
+                      )}
                     </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
+                  </div>
+                </motion.div>
+              )}
 
-            {/* Aktuelle Ressource aufnehmen */}
-            <div>
-              <h3 className="sm:text-lg text-base font-semibold text-gray-900 sm:mb-4 mb-3">
-                {recordedResources.length > 0 ? "Weitere Ressource hinzufügen" : "1. Ressource aufnehmen"}
-              </h3>
-              <div className="space-y-4">
+              {error && (
+                <motion.div
+                  key="error"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex items-start gap-3 sm:px-5 px-4 sm:py-4 py-3 mb-6 bg-amber-50/70 border border-amber-500 rounded-lg">
+                    <AlertCircle className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" />
+                    <span className="text-amber-900 max-sm:text-sm leading-snug">{error}</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* ---------- Schritt 1: Aufnehmen ---------- */}
+            {step === 1 && (
+              <motion.div
+                initial={{ opacity: 0, x: 12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                className="sm:space-y-5 space-y-4"
+              >
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label
+                    htmlFor="resource-name"
+                    className="block text-sm text-amber-700 mb-2"
+                  >
                     Name der Ressource
                   </label>
                   <input
+                    id="resource-name"
                     type="text"
                     value={currentResourceName}
                     onChange={(e) => {
@@ -481,95 +575,189 @@ export default function ClientResourceModal({
                       setError("");
                     }}
                     placeholder="z.B. Oma, Engel, Krafttier..."
-                    className="w-full sm:px-4 px-3 sm:py-3 py-2 border-2 border-gray-200 sm:rounded-xl rounded-lg focus:outline-none focus:border-blue-500 transition-colors sm:text-lg text-sm"
+                    className="w-full sm:px-4 px-3 sm:py-2.5 py-2 bg-white border border-amber-400 rounded-lg text-amber-900 placeholder:text-amber-500/60 focus:outline-none focus:border-amber-700 focus:ring-1 focus:ring-amber-700 transition-colors max-sm:text-sm"
                   />
-                  <p className="mt-2 text-sm text-gray-600">
-                    Gib einen Namen für die Ressourcenfigur ein (z.B. "Oma", "Engel", "Krafttier").
+                </div>
+
+                <AudioRecorder
+                  key={`recorder-${recorderKey}`}
+                  onRecordingComplete={handleRecordingComplete}
+                  onError={(err) => setError(err)}
+                  maxDuration={600}
+                />
+              </motion.div>
+            )}
+
+            {/* ---------- Schritt 2: Sammlung ---------- */}
+            {step === 2 && (
+              <motion.div
+                initial={{ opacity: 0, x: 12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <div className="flex items-baseline justify-between mb-3">
+                  <p className="text-sm text-amber-700">
+                    {recordedResources.length} Aufnahme
+                    {recordedResources.length !== 1 ? "n" : ""} gesammelt
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="inline-flex items-center gap-1.5 text-sm text-amber-700 hover:text-amber-900 font-medium transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Weitere aufnehmen
+                  </button>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Audio aufnehmen
-                  </label>
-                  <AudioRecorder
-                    key={`recorder-${recordedResources.length}`}
-                    onRecordingComplete={handleRecordingComplete}
-                    onError={(err) => setError(err)}
-                    maxDuration={600}
-                  />
-                </div>
+                {recordedResources.length > 0 ? (
+                  <div className="divide-y divide-amber-200 border border-amber-400 rounded-lg overflow-hidden">
+                    <AnimatePresence initial={false}>
+                      {recordedResources.map((resource, index) => (
+                        <motion.div
+                          key={resource.id}
+                          layout
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.2, ease: "easeOut" }}
+                          className="flex items-center justify-between gap-3 sm:px-4 px-3 sm:py-3 py-2.5 bg-white"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="text-xs text-amber-600 tabular-nums flex-shrink-0">
+                              {String(index + 1).padStart(2, "0")}
+                            </span>
+                            <span className="text-amber-900 truncate max-sm:text-sm">
+                              {resource.name}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveFromQueue(resource.id)}
+                            className="p-1.5 -mr-1 text-amber-600 hover:text-amber-900 hover:bg-amber-50 rounded-md transition-colors flex-shrink-0"
+                            title="Entfernen"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                ) : (
+                  <div className="border border-amber-300 border-dashed rounded-lg sm:py-10 py-8 text-center">
+                    <p className="text-sm text-amber-700">
+                      Noch keine Aufnahmen gesammelt.
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            )}
 
-                <button
-                  onClick={handleAddToQueue}
-                  disabled={!currentResourceName.trim() || !currentAudioBlob}
-                  className="w-full sm:px-4 px-3 sm:py-3 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 max-sm:text-sm"
+            {/* ---------- Schritt 3: Versenden ---------- */}
+            {step === 3 && (
+              <motion.div
+                initial={{ opacity: 0, x: 12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <label
+                  htmlFor="client-email"
+                  className="block text-sm text-amber-700 mb-2"
                 >
-                  <Plus className="w-5 h-5" />
-                  <span>Zur Liste hinzufügen</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Klienten-Email (nur wenn Ressourcen vorhanden) */}
-            {recordedResources.length > 0 && (
-              <div>
-                <h3 className="sm:text-lg text-base font-semibold text-gray-900 sm:mb-4 mb-3">
-                  2. Klienten-Email
-                </h3>
+                  E-Mail-Adresse des Klienten
+                </label>
                 <input
+                  id="client-email"
                   type="email"
                   value={clientEmail}
                   onChange={(e) => setClientEmail(e.target.value)}
                   placeholder="klient@beispiel.de"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full sm:px-4 px-3 sm:py-2.5 py-2 bg-white border border-amber-400 rounded-lg text-amber-900 placeholder:text-amber-500/60 focus:outline-none focus:border-amber-700 focus:ring-1 focus:ring-amber-700 transition-colors max-sm:text-sm"
                 />
-                <p className="mt-2 text-sm text-gray-600">
-                  Hinweis: Es wird nur eine E‑Mail versendet, wenn hier eine Klienten‑Email eingetragen ist. In diesem Fall erscheinen die Ressourcen nicht in deinem Dashboard, sondern der Klient erhält eine E‑Mail mit Zugangslink und die Ressourcen werden nach dem Login automatisch seinem Account zugeordnet.
+                <p className="mt-2 sm:text-sm text-xs text-amber-700 leading-snug">
+                  Der Klient erhält eine E‑Mail mit Zugangslink. Die Ressourcen
+                  erscheinen nicht in deinem Dashboard, sondern werden nach dem
+                  Login automatisch seinem Account zugeordnet.
                 </p>
-              </div>
+
+                <div className="mt-6 pt-5 border-t border-amber-200">
+                  <p className="text-sm text-amber-700 mb-3">Wird versendet</p>
+                  <ul className="space-y-1.5">
+                    {recordedResources.map((resource, index) => (
+                      <li
+                        key={resource.id}
+                        className="flex items-center gap-3 text-amber-900 max-sm:text-sm"
+                      >
+                        <span className="text-xs text-amber-600 tabular-nums">
+                          {String(index + 1).padStart(2, "0")}
+                        </span>
+                        <span className="truncate">{resource.name}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </motion.div>
             )}
           </div>
 
-          {/* Footer */}
-          <div className="flex items-center max-sm:flex-col-reverse justify-between sm:p-6 p-3 border-t bg-gray-50">
-            <div className="text-sm text-gray-600">
-              {recordedResources.length > 0 && (
-                <span>{recordedResources.length} Ressource{recordedResources.length > 1 ? 'n' : ''} bereit zum Versenden</span>
-              )}
-            </div>
-            <div className="flex sm:items-center max-sm:flex-col sm:gap-3 gap-1">
+          {/* Footer: Navigation */}
+          <div className="flex items-center justify-between gap-3 sm:px-8 sm:py-5 p-4 border-t border-amber-200">
+            <button
+              onClick={
+                step === 1
+                  ? handleClose
+                  : () => setStep((s) => (s - 1) as 1 | 2 | 3)
+              }
+              disabled={isUploading}
+              className="sm:px-4 px-3 py-2 text-amber-700 hover:text-amber-900 font-medium transition-colors disabled:opacity-50 max-sm:text-sm"
+            >
+              {step === 1 ? "Abbrechen" : "Zurück"}
+            </button>
+
+            {step === 1 && (
               <button
-                onClick={handleClose}
-                disabled={isUploading}
-                className="sm:px-6 sm:py-3 text-gray-700 hover:bg-gray-200 rounded-xl font-medium transition-colors disabled:opacity-50"
+                onClick={handleAddToQueue}
+                disabled={!currentResourceName.trim() || !currentAudioBlob}
+                className="sm:px-5 px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-md font-medium transition-colors disabled:bg-amber-200 disabled:text-amber-500 disabled:cursor-not-allowed flex items-center gap-2 max-sm:text-sm"
               >
-                Abbrechen
+                <span>Aufnahme übernehmen</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
-              {recordedResources.length > 0 ? (
-                <button
-                  onClick={handleSendAll}
-                  disabled={!clientEmail.trim() || isUploading}
-                  className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Wird versendet...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-5 h-5" />
-                      <span>Alle {recordedResources.length} Ressource{recordedResources.length > 1 ? 'n' : ''} versenden</span>
-                    </>
-                  )}
-                </button>
-              ) : (
-                <div className="sm:text-sm text-xs text-gray-500 italic">
-                  Füge Ressourcen hinzu, um sie zu versenden
-                </div>
-              )}
-            </div>
+            )}
+
+            {step === 2 && (
+              <button
+                onClick={() => setStep(3)}
+                disabled={recordedResources.length === 0}
+                className="sm:px-5 px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-md font-medium transition-colors disabled:bg-amber-200 disabled:text-amber-500 disabled:cursor-not-allowed flex items-center gap-2 max-sm:text-sm"
+              >
+                <span>Weiter</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            )}
+
+            {step === 3 && (
+              <button
+                onClick={handleSendAll}
+                disabled={
+                  recordedResources.length === 0 ||
+                  !clientEmail.trim() ||
+                  isUploading
+                }
+                className="sm:px-5 px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-md font-medium transition-colors disabled:bg-amber-200 disabled:text-amber-500 disabled:cursor-not-allowed flex items-center gap-2 max-sm:text-sm"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Wird versendet...</span>
+                  </>
+                ) : (
+                  <span>
+                    Versenden
+                    {recordedResources.length > 0 && ` (${recordedResources.length})`}
+                  </span>
+                )}
+              </button>
+            )}
           </div>
         </motion.div>
       </div>

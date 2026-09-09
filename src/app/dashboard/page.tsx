@@ -19,10 +19,9 @@ import DeleteAccount from "@/components/DeleteAccount";
 import ContactModal from "@/components/ContactModal";
 import FeedbackModal from "@/components/FeedbackModal";
 import BugModal from "@/components/BugModal";
-import AnkommenAudioPlayer from "@/components/ankommen/AnkommenAudioPlayer";
-import DashboardAudioPlayer from "@/components/DashboardAudioPlayer";
+import AudioPlayer from "@/components/audio/AudioPlayer";
+import StoryCardConnected from "@/components/dashboard/StoryCardConnected";
 import SubscriptionManagement from "@/components/SubscriptionManagement";
-import StoryPlayerWithBLS from "@/components/StoryPlayerWithBLS";
 import { BLSProvider } from "@/components/providers/bls-provider";
 import EditableSubtitle from "@/components/EditableSubtitle";
 import StoryActionsMenu from "@/components/StoryActionsMenu";
@@ -262,12 +261,6 @@ export default function Dashboard() {
       if (access) {
         setUserAccess(access);
         
-        console.log('[loadUserAccess] getUserAccess returned access:', {
-          planType: access.plan_type,
-          stripeSubscriptionId: (access as any).stripe_subscription_id,
-          subscriptionStatus: (access as any).subscription_status,
-          status: access.status,
-        });
         
         // Prüfe ob es ein Subscription-Abo ist
         const isSubscription = access.plan_type === 'subscription';
@@ -305,15 +298,6 @@ export default function Dashboard() {
             .limit(1)
             .maybeSingle();
           
-          console.log('[loadUserAccess] Subscription query result:', {
-            hasData: !!subscriptionData,
-            subscriptionId: subscriptionData ? (subscriptionData as any).stripe_subscription_id : null,
-            subscriptionStatus: subscriptionData ? (subscriptionData as any).subscription_status : null,
-            planType: subscriptionData ? (subscriptionData as any).plan_type : null,
-            fullData: subscriptionData,
-            error: subscriptionQueryError?.message,
-            errorCode: subscriptionQueryError?.code,
-          });
           
           if (subscriptionData && (subscriptionData as any).stripe_subscription_id) {
             // User hat ein Abo (auch wenn inaktiv), setze subscriptionId
@@ -346,7 +330,6 @@ export default function Dashboard() {
                     credits: 999999,
                     expiresAt: null,
                   }));
-                  console.log('[loadUserAccess] Found subscription in Stripe:', checkData);
                 }
               }
             } catch (checkError) {
@@ -362,9 +345,7 @@ export default function Dashboard() {
       
       // Falls getUserAccess null zurückgibt (406 Error oder kein Zugang), prüfe direkt mit hasActiveAccess
       // hasActiveAccess verwendet RPC-Funktion (SECURITY DEFINER) und umgeht RLS
-      console.log('[loadUserAccess] getUserAccess returned null, checking hasActiveAccess as fallback');
       const hasAccess = await hasActiveAccess(user.id);
-      console.log('[loadUserAccess] hasActiveAccess result:', hasAccess);
       
       if (hasAccess) {
         // User hat Zugang in DB, aber Details konnten nicht geladen werden (406 Error)
@@ -440,7 +421,6 @@ export default function Dashboard() {
       // Fallback: Prüfe direkt mit hasActiveAccess
       try {
         const hasAccess = await hasActiveAccess(user.id);
-        console.log('[loadUserAccess] Exception fallback hasActiveAccess result:', hasAccess);
         if (hasAccess) {
           setUserAccess({
             id: '',
@@ -543,16 +523,13 @@ export default function Dashboard() {
         // Priorität: Version mit Audio > neueste Version
         if (currentHasAudio && !existingHasAudio) {
           // Neue Version hat Audio, alte nicht - ersetze die alte
-          console.log(`Dashboard: Keeping duplicate with audio (newer): ${story.id}`);
           seen.set(key, story);
         } else if (!currentHasAudio && existingHasAudio) {
           // Alte Version hat Audio, neue nicht - behalte die alte
-          console.log(`Dashboard: Keeping duplicate with audio (older): ${existing.id}`);
           // Keine Änderung, behalte existing
         } else {
           // Beide haben Audio oder beide nicht - behalte die neueste
           if (new Date(story.created_at).getTime() > new Date(existing.created_at).getTime()) {
-            console.log(`Dashboard: Keeping newer duplicate: ${story.id}`);
             seen.set(key, story);
           }
         }
@@ -562,7 +539,6 @@ export default function Dashboard() {
     const unique = Array.from(seen.values());
     
     if (unique.length < stories.length) {
-      console.log(`Dashboard: Removed ${stories.length - unique.length} duplicate stories`);
     }
     
     return unique;
@@ -581,7 +557,6 @@ export default function Dashboard() {
       if (response.ok) {
         const data = await response.json();
         if (data.assignedCount > 0) {
-          console.log(`Dashboard: Assigned ${data.assignedCount} pending resources`);
           return true; // Ressourcen wurden zugeordnet
         }
       }
@@ -595,7 +570,6 @@ export default function Dashboard() {
   // Lade Beispiel-Ressource (wie auf /ankommen Seite)
   const loadExampleResource = useCallback(async () => {
     try {
-      console.log('[Dashboard] Loading example resource from /api/example-resource');
       
       const response = await fetch('/api/example-resource');
       const data = await response.json();
@@ -620,7 +594,6 @@ export default function Dashboard() {
         };
         
         setAnkommenStory(exampleStory);
-        console.log('[Dashboard] Example resource loaded successfully:', exampleStory.title);
       } else {
         throw new Error('Beispiel-Ressourcenfigur nicht gefunden');
       }
@@ -651,16 +624,13 @@ export default function Dashboard() {
   // Lade Geschichten aus Supabase
   const loadStories = useCallback(async () => {
     if (!user) {
-      console.log('Dashboard: No user logged in, skipping loadStories');
       return;
     }
     
-    console.log('Dashboard: Loading stories for user:', user.id, user.email);
     setLoading(true);
     setError('');
     
     try {
-      console.log('poopoo [Dashboard] Fetching stories for user:', user.id);
 
       const mineResponse = await fetch('/api/resources/mine', { credentials: 'include' });
       const mineData = await mineResponse.json().catch(() => ({}));
@@ -670,42 +640,26 @@ export default function Dashboard() {
       }
 
       if (mineData.assignedCount > 0) {
-        console.log(`Dashboard: mine API assigned ${mineData.assignedCount} pending resources`);
       }
 
       const data = mineData.stories as SavedStory[] | undefined;
 
-      console.log('poopoo [Dashboard] mine API response:', {
-        storiesCount: data?.length,
-        assignedCount: mineData.assignedCount,
-      });
 
       // Log each story's audio_url
       if (data) {
-        console.log('poopoo [Dashboard] Stories audio URLs:');
         data.forEach((story: any, index: number) => {
-          console.log(`poopoo [Dashboard] Story ${index + 1}: "${story.title}"`, {
-            id: story.id,
-            audio_url: story.audio_url,
-            voice_id: story.voice_id,
-            has_audio: !!story.audio_url,
-            created_at: story.created_at
-          });
         });
       }
 
       {
-        console.log('Stories loaded successfully:', data);
         
         // Entferne Duplikate BEVOR wir sie setzen
         const storiesData = (data || []) as SavedStory[];
         const uniqueStories = removeDuplicates(storiesData);
         const duplicateCount = storiesData.length - uniqueStories.length;
-        console.log(`Dashboard: After deduplication: ${uniqueStories.length} unique stories (was ${storiesData.length})`);
         
         // Wenn Duplikate gefunden wurden, lösche sie automatisch aus der Datenbank
         if (duplicateCount > 0) {
-          console.log(`Dashboard: Found ${duplicateCount} duplicate(s), cleaning up...`);
           // Finde die IDs der Duplikate
           const uniqueIds = new Set(uniqueStories.map(s => s.id));
           const duplicateIds = storiesData
@@ -733,7 +687,6 @@ export default function Dashboard() {
           });
           
           if (duplicateIds.length > 0) {
-            console.log(`Dashboard: Deleting ${duplicateIds.length} duplicate stories from database:`, duplicateIds);
             // Lösche Duplikate im Hintergrund (nicht blockierend)
             supabase
               .from('saved_stories')
@@ -743,7 +696,6 @@ export default function Dashboard() {
                 if (error) {
                   console.error('Dashboard: Error deleting duplicates:', error);
                 } else {
-                  console.log(`Dashboard: Successfully deleted ${duplicateIds.length} duplicate stories`);
                 }
               });
           }
@@ -768,12 +720,6 @@ export default function Dashboard() {
           const userEmail = user.email?.toLowerCase().trim();
           const isAdminUser = userEmail && (fullAdminEmails.includes(userEmail) || musicAdminEmails.includes(userEmail));
           
-          console.log('[Dashboard] Admin check in loadStories:', {
-            userEmail,
-            fullAdminEmails,
-            musicAdminEmails,
-            isAdminUser
-          });
           
           // Prüfe ob User aktiven Zugang hat
           // Verwende userAccess State (wird von loadUserAccess gesetzt, inkl. Fallback)
@@ -787,7 +733,6 @@ export default function Dashboard() {
             // Dies ist ein Fallback für den Fall, dass getUserAccess fehlschlägt
             try {
               userHasActiveAccess = await hasActiveAccess(user.id);
-              console.log('[Dashboard] userAccess is null, using hasActiveAccess fallback:', userHasActiveAccess);
             } catch (error) {
               console.error('[Dashboard] Error checking hasActiveAccess fallback:', error);
               userHasActiveAccess = false;
@@ -812,7 +757,6 @@ export default function Dashboard() {
             if (isAdminUser) {
               canAccess = true;
               trialExpired = false;
-              console.log(`[Dashboard] Admin user - granting access to story ${story.id}`);
             } else if (userHasActiveAccess) {
               // Wenn User aktiven Zugang hat, kann er immer Audio abspielen
               canAccess = true;
@@ -824,12 +768,6 @@ export default function Dashboard() {
               const monthsSinceCreation = daysSinceCreation / 30;
               canAccess = monthsSinceCreation < 3;
               trialExpired = monthsSinceCreation >= 3;
-              console.log(`[Dashboard] Audio-only resource ${story.id}:`, {
-                daysSinceCreation: daysSinceCreation.toFixed(2),
-                monthsSinceCreation: monthsSinceCreation.toFixed(2),
-                canAccess,
-                trialExpired
-              });
             } else if (isFirstNormal) {
               // Erste normale Ressource: 3 Tage kostenlos (unabhängig von Audio-only Ressourcen)
               const firstResourceDate = new Date(normalStories[0].created_at);
@@ -840,25 +778,12 @@ export default function Dashboard() {
               // Berechne verbleibende Tage für Trial
               const daysRemaining = canAccess ? Math.max(0, Math.ceil(3 - daysSinceFirst)) : 0;
               
-              console.log(`[Dashboard] First normal resource ${story.id}:`, {
-                daysSinceFirst: daysSinceFirst.toFixed(2),
-                daysRemaining,
-                canAccess,
-                trialExpired,
-                totalNormalResources: normalStories.length,
-                totalAudioOnlyResources: audioOnlyStories.length
-              });
               
               accessStatusMap[story.id] = { canAccess, isFirst, trialExpired, daysRemaining };
             } else {
               // Nicht die erste normale Ressource - benötigt aktiven Zugang
               canAccess = false;
               trialExpired = false;
-              console.log(`[Dashboard] Not first normal resource ${story.id} - access denied`, {
-                storyId: story.id,
-                firstNormalResourceId: normalStories.length > 0 ? normalStories[0].id : 'none',
-                totalNormalResources: normalStories.length
-              });
               
               accessStatusMap[story.id] = { canAccess, isFirst, trialExpired };
             }
@@ -874,18 +799,11 @@ export default function Dashboard() {
         calculateUserStats(uniqueStories);
         
         // Track Dashboard-Visit (nur wenn User eingeloggt ist UND eine gültige Session hat)
-        console.log('Dashboard: Checking if should track dashboard_visit:', {
-          hasUser: !!user,
-          hasSession: !!session,
-          userEmail: user?.email,
-        });
         if (user && session) {
-          console.log('Dashboard: Tracking dashboard_visit event');
           trackEvent({
             eventType: 'dashboard_visit',
           }, { accessToken: session.access_token });
         } else {
-          console.log('Dashboard: NOT tracking dashboard_visit - missing user or session');
         }
       }
     } catch (err) {
@@ -944,11 +862,9 @@ export default function Dashboard() {
   }, [user]);
 
   const checkForPendingStories = useCallback(async () => {
-    console.log('Dashboard: Checking for pending stories...');
     
     // Verhindere mehrfache Aufrufe während der Ausführung
     if (isSavingPendingStory) {
-      console.log('Dashboard: Already processing pending story, skipping...');
       return;
     }
 
@@ -956,34 +872,27 @@ export default function Dashboard() {
     try {
       const mutex = typeof window !== 'undefined' ? localStorage.getItem('pendingStory_saving') : null;
       if (mutex === '1') {
-        console.log('Dashboard: Mutex active (pendingStory_saving=1), skipping save');
         return;
       }
     } catch {}
     
     const savedPendingStory = localStorage.getItem('pendingStory');
-    console.log('Dashboard: Pending story exists:', !!savedPendingStory);
     
     if (!savedPendingStory) {
-      console.log('Dashboard: No pending story found');
       return;
     }
     
     if (pendingStory) {
-      console.log('Dashboard: Pending story already in state, skipping...');
       return;
     }
     
     // Prüfe, ob der User wirklich authentifiziert ist
-    console.log('Dashboard: User check:', { user: !!user, userId: user?.id, userEmail: user?.email });
     
     if (!user || !user.id) {
-      console.log('Dashboard: No valid user found, cannot save pending story');
       // Setze die temporäre Ressource trotzdem an, damit sie angezeigt wird
       try {
         const storyData = JSON.parse(savedPendingStory);
         setPendingStory(storyData);
-        console.log('Dashboard: Pending story set in state for display (user not authenticated)');
       } catch (err) {
         console.error('Dashboard: Error parsing pending story:', err);
       }
@@ -992,36 +901,26 @@ export default function Dashboard() {
     
     // Verhindere mehrfache Speicherung
     if (isSavingPendingStory) {
-      console.log('Dashboard: Already saving pending story, skipping...');
       return;
     }
     
     try {
       const storyData = JSON.parse(savedPendingStory);
-      console.log('Dashboard: Story data:', {
-        generatedStory: storyData.generatedStory?.substring(0, 50) + '...',
-        selectedFigure: storyData.selectedFigure?.name,
-        questionAnswers: storyData.questionAnswers?.length || 0
-      });
       
       // Setze die temporäre Ressource IMMER im State, damit sie angezeigt wird
       setPendingStory(storyData);
-      console.log('Dashboard: Pending story set in state for display');
       
     // Prüfe User-Status erneut, da er sich während der Ausführung ändern kann
     const currentUser = user;
-    console.log('Dashboard: Current user status:', !!currentUser, currentUser?.id);
     
     // Warte kurz, falls der User-Status noch nicht vollständig geladen ist
     if (!currentUser) {
-      console.log('Dashboard: User not ready yet, waiting...');
       setTimeout(() => {
         checkForPendingStories();
       }, 2000);
       return;
     }
     
-    console.log('Dashboard: User is authenticated, proceeding with save...');
     
     // Flag FRÜH setzen um mehrfache Aufrufe zu verhindern
     setIsSavingPendingStory(true);
@@ -1029,7 +928,6 @@ export default function Dashboard() {
     
     if (currentUser) {
         // Wenn User authentifiziert ist, versuche in der Datenbank zu speichern
-        console.log('Dashboard: User authenticated, attempting to save to database...');
         
         try {
           // Normalisierung/Signatur zur robusteren Duplikaterkennung
@@ -1038,13 +936,11 @@ export default function Dashboard() {
           const normalizedContent = normalizeText(storyData.generatedStory || '');
           const signatureHead = normalizedContent.slice(0, 200);
           // Prüfe zuerst, ob bereits eine identische Ressource existiert
-          console.log('Dashboard: Checking for existing duplicate story...');
           
           let shouldSkipSave = false;
           
           try {
             // Robuste Duplikat-Prüfung - prüfe nach title, content und user_id
-            console.log('Dashboard: Checking for duplicates with title:', figureName, 'and head:', signatureHead.substring(0, 50) + '...');
             
             // Verbesserte Duplikatsprüfung: Prüfe auf vollständigen Content, nicht nur auf title
             const { data: existingStories, error: checkError } = await supabase
@@ -1056,7 +952,6 @@ export default function Dashboard() {
 
             if (checkError) {
               console.error('Error checking for duplicates:', checkError);
-              console.log('Continuing with save despite duplicate check error...');
             } else if (existingStories && existingStories.length > 0) {
               // Prüfe auf exakte Übereinstimmung des Contents (erste 500 Zeichen)
               const normalizedContentFull = normalizedContent.slice(0, 500);
@@ -1069,7 +964,6 @@ export default function Dashboard() {
                         normHead.slice(0, 100) === normalizedContentFull.slice(0, 100));
               });
               if (foundSimilar) {
-                console.log('Dashboard: Duplicate story (by content) found, skipping save');
                 shouldSkipSave = true;
                 // Lösche pendingStory sofort, da Duplikat
                 localStorage.removeItem('pendingStory');
@@ -1080,11 +974,9 @@ export default function Dashboard() {
                 return;
               }
             } else {
-              console.log('Dashboard: No duplicates found, proceeding with save');
             }
           } catch (duplicateCheckError) {
             console.error('Error during duplicate check:', duplicateCheckError);
-            console.log('Continuing with save despite duplicate check error...');
           }
 
           if (shouldSkipSave) {
@@ -1097,18 +989,8 @@ export default function Dashboard() {
           }
 
           // Debug: Logge die Daten vor dem Speichern
-          console.log('Dashboard: No duplicates found, attempting to save with data:', {
-            user_id: user.id,
-            story_text: storyData.generatedStory?.substring(0, 50) + '...',
-            figure_name: storyData.selectedFigure?.name,
-            figure_emoji: storyData.selectedFigure?.emoji,
-            audio_url: storyData.audioState?.audioUrl ? 'has audio' : 'no audio',
-            voice_id: storyData.selectedVoiceId,
-            question_answers_count: storyData.questionAnswers?.length || 0
-          });
 
           // Verwende alle relevanten Spalten inkl. audio_url und voice_id
-          console.log('poopoo [Dashboard] Preparing to save pending story with audio data');
 
           const correctData = {
             user_id: user.id,
@@ -1121,14 +1003,6 @@ export default function Dashboard() {
             auto_subtitle: null // Kein auto_subtitle beim ersten Speichern - User kann eigenen Satz eingeben
           };
 
-          console.log('poopoo [Dashboard] Inserting pending story with data:', JSON.stringify({
-            user_id: correctData.user_id,
-            title: correctData.title,
-            content_length: correctData.content?.length,
-            audio_url: correctData.audio_url,
-            voice_id: correctData.voice_id,
-            question_answers_count: correctData.question_answers?.length
-          }, null, 2));
           
           const { data, error } :any= await supabase
             .from('saved_stories')
@@ -1137,28 +1011,11 @@ export default function Dashboard() {
 
           if (error) {
             console.error('Error saving pending story from dashboard:', error);
-            console.log('Dashboard: Database save failed, but showing temporary resource anyway');
-            console.log('Dashboard: Error details:', {
-              message: error.message,
-              details: error.details,
-              hint: error.hint,
-              code: error.code
-            });
-            console.log('Dashboard: Full error object:', error);
-            console.log('Dashboard: Error message:', error.message);
-            console.log('Dashboard: Error code:', error.code);
-            console.log('Dashboard: Insert data that failed:', correctData);
             // Versuche es erneut nach einer kurzen Pause
             setTimeout(() => {
               checkForPendingStories();
             }, 3000);
           } else {
-            console.log('poopoo [Dashboard] Pending story saved successfully!', JSON.stringify({
-              id: data?.[0]?.id,
-              audio_url: data?.[0]?.audio_url,
-              voice_id: data?.[0]?.voice_id,
-              title: data?.[0]?.title
-            }, null, 2));
             
             // Track Resource Creation Event (nur wenn erfolgreich gespeichert)
             if (data && Array.isArray(data) && data.length > 0 && user && session) {
@@ -1170,7 +1027,6 @@ export default function Dashboard() {
                   resourceFigureName: storyData.selectedFigure.name,
                   voiceId: storyData.selectedVoiceId || undefined,
                 }, { accessToken: session?.access_token || null });
-                console.log('✅ Resource creation event tracked successfully from dashboard');
               } catch (trackError) {
                 console.error('❌ Failed to track resource_created event from dashboard:', trackError);
                 // Nicht kritisch - Ressource wurde bereits gespeichert
@@ -1199,7 +1055,6 @@ export default function Dashboard() {
           }
         } catch (dbError) {
           console.error('Database error:', dbError);
-          console.log('Dashboard: Database error, but showing temporary resource anyway');
           // Versuche es erneut nach einer kurzen Pause
           setTimeout(() => {
             checkForPendingStories();
@@ -1209,8 +1064,6 @@ export default function Dashboard() {
         }
       } else {
         // Wenn User nicht authentifiziert ist, zeige temporäre Ressource an
-        console.log('Dashboard: User not authenticated, showing temporary resource');
-        console.log('Dashboard: Please log in to save your resource permanently');
         setIsSavingPendingStory(false); // Flag auch hier zurücksetzen
       }
     } catch (err) {
@@ -1345,7 +1198,6 @@ export default function Dashboard() {
       // This prevents audio playback from being interrupted when
       // the user object reference changes (e.g. after auth token refresh).
       if (initialDataLoadedForUserRef.current === user.id) {
-        console.log('Dashboard: Data already loaded for user, skipping reload to preserve audio playback');
         return;
       }
       initialDataLoadedForUserRef.current = user.id;
@@ -1492,18 +1344,15 @@ export default function Dashboard() {
       
       // Prüfe ob resource Parameter vorhanden ist (nach Signup/Login oder Admin-Zugriff)
       if (resourceId) {
-        console.log('Dashboard: Resource parameter found:', resourceId);
         
         // Wenn Admin: Lade Ressource direkt, auch wenn sie einem anderen User gehört
         if (isAdmin) {
           // Verhindere mehrfaches Laden derselben Ressource
           if (adminResourceLoadingRef.current === resourceId) {
-            console.log('Dashboard: Resource already being loaded, skipping');
             return;
           }
           adminResourceLoadingRef.current = resourceId;
           
-          console.log('Dashboard: Admin user - loading resource directly');
           // Warte bis loadStories() fertig ist, dann füge die Ressource hinzu
           loadStories().then(() => {
             // Kurze Verzögerung, damit setStories() in loadStories() abgeschlossen ist
@@ -1532,10 +1381,8 @@ export default function Dashboard() {
                     setStories(prev => {
                       // Prüfe ob Ressource bereits vorhanden ist
                       if (prev.find(s => s.id === tempStory.id)) {
-                        console.log('Dashboard: Resource already in stories list');
                         return prev;
                       }
-                      console.log('Dashboard: Adding resource to stories list:', tempStory.title);
                       return [tempStory, ...prev];
                     });
                     
@@ -1544,7 +1391,6 @@ export default function Dashboard() {
                     newUrl.searchParams.delete('resource');
                     window.history.replaceState({}, '', newUrl.toString());
                     
-                    console.log('Dashboard: Resource loaded successfully for admin');
                   } else {
                     console.error('Dashboard: Resource not found');
                     adminResourceLoadingRef.current = null;
@@ -1567,7 +1413,6 @@ export default function Dashboard() {
               window.history.replaceState({}, '', newUrl.toString());
               
               // Zeige Erfolgsmeldung
-              console.log('Dashboard: Resource assigned successfully');
             });
           });
         }
@@ -1578,7 +1423,6 @@ export default function Dashboard() {
         // WICHTIG: Prüfe ob bereits geprüft wurde, um mehrfache Ausführung zu vermeiden
         const paymentCheckKey = `payment_checked_${sessionId || 'unknown'}`;
         if (typeof window !== 'undefined' && sessionStorage.getItem(paymentCheckKey)) {
-          console.log('Dashboard: Payment already checked, skipping...');
           // Entferne URL-Parameter sofort, um erneute Ausführung zu verhindern
           const newUrl = new URL(window.location.href);
           newUrl.searchParams.delete('payment');
@@ -1597,7 +1441,6 @@ export default function Dashboard() {
           window.history.replaceState({}, '', newUrl.toString());
         }
         
-        console.log('Dashboard: Payment successful, checking access status', { sessionId });
         // Warte kurz, damit Webhook Zeit hat, den Zugang zu erstellen
         // Versuche mehrmals, falls Webhook noch nicht verarbeitet wurde
         let retryCount = 0;
@@ -1607,7 +1450,6 @@ export default function Dashboard() {
         let storiesLoaded = false; // Verhindere mehrfaches Laden von Stories
         
         const checkAccess = async () => {
-          console.log(`Dashboard: Checking access (attempt ${retryCount + 1}/${maxRetries})`);
           
           // Lade UserAccess nur einmal am Anfang, nicht bei jedem Retry
           if (retryCount === 0) {
@@ -1616,7 +1458,6 @@ export default function Dashboard() {
           
           // Prüfe ob Zugang jetzt aktiv ist (ohne Stories zu laden)
           const hasAccess = await hasActiveAccess(user.id);
-          console.log('Dashboard: Access check result:', hasAccess);
           
           if (hasAccess) {
             // Zugang aktiv - lade Stories nur einmal
@@ -1656,7 +1497,6 @@ export default function Dashboard() {
         setTimeout(checkAccess, 2000);
       }
 
-      console.log('Dashboard: URL params check', { confirmed, paymentSuccess, user: !!user });
 
       // Direkt prüfen, ohne zusätzliche Verzögerung; Guard verhindert Doppelausführung
       checkForPendingStories();
@@ -1745,7 +1585,6 @@ export default function Dashboard() {
         custom_subtitle: customSubtitle
       };
 
-      console.log('[saveSubtitle] Updating story:', { storyId, customSubtitle, updateData });
 
       const { data, error } = await (supabase as any)
         .from('saved_stories')
@@ -1782,7 +1621,6 @@ export default function Dashboard() {
         throw error;
       }
 
-      console.log('[saveSubtitle] Success:', data);
 
       // Aktualisiere die lokale Liste
       setStories(stories.map(story => 
@@ -1891,13 +1729,11 @@ export default function Dashboard() {
               console.error(`Error deleting duplicates for ${title}:`, deleteError);
             } else {
               deletedCount += idsToDelete.length;
-              console.log(`Deleted ${idsToDelete.length} duplicates for ${title}`);
             }
           }
         }
       }
 
-      console.log(`Total duplicates deleted: ${deletedCount}`);
       if (deletedCount > 0) {
         loadStories(); // Lade Stories neu
       }
@@ -2046,13 +1882,11 @@ ${story.content}
     const volumeStep = startVolume / steps;
     let currentStep = 0;
     
-    console.log(`[fadeOutMusic] Starting fade-out for story ${storyId}, duration: ${duration}ms, startVolume: ${startVolume}`);
     
     const fadeInterval = setInterval(() => {
       if (!musicAudio || musicAudio.paused) {
         clearInterval(fadeInterval);
         (musicAudio as any)._fadeOutInterval = null;
-        console.log(`[fadeOutMusic] Music already paused, stopping fade-out`);
         return;
       }
       
@@ -2068,7 +1902,6 @@ ${story.content}
         // Verwende die ursprüngliche track-spezifische Lautstärke statt DEFAULT_MUSIC_VOLUME
         const originalVolume = (musicAudio as any)._originalVolume || DEFAULT_MUSIC_VOLUME;
         setMusicVolume(musicAudio, originalVolume);
-        console.log(`[fadeOutMusic] Fade-out completed for story ${storyId}, reset volume to ${originalVolume * 100}%`);
       }
     }, fadeOutInterval);
     
@@ -2092,26 +1925,19 @@ ${story.content}
       return;
     }
     
-    console.log(`[playAudio] ===== STARTING PLAYBACK =====`);
-    console.log(`[playAudio] Story ID: ${storyId}`);
-    console.log(`[playAudio] Audio URL: ${audioUrl}`);
     
     // Prüfe ob User Zugang hat (Trial-Periode oder bezahlt)
     // Nur wenn Paywall-Feature aktiviert ist
     const paywallEnabled = isEnabled('PAYWALL_ENABLED');
     
     if (user && paywallEnabled) {
-      console.log(`[playAudio] Checking access for story ${storyId}...`);
       try {
         const canAccess = await canAccessResource(user.id, storyId);
-        console.log(`[playAudio] Access check result for story ${storyId}:`, canAccess);
         if (!canAccess) {
           // Trial-Periode abgelaufen oder nicht die erste Ressource - zeige Paywall
-          console.log(`[playAudio] Access denied for story ${storyId} - showing paywall`);
           setShowPaywall(true);
           return;
         }
-        console.log(`[playAudio] Access granted for story ${storyId} - proceeding with playback`);
       } catch (accessError) {
         console.error(`[playAudio] Error checking access for story ${storyId}:`, accessError);
         // Bei Fehler bei der Zugangsprüfung: Zeige Paywall (sicherer)
@@ -2168,13 +1994,11 @@ ${story.content}
     
     // Nur loggen wenn Musik gefunden wurde (für Debugging)
     if (musicUrl) {
-      console.log(`[playAudio] Background music found for ${figureIdOrName}:`, { musicUrl, musicVolume });
     }
     
       // Erstelle oder verwende existierendes Audio-Element
       let audio = audioElements[storyId];
       if (!audio) {
-        console.log(`[playAudio] Creating new audio element for story ${storyId}`);
         audio = new Audio();
         audio.preload = 'auto';
         audio.volume = 1.0; // Stelle sicher, dass Stimme immer auf 100% ist
@@ -2183,7 +2007,6 @@ ${story.content}
         if (typeof window !== 'undefined' && 'audioSession' in navigator) {
           try {
             (navigator as any).audioSession.type = 'playback';
-            console.log('[playAudio] iOS AudioSession configured for background playback');
           } catch (error) {
             console.warn('[playAudio] Failed to configure AudioSession:', error);
           }
@@ -2213,7 +2036,6 @@ ${story.content}
 
       // Funktion zum Stoppen der Musik (wird sowohl von 'ended' als auch von Polling verwendet)
       const stopMusicForStory = () => {
-        console.log(`[playAudio] Stopping music for story ${storyId}`);
         setPlayingAudioId(null);
 
         // Reset seekbar to beginning when audio ends
@@ -2225,7 +2047,6 @@ ${story.content}
           if (musicAudio) {
             // Deaktiviere Loop, damit Musik nach dem Ende stoppt (nicht endlos wiederholt)
             musicAudio.loop = false;
-            console.log(`[playAudio] Voice audio ended - background music continues playing until track ends`);
           }
           return prev;
         });
@@ -2313,7 +2134,6 @@ ${story.content}
           // Prüfe nochmal ob User Zugang hat - wenn nicht, zeige Paywall statt Fehlermeldung
           canAccessResource(user.id, storyId).then(canAccess => {
             if (!canAccess) {
-              console.log(`[playAudio] Access denied after audio error - showing paywall instead`);
               setShowPaywall(true);
             } else {
               // Echter Audio-Fehler
@@ -2331,11 +2151,9 @@ ${story.content}
       
       // Event Listener für Load-Error
       audio.addEventListener('loadstart', () => {
-        console.log(`[playAudio] Loading audio for story ${storyId}`);
       });
       
       audio.addEventListener('canplay', () => {
-        console.log(`[playAudio] Audio ready for story ${storyId}`);
       });
     }
     
@@ -2345,10 +2163,6 @@ ${story.content}
     const needsNewSource = currentSrc !== audioUrl && audioUrl;
     
     if (needsNewSource) {
-      console.log(`[playAudio] Setting new audio source for story ${storyId}:`, {
-        oldSrc: currentSrc,
-        newSrc: audioUrl
-      });
       
       // Pausiere und resette Audio-Element vor dem URL-Wechsel
       audio.pause();
@@ -2378,14 +2192,6 @@ ${story.content}
       // DEBUG: Prüfe ob Datei über HTTP erreichbar ist (nur für Diagnose)
       try {
         const testResponse = await fetch(audioUrl, { method: 'HEAD', cache: 'no-cache' });
-        console.log(`[playAudio] HTTP HEAD request for audio URL:`, {
-          url: audioUrl,
-          status: testResponse.status,
-          statusText: testResponse.statusText,
-          contentType: testResponse.headers.get('content-type'),
-          contentLength: testResponse.headers.get('content-length'),
-          accessible: testResponse.ok
-        });
         
         if (!testResponse.ok) {
           console.warn(`[playAudio] Audio file not accessible via HTTP HEAD: ${testResponse.status} ${testResponse.statusText}`);
@@ -2396,15 +2202,6 @@ ${story.content}
       }
       
       // DEBUG: Logge Browser-Informationen für Diagnose
-      console.log(`[playAudio] Browser/Device info for debugging:`, {
-        userAgent: navigator.userAgent,
-        platform: navigator.platform,
-        vendor: navigator.vendor,
-        language: navigator.language,
-        cookieEnabled: navigator.cookieEnabled,
-        onLine: navigator.onLine,
-        audioUrl: audioUrl
-      });
       
       // Setze crossOrigin für CORS
       newAudio.crossOrigin = 'anonymous';
@@ -2422,16 +2219,6 @@ ${story.content}
       
       // DEBUG: Prüfe Audio-Element nach src-Setzung und load()
       setTimeout(() => {
-        console.log(`[playAudio] Audio element after src set and load():`, {
-          src: newAudio.src,
-          currentSrc: newAudio.currentSrc,
-          networkState: newAudio.networkState,
-          readyState: newAudio.readyState,
-          error: newAudio.error ? {
-            code: newAudio.error.code,
-            message: newAudio.error.message
-          } : null
-        });
         
         // FALLBACK: Wenn currentSrc immer noch leer ist, versuche Blob-URL
         if (!newAudio.currentSrc && newAudio.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
@@ -2447,7 +2234,6 @@ ${story.content}
             })
             .then(blob => {
               const blobUrl = URL.createObjectURL(blob);
-              console.log(`[playAudio] Created blob URL for fallback:`, blobUrl);
               newAudio.src = blobUrl;
               newAudio.crossOrigin = null; // Blob-URLs brauchen kein CORS
               newAudio.load(); // Lade neu mit Blob-URL
@@ -2474,12 +2260,6 @@ ${story.content}
         }
       }
       
-      console.log(`[playAudio] Created new audio element with URL:`, {
-        storyId,
-        audioUrl,
-        audioSrc: newAudio.src,
-        srcIsSet: !!newAudio.src && newAudio.src !== '' && newAudio.src !== window.location.href
-      });
       
       // Verwende neues Audio-Element BEVOR wir es im State setzen
       audio = newAudio;
@@ -2492,7 +2272,6 @@ ${story.content}
       // um sicherzustellen, dass er am finalen Audio-Element angehängt wird
 
       newAudio.addEventListener('ended', () => {
-        console.log(`[playAudio] Audio ended for story ${storyId} (newAudio)`);
         setPlayingAudioId(null);
 
         // Lasse Hintergrundmusik weiterlaufen bis zum Ende (Musik spielt weiter, auch wenn Stimme endet)
@@ -2501,7 +2280,6 @@ ${story.content}
           if (musicAudio) {
             // Deaktiviere Loop, damit Musik nach dem Ende stoppt (nicht endlos wiederholt)
             musicAudio.loop = false;
-            console.log(`[playAudio] Voice audio ended - background music continues playing until track ends`);
           }
           return prev;
         });
@@ -2531,12 +2309,6 @@ ${story.content}
         if (isDuringLoading) {
           // Audio ist noch im Loading-Zustand - warte auf canplay event
           // Logge nur als debug, nicht als error
-          console.log('[playAudio] Audio error during loading (ignoring, waiting for canplay):', {
-            code: error?.code,
-            message: error?.message,
-            readyState: newAudio.readyState,
-            audioSrc: newAudio.src
-          });
           return; // Nicht als Fehler behandeln, warte auf canplay
         }
         
@@ -2556,7 +2328,6 @@ ${story.content}
         if (paywallEnabled && user) {
           canAccessResource(user.id, storyId).then(canAccess => {
             if (!canAccess) {
-              console.log(`[playAudio] Access denied after audio error - showing paywall instead`);
               setShowPaywall(true);
             } else {
               alert('Fehler beim Abspielen des Audios. Bitte versuche es erneut oder kontaktiere den Support.');
@@ -2570,11 +2341,9 @@ ${story.content}
       });
       
       newAudio.addEventListener('loadstart', () => {
-        console.log(`[playAudio] Loading audio for story ${storyId}`);
       });
       
       newAudio.addEventListener('canplay', () => {
-        console.log(`[playAudio] Audio ready for story ${storyId}`);
       });
       
       // Prüfe ob URL korrekt gesetzt wurde
@@ -2586,7 +2355,6 @@ ${story.content}
         });
         // Versuche URL nochmal zu setzen
         audio.src = audioUrl;
-        console.log(`[playAudio] Retried setting audio src:`, audio.src);
       }
       
       // Warte auf Load, bevor wir abspielen
@@ -2645,7 +2413,6 @@ ${story.content}
                   })
                   .then(blob => {
                     const blobUrl = URL.createObjectURL(blob);
-                    console.log(`[playAudio] Created blob URL for NETWORK_NO_SOURCE fallback:`, blobUrl);
                     audio.src = blobUrl;
                     audio.crossOrigin = null; // Blob-URLs brauchen kein CORS
                     audio.load(); // Lade neu mit Blob-URL
@@ -2699,14 +2466,6 @@ ${story.content}
             if (isDuringLoading && networkState !== HTMLMediaElement.NETWORK_NO_SOURCE) {
               // Audio ist noch im Loading-Zustand - warte auf canplay event
               // Logge nur als debug, nicht als error
-              console.log(`[playAudio] Audio error during loading (ignoring, waiting for canplay) for story ${storyId}:`, {
-                code: error?.code,
-                message: error?.message,
-                readyState: audio.readyState,
-                networkState: networkState,
-                audioSrc: audio.src,
-                audioUrl: audioUrl
-              });
               // Nicht rejecten - warte auf canplay
               return;
             }
@@ -2738,7 +2497,6 @@ ${story.content}
                   })
                   .then(blob => {
                     const blobUrl = URL.createObjectURL(blob);
-                    console.log(`[playAudio] Created blob URL for audio error fallback:`, blobUrl);
                     audio.src = blobUrl;
                     audio.crossOrigin = null; // Blob-URLs brauchen kein CORS
                     audio.load(); // Lade neu mit Blob-URL
@@ -2784,12 +2542,10 @@ ${story.content}
           };
           
           const onLoadStart = () => {
-            console.log(`[playAudio] Audio loading started for story ${storyId}, src: ${audio.src}`);
           };
           
           // Wenn Audio bereits geladen ist, resolve sofort
           if (audio.readyState >= 2) { // HAVE_CURRENT_DATA
-            console.log(`[playAudio] Audio already loaded for story ${storyId}, readyState: ${audio.readyState}`);
             resolved = true;
             cleanup();
             resolve();
@@ -2798,7 +2554,6 @@ ${story.content}
           
           // Prüfe ob Audio bereits im Loading-Prozess ist
           if (audio.readyState >= 1) { // HAVE_METADATA
-            console.log(`[playAudio] Audio metadata loaded, waiting for canplay, readyState: ${audio.readyState}`);
           }
           
           // Prüfe nochmal ob src gesetzt ist bevor wir Event-Listener hinzufügen
@@ -2808,15 +2563,6 @@ ${story.content}
           }
           
           // DEBUG: Logge Browser-Informationen für Diagnose
-          console.log(`[playAudio] Browser/Device info for debugging:`, {
-            userAgent: navigator.userAgent,
-            platform: navigator.platform,
-            vendor: navigator.vendor,
-            language: navigator.language,
-            cookieEnabled: navigator.cookieEnabled,
-            onLine: navigator.onLine,
-            audioUrl: audioUrl
-          });
           
           // Überwache networkState Änderungen (wichtig für frühe Erkennung von NETWORK_NO_SOURCE)
           const checkNetworkState = () => {
@@ -2899,7 +2645,6 @@ ${story.content}
             }
           }, 15000);
         });
-        console.log(`[playAudio] Audio loaded successfully for story ${storyId}`);
       } catch (error) {
         console.error('[playAudio] Error loading audio:', error);
         alert('Fehler beim Laden des Audios. Bitte versuche es erneut.');
@@ -2907,10 +2652,8 @@ ${story.content}
         return;
       }
     } else {
-      console.log(`[playAudio] Using existing audio source for story ${storyId}, readyState: ${audio.readyState}`);
       // Prüfe ob Audio-Element in einem guten Zustand ist
       if (audio.readyState === 0) { // HAVE_NOTHING - Audio wurde noch nicht geladen
-        console.log(`[playAudio] Audio element not loaded yet, triggering load`);
         audio.load();
       }
     }
@@ -2950,7 +2693,6 @@ ${story.content}
       (audio as any)._seekbarListenersAttached = true;
       (audio as any)._lastStoryId = storyId;
 
-      console.log(`[playAudio] Attached seekbar event listeners for story ${storyId}`);
     }
 
     // Wenn Audio bereits geladen ist, setze die Dauer sofort
@@ -2978,7 +2720,6 @@ ${story.content}
         let musicAudio = backgroundMusicElements[storyId];
         
         if (!musicAudio) {
-          console.log(`[playAudio] Creating background music element for story ${storyId}`);
           
           // iOS-Erkennung (muss VOR der Verwendung deklariert werden)
           const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
@@ -3005,7 +2746,6 @@ ${story.content}
             if (typeof (navigator as any).audioSession !== 'undefined') {
               try {
                 (navigator as any).audioSession.type = 'playback';
-                console.log('[playAudio] iOS Audio Session configured for background playback');
               } catch (audioSessionError: any) {
                 console.warn('[playAudio] Failed to configure iOS Audio Session:', audioSessionError);
               }
@@ -3015,7 +2755,6 @@ ${story.content}
           // Versuche zuerst direkt mit URL, aber bereite Blob-Fallback vor
           // Da die Datei direkt im Browser funktioniert, aber nicht im Audio-Element,
           // verwenden wir direkt den Blob-Fallback für bessere Kompatibilität
-          console.log(`[playAudio] Loading background music as blob for better compatibility...`);
           
           // Lade Datei als Blob und erstelle Blob-URL (umgeht mögliche CORS/Format-Probleme)
           fetch(musicUrl, { mode: 'cors', cache: 'no-cache' })
@@ -3027,7 +2766,6 @@ ${story.content}
             })
             .then(blob => {
               const blobUrl = URL.createObjectURL(blob);
-              console.log(`[playAudio] Created blob URL for background music:`, blobUrl);
               musicAudio.src = blobUrl;
               musicAudio.crossOrigin = null; // Blob-URLs brauchen kein CORS
               
@@ -3040,16 +2778,6 @@ ${story.content}
               
               // DEBUG: Prüfe Audio-Element nach src-Setzung und load()
               setTimeout(() => {
-                console.log(`[playAudio] Background music element after blob URL set and load():`, {
-                  src: musicAudio.src,
-                  currentSrc: musicAudio.currentSrc,
-                  networkState: musicAudio.networkState,
-                  readyState: musicAudio.readyState,
-                  error: musicAudio.error ? {
-                    code: musicAudio.error.code,
-                    message: musicAudio.error.message
-                  } : null
-                });
               }, 200);
             })
             .catch(error => {
@@ -3073,7 +2801,6 @@ ${story.content}
           
           // Verwende track-spezifische Lautstärke (falls vorhanden), sonst Standard-Lautstärke
           // Hinweis: isIOS wurde bereits oben deklariert
-          console.log(`[playAudio] Background music initialized with volume: ${musicVolume * 100}% (track-specific: ${musicTrack?.volume ? 'yes' : 'no'}, iOS: ${isIOS}) for story ${storyId}`);
           
           musicAudio.addEventListener('error', (e) => {
             const error = musicAudio.error;
@@ -3098,7 +2825,6 @@ ${story.content}
                                  error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED;
             
             if (isDuringLoading && !isFormatError) {
-              console.log('[playAudio] Background music error during loading (ignoring, waiting for canplay):', errorDetails);
               // Nicht kritisch - warte auf canplay
             } else if (isFormatError && musicAudio.src.startsWith('blob:')) {
               // Format-Fehler mit Blob-URL - Datei ist möglicherweise beschädigt
@@ -3117,7 +2843,6 @@ ${story.content}
                 })
                 .then(blob => {
                   const blobUrl = URL.createObjectURL(blob);
-                  console.log(`[playAudio] Created blob URL for background music error fallback:`, blobUrl);
                   musicAudio!.src = blobUrl;
                   musicAudio!.crossOrigin = null; // Blob-URLs brauchen kein CORS
                   musicAudio!.load(); // Lade neu mit Blob-URL
@@ -3156,20 +2881,17 @@ ${story.content}
           });
           
           musicAudio.addEventListener('loadstart', () => {
-            console.log(`[playAudio] Background music loading for story ${storyId}`);
           });
           
           // Warte auf canplay Event bevor play() aufgerufen wird
           // Das verhindert "AbortError: The play() request was interrupted by a new load request"
           const playMusicWhenReady = () => {
-            console.log(`[playAudio] Background music ready for story ${storyId}`);
             
             // Verbinde Web Audio API für iOS erst nachdem Audio geladen ist
             if (isIOS && typeof AudioContext !== 'undefined' && !(musicAudio as any)._useWebAudio) {
               try {
                 // Prüfe ob bereits verbunden (verhindert doppelte Verbindung)
                 if ((musicAudio as any)._audioContext) {
-                  console.log('[playAudio] Web Audio API already connected, skipping');
                   return;
                 }
                 
@@ -3213,14 +2935,12 @@ ${story.content}
               const handlePause = () => {
                 // Prüfe ob Musik gestoppt werden soll (z.B. wenn Audio endet)
                 if ((musicAudio as any)._shouldStop) {
-                  console.log(`[playAudio] Background music pause ignored - music should stop`);
                   return;
                 }
                 
                 // Prüfe ob die Stimme noch läuft (dann sollte Musik auch laufen)
                 const voiceAudio = audioElements[storyId];
                 if (voiceAudio && !voiceAudio.paused && !voiceAudio.ended) {
-                  console.log(`[playAudio] Background music was paused unexpectedly on iOS, restarting...`);
                   // Verwende setTimeout, um sicherzustellen, dass der Play-Befehl nach dem Pause-Event ausgeführt wird
                   setTimeout(() => {
                     // Prüfe nochmal, ob Musik gestoppt werden soll
@@ -3249,7 +2969,6 @@ ${story.content}
                   // Stimme läuft noch
                   if (musicAudio.paused && !musicAudio.ended) {
                     // Musik wurde pausiert, obwohl Stimme läuft - starte wieder
-                    console.log(`[playAudio] Background music paused while voice is playing, restarting...`);
                     musicAudio.play().catch((err: any) => {
                       console.warn('[playAudio] Failed to restart background music in timeupdate:', err);
                     });
@@ -3277,14 +2996,12 @@ ${story.content}
           // Audio-Element existiert bereits - aktualisiere Lautstärke falls sie sich geändert hat
           const originalVolume = (musicAudio as any)._originalVolume || DEFAULT_MUSIC_VOLUME;
           if (Math.abs(originalVolume - musicVolume) > 0.001) {
-            console.log(`[playAudio] Updating music volume from ${originalVolume * 100}% to ${musicVolume * 100}% for story ${storyId}`);
             setMusicVolume(musicAudio, musicVolume);
             (musicAudio as any)._originalVolume = musicVolume;
           } else {
             // Stelle sicher, dass die Lautstärke korrekt ist (falls sie durch Fade-Out geändert wurde)
             const currentVolume = getMusicVolume(musicAudio);
             if (Math.abs(currentVolume - originalVolume) > 0.001) {
-              console.log(`[playAudio] Resetting music volume from ${currentVolume * 100}% to ${originalVolume * 100}% for story ${storyId}`);
               setMusicVolume(musicAudio, originalVolume);
             }
           }
@@ -3296,7 +3013,6 @@ ${story.content}
           const originalVolume = (musicAudio as any)._originalVolume || musicVolume;
           const currentVolume = getMusicVolume(musicAudio);
           if (Math.abs(currentVolume - originalVolume) > 0.001) {
-            console.log(`[playAudio] Resetting music volume from ${currentVolume * 100}% to ${originalVolume * 100}% for story ${storyId}`);
             setMusicVolume(musicAudio, originalVolume);
           }
           
@@ -3344,7 +3060,6 @@ ${story.content}
             }, 500);
             
             const finalVolume = getMusicVolume(musicAudio);
-            console.log(`[playAudio] Background music started for story ${storyId} (at 0s) with volume ${finalVolume * 100}%`);
 
             // Aktualisiere Button-Status SOFORT, wenn Musik startet (vor der 3-Sekunden-Wartezeit)
             setPlayingAudioId(storyId);
@@ -3352,7 +3067,6 @@ ${story.content}
             // Warte 3 Sekunden bevor die Stimme startet
             await new Promise(resolve => setTimeout(resolve, 3000));
           } else {
-            console.log(`[playAudio] Background music already playing for story ${storyId}, skipping start`);
             // Stelle sicher, dass Lautstärke auch bei bereits laufender Musik korrekt ist
             const targetVolume = (musicAudio as any)._originalVolume || musicVolume;
             const currentVol = getMusicVolume(musicAudio);
@@ -3376,7 +3090,6 @@ ${story.content}
 
       // Setze playingAudioId wenn Audio startet (auch wenn keine Musik vorhanden ist)
       setPlayingAudioId(storyId);
-      console.log(`[playAudio] Audio playback started for story ${storyId}, setPlayingAudioId`);
       
       // Überwache Lautstärke während der Wiedergabe und stelle sicher, dass sie immer auf 100% bleibt
       const ensureVolumeInterval = setInterval(() => {
@@ -3436,7 +3149,6 @@ ${story.content}
       }
       
       musicAudio.pause();
-      console.log(`[pauseAudio] Background music paused for story ${storyId}`);
     }
   }, [audioElements, backgroundMusicElements]);
 
@@ -3501,7 +3213,6 @@ ${story.content}
             if (musicAudio) {
               // Deaktiviere Loop, damit Musik nach dem Ende stoppt (nicht endlos wiederholt)
               musicAudio.loop = false;
-              console.log(`[handleVisibilityChange] Voice audio ended - background music continues playing until track ends`);
 
               // Aktualisiere State
               setPlayingAudioId(prev => prev === storyId ? null : prev);
@@ -3519,10 +3230,10 @@ ${story.content}
 
   if (authLoading || !user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-primary-50 to-primary-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4" />
-          <p className="text-gray-600">Lade deinen Bereich…</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4" />
+          <p className="text-secondary-600">Lade deinen Bereich…</p>
         </div>
       </div>
     );
@@ -3530,7 +3241,7 @@ ${story.content}
 
         return (
     <BLSProvider>
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 pb-10 sm:pb-12">
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-primary-50 to-primary-50 pb-10 sm:pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:py-8 py-4">
         {/* Header - Nur beim ersten Login anzeigen */}
         {hasSeenDashboardIntro === false && (
@@ -3539,7 +3250,7 @@ ${story.content}
             animate={{ opacity: 1, y: 0 }}
             className="text-center sm:mb-8 mb-4"
           >
-            <h1 className="text-2xl sm:text-2xl md:text-3xl font-light text-amber-900 mb-2">
+            <h1 className="text-2xl sm:text-2xl md:text-3xl font-light text-primary-900 mb-2">
               Willkommen in deinem Raum
             </h1>
           </motion.div>
@@ -3554,8 +3265,8 @@ ${story.content}
           <div className="space-y-8">
               {loading ? (
                 <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4"></div>
-                  <p className="text-gray-600 max-sm:text-sm">Lade Geschichten...</p>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+                  <p className="text-secondary-600 max-sm:text-sm">Lade Geschichten...</p>
                 </div>
               ) : error ? (
                 <div className="text-center py-8">
@@ -3565,14 +3276,14 @@ ${story.content}
               ) : stories.length === 0 && !pendingStory ? (
                 <div className="bg-white rounded-2xl shadow-lg p-8">
                   <div className="text-center py-8">
-                    <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600 max-sm:text-sm">Noch keine Geschichten gespeichert.</p>
-                    <p className="text-gray-500 text-sm max-sm:text-xs mt-2 mb-6">
+                    <BookOpen className="w-12 h-12 text-secondary-400 mx-auto mb-4" />
+                    <p className="text-secondary-600 max-sm:text-sm">Noch keine Geschichten gespeichert.</p>
+                    <p className="text-secondary-500 text-sm max-sm:text-xs mt-2 mb-6">
                       Erstelle deine erste persönliche Ressource, um sie hier zu sehen.
                     </p>
                     <button
                       onClick={() => router.push('/create-story')}
-                      className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl shadow-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-200 inline-flex items-center gap-2"
+                      className="px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-500 text-white font-medium rounded-xl shadow-lg hover:from-primary-600 hover:to-primary-600 transition-all duration-200 inline-flex items-center gap-2"
                     >
                       <Plus className="w-5 h-5" />
                       Erstelle deine erste Ressource
@@ -3584,10 +3295,10 @@ ${story.content}
                   {/* Section 1: Personal Stories - PRIMARY */}
                   <div className="bg-white rounded-2xl shadow-lg p-8">
                     <div className="mb-6">
-                      <h2 className="text-xl font-semibold text-amber-900 mb-6">Meine Power Storys</h2>
+                      <h2 className="text-xl font-semibold text-primary-900 mb-6">Meine Power Storys</h2>
                       <button
                         onClick={handleCreateStoryClick}
-                        className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl shadow-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-200 flex items-center gap-2"
+                        className="px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-500 text-white font-medium rounded-xl shadow-lg hover:from-primary-600 hover:to-primary-600 transition-all duration-200 flex items-center gap-2"
                       >
                         <Plus className="w-5 h-5" />
                         Neue Power Story
@@ -3596,11 +3307,11 @@ ${story.content}
 
                     {/* Admin-Bereich: Musikverwaltung, Analytics, Manuelle Ressource (nur für Admins sichtbar) */}
                     {(isAdmin || isMusicAdmin) && (
-                      <div className="mb-6 flex flex-wrap items-center gap-3 p-4 bg-amber-50/80 border border-amber-200 rounded-xl">
+                      <div className="mb-6 flex flex-wrap items-center gap-3 p-4 bg-primary-50/80 border border-primary-200 rounded-xl">
                         {isMusicAdmin && (
                           <Link
                             href="/admin/music"
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors"
                           >
                             <Music className="w-4 h-4" />
                             Musik verwalten
@@ -3609,7 +3320,7 @@ ${story.content}
                         {isAdmin && (
                           <Link
                             href="/admin/analytics"
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition-colors"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
                           >
                             <BarChart3 className="w-4 h-4" />
                             Admin Analytics
@@ -3619,7 +3330,7 @@ ${story.content}
                           <button
                             type="button"
                             onClick={() => setShowClientResourceModal(true)}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
                           >
                             <Volume2 className="w-4 h-4" />
                             Manuelle Ressource erstellen (Audio)
@@ -3630,9 +3341,9 @@ ${story.content}
 
                     {personalStories.length === 0 ? (
                       <div className="text-center py-8">
-                        <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-600 max-sm:text-sm">Noch keine persönlichen Geschichten.</p>
-                        <p className="text-gray-500 text-sm max-sm:text-xs mt-2">
+                        <BookOpen className="w-12 h-12 text-secondary-400 mx-auto mb-4" />
+                        <p className="text-secondary-600 max-sm:text-sm">Noch keine persönlichen Geschichten.</p>
+                        <p className="text-secondary-500 text-sm max-sm:text-xs mt-2">
                           Erstelle deine erste personalisierte Power Story.
                         </p>
                       </div>
@@ -3643,27 +3354,27 @@ ${story.content}
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6"
+                      className="bg-gradient-to-r from-primary-50 to-primary-50 border border-primary-200 rounded-xl p-6"
                     >
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center space-x-3">
                           <div className="text-3xl">{pendingStory.selectedFigure?.emoji}</div>
                           <div>
-                            <h3 className="text-lg font-semibold text-blue-900">
+                            <h3 className="text-lg font-semibold text-primary-900">
                               {pendingStory.selectedFigure?.name}
                             </h3>
-                            <p className="text-blue-700 text-sm">
+                            <p className="text-primary-700 text-sm">
                               Temporäre Ressource - Bitte melde dich an, um sie zu speichern
                             </p>
                           </div>
                         </div>
-                        <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                        <div className="bg-primary-100 text-primary-800 px-3 py-1 rounded-full text-sm font-medium">
                           Temporär
                         </div>
                       </div>
                       
                       <div className="bg-white rounded-lg p-4 mb-4">
-                        <p className="text-gray-800 leading-relaxed">
+                        <p className="text-secondary-800 leading-relaxed">
                           {pendingStory.generatedStory}
                         </p>
                       </div>
@@ -3675,7 +3386,7 @@ ${story.content}
                               const audio = new Audio(pendingStory.audioState.audioUrl);
                               audio.play();
                             }}
-                            className="flex items-center space-x-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                            className="flex items-center space-x-2 bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors"
                           >
                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
@@ -3685,8 +3396,8 @@ ${story.content}
                         </div>
                       )}
                       
-                      <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <p className="text-yellow-800 text-sm">
+                      <div className="mt-4 p-3 bg-primary-50 border border-primary-200 rounded-lg">
+                        <p className="text-primary-800 text-sm">
                           ⚠️ Diese Ressource ist nur temporär gespeichert. Bitte melde dich an, um sie dauerhaft zu speichern.
                         </p>
                       </div>
@@ -3704,141 +3415,34 @@ ${story.content}
                     </motion.div>
                   )}
 
-                  {personalStories.map((story, storyIndex) => (
-                    <motion.div
+                  {personalStories.map((story) => (
+                    <StoryCardConnected
                       key={story.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-amber-50 border border-amber-200 rounded-xl sm:p-6 p-4"
-                    >
-                      <div className="flex justify-between items-start mb-4 group pt-2">
-                        <div className="flex-1">
-                          {/* Badges und Admin-Checkbox */}
-                          <div className="flex items-center gap-3 mb-3 flex-wrap">
-                            {/* Badge für Story-Quelle */}
-                            {(() => {
-                              // Prüfe ob Story mit Andreas erstellt wurde (manuell aufgenommen)
-                              // Stories mit Andreas haben is_audio_only=true ODER client_email gesetzt
-                              const isAndreasCreated = story.is_audio_only === true || story.client_email !== null;
-                              
-                              if (isAndreasCreated) {
-                                return (
-                                  <span className="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full text-[8px] font-medium">
-                                    Mit Andreas erstellt
-                                  </span>
-                                );
-                              }
-                              
-                              // User-created via product flow (AI-assisted)
-                              // Zeige Badge nur wenn sicher kategorisierbar (nicht Andreas-created)
-                              if (story.is_audio_only !== true && story.client_email === null) {
-                                return (
-                                  <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full text-[8px] font-medium">
-                                    Selbst erstellt
-                                  </span>
-                                );
-                              }
-                              
-                              // Wenn nicht eindeutig kategorisierbar, kein Badge
-                              return null;
-                            })()}
-                            {/* Beispiel-Ressourcenfigur Checkbox (nur für Admins, nur wenn Audio vorhanden) */}
-                            {isAdmin && story.audio_url && story.audio_url.trim() !== '' && (
-                              <label className="flex items-center gap-2 cursor-pointer group">
-                                <input
-                                  type="radio"
-                                  name="example-resource"
-                                  checked={exampleResourceId === story.id}
-                                  onChange={() => saveExampleResource(story.id)}
-                                  disabled={exampleResourceLoading}
-                                  className="w-4 h-4 text-purple-600 border-purple-300 focus:ring-purple-500 focus:ring-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                />
-                                <span className="text-xs font-medium text-purple-700 group-hover:text-purple-900 transition-colors">
-                                  Als Beispiel-Ressource
-                                </span>
-                              </label>
-                            )}
-                          </div>
-                        </div>
-                        <div>
-                          <StoryActionsMenu
-                            onRename={() => setRenamingStoryId(story.id)}
-                            onDelete={() => handleDeleteClick(story.id)}
-                            canDelete={personalStories.length > 1}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Audio Player */}
-                      {story.audio_url ? (
-                        <div className="mt-4">
-                          {/* Use enhanced player with BLS for Pro users (not first story), regular player otherwise */}
-                          {subscriptionStatus.isPro ? (
-                            <StoryPlayerWithBLS
-                              audioUrl={story.audio_url}
-                              title={story.title}
-                              subtitle={getDisplaySubtitle(story)}
-                              resourceFigure={story.resource_figure}
-                              showBLS={true}
-                              editableSubtitle={{
-                                value: getDisplaySubtitle(story),
-                                autoSubtitle: story.auto_subtitle ?? null,
-                                customSubtitle: story.custom_subtitle ?? null,
-                                onSave: (value) => saveSubtitle(story.id, value || null)
-                              }}
-                              editableTitle={{
-                                isEditing: renamingStoryId === story.id,
-                                onSave: async (newTitle) => {
-                                  await saveTitle(story.id, newTitle);
-                                  setRenamingStoryId(null);
-                                },
-                                onCancel: () => setRenamingStoryId(null)
-                              }}
-                            />
-                          ) : (
-                            <DashboardAudioPlayer
-                              storyId={story.id}
-                              audioUrl={story.audio_url}
-                              title={story.title}
-                              subtitle={getDisplaySubtitle(story)}
-                              resourceFigure={story.resource_figure}
-                              editableSubtitle={{
-                                value: getDisplaySubtitle(story),
-                                autoSubtitle: story.auto_subtitle ?? null,
-                                customSubtitle: story.custom_subtitle ?? null,
-                                onSave: (value) => saveSubtitle(story.id, value || null)
-                              }}
-                              editableTitle={{
-                                isEditing: renamingStoryId === story.id,
-                                onSave: async (newTitle) => {
-                                  await saveTitle(story.id, newTitle);
-                                  setRenamingStoryId(null);
-                                },
-                                onCancel: () => setRenamingStoryId(null)
-                              }}
-                            />
-                          )}
-                        </div>
-                      ) : (
-                        <div className="text-center py-4 text-amber-600">
-                          <p className="mb-4">Für diese Geschichte ist noch kein Audio verfügbar.</p>
-                          {generatingAudioFor === story.id ? (
-                            <div className="flex items-center justify-center gap-2">
-                              <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
-                              <span>Audio wird generiert...</span>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => generateAudio(story.id)}
-                              className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-md hover:shadow-lg inline-flex items-center gap-2 font-medium"
-                            >
-                              <Volume2 className="w-5 h-5" />
-                              Audio generieren
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </motion.div>
+                      story={story}
+                      subtitle={getDisplaySubtitle(story)}
+                      withBLS={subscriptionStatus.isPro}
+                      isRenaming={renamingStoryId === story.id}
+                      onStartRename={() => setRenamingStoryId(story.id)}
+                      onSaveTitle={async (newTitle) => {
+                        await saveTitle(story.id, newTitle);
+                        setRenamingStoryId(null);
+                      }}
+                      onCancelRename={() => setRenamingStoryId(null)}
+                      onSaveSubtitle={(value) => saveSubtitle(story.id, value)}
+                      onDelete={() => handleDeleteClick(story.id)}
+                      canDelete={personalStories.length > 1}
+                      isGeneratingAudio={generatingAudioFor === story.id}
+                      onGenerateAudio={() => generateAudio(story.id)}
+                      adminExampleControl={
+                        isAdmin && story.audio_url && story.audio_url.trim() !== ''
+                          ? {
+                              isSelected: exampleResourceId === story.id,
+                              isSaving: exampleResourceLoading,
+                              onSelect: () => saveExampleResource(story.id),
+                            }
+                          : undefined
+                      }
+                    />
                   ))}
                       </div>
                     )}
@@ -3854,41 +3458,57 @@ ${story.content}
                     >
                       {ankommenStory.audio_url ? (
                         <div className="max-w-lg mx-auto">
-                          <AnkommenAudioPlayer
+                          <AudioPlayer
                             audioUrl={ankommenStory.audio_url}
                             title={ankommenStory.title}
-                            subtitle="Für ruhige Momente zwischendurch"
+                            variant="compact"
+                            onPlay={() =>
+                              trackEvent({
+                                eventType: 'audio_play',
+                                metadata: { page_path: '/ankommen' },
+                              })
+                            }
+                            header={
+                              <div className="mb-5 text-center">
+                                <h3 className="text-lg font-medium text-secondary-900">
+                                  {ankommenStory.title}
+                                </h3>
+                                <p className="mt-1 text-sm text-secondary-500">
+                                  Für ruhige Momente zwischendurch
+                                </p>
+                              </div>
+                            }
                           />
-                          <p className="text-center text-sm text-amber-600/70 mt-4">
+                          <p className="mt-4 text-center text-sm text-secondary-500">
                             (immer kostenlos)
                           </p>
                           {/* CTA: Eigene Power Story erstellen (ruhig, sekundär) */}
-                          <div className="mt-6 pt-5 border-t border-amber-100">
-                            <p className="text-center text-sm font-medium text-amber-900 mb-1">
+                          <div className="mt-6 pt-5 border-t border-primary-100">
+                            <p className="text-center text-sm font-medium text-primary-900 mb-1">
                               {stories.filter((s: SavedStory) => !s.is_audio_only).length === 0
                                 ? 'Möchtest du jetzt deine erste eigene Power Story erstellen?'
                                 : 'Möchtest du eine weitere Power Story erstellen?'}
                             </p>
-                            <p className="text-center text-xs text-gray-500 mb-4 max-w-sm mx-auto leading-snug">
+                            <p className="text-center text-xs text-secondary-500 mb-4 max-w-sm mx-auto leading-snug">
                               In 2–3 Minuten. In deinem Tempo. In Anlehnung an die Arbeit, die wir gemeinsam begonnen haben.
                             </p>
                             <div className="flex justify-center">
                               <button
                                 type="button"
                                 onClick={handleCreateStoryClick}
-                                className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl text-sm font-medium text-amber-800 bg-amber-50 border border-amber-200 hover:bg-amber-100 hover:border-amber-300 transition-colors"
+                                className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl text-sm font-medium text-primary-800 bg-primary-50 border border-primary-200 hover:bg-primary-100 hover:border-primary-300 transition-colors"
                               >
                                 <Plus className="w-4 h-4 flex-shrink-0" />
                                 Eine Power Story in deinem Stil entwickeln
                               </button>
                             </div>
-                            <p className="text-center text-xs text-gray-500/70 mt-3 max-w-sm mx-auto leading-snug">
+                            <p className="text-center text-xs text-secondary-500/70 mt-3 max-w-sm mx-auto leading-snug">
                               Viele Klient:innen nutzen ihre eigenen Power Storys als sanfte Erinnerung an unsere gemeinsame Arbeit.
                             </p>
                           </div>
                         </div>
                       ) : (
-                        <div className="text-center py-4 text-amber-600">
+                        <div className="text-center py-4 text-primary-600">
                           <p>Audio wird geladen...</p>
                         </div>
                       )}

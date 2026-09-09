@@ -113,14 +113,14 @@ export default function EditableTitle({
         disabled={isSaving}
         placeholder={placeholder}
         maxLength={maxLength}
-        className={`bg-transparent border-b-2 border-amber-400 focus:outline-none focus:border-amber-600 text-amber-900 font-semibold text-lg ${className}`}
+        className={`bg-transparent border-b-2 border-primary-400 focus:outline-none focus:border-primary-600 text-primary-900 font-semibold text-lg ${className}`}
       />
     );
   }
 
   return (
     <h3 
-      className={`text-lg font-semibold text-amber-900 ${className}`}
+      className={`text-lg font-semibold text-primary-900 ${className}`}
     >
       {value}
     </h3>
