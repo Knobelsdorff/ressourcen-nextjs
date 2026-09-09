@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerAdminClient } from '@/lib/supabase/serverAdminClient';
 import { createClient } from '@supabase/supabase-js';
 import { headers } from 'next/headers';
+import { getEmailBaseUrl } from '@/lib/app-url';
 
 // Bekannte Temp-Mail-Domains (zusätzlich zur Datenbank-Prüfung)
 const BLOCKED_EMAIL_DOMAINS = [
@@ -170,8 +171,9 @@ export async function POST(request: NextRequest) {
     
     // 4. Erstelle User in Supabase Auth
     // Verwende normalen signUp für Email-Bestätigung (admin.createUser sendet keine Email)
+    // Basis-URL immer über APP_BASE_URL auflösen, nie über Request-Header.
     const headersList = await headers();
-    const origin = headersList.get('origin') || headersList.get('referer') || 'http://localhost:3000';
+    const origin = getEmailBaseUrl(headersList.get('origin'));
     const redirectUrl = `${origin}/api/auth/callback?next=/dashboard?confirmed=true`;
     
     // Logge wichtige Informationen für Debugging

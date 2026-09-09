@@ -12,7 +12,12 @@
     "setup-types": "npx supabase gen types typescript --project-id wfnvjmockhcualjgymyl  --schema public > ./src/lib/types/database.types.ts",
     "checkpoint": "bash scripts/checkpoint.sh",
     "start-feature": "bash scripts/checkpoint.sh start-feature",
-    "prepare": "husky"
+    "prepare": "husky",
+    "db:new": "supabase migration new",
+    "db:push": "supabase db push",
+    "db:reset": "supabase db reset --local",
+    "db:diff": "supabase db diff",
+    "db:pull": "supabase db pull"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",

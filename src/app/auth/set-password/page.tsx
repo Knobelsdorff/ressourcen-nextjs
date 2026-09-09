@@ -89,6 +89,13 @@ function SetPasswordInner() {
       if (updateError) {
         setError(updateError.message);
       } else {
+        // Zugangslink entwerten – ab jetzt gilt die Passwort-Anmeldung.
+        try {
+          await fetch('/api/auth/complete-password-setup', { method: 'POST' });
+        } catch (e) {
+          console.warn('[Set Password] Zugangslink konnte nicht entwertet werden:', e);
+        }
+
         setMessage("Passwort wurde erfolgreich eingerichtet! Du wirst weitergeleitet...");
 
         // Weiterleitung zum Dashboard mit resource falls vorhanden

@@ -261,6 +261,53 @@
 }
 
 
+/*
+ * Power Storys – die tatsächliche Markenfarbigkeit.
+ *
+ * Bis hierher stand als aktives Theme "theme-sass3" (Ozeanblau/Koralle) in
+ * layout.tsx, während die Oberfläche überall Amber hart verdrahtet hatte.
+ * Tokens und UI widersprachen sich, also wurden die Tokens umgangen – so sind
+ * neun Farbfamilien auf einer Seite entstanden. Dieses Theme bildet ab, was
+ * die App wirklich ist: warmes Amber auf sandigen Neutraltönen.
+ */
+.theme-powerstorys {
+    /* Primär – Amber. Ab 600 aufwärts kontraststark genug für Text auf Weiß. */
+    --color-primary-50: #fffbeb;
+    --color-primary-100: #fef3c7;
+    --color-primary-200: #fde68a;
+    --color-primary-300: #fcd34d;
+    --color-primary-400: #fbbf24;
+    --color-primary-500: #f59e0b;
+    --color-primary-600: #d97706;
+    --color-primary-700: #b45309;
+    --color-primary-800: #92400e;
+    --color-primary-900: #7c2d12;
+
+    /* Sekundär – warme Neutraltöne (Stone), passend zum Amber. */
+    --color-secondary-50: #fafaf9;
+    --color-secondary-100: #f5f5f4;
+    --color-secondary-200: #e7e5e4;
+    --color-secondary-300: #d6d3d1;
+    --color-secondary-400: #a8a29e;
+    --color-secondary-500: #78716c;
+    --color-secondary-600: #57534e;
+    --color-secondary-700: #44403c;
+    --color-secondary-800: #292524;
+    --color-secondary-900: #1c1917;
+
+    /* Akzent – nur für seltene Hervorhebungen, nicht als zweite Markenfarbe. */
+    --color-accent-50: #fff7ed;
+    --color-accent-100: #ffedd5;
+    --color-accent-200: #fed7aa;
+    --color-accent-300: #fdba74;
+    --color-accent-400: #fb923c;
+    --color-accent-500: #f97316;
+    --color-accent-600: #ea580c;
+    --color-accent-700: #c2410c;
+    --color-accent-800: #9a3412;
+    --color-accent-900: #7c2d12;
+}
+
 @layer components {
     .btn-primary {
         @apply bg-primary-600 text-white hover:bg-primary-700 transition-colors;
@@ -451,5 +498,51 @@
   .mobile-drawer-wrapper:not(.is-open) .mobile-drawer-panel {
     transition: transform 120ms linear,
                 opacity 120ms linear;
+  }
+}
+
+/*
+ * Barrierefreiheit – global
+ *
+ * Ergänzt Phase 2 der Dashboard-Überarbeitung: sichtbarer Fokus, ein
+ * Sprungziel für Screenreader und eine echte Rücksicht auf
+ * "prefers-reduced-motion". Für ein Werkzeug, das in belastenden Momenten
+ * benutzt wird, ist ruhige Bewegung kein Detail.
+ */
+
+/* Nur für Screenreader – sichtbar, sobald es den Fokus bekommt. */
+.sr-only-focusable:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/*
+ * Sichtbarer Fokus für Tastaturbedienung. :focus-visible trifft nur echte
+ * Tastatur-Navigation, Mausklicks bleiben unberührt.
+ */
+:focus-visible {
+  outline: 2px solid var(--color-primary-600);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /*
+   * Bewegung praktisch abschalten, statt sie nur zu verkürzen. Der Wert 0.01ms
+   * statt 0 sorgt dafür, dass transitionend/animationend weiterhin feuern und
+   * Abläufe, die darauf warten, nicht hängen bleiben.
+   */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

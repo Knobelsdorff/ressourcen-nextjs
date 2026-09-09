@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerAdminClient } from '@/lib/supabase/serverAdminClient';
+import { getEmailBaseUrl } from '@/lib/app-url';
 import { createServerClient } from '@supabase/ssr';
 import { Database } from '@/lib/types/database.types';
 
@@ -96,8 +97,8 @@ export async function POST(request: NextRequest) {
     await assignResourcesToUser(adminSupabase, newUser.user.id, normalizedEmail);
 
     // Generiere Magic-Link für Passwort-Setzen (optional, für später)
-    const headersList = await request.headers;
-    const origin = headersList.get('origin') || headersList.get('referer') || 'http://localhost:3000';
+    // Basis-URL immer über APP_BASE_URL auflösen, nie über Request-Header.
+    const origin = getEmailBaseUrl(request.headers.get('origin'));
     const redirectUrl = `${origin}/auth/set-password`;
 
     const { data: magicLinkData, error: magicLinkError } = await adminSupabase.auth.admin.generateLink({

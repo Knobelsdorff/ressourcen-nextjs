@@ -95,7 +95,7 @@ export default function EditableSubtitle({
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         disabled={isSaving}
-        className={`w-full bg-transparent border-b-2 border-amber-400 focus:outline-none focus:border-amber-600 text-amber-700 text-sm ${className}`}
+        className={`w-full bg-transparent border-b-2 border-primary-400 focus:outline-none focus:border-primary-600 text-primary-700 text-sm ${className}`}
         placeholder={placeholder}
       />
     );
@@ -104,7 +104,7 @@ export default function EditableSubtitle({
   return (
     <motion.div
       onClick={handleClick}
-      className={`cursor-text ${hasValue ? "text-amber-700" : "text-gray-400/70 italic"} hover:text-amber-900 transition-colors ${className}`}
+      className={`cursor-text ${hasValue ? "text-primary-700" : "text-secondary-400/70 italic"} hover:text-primary-900 transition-colors ${className}`}
       whileHover={{ opacity: 0.8 }}
     >
       {displayText}

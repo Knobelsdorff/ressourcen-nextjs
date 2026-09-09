@@ -40,9 +40,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Standard ist die tatsächliche Markenfarbigkeit (Amber). Vorher stand hier
+  // "theme-sass3" (Ozeanblau), während die Oberfläche überall Amber verwendete.
   let theme = process.env.NEXT_PUBLIC_THEME
   if(!theme) {
-    theme = "theme-sass3"
+    theme = "theme-powerstorys"
   }
   const gaID = process.env.NEXT_PUBLIC_GOOGLE_TAG;
   return (
