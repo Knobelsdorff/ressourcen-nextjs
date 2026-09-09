@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Mail, Lock, Clock } from "lucide-react";
+import { Loader2, Mail, Clock, Check } from "lucide-react";
 
-type ViewState = "magic-link" | "magic-link-success" | "password-login";
+type Methode = "link" | "passwort";
 
 function getSafeReturnTo(param: string | null): string {
   if (!param || !param.startsWith('/') || param.startsWith('//')) {
@@ -28,13 +28,19 @@ function ZugangPageInner() {
   // Gesetzt, wenn jemand über einen abgelaufenen Zugangslink hierher kam.
   const linkFehler = searchParams.get('fehler');
   const [zeigeLinkHinweis, setZeigeLinkHinweis] = useState(!!linkFehler);
-  const [viewState, setViewState] = useState<ViewState>("magic-link");
+
+  // Aktive Anmelde-Methode. Magic-Link ist der Normalfall.
+  const [methode, setMethode] = useState<Methode>("link");
+  // Bestätigung nach dem Versand des Zugangslinks
+  const [linkGesendet, setLinkGesendet] = useState(false);
+  // Bestätigung nach dem Versand des Passwort-Reset-Links
+  const [resetGesendet, setResetGesendet] = useState(false);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showPasswordSection, setShowPasswordSection] = useState(false);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -43,6 +49,14 @@ function ZugangPageInner() {
     }
   }, [user, router, returnTo]);
 
+  // Beim Wechsel der Methode alte Meldungen verwerfen, damit ein Fehler
+  // nie neben dem Formular steht, zu dem er nicht gehört.
+  const wechsleMethode = (neu: Methode) => {
+    setMethode(neu);
+    setError("");
+    setResetGesendet(false);
+  };
+
   const handleMagicLinkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -50,7 +64,7 @@ function ZugangPageInner() {
 
     try {
       const normalizedEmail = email.toLowerCase().trim();
-      
+
       if (!normalizedEmail || !normalizedEmail.includes("@")) {
         setError("Bitte gib eine gültige E-Mail-Adresse ein.");
         setIsLoading(false);
@@ -73,7 +87,7 @@ function ZugangPageInner() {
           return;
         }
 
-        setViewState("magic-link-success");
+        setLinkGesendet(true);
         setIsLoading(false);
         return;
       }
@@ -96,8 +110,7 @@ function ZugangPageInner() {
         return;
       }
 
-      // Success - show success state
-      setViewState("magic-link-success");
+      setLinkGesendet(true);
       setIsLoading(false);
     } catch (err: any) {
       setError(err.message || "Ein unerwarteter Fehler ist aufgetreten.");
@@ -112,7 +125,7 @@ function ZugangPageInner() {
 
     try {
       const normalizedEmail = email.toLowerCase().trim();
-      
+
       if (!normalizedEmail || !normalizedEmail.includes("@")) {
         setError("Bitte gib eine gültige E-Mail-Adresse ein.");
         setIsLoading(false);
@@ -126,7 +139,7 @@ function ZugangPageInner() {
       }
 
       const supabase = createSPAClient();
-      
+
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: normalizedEmail,
         password: password,
@@ -146,18 +159,21 @@ function ZugangPageInner() {
   };
 
   const handlePasswordReset = async () => {
-    if (!email || !email.includes("@")) {
-      setError("Bitte gib zuerst deine E-Mail ein.");
+    const normalizedEmail = email.toLowerCase().trim();
+
+    if (!normalizedEmail || !normalizedEmail.includes("@")) {
+      setError("Bitte gib zuerst deine E-Mail-Adresse ein.");
       return;
     }
 
     try {
       setIsLoading(true);
+      setError("");
       const supabase = createSPAClient();
       const origin = typeof window !== "undefined" ? window.location.origin : "";
-      const redirectTo = `${origin}/auth/reset?email=${encodeURIComponent(email)}`;
+      const redirectTo = `${origin}/auth/reset?email=${encodeURIComponent(normalizedEmail)}`;
 
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
         redirectTo,
       });
 
@@ -167,8 +183,8 @@ function ZugangPageInner() {
         return;
       }
 
-      setError("");
-      alert("Reset-Link wurde gesendet. Bitte schaue in dein Postfach.");
+      // Inline-Bestätigung statt blockierendem alert()
+      setResetGesendet(true);
       setIsLoading(false);
     } catch (err: any) {
       setError(err.message || "Ein unerwarteter Fehler ist aufgetreten.");
@@ -180,241 +196,316 @@ function ZugangPageInner() {
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center px-4 py-12">
       <div className="max-w-md w-full">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="bg-white rounded-2xl shadow-lg p-8 md:p-10"
+          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          className="bg-white rounded-2xl shadow-lg sm:p-10 p-6"
         >
-          <h1 className="text-3xl md:text-4xl font-medium text-amber-900 mb-3">
-            Dein Zugang
-          </h1>
-          <p className="text-base md:text-lg text-amber-700 mb-8 leading-relaxed">
-            {zeigeLinkHinweis
-              ? "Kein Problem – wir schicken dir einfach einen neuen Link."
-              : "Wenn du schon eine persönliche Geschichte erstellt hast, kannst du hier zurück in deinen Raum."}
-          </p>
+          {linkGesendet ? (
+            /* ---------- Bestätigung: Link ist unterwegs ---------- */
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="text-center"
+            >
+              <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-5">
+                <Mail className="w-7 h-7 text-amber-700" />
+              </div>
+              <h1 className="text-2xl font-medium text-amber-900 mb-3">
+                Link ist unterwegs
+              </h1>
+              <p className="text-amber-800 leading-relaxed mb-2">
+                Wir haben den Zugangslink an{" "}
+                <span className="font-medium break-all">{email.toLowerCase().trim()}</span>{" "}
+                geschickt.
+              </p>
+              <p className="text-sm text-amber-700 leading-relaxed">
+                Öffne ihn am besten auf diesem Gerät. Manchmal landet er im Spam-Ordner.
+              </p>
 
-          {/* Hinweis nach einem abgelaufenen oder ungültigen Zugangslink */}
-          <AnimatePresence>
-            {zeigeLinkHinweis && viewState !== "magic-link-success" && (
-              <motion.div
-                key="link-hinweis"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="flex gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
-                  <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                  <div className="text-sm text-amber-800 leading-relaxed">
-                    <p className="font-medium mb-1">
-                      {linkFehler === "fehler"
-                        ? "Dieser Link konnte nicht geöffnet werden."
-                        : "Dieser Link ist nicht mehr gültig."}
-                    </p>
-                    <p className="text-amber-700">
-                      Gib unten deine E-Mail-Adresse ein – du bekommst sofort einen neuen Zugang.
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Magic Link Success State */}
-          <AnimatePresence mode="wait">
-            {viewState === "magic-link-success" ? (
-              <motion.div
-                key="success"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="text-center py-8"
-              >
-                <div className="mb-6">
-                  <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Mail className="w-8 h-8 text-amber-600" />
-                  </div>
-                  <h2 className="text-2xl font-medium text-amber-900 mb-2">
-                    Link ist unterwegs.
-                  </h2>
-                  <p className="text-base text-amber-700 mb-2">
-                    Schau kurz in dein Postfach. Manchmal landet er im Spam.
-                  </p>
-                  <p className="text-sm text-amber-600/70 mt-4">
-                    Öffne den Link am besten auf diesem Gerät.
-                  </p>
-                </div>
-                <Button
+              <div className="mt-8 pt-6 border-t border-amber-200">
+                <button
+                  type="button"
                   onClick={() => {
-                    setViewState("magic-link");
-                    setEmail("");
+                    setLinkGesendet(false);
                     setZeigeLinkHinweis(false);
+                    setError("");
                   }}
-                  variant="outline"
-                  className="w-full"
+                  className="text-sm text-amber-700 hover:text-amber-900 font-medium transition-colors"
                 >
-                  Nochmal versuchen
-                </Button>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="form"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-              >
-                {/* Magic Link Form */}
-                <form onSubmit={handleMagicLinkSubmit} className="mb-6">
-                  <div className="mb-6">
-                    <Label htmlFor="email" className="text-amber-900 mb-2 block">
-                      E-Mail
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="deine@email.de"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      disabled={isLoading}
-                      className="w-full text-lg py-6"
-                      required
-                    />
-                  </div>
+                  Andere E-Mail-Adresse verwenden
+                </button>
+              </div>
+            </motion.div>
+          ) : (
+            /* ---------- Anmeldung ---------- */
+            <>
+              <h1 className="sm:text-3xl text-2xl font-medium text-amber-900 mb-2">
+                Dein Zugang
+              </h1>
+              <p className="text-amber-800 leading-relaxed sm:mb-8 mb-6">
+                {zeigeLinkHinweis
+                  ? "Kein Problem – wir schicken dir einfach einen neuen Link."
+                  : "Melde dich an, um zu deinen Power Storys zu gelangen."}
+              </p>
 
-                  <Button
-                    type="submit"
-                    disabled={isLoading || !email}
-                    className="w-full bg-amber-600 hover:bg-amber-700 text-white text-lg py-6 mb-3"
-                    size="lg"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        Wird gesendet...
-                      </>
-                    ) : (
-                      zeigeLinkHinweis ? "Neuen Link anfordern" : "Zugangslink senden"
-                    )}
-                  </Button>
-
-                  <p className="text-sm text-amber-600/70 text-center">
-                    Kein Passwort. Kein Newsletter. Nur dein Zugang.
-                  </p>
-                </form>
-
-                {/* Error Message */}
-                {error && (
+              {/* Hinweis nach einem abgelaufenen oder ungültigen Zugangslink */}
+              <AnimatePresence initial={false}>
+                {zeigeLinkHinweis && (
                   <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg"
+                    key="link-hinweis"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                    className="overflow-hidden"
                   >
-                    <p className="text-sm text-red-700">{error}</p>
+                    <div className="flex gap-3 bg-amber-50 border border-amber-400 rounded-lg p-4 mb-6">
+                      <Clock className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+                      <div className="text-sm text-amber-900 leading-relaxed">
+                        <p className="font-medium mb-1">
+                          {linkFehler === "fehler"
+                            ? "Dieser Link konnte nicht geöffnet werden."
+                            : "Dieser Link ist nicht mehr gültig."}
+                        </p>
+                        <p className="text-amber-800">
+                          Gib unten deine E-Mail-Adresse ein – du bekommst sofort einen neuen Zugang.
+                        </p>
+                      </div>
+                    </div>
                   </motion.div>
                 )}
+              </AnimatePresence>
 
-                {/* Password Login Toggle */}
-                <div className="border-t border-amber-100 pt-6">
-                  <button
-                    type="button"
-                    onClick={() => setShowPasswordSection(!showPasswordSection)}
-                    className="text-sm text-amber-700 hover:text-amber-900 transition-colors w-full text-center mb-4"
-                    aria-expanded={showPasswordSection}
+              {/* Methoden-Umschalter */}
+              <div
+                role="tablist"
+                aria-label="Anmelde-Methode"
+                className="grid grid-cols-2 gap-1 p-1 bg-amber-50 border border-amber-200 rounded-lg mb-6"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={methode === "link"}
+                  onClick={() => wechsleMethode("link")}
+                  className={`py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+                    methode === "link"
+                      ? "bg-white text-amber-900 shadow-sm"
+                      : "text-amber-700 hover:text-amber-900"
+                  }`}
+                >
+                  Per E-Mail-Link
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={methode === "passwort"}
+                  onClick={() => wechsleMethode("passwort")}
+                  className={`py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+                    methode === "passwort"
+                      ? "bg-white text-amber-900 shadow-sm"
+                      : "text-amber-700 hover:text-amber-900"
+                  }`}
+                >
+                  Mit Passwort
+                </button>
+              </div>
+
+              {/* Fehlermeldung – gehört immer zum gerade sichtbaren Formular */}
+              <AnimatePresence initial={false}>
+                {error && (
+                  <motion.div
+                    key="error"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                    className="overflow-hidden"
                   >
-                    Mit Passwort anmelden
-                  </button>
+                    <div
+                      role="alert"
+                      className="p-3 mb-5 bg-amber-50/70 border border-amber-500 rounded-lg"
+                    >
+                      <p className="text-sm text-amber-900">{error}</p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-                  {/* Password Login Form */}
-                  <AnimatePresence>
-                    {showPasswordSection && (
-                      <motion.form
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        onSubmit={handlePasswordLogin}
-                        className="space-y-4 overflow-hidden"
+              <AnimatePresence mode="wait" initial={false}>
+                {methode === "link" ? (
+                  /* ---------- Magic Link ---------- */
+                  <motion.form
+                    key="link"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.18 }}
+                    onSubmit={handleMagicLinkSubmit}
+                  >
+                    <div className="mb-5">
+                      <Label htmlFor="email" className="text-amber-900 mb-2 block">
+                        E-Mail-Adresse
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        autoComplete="email"
+                        placeholder="deine@email.de"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={isLoading}
+                        className="w-full py-6 text-base border-amber-400 text-amber-900 placeholder:text-amber-500/60 focus-visible:ring-amber-700"
+                        required
+                      />
+                    </div>
+
+                    <Button
+                      type="submit"
+                      disabled={isLoading || !email}
+                      className="w-full bg-amber-700 hover:bg-amber-800 text-white py-6 text-base disabled:bg-amber-200 disabled:text-amber-500"
+                      size="lg"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                          Wird gesendet...
+                        </>
+                      ) : (
+                        zeigeLinkHinweis ? "Neuen Link anfordern" : "Zugangslink senden"
+                      )}
+                    </Button>
+
+                    <p className="text-sm text-amber-700 text-center mt-4 leading-relaxed">
+                      Du bekommst eine E-Mail mit einem Link.
+                      <br />
+                      Kein Passwort nötig.
+                    </p>
+                  </motion.form>
+                ) : (
+                  /* ---------- Passwort ---------- */
+                  <motion.form
+                    key="passwort"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.18 }}
+                    onSubmit={handlePasswordLogin}
+                  >
+                    <div className="mb-4">
+                      <Label htmlFor="password-email" className="text-amber-900 mb-2 block">
+                        E-Mail-Adresse
+                      </Label>
+                      <Input
+                        id="password-email"
+                        type="email"
+                        autoComplete="email"
+                        placeholder="deine@email.de"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={isLoading}
+                        className="w-full border-amber-400 text-amber-900 placeholder:text-amber-500/60 focus-visible:ring-amber-700"
+                        required
+                      />
+                    </div>
+
+                    <div className="mb-4">
+                      <Label htmlFor="password" className="text-amber-900 mb-2 block">
+                        Passwort
+                      </Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        autoComplete="current-password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={isLoading}
+                        className="w-full border-amber-400 text-amber-900 placeholder:text-amber-500/60 focus-visible:ring-amber-700"
+                        required
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 mb-5">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="remember"
+                          checked={rememberMe}
+                          onCheckedChange={(checked) => setRememberMe(checked === true)}
+                          disabled={isLoading}
+                        />
+                        <Label
+                          htmlFor="remember"
+                          className="text-sm text-amber-800 cursor-pointer"
+                        >
+                          Angemeldet bleiben
+                        </Label>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handlePasswordReset}
+                        disabled={isLoading}
+                        className="text-sm text-amber-700 hover:text-amber-900 transition-colors disabled:opacity-50"
                       >
-                        <div>
-                          <Label htmlFor="password-email" className="text-amber-900 mb-2 block text-sm">
-                            E-Mail
-                          </Label>
-                          <Input
-                            id="password-email"
-                            type="email"
-                            placeholder="deine@email.de"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            disabled={isLoading}
-                            className="w-full"
-                            required
-                          />
-                        </div>
+                        Passwort vergessen?
+                      </button>
+                    </div>
 
-                        <div>
-                          <Label htmlFor="password" className="text-amber-900 mb-2 block text-sm">
-                            Passwort
-                          </Label>
-                          <Input
-                            id="password"
-                            type="password"
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            disabled={isLoading}
-                            className="w-full"
-                            required
-                          />
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="remember"
-                            checked={rememberMe}
-                            onCheckedChange={(checked) => setRememberMe(checked === true)}
-                            disabled={isLoading}
-                          />
-                          <Label
-                            htmlFor="remember"
-                            className="text-sm text-amber-700 cursor-pointer"
-                          >
-                            Angemeldet bleiben
-                          </Label>
-                        </div>
-
-                        <div className="flex flex-col gap-2">
-                          <Button
-                            type="submit"
-                            disabled={isLoading || !email || !password}
-                            className="w-full bg-amber-600 hover:bg-amber-700 text-white"
-                          >
-                            {isLoading ? (
-                              <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Wird angemeldet...
-                              </>
-                            ) : (
-                              "Anmelden"
-                            )}
-                          </Button>
-
-                          <div className="flex justify-start text-xs">
-                            <button
-                              type="button"
-                              onClick={handlePasswordReset}
-                              className="text-amber-600 hover:text-amber-700 transition-colors"
-                            >
-                              Passwort vergessen?
-                            </button>
+                    {/* Bestätigung des Reset-Links */}
+                    <AnimatePresence initial={false}>
+                      {resetGesendet && (
+                        <motion.div
+                          key="reset-ok"
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                          className="overflow-hidden"
+                        >
+                          <div className="flex items-start gap-2.5 p-3 mb-5 bg-amber-50 border border-amber-400 rounded-lg">
+                            <Check className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                            <p className="text-sm text-amber-900 leading-relaxed">
+                              Wir haben dir einen Link zum Zurücksetzen geschickt.
+                              Schau in dein Postfach.
+                            </p>
                           </div>
-                        </div>
-                      </motion.form>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <Button
+                      type="submit"
+                      disabled={isLoading || !email || !password}
+                      className="w-full bg-amber-700 hover:bg-amber-800 text-white py-6 text-base disabled:bg-amber-200 disabled:text-amber-500"
+                      size="lg"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                          Wird angemeldet...
+                        </>
+                      ) : (
+                        "Anmelden"
+                      )}
+                    </Button>
+
+                    <p className="text-sm text-amber-700 text-center mt-4">
+                      Noch kein Passwort?{" "}
+                      <button
+                        type="button"
+                        onClick={() => wechsleMethode("link")}
+                        className="text-amber-800 hover:text-amber-900 font-medium underline underline-offset-2 transition-colors"
+                      >
+                        Per E-Mail-Link anmelden
+                      </button>
+                    </p>
+                  </motion.form>
+                )}
+              </AnimatePresence>
+            </>
+          )}
         </motion.div>
       </div>
     </div>
@@ -426,7 +517,7 @@ export default function ZugangPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+          <Loader2 className="w-8 h-8 animate-spin text-amber-700" />
         </div>
       }
     >
