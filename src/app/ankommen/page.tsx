@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import AnkommenAudioPlayer from "@/components/ankommen/AnkommenAudioPlayer";
+import AudioPlayer from "@/components/audio/AudioPlayer";
 import { Loader2 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 
@@ -182,11 +182,27 @@ export default function AnkommenPage() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="mb-8 md:mb-12"
         >
-          <AnkommenAudioPlayer
+          <AudioPlayer
             audioUrl={resource.audio_url}
             title={resource.title}
-            subtitle={resourceFigureName}
+            variant="compact"
             onEnded={handleAudioEnded}
+            onPlay={() =>
+              trackEvent({
+                eventType: 'audio_play',
+                metadata: { page_path: '/ankommen' },
+              })
+            }
+            header={
+              <div className="mb-5 text-center">
+                <h2 className="text-lg font-medium text-secondary-900">
+                  {resource.title}
+                </h2>
+                {resourceFigureName && (
+                  <p className="mt-1 text-sm text-secondary-500">{resourceFigureName}</p>
+                )}
+              </div>
+            }
           />
         </motion.div>
 

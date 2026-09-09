@@ -191,6 +191,13 @@ function ResetPasswordInner() {
           if (error) {
             setError(error.message);
           } else {
+            // Zugangslink entwerten – ab jetzt gilt die Passwort-Anmeldung.
+            try {
+              await fetch('/api/auth/complete-password-setup', { method: 'POST' });
+            } catch (e) {
+              console.warn('[Reset] Zugangslink konnte nicht entwertet werden:', e);
+            }
+
             setMessage(
               "Passwort wurde aktualisiert. Du wirst weitergeleitet… Speichere www.power-storys.de/zugang als Lesezeichen für deinen nächsten Besuch."
             );
