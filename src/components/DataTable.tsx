@@ -188,7 +188,7 @@ export function DataTable<T extends Record<string, any>>({
                   placeholder="Suchen..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
+                  className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
                 />
               </div>
             )}
@@ -198,14 +198,14 @@ export function DataTable<T extends Record<string, any>>({
               onClick={() => setShowFilters(!showFilters)}
               className={`px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm ${
                 showFilters
-                  ? "bg-amber-600 text-white"
+                  ? "bg-primary-600 text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
             >
               <Filter className="w-4 h-4" />
               Filter
               {hasActiveFilters && (
-                <span className="ml-1 px-1.5 py-0.5 bg-amber-700 text-white text-xs rounded-full">
+                <span className="ml-1 px-1.5 py-0.5 bg-primary-700 text-white text-xs rounded-full">
                   !
                 </span>
               )}
@@ -234,7 +234,7 @@ export function DataTable<T extends Record<string, any>>({
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
-                  className="text-sm text-amber-600 hover:text-amber-700 flex items-center gap-1"
+                  className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
                 >
                   <X className="w-4 h-4" />
                   Filter zurücksetzen
@@ -259,7 +259,7 @@ export function DataTable<T extends Record<string, any>>({
                           [col.key]: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
                     />
                   </div>
                 ))}
@@ -281,7 +281,7 @@ export function DataTable<T extends Record<string, any>>({
                 setRowsPerPage(Number(e.target.value));
                 setCurrentPage(1);
               }}
-              className="px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
+              className="px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
             >
               <option value={5}>5</option>
               <option value={10}>10</option>
@@ -341,7 +341,7 @@ export function DataTable<T extends Record<string, any>>({
                 return (
                   <tr
                     key={rowKey}
-                    className="border-b hover:bg-amber-50 transition-colors"
+                    className="border-b hover:bg-primary-50 transition-colors"
                   >
                     {columns.map((col) => (
                       <td
@@ -427,7 +427,7 @@ export function DataTable<T extends Record<string, any>>({
                       onClick={() => setCurrentPage(pageNum)}
                       className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                         currentPage === pageNum
-                          ? "bg-amber-600 text-white"
+                          ? "bg-primary-600 text-white"
                           : "border border-gray-300 hover:bg-gray-100"
                       }`}
                     >

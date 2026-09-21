@@ -1,0 +1,51 @@
+/* Shared palette for the dashboard and story creation. */
+.wellness-theme {
+  --wellness-ivory: #f8f5f2;
+  --wellness-chocolate: #49301e;
+  --wellness-sage: #9db36a;
+  --wellness-orange: #ff891f;
+  --wellness-yellow: #f8ce13;
+  --wellness-lavender: #a58af5;
+  --color-primary-50: #f3eee8;
+  --color-primary-100: #e9dfd4;
+  --color-primary-200: #d9c8b5;
+  --color-primary-300: #c3aa90;
+  --color-primary-400: #a48465;
+  --color-primary-500: #79583e;
+  --color-primary-600: #63452e;
+  --color-primary-700: #49301e;
+  --color-primary-800: #3c2719;
+  --color-primary-900: #382619;
+  --color-secondary-50: #f8f5f2;
+  --color-secondary-100: #eee9e4;
+  --color-secondary-200: #ded9d4;
+  --color-secondary-300: #c9beb4;
+  --color-secondary-400: #9c8c7f;
+  --color-secondary-500: #78695e;
+  --color-secondary-600: #69594c;
+  --color-secondary-700: #594737;
+  --color-secondary-800: #49301e;
+  --color-secondary-900: #382619;
+  color: var(--wellness-chocolate);
+  background: var(--wellness-ivory);
+}
+
+.wellness-theme :is(h1, h2, h3) {
+  font-family: 'Trebuchet MS', Arial, sans-serif;
+  letter-spacing: -0.035em;
+}
+.wellness-theme :is(button, a, input, textarea, select, [role='slider']):focus-visible {
+  outline: 3px solid #7952b8;
+  outline-offset: 4px;
+}
+header[data-dashboard='true'] { background: #f8f5f2; border-color: #e4ded6; }
+header[data-dashboard='true'] nav > a { color: #49301e; }
+header[data-dashboard='true'] [data-dashboard-action='create'] { background: #49301e; color: white; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wellness-theme *, .wellness-theme *::before, .wellness-theme *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+

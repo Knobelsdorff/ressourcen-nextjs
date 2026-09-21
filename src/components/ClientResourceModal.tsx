@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2, CheckCircle, AlertCircle, Plus, Trash2, Check, ArrowRight } from "lucide-react";
+import WellnessSurface from "./WellnessSurface";
 import AudioRecorder from "./AudioRecorder";
 import { createSPAClient } from "@/lib/supabase/client";
 import { indexedDBHelper } from "@/lib/indexedDB";
@@ -407,6 +408,7 @@ export default function ClientResourceModal({
   if (!isOpen) return null;
 
   return (
+    <WellnessSurface className="wellness-client-modal">
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
         <motion.div
@@ -414,23 +416,27 @@ export default function ClientResourceModal({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 8, scale: 0.99 }}
           transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-          className="bg-white sm:rounded-2xl rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="client-resource-title"
+          className="wellness-client-dialog bg-white sm:rounded-2xl rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
         >
           {/* Header mit Stepper */}
-          <div className="sm:px-8 sm:pt-7 sm:pb-5 p-4 border-b border-amber-200">
+          <div className="sm:px-8 sm:pt-7 sm:pb-5 p-4 border-b border-primary-200">
             <div className="flex items-start justify-between sm:mb-6 mb-5">
               <div>
-                <h2 className="sm:text-2xl text-lg font-light text-amber-900">
+                <h2 id="client-resource-title" className="sm:text-2xl text-lg font-light text-primary-900">
                   Ressource für Klienten erstellen
                 </h2>
-                <p className="sm:text-sm text-xs text-amber-700 mt-1">
+                <p className="sm:text-sm text-xs text-primary-700 mt-1">
                   Du kannst mehrere Aufnahmen sammeln und gemeinsam versenden.
                 </p>
               </div>
               <button
                 onClick={handleClose}
+                aria-label="Schließen"
                 disabled={isUploading}
-                className="sm:p-2 p-1.5 -mr-1 text-amber-700 hover:text-amber-900 hover:bg-amber-50 rounded-full transition-colors disabled:opacity-50"
+                className="sm:p-2 p-1.5 -mr-1 text-primary-700 hover:text-primary-900 hover:bg-primary-50 rounded-full transition-colors disabled:opacity-50"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -464,10 +470,10 @@ export default function ClientResourceModal({
                         <span
                           className={`w-6 h-6 flex items-center justify-center rounded-full border text-xs tabular-nums transition-colors ${
                             isCurrent
-                              ? "bg-amber-700 border-amber-700 text-white"
+                              ? "bg-primary-700 border-primary-700 text-white"
                               : isDone
-                              ? "bg-white border-amber-700 text-amber-800"
-                              : "bg-white border-amber-300 text-amber-400"
+                              ? "bg-white border-primary-700 text-primary-800"
+                              : "bg-white border-primary-300 text-primary-400"
                           }`}
                         >
                           {isDone ? <Check className="w-3.5 h-3.5" /> : stepNumber}
@@ -475,10 +481,10 @@ export default function ClientResourceModal({
                         <span
                           className={`text-sm whitespace-nowrap max-sm:hidden ${
                             isCurrent
-                              ? "text-amber-900 font-medium"
+                              ? "text-primary-900 font-medium"
                               : isDone
-                              ? "text-amber-800"
-                              : "text-amber-400"
+                              ? "text-primary-800"
+                              : "text-primary-400"
                           }`}
                         >
                           {label}
@@ -488,7 +494,7 @@ export default function ClientResourceModal({
                         <span
                           aria-hidden="true"
                           className={`h-px flex-1 min-w-[12px] ${
-                            isDone ? "bg-amber-700" : "bg-amber-200"
+                            isDone ? "bg-primary-700" : "bg-primary-200"
                           }`}
                         />
                       )}
@@ -497,7 +503,7 @@ export default function ClientResourceModal({
                 })}
               </ol>
               {/* Aktueller Schritt auf Mobile als Text */}
-              <p className="sm:hidden text-sm text-amber-900 font-medium mt-3">
+              <p className="sm:hidden text-sm text-primary-900 font-medium mt-3">
                 {STEPS[step - 1]}
               </p>
             </nav>
@@ -516,16 +522,16 @@ export default function ClientResourceModal({
                   transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                   className="overflow-hidden"
                 >
-                  <div className="flex sm:items-center items-start gap-3 sm:px-5 px-4 sm:py-4 py-3 mb-6 bg-amber-50 border border-amber-400 rounded-lg">
-                    <CheckCircle className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5 sm:mt-0" />
+                  <div className="flex sm:items-center items-start gap-3 sm:px-5 px-4 sm:py-4 py-3 mb-6 bg-primary-50 border border-primary-400 rounded-lg">
+                    <CheckCircle className="w-5 h-5 text-primary-700 flex-shrink-0 mt-0.5 sm:mt-0" />
                     <div className="min-w-0">
-                      <p className="text-amber-900 max-sm:text-sm">
+                      <p className="text-primary-900 max-sm:text-sm">
                         {sentCount > 1
                           ? `${sentCount} Ressourcen erfolgreich versendet`
                           : "Ressource erfolgreich versendet"}
                       </p>
                       {sentEmail && (
-                        <p className="text-amber-700 sm:text-sm text-xs mt-1 leading-snug">
+                        <p className="text-primary-700 sm:text-sm text-xs mt-1 leading-snug">
                           Eine Email wurde an {sentEmail} verschickt. Die Ressourcen erscheinen nicht in deinem Dashboard, sondern werden dem Klienten nach Login/Registrierung zugeordnet.
                         </p>
                       )}
@@ -543,9 +549,9 @@ export default function ClientResourceModal({
                   transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                   className="overflow-hidden"
                 >
-                  <div className="flex items-start gap-3 sm:px-5 px-4 sm:py-4 py-3 mb-6 bg-amber-50/70 border border-amber-500 rounded-lg">
-                    <AlertCircle className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" />
-                    <span className="text-amber-900 max-sm:text-sm leading-snug">{error}</span>
+                  <div className="flex items-start gap-3 sm:px-5 px-4 sm:py-4 py-3 mb-6 bg-primary-50/70 border border-primary-500 rounded-lg">
+                    <AlertCircle className="w-5 h-5 text-primary-700 flex-shrink-0 mt-0.5" />
+                    <span className="text-primary-900 max-sm:text-sm leading-snug">{error}</span>
                   </div>
                 </motion.div>
               )}
@@ -562,7 +568,7 @@ export default function ClientResourceModal({
                 <div>
                   <label
                     htmlFor="resource-name"
-                    className="block text-sm text-amber-700 mb-2"
+                    className="block text-sm text-primary-700 mb-2"
                   >
                     Name der Ressource
                   </label>
@@ -575,7 +581,7 @@ export default function ClientResourceModal({
                       setError("");
                     }}
                     placeholder="z.B. Oma, Engel, Krafttier..."
-                    className="w-full sm:px-4 px-3 sm:py-2.5 py-2 bg-white border border-amber-400 rounded-lg text-amber-900 placeholder:text-amber-500/60 focus:outline-none focus:border-amber-700 focus:ring-1 focus:ring-amber-700 transition-colors max-sm:text-sm"
+                    className="w-full sm:px-4 px-3 sm:py-2.5 py-2 bg-white border border-primary-400 rounded-lg text-primary-900 placeholder:text-primary-500/60 focus:outline-none focus:border-primary-700 focus:ring-1 focus:ring-primary-700 transition-colors max-sm:text-sm"
                   />
                 </div>
 
@@ -596,14 +602,14 @@ export default function ClientResourceModal({
                 transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
               >
                 <div className="flex items-baseline justify-between mb-3">
-                  <p className="text-sm text-amber-700">
+                  <p className="text-sm text-primary-700">
                     {recordedResources.length} Aufnahme
                     {recordedResources.length !== 1 ? "n" : ""} gesammelt
                   </p>
                   <button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="inline-flex items-center gap-1.5 text-sm text-amber-700 hover:text-amber-900 font-medium transition-colors"
+                    className="inline-flex items-center gap-1.5 text-sm text-primary-700 hover:text-primary-900 font-medium transition-colors"
                   >
                     <Plus className="w-4 h-4" />
                     Weitere aufnehmen
@@ -611,7 +617,7 @@ export default function ClientResourceModal({
                 </div>
 
                 {recordedResources.length > 0 ? (
-                  <div className="divide-y divide-amber-200 border border-amber-400 rounded-lg overflow-hidden">
+                  <div className="divide-y divide-primary-200 border border-primary-400 rounded-lg overflow-hidden">
                     <AnimatePresence initial={false}>
                       {recordedResources.map((resource, index) => (
                         <motion.div
@@ -624,16 +630,16 @@ export default function ClientResourceModal({
                           className="flex items-center justify-between gap-3 sm:px-4 px-3 sm:py-3 py-2.5 bg-white"
                         >
                           <div className="flex items-center gap-3 min-w-0">
-                            <span className="text-xs text-amber-600 tabular-nums flex-shrink-0">
+                            <span className="text-xs text-primary-600 tabular-nums flex-shrink-0">
                               {String(index + 1).padStart(2, "0")}
                             </span>
-                            <span className="text-amber-900 truncate max-sm:text-sm">
+                            <span className="text-primary-900 truncate max-sm:text-sm">
                               {resource.name}
                             </span>
                           </div>
                           <button
                             onClick={() => handleRemoveFromQueue(resource.id)}
-                            className="p-1.5 -mr-1 text-amber-600 hover:text-amber-900 hover:bg-amber-50 rounded-md transition-colors flex-shrink-0"
+                            className="p-1.5 -mr-1 text-primary-600 hover:text-primary-900 hover:bg-primary-50 rounded-md transition-colors flex-shrink-0"
                             title="Entfernen"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -643,8 +649,8 @@ export default function ClientResourceModal({
                     </AnimatePresence>
                   </div>
                 ) : (
-                  <div className="border border-amber-300 border-dashed rounded-lg sm:py-10 py-8 text-center">
-                    <p className="text-sm text-amber-700">
+                  <div className="border border-primary-300 border-dashed rounded-lg sm:py-10 py-8 text-center">
+                    <p className="text-sm text-primary-700">
                       Noch keine Aufnahmen gesammelt.
                     </p>
                   </div>
@@ -661,7 +667,7 @@ export default function ClientResourceModal({
               >
                 <label
                   htmlFor="client-email"
-                  className="block text-sm text-amber-700 mb-2"
+                  className="block text-sm text-primary-700 mb-2"
                 >
                   E-Mail-Adresse des Klienten
                 </label>
@@ -671,23 +677,23 @@ export default function ClientResourceModal({
                   value={clientEmail}
                   onChange={(e) => setClientEmail(e.target.value)}
                   placeholder="klient@beispiel.de"
-                  className="w-full sm:px-4 px-3 sm:py-2.5 py-2 bg-white border border-amber-400 rounded-lg text-amber-900 placeholder:text-amber-500/60 focus:outline-none focus:border-amber-700 focus:ring-1 focus:ring-amber-700 transition-colors max-sm:text-sm"
+                  className="w-full sm:px-4 px-3 sm:py-2.5 py-2 bg-white border border-primary-400 rounded-lg text-primary-900 placeholder:text-primary-500/60 focus:outline-none focus:border-primary-700 focus:ring-1 focus:ring-primary-700 transition-colors max-sm:text-sm"
                 />
-                <p className="mt-2 sm:text-sm text-xs text-amber-700 leading-snug">
+                <p className="mt-2 sm:text-sm text-xs text-primary-700 leading-snug">
                   Der Klient erhält eine E‑Mail mit Zugangslink. Die Ressourcen
                   erscheinen nicht in deinem Dashboard, sondern werden nach dem
                   Login automatisch seinem Account zugeordnet.
                 </p>
 
-                <div className="mt-6 pt-5 border-t border-amber-200">
-                  <p className="text-sm text-amber-700 mb-3">Wird versendet</p>
+                <div className="mt-6 pt-5 border-t border-primary-200">
+                  <p className="text-sm text-primary-700 mb-3">Wird versendet</p>
                   <ul className="space-y-1.5">
                     {recordedResources.map((resource, index) => (
                       <li
                         key={resource.id}
-                        className="flex items-center gap-3 text-amber-900 max-sm:text-sm"
+                        className="flex items-center gap-3 text-primary-900 max-sm:text-sm"
                       >
-                        <span className="text-xs text-amber-600 tabular-nums">
+                        <span className="text-xs text-primary-600 tabular-nums">
                           {String(index + 1).padStart(2, "0")}
                         </span>
                         <span className="truncate">{resource.name}</span>
@@ -700,7 +706,7 @@ export default function ClientResourceModal({
           </div>
 
           {/* Footer: Navigation */}
-          <div className="flex items-center justify-between gap-3 sm:px-8 sm:py-5 p-4 border-t border-amber-200">
+          <div className="flex items-center justify-between gap-3 sm:px-8 sm:py-5 p-4 border-t border-primary-200">
             <button
               onClick={
                 step === 1
@@ -708,7 +714,7 @@ export default function ClientResourceModal({
                   : () => setStep((s) => (s - 1) as 1 | 2 | 3)
               }
               disabled={isUploading}
-              className="sm:px-4 px-3 py-2 text-amber-700 hover:text-amber-900 font-medium transition-colors disabled:opacity-50 max-sm:text-sm"
+              className="sm:px-4 px-3 py-2 text-primary-700 hover:text-primary-900 font-medium transition-colors disabled:opacity-50 max-sm:text-sm"
             >
               {step === 1 ? "Abbrechen" : "Zurück"}
             </button>
@@ -717,7 +723,7 @@ export default function ClientResourceModal({
               <button
                 onClick={handleAddToQueue}
                 disabled={!currentResourceName.trim() || !currentAudioBlob}
-                className="sm:px-5 px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-md font-medium transition-colors disabled:bg-amber-200 disabled:text-amber-500 disabled:cursor-not-allowed flex items-center gap-2 max-sm:text-sm"
+                className="sm:px-5 px-4 py-2 bg-primary-700 hover:bg-primary-800 text-white rounded-md font-medium transition-colors disabled:bg-primary-200 disabled:text-primary-500 disabled:cursor-not-allowed flex items-center gap-2 max-sm:text-sm"
               >
                 <span>Aufnahme übernehmen</span>
                 <ArrowRight className="w-4 h-4" />
@@ -728,7 +734,7 @@ export default function ClientResourceModal({
               <button
                 onClick={() => setStep(3)}
                 disabled={recordedResources.length === 0}
-                className="sm:px-5 px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-md font-medium transition-colors disabled:bg-amber-200 disabled:text-amber-500 disabled:cursor-not-allowed flex items-center gap-2 max-sm:text-sm"
+                className="sm:px-5 px-4 py-2 bg-primary-700 hover:bg-primary-800 text-white rounded-md font-medium transition-colors disabled:bg-primary-200 disabled:text-primary-500 disabled:cursor-not-allowed flex items-center gap-2 max-sm:text-sm"
               >
                 <span>Weiter</span>
                 <ArrowRight className="w-4 h-4" />
@@ -743,7 +749,7 @@ export default function ClientResourceModal({
                   !clientEmail.trim() ||
                   isUploading
                 }
-                className="sm:px-5 px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-md font-medium transition-colors disabled:bg-amber-200 disabled:text-amber-500 disabled:cursor-not-allowed flex items-center gap-2 max-sm:text-sm"
+                className="sm:px-5 px-4 py-2 bg-primary-700 hover:bg-primary-800 text-white rounded-md font-medium transition-colors disabled:bg-primary-200 disabled:text-primary-500 disabled:cursor-not-allowed flex items-center gap-2 max-sm:text-sm"
               >
                 {isUploading ? (
                   <>
@@ -762,5 +768,6 @@ export default function ClientResourceModal({
         </motion.div>
       </div>
     </AnimatePresence>
+    </WellnessSurface>
   );
 }
