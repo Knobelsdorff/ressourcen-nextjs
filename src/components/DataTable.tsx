@@ -170,7 +170,7 @@ export function DataTable<T extends Record<string, any>>({
     searchTerm || Object.values(columnFilters).some((v) => v);
 
   return (
-    <div className={`bg-white rounded-xl shadow-lg ${className}`}>
+    <div className={`wellness-data-table bg-white rounded-xl shadow-lg ${className}`}>
       {/* Header */}
       <div className="p-4 border-b">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

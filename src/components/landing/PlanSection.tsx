@@ -3,29 +3,33 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { Headphones, Sparkles, Leaf } from 'lucide-react';
 
 export default function PlanSection() {
   const router = useRouter();
   const steps = [
     {
       number: 1,
+      icon: Headphones,
       title: "Ankommen",
       description: "Du hörst dir eine erste Power Story an – ruhig gesprochen, ohne etwas tun zu müssen.",
     },
     {
       number: 2,
+      icon: Sparkles,
       title: "Deine eigene Geschichte",
       description: "Wenn du magst, beantwortest du ein paar einfache Fragen. Daraus entsteht eine Geschichte, die zu dir und deinem Moment passt.",
     },
     {
       number: 3,
+      icon: Leaf,
       title: "Nachwirken lassen",
       description: "Du bleibst einen Moment bei dir und nimmst wahr, was sich verändert hat – ganz ohne Bewertung.",
     },
   ];
 
   return (
-    <section className="landing-section py-20 px-4">
+    <section className="landing-section landing-plan py-20 px-4">
       <div className="max-w-6xl mx-auto">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
@@ -60,6 +64,7 @@ export default function PlanSection() {
                 <div className="landing-step-number" aria-hidden="true">
                   {step.number}
                 </div>
+                <div className="landing-step-art" aria-hidden="true"><step.icon size={38} strokeWidth={1.5} /></div>
                 <h3 className="text-xl font-semibold mb-2">
                   {step.title}
                 </h3>

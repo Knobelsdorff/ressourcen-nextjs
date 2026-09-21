@@ -3,8 +3,8 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
-import { Clock3, Headphones, ShieldCheck } from "lucide-react";
+import { ArrowRight, Clock3, Headphones, ShieldCheck } from "lucide-react";
+import LandingStoryPreview from './LandingStoryPreview';
 import { scrollToAnchor } from "@/lib/navigation-helpers";
 
 /*
@@ -79,6 +79,7 @@ export default function HeroSection() {
               className="landing-primary-button"
             >
               Jetzt kurz innehalten
+              <ArrowRight size={18} aria-hidden="true" />
             </Button>
             {/* Leiser Nebenweg – niemand muss sofort starten. */}
             <button
@@ -95,29 +96,14 @@ export default function HeroSection() {
           </motion.p>
         </motion.div>
 
-        {/* Bild – auf Mobile zuerst, damit sofort eine ruhige Fläche da ist. */}
+        {/* The shared player sits inside the illustrated story preview. */}
         <motion.div
           initial={{ opacity: 0, scale: reduceMotion ? 1 : 0.97 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.9, ease, delay: 0.15 }}
           className="landing-hero-figure"
         >
-          <Image
-            src="/images/Innere Ruhe aktivieren_Herosection-mobile.webp"
-            alt="Eine Person kommt zur Ruhe"
-            width={600}
-            height={600}
-            className="lg:hidden w-full h-auto object-cover"
-            priority
-          />
-          <Image
-            src="/images/Innere Ruhe aktivieren_Herosection.webp"
-            alt="Eine Person kommt zur Ruhe"
-            width={600}
-            height={600}
-            className="hidden lg:block object-cover w-full"
-            priority
-          />
+          <LandingStoryPreview />
         </motion.div>
       </div>
     </section>

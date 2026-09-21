@@ -34,7 +34,7 @@
 .wellness-surface :is(.bg-red-50, .bg-red-100) { background: #fff0e9; border-color: #e9bba5; }
 
 .wellness-auth .wellness-page-background { padding-block: 48px; }
-.wellness-auth-card { position: relative; border: 1px solid #e4ded6; border-top: 5px solid var(--wellness-sage); border-radius: 30px; box-shadow: 0 8px 32px #49301e08; }
+.wellness-auth .wellness-auth-card { position: relative; border: 1px solid #e4ded6; border-top: 5px solid var(--wellness-sage); border-radius: 30px; box-shadow: 0 8px 32px #49301e08; }
 .wellness-auth-card h1 { font-size: 30px; line-height: 1.2; }
 .wellness-auth-mark { position: relative; width: 90px; height: 66px; margin: 0 auto 25px; }
 .wellness-auth-mark > span { position: absolute; display: grid; place-items: center; left: 12px; width: 56px; height: 62px; background: var(--wellness-sage); border-radius: 30px 30px 20px 20px; color: #382619; transform: rotate(-8deg); }
@@ -64,9 +64,10 @@
 .wellness-admin thead { background: #f3eee8; }
 .wellness-admin :is(td, th) { border-color: #e4ded6; }
 .wellness-admin .overflow-x-auto { border-radius: 16px; }
+.wellness-admin .wellness-data-table { border: 1px solid #e4ded6; border-radius: 24px; box-shadow: 0 4px 18px #49301e05; }
 
 .wellness-client-modal > .fixed { background: #38261966; backdrop-filter: blur(5px); }
-.wellness-client-dialog { border: 1px solid #e4ded6; border-radius: 30px; box-shadow: 0 24px 90px #38261930; }
+.wellness-client-modal .wellness-client-dialog { border: 1px solid #e4ded6; border-radius: 30px; box-shadow: 0 24px 90px #38261930; }
 .wellness-client-dialog > div:first-child { background: #eeeade; border-color: #e4ded6; }
 .wellness-client-dialog > div:last-child { background: #f8f5f2; border-color: #e4ded6; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
 .wellness-client-dialog button { border-radius: 999px; }
@@ -81,7 +82,7 @@
 
 @media (max-width: 640px) {
   .wellness-auth .wellness-page-background { padding: 24px 16px; }
-  .wellness-auth-card { padding: 26px 22px; border-radius: 26px; }
+  .wellness-auth .wellness-auth-card { padding: 26px 22px; border-radius: 26px; }
   .wellness-auth-card h1 { font-size: 27px; }
   .wellness-admin-heading { padding: 22px 20px; }
   .wellness-admin .wellness-panel { padding: 18px; border-radius: 22px; }
@@ -89,7 +90,7 @@
   .wellness-admin .wellness-metrics p:first-of-type { font-size: 30px; }
   .wellness-admin .wellness-track { padding: 16px; }
   .wellness-client-modal > .fixed { padding: 10px; }
-  .wellness-client-dialog { border-radius: 24px; max-height: calc(100dvh - 20px); }
+  .wellness-client-modal .wellness-client-dialog { border-radius: 24px; max-height: calc(100dvh - 20px); }
   .wellness-client-dialog h2 { padding-right: 10px; }
   .wellness-client-dialog [aria-label='Schließen'] { flex-shrink: 0; min-width: 40px; min-height: 40px; }
 }
