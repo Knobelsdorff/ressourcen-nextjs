@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
+import { MotionConfig } from 'framer-motion';
+import ResourcePreviewSection from '@/components/landing/ResourcePreviewSection';
+import LandingClosingSection from '@/components/landing/LandingClosingSection';
 import HeroSection from "@/components/landing/HeroSection";
 import StakesSection from "@/components/landing/StakesSection";
 import ValuePropositionSection from "@/components/landing/ValuePropositionSection";
@@ -28,13 +31,17 @@ export default function RessourcenApp() {
   }, []);
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className="wellness-theme landing-theme min-h-screen">
       <HeroSection />
-      <StakesSection />
       <ValuePropositionSection />
-      <EmpathySection />
       <PlanSection />
+      <ResourcePreviewSection />
+      <StakesSection />
+      <EmpathySection />
       <ExplanatoryParagraphSection />
+      <LandingClosingSection />
     </div>
+    </MotionConfig>
   );
 }
