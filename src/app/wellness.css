@@ -53,13 +53,13 @@ header[data-landing='true'][data-landing] {
 }
 
 /* Textlinks und Text-Buttons: ruhiges Braun statt Amber. */
-header[data-dashboard='true'] :is(nav > a, nav > button:not([data-dashboard-action])),
-header[data-landing='true'] :is(nav > a, nav > button:not([data-dashboard-action])) {
+header[data-dashboard='true'] :is(nav > a, nav > button:not([data-dashboard-action]):not(.text-white)),
+header[data-landing='true'] :is(nav > a, nav > button:not([data-dashboard-action]):not(.text-white)) {
   color: #69594c;
   transition: color 180ms ease;
 }
-header[data-dashboard='true'] :is(nav > a, nav > button:not([data-dashboard-action])):hover,
-header[data-landing='true'] :is(nav > a, nav > button:not([data-dashboard-action])):hover { color: #49301e; }
+header[data-dashboard='true'] :is(nav > a, nav > button:not([data-dashboard-action]):not(.text-white)):hover,
+header[data-landing='true'] :is(nav > a, nav > button:not([data-dashboard-action]):not(.text-white)):hover { color: #49301e; }
 
 /*
  * Der Haupt-CTA in der Navigation. Deckt beide Auspraegungen ab: das
