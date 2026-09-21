@@ -9,7 +9,7 @@ export default function EmpathySection() {
   const router = useRouter();
   
   return (
-    <section className="py-20 px-4 bg-white">
+    <section className="landing-section-plain py-20 px-4">
       <div className="max-w-6xl mx-auto">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
@@ -36,12 +36,12 @@ export default function EmpathySection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="bg-amber-50/50 rounded-2xl p-8 md:p-10 border border-amber-100"
+            className="landing-panel p-8 md:p-10"
           >
-            <h3 className="text-2xl md:text-3xl font-semibold text-amber-900 mb-4">
+            <h3 className="text-2xl md:text-3xl font-semibold mb-4">
               Es fühlt sich oft anders an, als es aussieht
             </h3>
-            <p className="text-lg md:text-xl text-amber-700 leading-relaxed">
+            <p className="landing-panel-copy text-lg md:text-xl leading-relaxed">
               Viele Menschen funktionieren im Alltag zuverlässig –
               und merken erst in stillen Momenten, wie viel Spannung innerlich eigentlich da ist.
             </p>
@@ -52,12 +52,12 @@ export default function EmpathySection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="bg-amber-50/50 rounded-2xl p-8 md:p-10 border border-amber-100"
+            className="landing-panel p-8 md:p-10"
           >
-            <h3 className="text-2xl md:text-3xl font-semibold text-amber-900 mb-4">
+            <h3 className="text-2xl md:text-3xl font-semibold mb-4">
               Power Storys sind bewusst einfach gehalten
             </h3>
-            <p className="text-lg md:text-xl text-amber-700 leading-relaxed">
+            <p className="landing-panel-copy text-lg md:text-xl leading-relaxed">
               Sie wurden so gestaltet, dass dein Inneres folgen kann –
               ohne Analyse, ohne Technik, ohne etwas leisten zu müssen.
             </p>
@@ -69,14 +69,14 @@ export default function EmpathySection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="bg-amber-50 rounded-2xl p-8 md:p-12 mb-12 border-l-4 border-amber-400"
+          className="landing-quote p-8 md:p-12 mb-12"
         >
-          <Quote className="w-12 h-12 text-amber-600 mx-auto mb-4" />
-          <p className="text-xl md:text-2xl text-amber-900 mb-6 italic leading-relaxed text-center">
+          <Quote className="w-12 h-12 mx-auto mb-4" aria-hidden="true" />
+          <p className="text-xl md:text-2xl mb-6 italic leading-relaxed text-center">
             "Ich war skeptisch, ob eine kurze Geschichte wirklich etwas verändern kann.
             Aber schon nach den ersten Minuten wurde es spürbar ruhiger in mir."
           </p>
-          <p className="text-center text-amber-700 font-semibold">
+          <p className="landing-quote-author text-center font-semibold">
             Linda R.
           </p>
         </motion.div>
@@ -91,7 +91,7 @@ export default function EmpathySection() {
               <Button
                 onClick={() => router.push("/ankommen")}
                 size="lg"
-                className="bg-amber-600 hover:bg-amber-700 text-white text-lg px-8 py-6 rounded-lg"
+                className="landing-primary-button"
               >
                 Einfach selbst erleben
               </Button>

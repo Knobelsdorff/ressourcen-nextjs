@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "./ankommen.css";
 
 export const metadata: Metadata = {
   title: "Ankommen – Power Story",
@@ -10,6 +11,7 @@ export default function AnkommenLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  // wellness-theme liefert die Farb-Tokens, die der AudioPlayer über
+  // primary-*/secondary-* bereits verwendet.
+  return <div className="wellness-theme ankommen-theme">{children}</div>;
 }
-

@@ -16,7 +16,7 @@ export default function StakesSection() {
   ];
 
   return (
-    <section className="py-20 px-4 bg-white">
+    <section className="landing-section-plain py-20 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Header und Subheader - bleiben oben */}
         <motion.h2
@@ -72,10 +72,10 @@ export default function StakesSection() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="flex items-start gap-3"
+                className="landing-bullet"
               >
-                <span className="text-amber-600 text-xl mt-1">•</span>
-                <p className="text-lg text-amber-800">{stake}</p>
+                <span />
+                <p className="text-lg">{stake}</p>
               </motion.div>
             ))}
             {/* Desktop CTA unter Stichpunkten */}
@@ -89,7 +89,7 @@ export default function StakesSection() {
               <Button
                 onClick={() => router.push("/ankommen")}
                 size="lg"
-                className="bg-amber-600 hover:bg-amber-700 text-white text-lg px-8 py-6 rounded-lg"
+                className="landing-primary-button"
               >
                 Jetzt ausprobieren
               </Button>
@@ -109,7 +109,7 @@ export default function StakesSection() {
               alt="Power Stories Stakes"
               width={1200}
               height={600}
-              className="rounded-3xl shadow-xl object-cover w-full"
+              className="rounded-[30px] object-cover w-full"
               priority
             />
           </motion.div>
@@ -124,10 +124,10 @@ export default function StakesSection() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="flex items-start gap-3"
+              className="landing-bullet"
             >
-              <span className="text-amber-600 text-xl mt-1">•</span>
-              <p className="text-lg text-amber-800">{stake}</p>
+              <span />
+              <p className="text-lg">{stake}</p>
             </motion.div>
           ))}
         </div>
@@ -143,7 +143,7 @@ export default function StakesSection() {
           <Button
             onClick={() => router.push("/ankommen")}
             size="lg"
-            className="bg-amber-600 hover:bg-amber-700 text-white text-lg px-8 py-6 rounded-lg"
+            className="landing-primary-button"
           >
             Jetzt ausprobieren
           </Button>

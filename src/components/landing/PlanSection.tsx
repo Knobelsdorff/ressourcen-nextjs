@@ -25,7 +25,7 @@ export default function PlanSection() {
   ];
 
   return (
-    <section className="py-20 px-4 bg-gradient-to-br from-orange-50 to-amber-50">
+    <section className="landing-section py-20 px-4">
       <div className="max-w-6xl mx-auto">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
@@ -55,15 +55,15 @@ export default function PlanSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-white rounded-xl p-8 shadow-lg text-center"
+                className="landing-card p-8 text-center"
               >
-                <div className="bg-amber-100 text-amber-700 rounded-full w-10 h-10 flex items-center justify-center mx-auto mb-4 text-lg font-semibold border-2 border-amber-200">
+                <div className="landing-step-number" aria-hidden="true">
                   {step.number}
                 </div>
-                <h3 className="text-xl font-semibold text-amber-900 mb-2">
+                <h3 className="text-xl font-semibold mb-2">
                   {step.title}
                 </h3>
-                <p className="text-amber-700">{step.description}</p>
+                <p className="text-[15px] leading-relaxed">{step.description}</p>
               </motion.div>
             );
           })}
@@ -89,7 +89,7 @@ export default function PlanSection() {
               <Button
                 onClick={() => router.push("/ankommen")}
                 size="lg"
-                className="bg-amber-600 hover:bg-amber-700 text-white text-lg px-8 py-6 rounded-lg"
+                className="landing-primary-button"
               >
                 Jetzt einfach beginnen
               </Button>

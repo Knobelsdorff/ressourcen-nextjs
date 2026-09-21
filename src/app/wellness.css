@@ -38,9 +38,56 @@
   outline: 3px solid #7952b8;
   outline-offset: 4px;
 }
-header[data-dashboard='true'] { background: #f8f5f2; border-color: #e4ded6; }
-header[data-dashboard='true'] nav > a { color: #49301e; }
-header[data-dashboard='true'] [data-dashboard-action='create'] { background: #49301e; color: white; }
+/*
+ * Kopfzeile – Dashboard und Landingpage teilen sich eine Gestaltung.
+ *
+ * Die Regeln stehen hier und nicht in landing.css, weil der Header im
+ * Root-Layout haengt: eine nur von der Page importierte Datei erreicht ihn
+ * nicht zuverlaessig. Die Attribut-Selektoren sind doppelt notiert, damit sie
+ * die Tailwind-Utilities (bg-white, border-orange-100) im Markup ueberstimmen.
+ */
+header[data-dashboard='true'][data-dashboard],
+header[data-landing='true'][data-landing] {
+  background: #f8f5f2;
+  border-bottom: 1px solid #e4ded6;
+}
+
+/* Textlinks und Text-Buttons: ruhiges Braun statt Amber. */
+header[data-dashboard='true'] :is(nav > a, nav > button:not([data-dashboard-action])),
+header[data-landing='true'] :is(nav > a, nav > button:not([data-dashboard-action])) {
+  color: #69594c;
+  transition: color 180ms ease;
+}
+header[data-dashboard='true'] :is(nav > a, nav > button:not([data-dashboard-action])):hover,
+header[data-landing='true'] :is(nav > a, nav > button:not([data-dashboard-action])):hover { color: #49301e; }
+
+/*
+ * Der Haupt-CTA in der Navigation. Deckt beide Auspraegungen ab: das
+ * data-Attribut (eingeloggt) und die Amber-Klasse (Gast) – vorher war der
+ * Gast-Button eine leere Kontur ohne sichtbare Schrift.
+ */
+header[data-dashboard='true'] nav :is([data-dashboard-action='create'], .bg-amber-600\/90),
+header[data-landing='true'] nav :is([data-dashboard-action='create'], .bg-amber-600\/90) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 9px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: #49301e;
+  color: white;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 2px 0 #38261912;
+  transition: background-color 180ms ease, box-shadow 180ms ease;
+}
+header[data-dashboard='true'] nav :is([data-dashboard-action='create'], .bg-amber-600\/90):hover,
+header[data-landing='true'] nav :is([data-dashboard-action='create'], .bg-amber-600\/90):hover {
+  background: #63452e;
+  box-shadow: 0 4px 12px #49301e1a;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .wellness-theme *, .wellness-theme *::before, .wellness-theme *::after {

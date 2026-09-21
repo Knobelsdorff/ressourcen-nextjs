@@ -8,6 +8,7 @@ import EmpathySection from "@/components/landing/EmpathySection";
 import PlanSection from "@/components/landing/PlanSection";
 import ExplanatoryParagraphSection from "@/components/landing/ExplanatoryParagraphSection";
 import { scrollToAnchor } from "@/lib/navigation-helpers";
+import "./landing.css";
 
 // Re-export types for backward compatibility
 export type { ResourceFigure, AudioState, AppState } from "@/lib/types/story";
@@ -27,7 +28,7 @@ export default function RessourcenApp() {
   }, []);
 
   return (
-    <div className="min-h-screen">
+    <div className="wellness-theme landing-theme min-h-screen">
       <HeroSection />
       <StakesSection />
       <ValuePropositionSection />

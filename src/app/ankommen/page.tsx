@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import AudioPlayer from "@/components/audio/AudioPlayer";
 import { Loader2 } from "lucide-react";
@@ -24,6 +24,10 @@ export default function AnkommenPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [audioEnded, setAudioEnded] = useState(false);
+  const reduceMotion = useReducedMotion();
+
+  // Die Hauskurve aus globals.css – ruhig, ohne Nachschwingen.
+  const ease = [0.22, 1, 0.36, 1] as const;
 
   useEffect(() => {
     // Track page view
@@ -99,10 +103,10 @@ export default function AnkommenPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center px-4">
+      <div className="ankommen-page ankommen-state">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-amber-600 animate-spin mx-auto mb-4" />
-          <p className="text-amber-700 text-lg">Lade Geschichte...</p>
+          <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4 motion-reduce:animate-none" aria-hidden="true" />
+          <p className="ankommen-loading-text">Die Geschichte wird vorbereitet…</p>
         </div>
       </div>
     );
@@ -110,19 +114,12 @@ export default function AnkommenPage() {
 
   if (error || !resource) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center px-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-          <h2 className="text-2xl font-bold text-amber-900 mb-4">
-            Geschichte nicht verfügbar
-          </h2>
-          <p className="text-amber-700 mb-6">
-            {error || 'Die Geschichte konnte nicht geladen werden.'}
-          </p>
-          <Button
-            onClick={() => router.push('/')}
-            className="bg-amber-600 hover:bg-amber-700 text-white"
-          >
-            Zurück
+      <div className="ankommen-page ankommen-state">
+        <div className="ankommen-state-card">
+          <h2>Geschichte nicht verfügbar</h2>
+          <p>{error || 'Die Geschichte konnte gerade nicht geladen werden. Das liegt nicht an dir – versuch es später noch einmal.'}</p>
+          <Button onClick={() => router.push('/')} className="ankommen-button">
+            Zurück zum Start
           </Button>
         </div>
       </div>
@@ -131,19 +128,12 @@ export default function AnkommenPage() {
 
   if (!resource.audio_url) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center px-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-          <h2 className="text-2xl font-bold text-amber-900 mb-4">
-            Keine Audio-Datei verfügbar
-          </h2>
-          <p className="text-amber-700 mb-6">
-            Die Geschichte hat keine Audio-Datei.
-          </p>
-          <Button
-            onClick={() => router.push('/')}
-            className="bg-amber-600 hover:bg-amber-700 text-white"
-          >
-            Zurück
+      <div className="ankommen-page ankommen-state">
+        <div className="ankommen-state-card">
+          <h2>Noch keine Aufnahme da</h2>
+          <p>Zu dieser Geschichte gibt es gerade keine Audio-Datei.</p>
+          <Button onClick={() => router.push('/')} className="ankommen-button">
+            Zurück zum Start
           </Button>
         </div>
       </div>
@@ -154,38 +144,39 @@ export default function AnkommenPage() {
   const resourceFigureName = resource.resource_figure?.name || null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 py-8 md:py-12 px-4">
-      <div className="max-w-2xl mx-auto">
-        {/* Top area - Headline */}
+    <div className="ankommen-page">
+      <div className="ankommen-inner">
+        {/* Kopfbereich – sagt zuerst, dass nichts verlangt wird. */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-8 md:mb-12"
+          transition={{ duration: 0.65, ease }}
+          className="ankommen-head"
         >
-          <h1 className="text-3xl md:text-4xl font-medium text-amber-900 mb-3 md:mb-4">
-            Du musst nichts tun.
-          </h1>
-          <p className="text-sm md:text-base text-amber-700/80 max-w-md mx-auto leading-relaxed">
+          <div className="ankommen-mark" aria-hidden="true">
+            <span />
+            <i />
+            <i />
+          </div>
+          <h1>Du musst nichts tun.</h1>
+          <p className="ankommen-lead">
             Eine wohlwollende Präsenz ist nun für dich da.
             <br />
-            Du kannst einfach zuhören.
-            <br />
-            Oder jederzeit pausieren.
+            Du kannst einfach zuhören – oder jederzeit pausieren.
           </p>
         </motion.div>
 
-        {/* Center area - Audio Player */}
+        {/* Der Player als Anker der Seite. */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="mb-8 md:mb-12"
+          transition={{ duration: 0.65, ease, delay: 0.12 }}
         >
           <AudioPlayer
             audioUrl={resource.audio_url}
             title={resource.title}
             variant="compact"
+            className="ankommen-card"
             onEnded={handleAudioEnded}
             onPlay={() =>
               trackEvent({
@@ -195,9 +186,7 @@ export default function AnkommenPage() {
             }
             header={
               <div className="mb-5 text-center">
-                <h2 className="text-lg font-medium text-secondary-900">
-                  {resource.title}
-                </h2>
+                <h2>{resource.title}</h2>
                 {resourceFigureName && (
                   <p className="mt-1 text-sm text-secondary-500">{resourceFigureName}</p>
                 )}
@@ -206,43 +195,44 @@ export default function AnkommenPage() {
           />
         </motion.div>
 
-        {/* Micro-reassurance */}
-        <motion.div
+        {/* Der wichtigste Satz der Seite – auf eigener Fläche, nicht als Fußnote. */}
+        <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="text-center mb-8 md:mb-12"
+          transition={{ duration: 0.65, ease, delay: 0.24 }}
+          className="ankommen-reassurance"
         >
-          <p className="text-sm text-amber-700/70 max-w-md mx-auto leading-relaxed">
-            Wenn du nichts spürst, ist das in Ordnung.
-            <br />
-            Manche Geschichten wirken leise – und erst später.
-          </p>
-        </motion.div>
+          Wenn du nichts spürst, ist das in Ordnung.
+          <br />
+          Manche Geschichten wirken leise – und erst später.
+        </motion.p>
 
-        {/* Post-audio reveal */}
+        {/*
+          Erst nach dem Hören: der nächste Schritt. Während der Geschichte
+          steht hier bewusst nichts, was zum Weitergehen drängt.
+        */}
         <AnimatePresence>
           {audioEnded && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="text-center space-y-6"
+              transition={{ duration: 0.5, ease }}
+              className="ankommen-next"
             >
-              <p className="text-base md:text-lg text-amber-800 max-w-lg mx-auto leading-relaxed">
+              <p>
                 Wenn du magst, können die Geschichten noch genauer zu dir passen.
-                <br />
                 Du beantwortest ein paar kurze Fragen – ganz ohne Druck.
               </p>
               <div>
-                <Button
-                  onClick={handlePersonalizeClick}
-                  size="lg"
-                  className="bg-amber-600 hover:bg-amber-700 text-white text-base md:text-lg px-8 py-4 md:py-5 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md"
-                >
+                <Button onClick={handlePersonalizeClick} className="ankommen-button">
                   Eine persönliche Geschichte erstellen
                 </Button>
+              </div>
+              <div>
+                <button type="button" onClick={() => router.push('/')} className="ankommen-skip">
+                  Später vielleicht
+                </button>
               </div>
             </motion.div>
           )}
@@ -251,4 +241,3 @@ export default function AnkommenPage() {
     </div>
   );
 }
-
