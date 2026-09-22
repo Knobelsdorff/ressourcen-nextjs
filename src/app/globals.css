@@ -549,3 +549,37 @@
     scroll-behavior: auto !important;
   }
 }
+
+/*
+ * Slider für die Hintergrundmusik-Lautstärke.
+ *
+ * Range-Inputs bringen ohne appearance:none einen Systemthumb mit, der je nach
+ * Browser 20-30px groß ist. Der Player hat eine 44px-Zielgröße für Touch, darum
+ * hier ein eigener Thumb mit definierter Trefferfläche.
+ */
+.music-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  background: var(--color-primary-700);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+  cursor: pointer;
+}
+
+.music-volume-slider::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  background: var(--color-primary-700);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+  cursor: pointer;
+}
+
+/* Firefox zeichnet die Spur sonst zusätzlich zum Element-Hintergrund. */
+.music-volume-slider::-moz-range-track {
+  background: transparent;
+}

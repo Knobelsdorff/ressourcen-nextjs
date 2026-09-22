@@ -15,6 +15,7 @@ import ClientResourceModal from "@/components/ClientResourceModal";
 import { trackEvent } from "@/lib/analytics";
 import { isEnabled } from "@/lib/featureFlags";
 import { getBackgroundMusicTrack, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
+import { applyMusicVolumeFactor, subscribeToMusicVolumeFactor } from "@/lib/musicVolumePreference";
 import ChangePassword from "@/components/ChangePassword";
 import DeleteAccount from "@/components/DeleteAccount";
 import ContactModal from "@/components/ContactModal";
@@ -1863,6 +1864,27 @@ ${story.content}
     }
   }, []);
 
+  /**
+   * Regelt alle laufenden Musik-Elemente nach, während am Slider gezogen wird.
+   * Nutzt setMusicVolume, damit der iOS-GainNode-Pfad mitgeht.
+   */
+  useEffect(() => {
+    return subscribeToMusicVolumeFactor((factor) => {
+      Object.values(backgroundMusicElements).forEach((musicAudio) => {
+        if (!musicAudio) return;
+        const adminVolume = (musicAudio as any)._adminVolume ?? DEFAULT_MUSIC_VOLUME;
+        const effective = applyMusicVolumeFactor(adminVolume, factor);
+        // _originalVolume ist die Referenz für Fade-Out und die Resets nach
+        // play() – ohne Update würde die alte Lautstärke zurückspringen.
+        (musicAudio as any)._originalVolume = effective;
+        // Während eines Fade-Outs nicht eingreifen, sonst springt die Musik hoch.
+        if (!(musicAudio as any)._fadeOutInterval) {
+          setMusicVolume(musicAudio, effective);
+        }
+      });
+    });
+  }, [backgroundMusicElements, setMusicVolume]);
+
   // Fade-Out-Funktion für Hintergrundmusik
   const fadeOutMusic = useCallback((musicAudio: HTMLAudioElement | null | undefined, storyId: string, duration: number = 2000) => {
     if (!musicAudio) {
@@ -1991,7 +2013,11 @@ ${story.content}
     // Hole Hintergrundmusik-URL für diese Figur (unterstützt ID und Name)
     const musicTrack = await getBackgroundMusicTrack(figureIdOrName);
     const musicUrl = musicTrack?.track_url || null;
-    const musicVolume = musicTrack?.volume || DEFAULT_MUSIC_VOLUME;
+    // Admin-Lautstärke des Tracks, angepasst um den Nutzer-Faktor. Ab hier ist
+    // musicVolume der effektive Wert – alle bestehenden Pfade (_originalVolume,
+    // Fade-In/Out, Reset nach play()) rechnen unverändert damit weiter.
+    const adminMusicVolume = musicTrack?.volume || DEFAULT_MUSIC_VOLUME;
+    const musicVolume = applyMusicVolumeFactor(adminMusicVolume);
     
     // Nur loggen wenn Musik gefunden wurde (für Debugging)
     if (musicUrl) {
@@ -2795,6 +2821,9 @@ ${story.content}
           
           // Speichere die ursprüngliche track-spezifische Lautstärke für späteres Reset
           (musicAudio as any)._originalVolume = musicVolume;
+          // Admin-Basis getrennt merken: Der Live-Regler rechnet den Faktor
+          // immer auf diesen Wert, nicht auf die bereits angepasste Lautstärke.
+          (musicAudio as any)._adminVolume = adminMusicVolume;
           
           // Setze initiale Lautstärke (wird später für iOS überschrieben)
           musicAudio.volume = musicVolume;
