@@ -427,8 +427,8 @@ export default function AudioRecorder({
 
   if (hasPermission === false) {
     return (
-      <div className="w-full sm:p-5 p-4 bg-amber-50/60 border border-amber-400 rounded-lg">
-        <p className="text-amber-800 max-sm:text-sm text-center">
+      <div className="w-full sm:p-5 p-4 bg-primary-50/60 border border-primary-400 rounded-lg">
+        <p className="text-primary-800 max-sm:text-sm text-center">
           Mikrofon-Zugriff wurde verweigert. Bitte erlaube den Zugriff in den Browser-Einstellungen und lade die Seite neu.
         </p>
       </div>
@@ -445,7 +445,7 @@ export default function AudioRecorder({
         <div>
           <label
             htmlFor="mic-select"
-            className="block text-sm text-amber-700 mb-2"
+            className="block text-sm text-primary-700 mb-2"
           >
             Mikrofon
           </label>
@@ -454,7 +454,7 @@ export default function AudioRecorder({
             value={selectedDeviceId}
             onChange={(e) => setSelectedDeviceId(e.target.value)}
             disabled={isRecording || devices.length === 0}
-            className="w-full sm:px-4 px-3 sm:py-2.5 py-2 bg-white border border-amber-400 rounded-lg text-amber-900 focus:outline-none focus:border-amber-700 focus:ring-1 focus:ring-amber-700 transition-colors disabled:bg-amber-50 disabled:text-amber-600 max-sm:text-sm"
+            className="w-full sm:px-4 px-3 sm:py-2.5 py-2 bg-white border border-primary-400 rounded-lg text-primary-900 focus:outline-none focus:border-primary-700 focus:ring-1 focus:ring-primary-700 transition-colors disabled:bg-primary-50 disabled:text-primary-600 max-sm:text-sm"
           >
             {devices.length === 0 ? (
               <option value="">Mikrofone werden geladen...</option>
@@ -467,7 +467,7 @@ export default function AudioRecorder({
             )}
           </select>
           {isRecording && (
-            <p className="mt-2 text-xs text-amber-600">
+            <p className="mt-2 text-xs text-primary-600">
               Während der Aufnahme nicht änderbar.
             </p>
           )}
@@ -484,18 +484,18 @@ export default function AudioRecorder({
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="w-full sm:px-5 px-4 sm:py-4 py-3 bg-amber-50/60 border border-amber-400 rounded-lg">
+            <div className="w-full sm:px-5 px-4 sm:py-4 py-3 bg-primary-50/60 border border-primary-400 rounded-lg">
               {/* Kopfzeile: Status links, Zeit rechts */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   {isRecording && !isPaused && (
                     <motion.span
-                      className="w-1.5 h-1.5 rounded-full bg-amber-600"
+                      className="w-1.5 h-1.5 rounded-full bg-primary-600"
                       animate={{ opacity: [1, 0.25, 1] }}
                       transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
                     />
                   )}
-                  <span className="text-sm text-amber-700">
+                  <span className="text-sm text-primary-700">
                     {isRecording
                       ? isPaused
                         ? "Pausiert"
@@ -503,7 +503,7 @@ export default function AudioRecorder({
                       : "Aufnahme fertig"}
                   </span>
                 </div>
-                <span className="text-sm text-amber-900 tabular-nums tracking-tight">
+                <span className="text-sm text-primary-900 tabular-nums tracking-tight">
                   {formatTime(recordingTime)}
                 </span>
               </div>
@@ -517,7 +517,7 @@ export default function AudioRecorder({
                   <motion.span
                     key={index}
                     className={`flex-1 rounded-full ${
-                      isRecording && !isPaused ? "bg-amber-600" : "bg-amber-400"
+                      isRecording && !isPaused ? "bg-primary-600" : "bg-primary-400"
                     }`}
                     animate={{ height: `${Math.max(6, level * 100)}%` }}
                     transition={{ duration: 0.12, ease: "easeOut" }}
@@ -536,7 +536,7 @@ export default function AudioRecorder({
           {!isRecording ? (
             <button
               onClick={startRecording}
-              className="flex items-center gap-2 px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-md font-medium transition-colors max-sm:text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-primary-700 hover:bg-primary-800 text-white rounded-md font-medium transition-colors max-sm:text-sm"
             >
               <Mic className="w-4 h-4" />
               <span>Aufnahme starten</span>
@@ -545,7 +545,7 @@ export default function AudioRecorder({
             <>
               <button
                 onClick={isPaused ? resumeRecording : pauseRecording}
-                className="flex items-center gap-2 px-4 py-2 border border-amber-400 text-amber-800 hover:bg-amber-50 rounded-md font-medium transition-colors max-sm:text-sm"
+                className="flex items-center gap-2 px-4 py-2 border border-primary-400 text-primary-800 hover:bg-primary-50 rounded-md font-medium transition-colors max-sm:text-sm"
               >
                 {isPaused ? (
                   <>
@@ -561,7 +561,7 @@ export default function AudioRecorder({
               </button>
               <button
                 onClick={stopRecording}
-                className="flex items-center gap-2 px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-md font-medium transition-colors max-sm:text-sm"
+                className="flex items-center gap-2 px-4 py-2 bg-primary-700 hover:bg-primary-800 text-white rounded-md font-medium transition-colors max-sm:text-sm"
               >
                 <Square className="w-3.5 h-3.5" />
                 <span>Aufnahme beenden</span>
@@ -571,11 +571,11 @@ export default function AudioRecorder({
         </div>
       ) : (
         /* Fertige Aufnahme: anhören oder verwerfen */
-        <div className="flex items-center justify-between gap-3 sm:px-4 px-3 sm:py-3 py-2.5 bg-white border border-amber-400 rounded-lg">
+        <div className="flex items-center justify-between gap-3 sm:px-4 px-3 sm:py-3 py-2.5 bg-white border border-primary-400 rounded-lg">
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={playPreview}
-              className="w-8 h-8 flex items-center justify-center border border-amber-400 text-amber-700 hover:bg-amber-50 rounded-md transition-colors flex-shrink-0"
+              className="w-8 h-8 flex items-center justify-center border border-primary-400 text-primary-700 hover:bg-primary-50 rounded-md transition-colors flex-shrink-0"
               title={isPlaying ? "Vorschau pausieren" : "Vorschau anhören"}
             >
               {isPlaying ? (
@@ -584,13 +584,13 @@ export default function AudioRecorder({
                 <Play className="w-3.5 h-3.5 ml-0.5" />
               )}
             </button>
-            <span className="text-sm text-amber-800 truncate">
+            <span className="text-sm text-primary-800 truncate">
               {isPlaying ? "Wird abgespielt" : "Anhören"} · {formatTime(recordingTime)}
             </span>
           </div>
           <button
             onClick={deleteRecording}
-            className="flex items-center gap-1.5 px-2 py-1.5 text-amber-700 hover:text-amber-900 text-sm rounded-md transition-colors flex-shrink-0"
+            className="flex items-center gap-1.5 px-2 py-1.5 text-primary-700 hover:text-primary-900 text-sm rounded-md transition-colors flex-shrink-0"
             title="Aufnahme verwerfen und neu aufnehmen"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -600,7 +600,7 @@ export default function AudioRecorder({
       )}
 
       {/* Hinweis */}
-      <p className="text-sm text-amber-700 text-center leading-snug">
+      <p className="text-sm text-primary-700 text-center leading-snug">
         {isRecording
           ? "Sprich jetzt deine Ressourcen-Geschichte ein..."
           : audioBlob

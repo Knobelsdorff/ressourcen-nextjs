@@ -24,12 +24,12 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
 
   if (error && !isAdmin) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center p-4">
+      <div className="min-h-screen wellness-page-background flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
           <p className="text-red-600 font-semibold mb-4">{error}</p>
           <Link
             href="/dashboard"
-            className="inline-block bg-amber-600 text-white px-6 py-2 rounded-lg hover:bg-amber-700 transition-colors"
+            className="inline-block bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors"
           >
             Zum Dashboard
           </Link>

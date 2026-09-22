@@ -1,6 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, MotionConfig } from "framer-motion";
+import DashboardWelcome from "@/components/dashboard/DashboardWelcome";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, Volume2, User, Mail, Calendar, Clock, Star, Trophy, Target, Shield, HelpCircle, MessageCircle, Bug, Key, Trash, Crown, Zap, TrendingUp, Play, Pause, BarChart3, Lock, Music, RefreshCw, Plus, RotateCcw, CreditCard, Sparkles } from "lucide-react";
 import Link from "next/link";
@@ -3241,20 +3242,11 @@ ${story.content}
 
         return (
     <BLSProvider>
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-primary-50 to-primary-50 pb-10 sm:pb-12">
+      <MotionConfig reducedMotion="user">
+      <div className="dashboard-page min-h-screen pb-10 sm:pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:py-8 py-4">
-        {/* Header - Nur beim ersten Login anzeigen */}
-        {hasSeenDashboardIntro === false && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center sm:mb-8 mb-4"
-          >
-            <h1 className="text-2xl sm:text-2xl md:text-3xl font-light text-primary-900 mb-2">
-              Willkommen in deinem Raum
-            </h1>
-          </motion.div>
-        )}
+        {/* A consistent welcome, with introductory copy on the first visit. */}
+        <DashboardWelcome firstVisit={hasSeenDashboardIntro === false} />
 
         {/* Content */}
         <motion.div
@@ -3274,7 +3266,7 @@ ${story.content}
                   <p className="text-red-600">{error}</p>
                 </div>
               ) : stories.length === 0 && !pendingStory ? (
-                <div className="bg-white rounded-2xl shadow-lg p-8">
+                <div className="dashboard-empty bg-white rounded-2xl p-6 sm:p-10">
                   <div className="text-center py-8">
                     <BookOpen className="w-12 h-12 text-secondary-400 mx-auto mb-4" />
                     <p className="text-secondary-600 max-sm:text-sm">Noch keine Geschichten gespeichert.</p>
@@ -3283,7 +3275,7 @@ ${story.content}
                     </p>
                     <button
                       onClick={() => router.push('/create-story')}
-                      className="px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-500 text-white font-medium rounded-xl shadow-lg hover:from-primary-600 hover:to-primary-600 transition-all duration-200 inline-flex items-center gap-2"
+                      className="dashboard-primary-button"
                     >
                       <Plus className="w-5 h-5" />
                       Erstelle deine erste Ressource
@@ -3293,12 +3285,15 @@ ${story.content}
               ) : (
                 <>
                   {/* Section 1: Personal Stories - PRIMARY */}
-                  <div className="bg-white rounded-2xl shadow-lg p-8">
-                    <div className="mb-6">
-                      <h2 className="text-xl font-semibold text-primary-900 mb-6">Meine Power Storys</h2>
+                  <div className="dashboard-library">
+                    <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h2 className="text-2xl font-bold text-primary-900">Meine Power Storys</h2>
+                        <p className="mt-1 text-sm text-secondary-600">Deine Geschichten. In deinem Tempo.</p>
+                      </div>
                       <button
                         onClick={handleCreateStoryClick}
-                        className="px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-500 text-white font-medium rounded-xl shadow-lg hover:from-primary-600 hover:to-primary-600 transition-all duration-200 flex items-center gap-2"
+                        className="dashboard-primary-button"
                       >
                         <Plus className="w-5 h-5" />
                         Neue Power Story
@@ -3348,7 +3343,7 @@ ${story.content}
                         </p>
                       </div>
                     ) : (
-                      <div className="space-y-6">
+                      <div className="dashboard-story-list space-y-5">
                   {/* Temporäre Ressource anzeigen - nur wenn Benutzer nicht eingeloggt ist */}
                   {pendingStory && !user && (
                     <motion.div
@@ -3454,7 +3449,7 @@ ${story.content}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.6 }}
-                      className="bg-white rounded-2xl shadow-lg p-6 mt-8 md:mt-12"
+                      className="dashboard-arrival rounded-2xl p-6 sm:p-8 mt-8 md:mt-12"
                     >
                       {ankommenStory.audio_url ? (
                         <div className="max-w-lg mx-auto">
@@ -3496,7 +3491,7 @@ ${story.content}
                               <button
                                 type="button"
                                 onClick={handleCreateStoryClick}
-                                className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl text-sm font-medium text-primary-800 bg-primary-50 border border-primary-200 hover:bg-primary-100 hover:border-primary-300 transition-colors"
+                                className="dashboard-secondary-button"
                               >
                                 <Plus className="w-4 h-4 flex-shrink-0" />
                                 Eine Power Story in deinem Stil entwickeln
@@ -3561,6 +3556,7 @@ ${story.content}
       />
 
       </div>
+      </MotionConfig>
     </BLSProvider>
   );
 }

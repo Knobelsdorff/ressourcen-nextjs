@@ -32,7 +32,7 @@ export default function ValuePropositionSection() {
   ];
 
   return (
-    <section className="py-20 px-4 bg-gradient-to-br from-amber-50 to-orange-50">
+    <section className="landing-section landing-benefits py-20 px-4">
       <div className="max-w-6xl mx-auto">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
@@ -63,17 +63,17 @@ export default function ValuePropositionSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-white rounded-xl p-6 shadow-lg"
+                className="landing-card p-6"
               >
                 <div className="flex items-start gap-4">
-                  <div className="bg-amber-100 rounded-lg p-3">
-                    <Icon className="w-6 h-6 text-amber-600" />
+                  <div className="landing-card-icon">
+                    <Icon className="w-6 h-6" aria-hidden="true" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold text-amber-900 mb-2">
+                    <h3 className="text-xl font-semibold mb-2">
                       {feature.title}
                     </h3>
-                    <p className="text-amber-700">{feature.description}</p>
+                    <p className="text-[15px] leading-relaxed">{feature.description}</p>
                   </div>
                 </div>
               </motion.div>
@@ -91,7 +91,7 @@ export default function ValuePropositionSection() {
               <Button
                 onClick={() => router.push("/ankommen")}
                 size="lg"
-                className="bg-amber-600 hover:bg-amber-700 text-white text-lg px-8 py-6 rounded-lg"
+                className="landing-primary-button"
               >
                 Jetzt kurz eintauchen
               </Button>

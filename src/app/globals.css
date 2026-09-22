@@ -1,3 +1,6 @@
+@import "./wellness.css";
+@import "./wellness-surfaces.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

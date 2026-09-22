@@ -81,7 +81,7 @@ export default function StoryCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      className="rounded-2xl border border-secondary-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md motion-reduce:transition-none sm:p-6"
+      className="dashboard-story-card rounded-2xl border border-secondary-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md motion-reduce:transition-none sm:p-6"
     >
       <header className="mb-5 flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
@@ -119,12 +119,12 @@ export default function StoryCard({
             </time>
 
             {createdWithAndreas && (
-              <span className="rounded-full bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-800">
+              <span className="dashboard-badge-guided rounded-full bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-800">
                 Mit Andreas erstellt
               </span>
             )}
             {selfCreated && (
-              <span className="rounded-full bg-secondary-100 px-2 py-0.5 text-xs font-medium text-secondary-700">
+              <span className="dashboard-badge-personal rounded-full bg-secondary-100 px-2 py-0.5 text-xs font-medium text-secondary-700">
                 Selbst erstellt
               </span>
             )}

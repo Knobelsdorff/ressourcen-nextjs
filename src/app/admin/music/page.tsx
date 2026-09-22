@@ -1178,8 +1178,8 @@ export default function AdminMusicPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Lade...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto"></div>
+          <p className="mt-4 text-secondary-600">Lade...</p>
         </div>
       </div>
     );
@@ -1189,8 +1189,8 @@ export default function AdminMusicPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-700 mb-4">Bitte melde dich an, um auf das Admin-Dashboard zuzugreifen.</p>
-          <Link href="/dashboard" className="text-blue-500 hover:underline">
+          <p className="text-secondary-700 mb-4">Bitte melde dich an, um auf das Admin-Dashboard zuzugreifen.</p>
+          <Link href="/dashboard" className="text-primary-500 hover:underline">
             Zum Dashboard
           </Link>
         </div>
@@ -1202,8 +1202,8 @@ export default function AdminMusicPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-700 mb-4">Du hast keine Berechtigung für die Musik-Verwaltung.</p>
-          <Link href="/dashboard" className="text-blue-500 hover:underline">
+          <p className="text-secondary-700 mb-4">Du hast keine Berechtigung für die Musik-Verwaltung.</p>
+          <Link href="/dashboard" className="text-primary-500 hover:underline">
             Zum Dashboard
           </Link>
         </div>
@@ -1212,14 +1212,14 @@ export default function AdminMusicPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen wellness-page-background py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="sm:mb-8 mb-4">
+        <div className="wellness-admin-heading sm:mb-8 mb-4">
           {isFullAdmin && (
             <Link
               href="/admin/analytics"
-              className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-4"
+              className="inline-flex items-center text-secondary-600 hover:text-secondary-900 mb-4"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Zurück zu Admin Analytics
@@ -1228,17 +1228,17 @@ export default function AdminMusicPage() {
           {!isFullAdmin && (
             <Link
               href="/dashboard"
-              className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-4"
+              className="inline-flex items-center text-secondary-600 hover:text-secondary-900 mb-4"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Zurück zum Dashboard
             </Link>
           )}
           <div className="flex max-sm:flex-col max-sm:gap-2 sm:items-center gap-3">
-            <Music className="w-8 h-8 text-blue-500" />
-            <h1 className="sm:text-3xl text-xl font-bold text-gray-900">Hintergrundmusik verwalten</h1>
+            <Music className="w-8 h-8 text-primary-500" />
+            <h1 className="sm:text-3xl text-xl font-bold text-secondary-900">Hintergrundmusik verwalten</h1>
           </div>
-          <p className="mt-2 text-gray-600 max-sm:text-sm">
+          <p className="mt-2 text-secondary-600 max-sm:text-sm">
             Lade Musik-Tracks für Ressourcen hoch und verwalte sie hier.
           </p>
         </div>
@@ -1247,15 +1247,15 @@ export default function AdminMusicPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-lg shadow sm:p-6 p-3 sm:mb-6 mb-3"
+          className="wellness-panel bg-white rounded-lg shadow sm:p-6 p-3 sm:mb-6 mb-3"
         >
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-secondary-700 mb-2">
             Ressource auswählen:
           </label>
           <select
             value={selectedFigure}
             onChange={(e) => setSelectedFigure(e.target.value)}
-            className="w-full border border-gray-300 rounded-md sm:px-4 px-2 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 max-sm:text-sm"
+            className="w-full border border-secondary-300 rounded-md sm:px-4 px-2 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 max-sm:text-sm"
           >
             <option value="">-- Bitte wählen --</option>
             <optgroup label="Echte Personen">
@@ -1281,7 +1281,7 @@ export default function AdminMusicPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-lg shadow p-6 mb-6"
+              className="wellness-panel bg-white rounded-lg shadow p-6 mb-6"
             >
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                 <Upload className="w-5 h-5" />
@@ -1290,36 +1290,36 @@ export default function AdminMusicPage() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-secondary-700 mb-2">
                     MP3-Datei: <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="file"
                     accept="audio/mpeg,.mp3"
                     onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    className="block w-full text-sm text-secondary-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
                     disabled={uploading}
                   />
                   {uploadFile && (
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-secondary-500">
                       Ausgewählt: {uploadFile.name} ({(uploadFile.size / 1024 / 1024).toFixed(2)} MB)
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-secondary-700 mb-2">
                     Link zur Quelle (optional):
                   </label>
                   <input
                     type="url"
                     value={sourceLink}
                     onChange={(e) => setSourceLink(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border border-secondary-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="https://www.premiumbeat.com/..."
                     disabled={uploading}
                   />
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="mt-1 text-sm text-secondary-500">
                     Optional: Link zur Quelle des Tracks (z.B. PremiumBeat) für Referenz.
                   </p>
                 </div>
@@ -1330,10 +1330,10 @@ export default function AdminMusicPage() {
                     id="isDefault"
                     checked={isDefault}
                     onChange={(e) => setIsDefault(e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-secondary-300 rounded"
                     disabled={uploading}
                   />
-                  <label htmlFor="isDefault" className="ml-2 block text-sm text-gray-700">
+                  <label htmlFor="isDefault" className="ml-2 block text-sm text-secondary-700">
                     Als Standard-Track setzen (wird automatisch abgespielt)
                   </label>
                 </div>
@@ -1341,7 +1341,7 @@ export default function AdminMusicPage() {
                 <button
                   onClick={handleUpload}
                   disabled={!uploadFile || uploading}
-                  className="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full bg-primary-500 text-white px-4 py-2 rounded-md hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {uploading ? (
                     <>
@@ -1362,7 +1362,7 @@ export default function AdminMusicPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-lg shadow p-6"
+              className="wellness-panel bg-white rounded-lg shadow p-6"
             >
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                 <Music className="w-5 h-5" />
@@ -1370,7 +1370,7 @@ export default function AdminMusicPage() {
               </h2>
 
               {tracks.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">
+                <p className="text-secondary-500 text-center py-8">
                   Noch keine Tracks für diese Ressource vorhanden.
                 </p>
               ) : (
@@ -1378,11 +1378,11 @@ export default function AdminMusicPage() {
                   {tracks.map((track) => (
                     <div
                       key={track.id}
-                      className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                      className="wellness-track border border-secondary-200 rounded-lg p-4 hover:bg-secondary-50 transition-colors"
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
                             <h3 className="font-semibold text-lg">
                               {track.track_title || track.track_id}
                             </h3>
@@ -1394,25 +1394,25 @@ export default function AdminMusicPage() {
                             )}
                           </div>
                           
-                          <p className="text-xs text-gray-500 font-mono break-all mb-2">
+                          <p className="text-xs text-secondary-500 font-mono break-all mb-2">
                             {track.track_url}
                           </p>
                           {editingTrackId === track.id ? (
                             <div className="mb-3 space-y-3">
                               <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                <label className="block text-xs font-medium text-secondary-700 mb-1">
                                   Link zur Quelle (optional):
                                 </label>
                                 <input
                                   type="url"
                                   value={editSourceLink}
                                   onChange={(e) => setEditSourceLink(e.target.value)}
-                                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                  className="w-full border border-secondary-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                                   placeholder="https://www.premiumbeat.com/..."
                                 />
                               </div>
                               <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                <label className="block text-xs font-medium text-secondary-700 mb-1">
                                   Lautstärke: {(editingVolume * 100).toFixed(0)}%
                                 </label>
                                 <input
@@ -1422,9 +1422,9 @@ export default function AdminMusicPage() {
                                   step="0.01"
                                   value={editingVolume}
                                   onChange={(e) => setEditingVolume(parseFloat(e.target.value))}
-                                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                  className="w-full h-2 bg-secondary-200 rounded-lg appearance-none cursor-pointer"
                                 />
-                                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                                <div className="flex justify-between text-xs text-secondary-500 mt-1">
                                   <span>1%</span>
                                   <span>25%</span>
                                 </div>
@@ -1432,14 +1432,14 @@ export default function AdminMusicPage() {
                               <div className="flex items-center gap-2">
                                 <button
                                   onClick={() => handleSaveEdit(track.id)}
-                                  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-500 text-white hover:bg-blue-600 rounded-md transition-colors"
+                                  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-primary-500 text-white hover:bg-primary-600 rounded-md transition-colors"
                                 >
                                   <Save className="w-4 h-4" />
                                   Speichern
                                 </button>
                                 <button
                                   onClick={handleCancelEdit}
-                                  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-md transition-colors"
+                                  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-secondary-100 text-secondary-700 hover:bg-secondary-200 rounded-md transition-colors"
                                 >
                                   <X className="w-4 h-4" />
                                   Abbrechen
@@ -1449,26 +1449,26 @@ export default function AdminMusicPage() {
                           ) : (
                             <div className="mb-3 space-y-1">
                               {track.track_title ? (
-                                <p className="text-xs text-gray-400">
-                                  Quelle: <a href={track.track_title} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">{track.track_title}</a>
+                                <p className="text-xs text-secondary-400">
+                                  Quelle: <a href={track.track_title} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline break-all">{track.track_title}</a>
                                 </p>
                               ) : (
-                                <p className="text-xs text-gray-400 italic">
+                                <p className="text-xs text-secondary-400 italic">
                                   Kein Quell-Link gesetzt. Klicke auf "Bearbeiten", um einen Link hinzuzufügen.
                                 </p>
                               )}
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs text-secondary-500">
                                 Lautstärke: {((track.volume || 0.12) * 100).toFixed(0)}%
                               </p>
                             </div>
                           )}
                           
-                          <div className="flex items-center gap-4">
+                          <div className="flex flex-wrap items-center gap-3">
                             {editingTrackId !== track.id && (
                               <>
                                 <button
                                   onClick={() => handlePlayPause(track.track_url, track.id)}
-                                  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                                  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-secondary-100 hover:bg-secondary-200 rounded-md transition-colors"
                                   disabled={!track.track_url}
                                 >
                                   {playingTrack === track.id ? (
@@ -1493,7 +1493,7 @@ export default function AdminMusicPage() {
                                 </button>
                                 <button
                                   onClick={() => handleStartEdit(track)}
-                                  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md transition-colors"
+                                  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-primary-100 text-primary-700 hover:bg-primary-200 rounded-md transition-colors"
                                 >
                                   <Edit2 className="w-4 h-4" />
                                   Bearbeiten
@@ -1503,7 +1503,7 @@ export default function AdminMusicPage() {
                                   className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
                                     track.is_default
                                       ? "bg-green-100 text-green-700 hover:bg-green-200"
-                                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                      : "bg-secondary-100 text-secondary-700 hover:bg-secondary-200"
                                   }`}
                                 >
                                   {track.is_default ? "Standard entfernen" : "Als Standard setzen"}
@@ -1552,12 +1552,12 @@ export default function AdminMusicPage() {
               >
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b">
-                  <h2 className="text-2xl font-bold text-gray-900">
+                  <h2 className="text-2xl font-bold text-secondary-900">
                     Hintergrundmusik testen
                   </h2>
                   <button
                     onClick={handleCloseTest}
-                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                    className="p-2 hover:bg-secondary-100 rounded-full transition-colors"
                   >
                     <X className="w-6 h-6" />
                   </button>
@@ -1569,14 +1569,14 @@ export default function AdminMusicPage() {
                     <h3 className="text-lg font-semibold mb-2">
                       Track: {track.track_title || track.track_id}
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-secondary-600">
                       Figur: {track.figure_name || track.figure_id}
                     </p>
                   </div>
 
                   {/* Lautstärke-Slider */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-secondary-700 mb-2">
                       Musik-Lautstärke: {(testMusicVolume * 100).toFixed(0)}%
                     </label>
                     <input
@@ -1593,9 +1593,9 @@ export default function AdminMusicPage() {
                           setMusicVolume(testMusicAudio, newVolume);
                         }
                       }}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                      className="w-full h-2 bg-secondary-200 rounded-lg appearance-none cursor-pointer"
                     />
-                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <div className="flex justify-between text-xs text-secondary-500 mt-1">
                       <span>1%</span>
                       <span>25%</span>
                     </div>
@@ -1624,12 +1624,12 @@ export default function AdminMusicPage() {
                   {/* Test-Ressource Info */}
                   {loadingTestResource ? (
                     <div className="text-center py-4">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-                      <p className="mt-2 text-sm text-gray-600">Lade Test-Ressource...</p>
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto"></div>
+                      <p className="mt-2 text-sm text-secondary-600">Lade Test-Ressource...</p>
                     </div>
                   ) : testResource ? (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <p className="text-sm text-blue-800">
+                    <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
+                      <p className="text-sm text-primary-800">
                         {testResource.audioUrl 
                           ? `✅ Test-Ressource gefunden: "${testResource.title}"`
                           : `ℹ️ Keine eigene Ressource gefunden. Verwende generische Test-Stimme.`
@@ -1662,16 +1662,16 @@ export default function AdminMusicPage() {
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between p-6 border-t bg-gray-50">
+                <div className="flex items-center justify-between p-6 border-t bg-secondary-50">
                   <button
                     onClick={handleCloseTest}
-                    className="px-6 py-3 text-gray-700 hover:bg-gray-200 rounded-xl font-medium transition-colors"
+                    className="px-6 py-3 text-secondary-700 hover:bg-secondary-200 rounded-xl font-medium transition-colors"
                   >
                     Schließen
                   </button>
                   <button
                     onClick={() => handleSaveTestVolume(track)}
-                    className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-colors"
+                    className="px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium transition-colors"
                   >
                     Lautstärke speichern
                   </button>

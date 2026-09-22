@@ -1938,13 +1938,13 @@ export default function AudioPlayback({
   // Verhindere Hydration-Mismatch - zeige Loading bis Mount
   if (!mounted) {
     return (
-      <div className="min-h-screen p-4 lg:p-12">
+      <div className="story-audio-step min-h-screen p-4 lg:p-12">
         <div className="max-w-4xl mx-auto">
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="bg-white rounded-3xl p-6 lg:p-8 shadow-xl border border-orange-100 mb-6"
+            className="story-step-panel bg-white rounded-3xl p-6 lg:p-8 shadow-xl border border-orange-100 mb-6"
           >
             {/* Übergangsraum - ruhiger Ladebildschirm */}
             <motion.div
@@ -1953,7 +1953,7 @@ export default function AudioPlayback({
               className="text-center py-16 lg:py-20"
             >
               {/* Figure Name */}
-              <h1 className="text-2xl lg:text-3xl font-light text-amber-900 mb-8">
+              <h1 className="text-2xl lg:text-3xl font-light text-primary-900 mb-8">
                 {selectedFigure.name}
               </h1>
               
@@ -1977,7 +1977,7 @@ export default function AudioPlayback({
               {/* Breathing Circle */}
               <div className="flex justify-center mb-8">
                 <motion.div
-                  className="w-20 h-20 lg:w-24 lg:h-24 rounded-full border-2 border-amber-400 relative"
+                  className="w-20 h-20 lg:w-24 lg:h-24 rounded-full border-2 border-primary-400 relative"
                   animate={{
                     scale: [1, 1.15, 1],
                   }}
@@ -1989,7 +1989,7 @@ export default function AudioPlayback({
                 >
                   {/* Light fill with pulsing opacity */}
                   <motion.div
-                    className="absolute inset-0 rounded-full bg-amber-400"
+                    className="absolute inset-0 rounded-full bg-primary-400"
                     style={{ opacity: 0.08 }}
                     animate={{
                       opacity: [0.05, 0.1, 0.05],
@@ -2004,12 +2004,12 @@ export default function AudioPlayback({
               </div>
               
               {/* Haupttext */}
-              <h2 className="text-amber-800 text-xl lg:text-2xl font-medium mb-6">
+              <h2 className="text-primary-800 text-xl lg:text-2xl font-medium mb-6">
                 Deine Power Story nimmt nun Gestalt an
               </h2>
               
               {/* Sekundärtext */}
-              <p className="text-amber-600 text-sm lg:text-base opacity-70">
+              <p className="text-primary-600 text-sm lg:text-base opacity-70">
                 Es ist alles gut – du darfst dir jetzt einen Moment Zeit lassen
               </p>
             </motion.div>
@@ -2027,13 +2027,13 @@ export default function AudioPlayback({
   const showUnifiedLoader = isGenerating || isGeneratingStory || (!hasStory && !storyGenerationError) || (hasStory && !hasAudio && !storyGenerationError);
   if (showUnifiedLoader) {
     return (
-      <div className="min-h-screen p-4 lg:p-12">
+      <div className="story-audio-step min-h-screen p-4 lg:p-12">
         <div className="max-w-4xl mx-auto">
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="bg-white rounded-3xl p-6 lg:p-8 shadow-xl border border-orange-100 mb-6"
+            className="story-step-panel bg-white rounded-3xl p-6 lg:p-8 shadow-xl border border-orange-100 mb-6"
           >
             {/* Übergangsraum - ruhiger Ladebildschirm */}
             <motion.div
@@ -2042,7 +2042,7 @@ export default function AudioPlayback({
               className="text-center py-16 lg:py-20"
             >
               {/* Figure Name */}
-              <h1 className="text-2xl lg:text-3xl font-light text-amber-900 mb-8">
+              <h1 className="text-2xl lg:text-3xl font-light text-primary-900 mb-8">
                 {selectedFigure.name}
               </h1>
               
@@ -2066,7 +2066,7 @@ export default function AudioPlayback({
               {/* Breathing Circle */}
               <div className="flex justify-center mb-8">
                 <motion.div
-                  className="w-20 h-20 lg:w-24 lg:h-24 rounded-full border-2 border-amber-400 relative"
+                  className="w-20 h-20 lg:w-24 lg:h-24 rounded-full border-2 border-primary-400 relative"
                   animate={{
                     scale: [1, 1.15, 1],
                   }}
@@ -2078,7 +2078,7 @@ export default function AudioPlayback({
                 >
                   {/* Light fill with pulsing opacity */}
                   <motion.div
-                    className="absolute inset-0 rounded-full bg-amber-400"
+                    className="absolute inset-0 rounded-full bg-primary-400"
                     style={{ opacity: 0.08 }}
                     animate={{
                       opacity: [0.05, 0.1, 0.05],
@@ -2093,12 +2093,12 @@ export default function AudioPlayback({
               </div>
               
               {/* Haupttext */}
-              <h2 className="text-amber-800 text-xl lg:text-2xl font-medium mb-6">
+              <h2 className="text-primary-800 text-xl lg:text-2xl font-medium mb-6">
                 Deine Power Story nimmt nun Gestalt an
               </h2>
               
               {/* Sekundärtext */}
-              <p className="text-amber-600 text-sm lg:text-base opacity-70">
+              <p className="text-primary-600 text-sm lg:text-base opacity-70">
                 Es ist alles gut – du darfst dir jetzt einen Moment Zeit lassen
               </p>
             </motion.div>
@@ -2109,7 +2109,7 @@ export default function AudioPlayback({
   }
 
   return (
-    <div className="min-h-screen p-4 lg:p-12">
+    <div className="story-audio-step min-h-screen p-4 lg:p-12">
       <motion.div
         initial={{ y: 30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -2121,7 +2121,7 @@ export default function AudioPlayback({
           animate={{ y: 0, opacity: 1 }}
           className="text-center sm:mb-8 mb-5"
         >
-          <h2 className="text-2xl lg:text-3xl font-light text-amber-900 mb-4">
+          <h2 className="text-2xl lg:text-3xl font-light text-primary-900 mb-4">
             {selectedFigure.name}
           </h2>
           {/* Figure Icon */}
@@ -2148,7 +2148,7 @@ export default function AudioPlayback({
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl border border-orange-100 mb-6"
+          className="story-step-panel bg-white rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl border border-orange-100 mb-6"
         >
           {/* Pre-Play Calming Microcopy */}
           {audioState?.audioUrl && !isGenerating && (
@@ -2158,7 +2158,7 @@ export default function AudioPlayback({
               transition={{ delay: 0.1 }}
               className="text-center mb-8"
             >
-              <p className="text-sm md:text-base text-amber-700/80 max-w-md mx-auto leading-relaxed space-y-1">
+              <p className="text-sm md:text-base text-primary-700/80 max-w-md mx-auto leading-relaxed space-y-1">
                 {isFirstStoryPlayback === false ? (
                   // Returning user: shorter version
                   <>
@@ -2205,9 +2205,9 @@ export default function AudioPlayback({
                 className="text-center py-8"
               >
                 <div className="flex justify-center mb-4">
-                  <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+                  <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
                 </div>
-                <p className="text-amber-700">
+                <p className="text-primary-700">
                   {isGenerating ? 'Erstelle und lade deine Audiogeschichte hoch...' : 'Lade Audio...'}
                 </p>
               </motion.div>
@@ -2225,7 +2225,7 @@ export default function AudioPlayback({
                   <div
                     ref={progressBarRef}
                     onMouseDown={handleProgressBarMouseDown}
-                    className={`relative w-full h-4 bg-gradient-to-r from-orange-100 to-amber-100 rounded-full overflow-hidden cursor-pointer group shadow-inner select-none ${isDragging ? 'cursor-grabbing' : 'cursor-pointer'}`}
+                    className={`story-audio-track relative w-full h-4 bg-gradient-to-r from-orange-100 to-primary-100 rounded-full overflow-hidden cursor-pointer group shadow-inner select-none ${isDragging ? 'cursor-grabbing' : 'cursor-pointer'}`}
                   >
                     {/* Loading Progress (zeigt Ladezustand wenn Audio noch nicht bereit) */}
                     {(isLoading || isLoadingAudio) && (
@@ -2238,14 +2238,14 @@ export default function AudioPlayback({
 
                     {/* Buffered Progress */}
                     <motion.div
-                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-orange-200 to-amber-200 rounded-full"
+                      className="story-audio-buffer absolute inset-y-0 left-0 bg-gradient-to-r from-orange-200 to-primary-200 rounded-full"
                       style={{ width: `${bufferedPercentage}%` }}
                       transition={{ duration: 0.3 }}
                     />
 
                     {/* Current Progress */}
                     <motion.div
-                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 rounded-full shadow-sm"
+                      className="story-audio-fill absolute inset-y-0 left-0 bg-gradient-to-r from-primary-400 via-orange-500 to-primary-500 rounded-full shadow-sm"
                       style={{ width: `${progressPercentage}%` }}
                       transition={{ duration: isDragging ? 0 : 0.1 }}
                     >
@@ -2263,11 +2263,11 @@ export default function AudioPlayback({
                         transform: 'translateX(-50%)'
                       }}
                     >
-                      <div className={`absolute -top-1 -bottom-1 w-5 bg-gradient-to-b from-amber-400 to-orange-500 rounded-full shadow-lg -translate-x-1/2 ${isDragging ? 'scale-110' : ''}`} />
+                      <div className={`absolute -top-1 -bottom-1 w-5 bg-gradient-to-b from-primary-400 to-orange-500 rounded-full shadow-lg -translate-x-1/2 ${isDragging ? 'scale-110' : ''}`} />
                     </motion.div>
                   </div>
 
-                  <div className="flex justify-between items-center text-sm text-amber-600">
+                  <div className="flex justify-between items-center text-sm text-primary-600">
                     <span className="font-medium">{formatTime(currentTime)}</span>
                     <div className="flex items-center gap-2">
                       {(isLoading || isLoadingAudio) && <Loader2 className="w-3 h-3 animate-spin" />}
@@ -2286,7 +2286,7 @@ export default function AudioPlayback({
                       whileHover={{ scale: 1.1, rotate: -15 }}
                       whileTap={{ scale: 0.9 }}
                       onClick={restart}
-                      className="p-4 bg-gradient-to-br from-orange-100 to-amber-100 text-amber-700 rounded-full hover:from-orange-200 hover:to-amber-200 transition-all duration-300 shadow-lg hover:shadow-xl"
+                      className="p-4 bg-gradient-to-br from-orange-100 to-primary-100 text-primary-700 rounded-full hover:from-orange-200 hover:to-primary-200 transition-all duration-300 shadow-lg hover:shadow-xl"
                     >
                       <RotateCcw className="w-5 h-5" />
                     </motion.button>
@@ -2297,7 +2297,7 @@ export default function AudioPlayback({
                     whileTap={{ scale: 0.95 }}
                     onClick={togglePlayPause}
                     disabled={isLoading || isLoadingAudio || (audioState?.audioUrl && !isAudioReady) as any}
-                    className="sm:p-6 p-5 max-sm:w-[72px] max-sm:h-[72px] bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 text-white rounded-full shadow-xl hover:shadow-2xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="story-audio-play sm:p-6 p-5 max-sm:w-[72px] max-sm:h-[72px] bg-gradient-to-br from-primary-500 via-orange-500 to-primary-600 text-white rounded-full shadow-xl hover:shadow-2xl hover:from-primary-600 hover:to-orange-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {(isLoading || isLoadingAudio || (audioState?.audioUrl && !isAudioReady)) ? (
                       <Loader2 className="w-7 h-7 animate-spin" />
@@ -2323,16 +2323,16 @@ export default function AudioPlayback({
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
-                    className="mt-8 pt-8 border-t border-amber-100"
+                    className="mt-8 pt-8 border-t border-primary-100"
                   >
                     {/* Moment 1: Calm "after" text */}
                     <div className="text-center mb-6">
-                      <h3 className="text-lg font-light text-amber-900 mb-3">
+                      <h3 className="text-lg font-light text-primary-900 mb-3">
                         {isFirstStoryPlayback === false
                           ? 'Vielleicht magst du dem Gehörten noch einen Moment Raum geben.'
                           : 'Lass das Gehörte einen Moment nachwirken.'}
                       </h3>
-                      <p className="text-sm md:text-base text-amber-700/80 max-w-md mx-auto leading-relaxed">
+                      <p className="text-sm md:text-base text-primary-700/80 max-w-md mx-auto leading-relaxed">
                         {isFirstStoryPlayback === false ? (
                           'Oder du gehst einfach weiter, wenn es sich stimmig anfühlt.'
                         ) : (
@@ -2364,7 +2364,7 @@ export default function AudioPlayback({
                               window.location.href = '/create-story';
                             }
                           }}
-                          className="px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl shadow-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-200"
+                          className="px-8 py-3 bg-gradient-to-r from-primary-500 to-orange-500 text-white font-medium rounded-xl shadow-lg hover:from-primary-600 hover:to-orange-600 transition-all duration-200"
                         >
                           {user
                             ? isFirstStoryPlayback === false
@@ -2396,7 +2396,7 @@ export default function AudioPlayback({
             className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden"
           >
             {/* Header mit Benefits */}
-            <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-white text-center">
+            <div className="story-save-heading bg-gradient-to-r from-primary-500 to-orange-500 p-6 text-white text-center">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
@@ -2408,7 +2408,7 @@ export default function AudioPlayback({
               <h2 className="text-2xl font-bold mb-2">
                 {authMode === 'register' ? 'Deine innere Sicherheit für immer!' : 'Willkommen zurück!'}
               </h2>
-              <p className="text-amber-100 text-sm leading-relaxed">
+              <p className="text-primary-100 text-sm leading-relaxed">
                 {authMode === 'register' 
                   ? 'Erstelle einen Account und habe jederzeit Zugang zu deiner persönlichen Quelle für Sicherheit, Geborgenheit und inneren Schutz'
                   : 'Melde dich an, um auf deine gespeicherten Ressourcen zuzugreifen'
@@ -2417,7 +2417,7 @@ export default function AudioPlayback({
             </div>
 
             {/* Benefits Section */}
-            <div className="p-6 bg-gradient-to-br from-amber-50 to-orange-50">
+            <div className="story-save-content p-6 bg-gradient-to-br from-primary-50 to-orange-50">
               <div className="grid grid-cols-1 gap-4 mb-6">
                 <motion.div
                   initial={{ x: -20, opacity: 0 }}
@@ -2467,7 +2467,7 @@ export default function AudioPlayback({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                     placeholder="deine@email.de"
                   />
                 </div>
@@ -2481,7 +2481,7 @@ export default function AudioPlayback({
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                     placeholder="Mindestens 6 Zeichen"
                   />
                 </div>
@@ -2496,7 +2496,7 @@ export default function AudioPlayback({
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                       placeholder="Passwort wiederholen"
                     />
                   </div>
@@ -2527,7 +2527,7 @@ export default function AudioPlayback({
                   disabled={isSubmitting}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full px-6 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold hover:from-amber-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-6 py-4 bg-gradient-to-r from-primary-500 to-orange-500 text-white rounded-xl font-semibold hover:from-primary-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
                     <div className="flex items-center justify-center gap-2">
@@ -2545,7 +2545,7 @@ export default function AudioPlayback({
               <div className="mt-6 text-center">
                 <button
                   onClick={() => setAuthMode(authMode === 'register' ? 'login' : 'register')}
-                  className="text-amber-600 hover:text-amber-700 font-medium transition-colors"
+                  className="text-primary-600 hover:text-primary-700 font-medium transition-colors"
                 >
                   {authMode === 'register' ? 'Bereits ein Account? Hier anmelden' : 'Noch kein Account? Hier registrieren'}
                 </button>

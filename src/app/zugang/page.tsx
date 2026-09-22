@@ -1,5 +1,6 @@
 "use client";
 
+import WellnessMark from "@/components/WellnessMark";
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -193,14 +194,15 @@ function ZugangPageInner() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen wellness-page-background flex items-center justify-center px-4 py-12">
       <div className="max-w-md w-full">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          className="bg-white rounded-2xl shadow-lg sm:p-10 p-6"
+          className="wellness-auth-card bg-white rounded-2xl shadow-lg sm:p-10 p-6"
         >
+          <WellnessMark />
           {linkGesendet ? (
             /* ---------- Bestätigung: Link ist unterwegs ---------- */
             <motion.div
@@ -209,22 +211,22 @@ function ZugangPageInner() {
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
               className="text-center"
             >
-              <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-5">
-                <Mail className="w-7 h-7 text-amber-700" />
+              <div className="w-14 h-14 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-5">
+                <Mail className="w-7 h-7 text-primary-700" />
               </div>
-              <h1 className="text-2xl font-medium text-amber-900 mb-3">
+              <h1 className="text-2xl font-medium text-primary-900 mb-3">
                 Link ist unterwegs
               </h1>
-              <p className="text-amber-800 leading-relaxed mb-2">
+              <p className="text-primary-800 leading-relaxed mb-2">
                 Wir haben den Zugangslink an{" "}
                 <span className="font-medium break-all">{email.toLowerCase().trim()}</span>{" "}
                 geschickt.
               </p>
-              <p className="text-sm text-amber-700 leading-relaxed">
+              <p className="text-sm text-primary-700 leading-relaxed">
                 Öffne ihn am besten auf diesem Gerät. Manchmal landet er im Spam-Ordner.
               </p>
 
-              <div className="mt-8 pt-6 border-t border-amber-200">
+              <div className="mt-8 pt-6 border-t border-primary-200">
                 <button
                   type="button"
                   onClick={() => {
@@ -232,7 +234,7 @@ function ZugangPageInner() {
                     setZeigeLinkHinweis(false);
                     setError("");
                   }}
-                  className="text-sm text-amber-700 hover:text-amber-900 font-medium transition-colors"
+                  className="text-sm text-primary-700 hover:text-primary-900 font-medium transition-colors"
                 >
                   Andere E-Mail-Adresse verwenden
                 </button>
@@ -241,10 +243,10 @@ function ZugangPageInner() {
           ) : (
             /* ---------- Anmeldung ---------- */
             <>
-              <h1 className="sm:text-3xl text-2xl font-medium text-amber-900 mb-2">
+              <h1 className="sm:text-3xl text-2xl font-medium text-primary-900 mb-2">
                 Dein Zugang
               </h1>
-              <p className="text-amber-800 leading-relaxed sm:mb-8 mb-6">
+              <p className="text-primary-800 leading-relaxed sm:mb-8 mb-6">
                 {zeigeLinkHinweis
                   ? "Kein Problem – wir schicken dir einfach einen neuen Link."
                   : "Melde dich an, um zu deinen Power Storys zu gelangen."}
@@ -261,15 +263,15 @@ function ZugangPageInner() {
                     transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                     className="overflow-hidden"
                   >
-                    <div className="flex gap-3 bg-amber-50 border border-amber-400 rounded-lg p-4 mb-6">
-                      <Clock className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
-                      <div className="text-sm text-amber-900 leading-relaxed">
+                    <div className="flex gap-3 bg-primary-50 border border-primary-400 rounded-lg p-4 mb-6">
+                      <Clock className="w-5 h-5 text-primary-700 shrink-0 mt-0.5" />
+                      <div className="text-sm text-primary-900 leading-relaxed">
                         <p className="font-medium mb-1">
                           {linkFehler === "fehler"
                             ? "Dieser Link konnte nicht geöffnet werden."
                             : "Dieser Link ist nicht mehr gültig."}
                         </p>
-                        <p className="text-amber-800">
+                        <p className="text-primary-800">
                           Gib unten deine E-Mail-Adresse ein – du bekommst sofort einen neuen Zugang.
                         </p>
                       </div>
@@ -282,7 +284,7 @@ function ZugangPageInner() {
               <div
                 role="tablist"
                 aria-label="Anmelde-Methode"
-                className="grid grid-cols-2 gap-1 p-1 bg-amber-50 border border-amber-200 rounded-lg mb-6"
+                className="grid grid-cols-2 gap-1 p-1 bg-primary-50 border border-primary-200 rounded-lg mb-6"
               >
                 <button
                   type="button"
@@ -291,8 +293,8 @@ function ZugangPageInner() {
                   onClick={() => wechsleMethode("link")}
                   className={`py-2 px-3 rounded-md text-sm font-medium transition-colors ${
                     methode === "link"
-                      ? "bg-white text-amber-900 shadow-sm"
-                      : "text-amber-700 hover:text-amber-900"
+                      ? "bg-white text-primary-900 shadow-sm"
+                      : "text-primary-700 hover:text-primary-900"
                   }`}
                 >
                   Per E-Mail-Link
@@ -304,8 +306,8 @@ function ZugangPageInner() {
                   onClick={() => wechsleMethode("passwort")}
                   className={`py-2 px-3 rounded-md text-sm font-medium transition-colors ${
                     methode === "passwort"
-                      ? "bg-white text-amber-900 shadow-sm"
-                      : "text-amber-700 hover:text-amber-900"
+                      ? "bg-white text-primary-900 shadow-sm"
+                      : "text-primary-700 hover:text-primary-900"
                   }`}
                 >
                   Mit Passwort
@@ -325,9 +327,9 @@ function ZugangPageInner() {
                   >
                     <div
                       role="alert"
-                      className="p-3 mb-5 bg-amber-50/70 border border-amber-500 rounded-lg"
+                      className="p-3 mb-5 bg-primary-50/70 border border-primary-500 rounded-lg"
                     >
-                      <p className="text-sm text-amber-900">{error}</p>
+                      <p className="text-sm text-primary-900">{error}</p>
                     </div>
                   </motion.div>
                 )}
@@ -345,7 +347,7 @@ function ZugangPageInner() {
                     onSubmit={handleMagicLinkSubmit}
                   >
                     <div className="mb-5">
-                      <Label htmlFor="email" className="text-amber-900 mb-2 block">
+                      <Label htmlFor="email" className="text-primary-900 mb-2 block">
                         E-Mail-Adresse
                       </Label>
                       <Input
@@ -356,7 +358,7 @@ function ZugangPageInner() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         disabled={isLoading}
-                        className="w-full py-6 text-base border-amber-400 text-amber-900 placeholder:text-amber-500/60 focus-visible:ring-amber-700"
+                        className="w-full py-6 text-base border-primary-400 text-primary-900 placeholder:text-primary-500/60 focus-visible:ring-primary-700"
                         required
                       />
                     </div>
@@ -364,7 +366,7 @@ function ZugangPageInner() {
                     <Button
                       type="submit"
                       disabled={isLoading || !email}
-                      className="w-full bg-amber-700 hover:bg-amber-800 text-white py-6 text-base disabled:bg-amber-200 disabled:text-amber-500"
+                      className="w-full bg-primary-700 hover:bg-primary-800 text-white py-6 text-base disabled:bg-primary-200 disabled:text-primary-500"
                       size="lg"
                     >
                       {isLoading ? (
@@ -377,7 +379,7 @@ function ZugangPageInner() {
                       )}
                     </Button>
 
-                    <p className="text-sm text-amber-700 text-center mt-4 leading-relaxed">
+                    <p className="text-sm text-primary-700 text-center mt-4 leading-relaxed">
                       Du bekommst eine E-Mail mit einem Link.
                       <br />
                       Kein Passwort nötig.
@@ -394,7 +396,7 @@ function ZugangPageInner() {
                     onSubmit={handlePasswordLogin}
                   >
                     <div className="mb-4">
-                      <Label htmlFor="password-email" className="text-amber-900 mb-2 block">
+                      <Label htmlFor="password-email" className="text-primary-900 mb-2 block">
                         E-Mail-Adresse
                       </Label>
                       <Input
@@ -405,13 +407,13 @@ function ZugangPageInner() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         disabled={isLoading}
-                        className="w-full border-amber-400 text-amber-900 placeholder:text-amber-500/60 focus-visible:ring-amber-700"
+                        className="w-full border-primary-400 text-primary-900 placeholder:text-primary-500/60 focus-visible:ring-primary-700"
                         required
                       />
                     </div>
 
                     <div className="mb-4">
-                      <Label htmlFor="password" className="text-amber-900 mb-2 block">
+                      <Label htmlFor="password" className="text-primary-900 mb-2 block">
                         Passwort
                       </Label>
                       <Input
@@ -422,7 +424,7 @@ function ZugangPageInner() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         disabled={isLoading}
-                        className="w-full border-amber-400 text-amber-900 placeholder:text-amber-500/60 focus-visible:ring-amber-700"
+                        className="w-full border-primary-400 text-primary-900 placeholder:text-primary-500/60 focus-visible:ring-primary-700"
                         required
                       />
                     </div>
@@ -437,7 +439,7 @@ function ZugangPageInner() {
                         />
                         <Label
                           htmlFor="remember"
-                          className="text-sm text-amber-800 cursor-pointer"
+                          className="text-sm text-primary-800 cursor-pointer"
                         >
                           Angemeldet bleiben
                         </Label>
@@ -447,7 +449,7 @@ function ZugangPageInner() {
                         type="button"
                         onClick={handlePasswordReset}
                         disabled={isLoading}
-                        className="text-sm text-amber-700 hover:text-amber-900 transition-colors disabled:opacity-50"
+                        className="text-sm text-primary-700 hover:text-primary-900 transition-colors disabled:opacity-50"
                       >
                         Passwort vergessen?
                       </button>
@@ -464,9 +466,9 @@ function ZugangPageInner() {
                           transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                           className="overflow-hidden"
                         >
-                          <div className="flex items-start gap-2.5 p-3 mb-5 bg-amber-50 border border-amber-400 rounded-lg">
-                            <Check className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-                            <p className="text-sm text-amber-900 leading-relaxed">
+                          <div className="flex items-start gap-2.5 p-3 mb-5 bg-primary-50 border border-primary-400 rounded-lg">
+                            <Check className="w-4 h-4 text-primary-700 shrink-0 mt-0.5" />
+                            <p className="text-sm text-primary-900 leading-relaxed">
                               Wir haben dir einen Link zum Zurücksetzen geschickt.
                               Schau in dein Postfach.
                             </p>
@@ -478,7 +480,7 @@ function ZugangPageInner() {
                     <Button
                       type="submit"
                       disabled={isLoading || !email || !password}
-                      className="w-full bg-amber-700 hover:bg-amber-800 text-white py-6 text-base disabled:bg-amber-200 disabled:text-amber-500"
+                      className="w-full bg-primary-700 hover:bg-primary-800 text-white py-6 text-base disabled:bg-primary-200 disabled:text-primary-500"
                       size="lg"
                     >
                       {isLoading ? (
@@ -491,12 +493,12 @@ function ZugangPageInner() {
                       )}
                     </Button>
 
-                    <p className="text-sm text-amber-700 text-center mt-4">
+                    <p className="text-sm text-primary-700 text-center mt-4">
                       Noch kein Passwort?{" "}
                       <button
                         type="button"
                         onClick={() => wechsleMethode("link")}
-                        className="text-amber-800 hover:text-amber-900 font-medium underline underline-offset-2 transition-colors"
+                        className="text-primary-800 hover:text-primary-900 font-medium underline underline-offset-2 transition-colors"
                       >
                         Per E-Mail-Link anmelden
                       </button>
@@ -516,8 +518,8 @@ export default function ZugangPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-amber-700" />
+        <div className="min-h-screen wellness-page-background flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary-700" />
         </div>
       }
     >

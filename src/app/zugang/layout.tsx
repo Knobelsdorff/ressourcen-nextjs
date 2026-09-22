@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import WellnessSurface from '@/components/WellnessSurface';
 
 export const metadata: Metadata = {
   title: "Mein Zugang – Power Story",
@@ -10,5 +11,5 @@ export default function ZugangLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return <WellnessSurface className="wellness-auth">{children}</WellnessSurface>;
 }
