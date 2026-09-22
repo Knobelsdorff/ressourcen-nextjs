@@ -12,6 +12,7 @@ import { trackEvent } from "@/lib/analytics";
 import Paywall from "./Paywall";
 import { isEnabled } from "@/lib/featureFlags";
 import { getBackgroundMusicUrl, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
+import { applyMusicVolumeFactor } from "@/lib/musicVolumePreference";
 import { getOrCreateBrowserFingerprint } from "@/lib/browser-fingerprint";
 import IdealFamilyIconFinal from "./IdealFamilyIconFinal";
 import JesusIconFinal from "./JesusIconFinal";
@@ -1580,7 +1581,9 @@ export default function AudioPlayback({
         const { getBackgroundMusicTrack } = await import('@/data/backgroundMusic');
         const track = await getBackgroundMusicTrack(figureIdOrName);
         musicUrl = track?.track_url || null;
-        musicVolume = track?.volume || DEFAULT_MUSIC_VOLUME;
+        // Admin-Lautstärke mal Nutzer-Faktor: ab hier ist musicVolume der
+        // effektive Wert, den _targetVolume und _originalVolume übernehmen.
+        musicVolume = applyMusicVolumeFactor(track?.volume || DEFAULT_MUSIC_VOLUME);
         console.log('[AudioPlayback] Background music loaded:', { url: musicUrl, volume: musicVolume });
       } catch (error) {
         console.error('[AudioPlayback] Error loading background music:', error);
