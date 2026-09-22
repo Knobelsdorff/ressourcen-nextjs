@@ -18,6 +18,7 @@ import { useRef, useEffect, useId } from "react";
 import { Play, Pause, RotateCcw, RotateCw, Eye, EyeOff } from "lucide-react";
 import { useAudioPlayer, formatTime } from "@/hooks/useAudioPlayer";
 import AudioProgressBar from "./AudioProgressBar";
+import MusicVolumeControl from "./MusicVolumeControl";
 
 export type AudioPlayerVariant = "standard" | "bls" | "compact";
 
@@ -62,6 +63,7 @@ export default function AudioPlayer({
     togglePlayPause,
     seekTo,
     skipBy,
+    hasBackgroundMusic,
   } = useAudioPlayer({ audioUrl, storyId, resourceFigure, onEnded });
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -185,6 +187,14 @@ export default function AudioPlayer({
             </button>
           )}
         </div>
+
+        {/* Nur zeigen, wenn es auch etwas zu regeln gibt: Zu vielen Ressourcen
+            ist keine Musik zugeordnet – ein toter Regler würde verwirren. */}
+        {hasBackgroundMusic && (
+          <div className="flex justify-center pt-1">
+            <MusicVolumeControl compact={isCompact} />
+          </div>
+        )}
 
         {/* Zustandsänderungen für Screenreader hörbar machen. */}
         <p id={statusId} className="sr-only" aria-live="polite">

@@ -2,9 +2,10 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Key, User, CheckCircle, Sparkles } from 'lucide-react';
+import { Key, User, CheckCircle, Sparkles, Music } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { supabase } from '@/lib/supabase';
+import MusicVolumeControl from '@/components/audio/MusicVolumeControl';
 
 export default function UserSettingsPage() {
     const { user, updateProfile } = useAuth();
@@ -131,7 +132,27 @@ export default function UserSettingsPage() {
                         </CardContent>
                     </Card>
 
-                
+                    <Card>
+                        <CardHeader className='p-4'>
+                            <CardTitle className="flex items-center gap-2">
+                                <Music className="h-5 w-5" />
+                                Hintergrundmusik
+                            </CardTitle>
+                            <CardDescription>
+                                Wie laut die Musik unter der Stimme liegt
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <MusicVolumeControl />
+                            <p className="text-xs text-secondary-600">
+                                100 % entspricht der voreingestellten Lautstärke. Je nach Stimme und
+                                Musikstück passt eine andere Balance – du kannst den Regler auch
+                                direkt beim Abspielen einer Geschichte verändern und sofort hören,
+                                wie es wirkt.
+                            </p>
+                        </CardContent>
+                    </Card>
+
                 </div>
             </div>
         </div>

@@ -15,7 +15,11 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { getBackgroundMusicUrl, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
+import { getBackgroundMusicTrack, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
+import {
+  applyMusicVolumeFactor,
+  subscribeToMusicVolumeFactor,
+} from "@/lib/musicVolumePreference";
 
 export interface UseAudioPlayerOptions {
   audioUrl: string;
@@ -37,6 +41,8 @@ export interface UseAudioPlayerResult {
   skipBy: (seconds: number) => void;
   audioRef: React.MutableRefObject<HTMLAudioElement | null>;
   musicRef: React.MutableRefObject<HTMLAudioElement | null>;
+  /** Erst true, wenn für diese Figur tatsächlich ein Track geladen wurde. */
+  hasBackgroundMusic: boolean;
 }
 
 /** "8:05" – auch bei NaN/Infinity stabil. */
@@ -113,6 +119,9 @@ export function useAudioPlayer({
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const musicRef = useRef<HTMLAudioElement | null>(null);
+  const [hasBackgroundMusic, setHasBackgroundMusic] = useState(false);
+  /** Admin-Lautstärke des Tracks – Basis, auf die der Nutzer-Faktor wirkt. */
+  const adminMusicVolumeRef = useRef<number>(DEFAULT_MUSIC_VOLUME);
   const musicTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isUserPausingRef = useRef(false);
   const wakeLockRef = useRef<any>(null);
@@ -187,6 +196,21 @@ export function useAudioPlayer({
     };
   }, [audioUrl, storyId]);
 
+  // --- Nutzer-Lautstärke ---------------------------------------------------
+
+  /**
+   * Regelt die laufende Musik nach, während am Slider gezogen wird.
+   * Bewusst ohne Abhängigkeiten: Der Effekt darf das Audio-Element nicht
+   * neu aufbauen, sonst bricht die Wiedergabe beim Ziehen ab.
+   */
+  useEffect(() => {
+    return subscribeToMusicVolumeFactor((factor) => {
+      const music = musicRef.current;
+      if (!music) return;
+      music.volume = applyMusicVolumeFactor(adminMusicVolumeRef.current, factor);
+    });
+  }, []);
+
   // --- Wake Lock -----------------------------------------------------------
 
   const requestWakeLock = useCallback(async () => {
@@ -245,16 +269,21 @@ export function useAudioPlayer({
       try {
         const figure = resourceFigureRef.current;
         const figureId = figure?.id || figure?.name || figure;
-        const url = await getBackgroundMusicUrl(figureId);
-        if (!url) return;
+        // getBackgroundMusicTrack statt getBackgroundMusicUrl: Wir brauchen die
+        // vom Admin gepflegte Lautstärke des Tracks. Vorher stand hier pauschal
+        // DEFAULT_MUSIC_VOLUME – die Admin-Einstellung blieb wirkungslos.
+        const track = await getBackgroundMusicTrack(figureId);
+        if (!track?.track_url) return;
 
-        const music = new Audio(url);
+        const music = new Audio(track.track_url);
         music.loop = true;
-        music.volume = DEFAULT_MUSIC_VOLUME;
+        adminMusicVolumeRef.current = track.volume ?? DEFAULT_MUSIC_VOLUME;
+        music.volume = applyMusicVolumeFactor(adminMusicVolumeRef.current);
         music.preload = "auto";
         music.addEventListener("loadedmetadata", () => setMusicDuration(music.duration));
         music.load();
         musicRef.current = music;
+        setHasBackgroundMusic(true);
       } catch (err) {
         console.warn("[useAudioPlayer] Hintergrundmusik konnte nicht geladen werden:", err);
       }
@@ -385,6 +414,10 @@ export function useAudioPlayer({
         musicRef.current.src = "";
         musicRef.current = null;
       }
+      // Zurücksetzen, sonst zeigt die nächste Ressource ohne Musik noch den
+      // Regler der vorherigen an.
+      setHasBackgroundMusic(false);
+      adminMusicVolumeRef.current = DEFAULT_MUSIC_VOLUME;
     };
   }, [effectiveAudioUrl]);
 
@@ -479,5 +512,6 @@ export function useAudioPlayer({
     skipBy,
     audioRef,
     musicRef,
+    hasBackgroundMusic,
   };
 }
