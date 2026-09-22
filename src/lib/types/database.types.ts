@@ -105,6 +105,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          music_volume_factor: number
           pronunciation_hint: string | null
           updated_at: string | null
         }
@@ -114,6 +115,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          music_volume_factor?: number
           pronunciation_hint?: string | null
           updated_at?: string | null
         }
@@ -123,6 +125,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          music_volume_factor?: number
           pronunciation_hint?: string | null
           updated_at?: string | null
         }
