@@ -9,7 +9,6 @@ export const maxDuration = 120;
 const BUCKET = 'audio-files';
 const FOLDER = 'homepage-sample';
 const DEFAULT_TITLE = 'Wohlwollende Präsenz';
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
 
 const CONFIG_KEYS = {
   url: 'homepage_sample_url',
@@ -105,6 +104,29 @@ async function clearConfig(supabaseAdmin: Awaited<ReturnType<typeof createServer
   if (error) throw error;
 }
 
+function isValidHomepageSamplePath(path: string): boolean {
+  return (
+    path.startsWith(`${FOLDER}/`) &&
+    path.toLowerCase().endsWith('.mp3') &&
+    !path.includes('..') &&
+    !path.includes('\\')
+  );
+}
+
+function isValidHomepageSampleUrl(url: string, storagePath: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
+      ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).host
+      : null;
+    if (supabaseHost && parsed.host !== supabaseHost) return false;
+    return parsed.pathname.includes(`/storage/v1/object/public/${BUCKET}/`) &&
+      parsed.pathname.endsWith(`/${storagePath}`);
+  } catch {
+    return false;
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const auth = await requireFullAdmin(request);
@@ -124,6 +146,14 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * Speichert Metadaten nach Direkt-Upload zu Supabase Storage (JSON),
+ * oder aktualisiert nur den Titel.
+ *
+ * Body:
+ * - { title, audioUrl, storagePath } nach Client-Upload
+ * - { title } Titel-Update bei bestehender Kostprobe
+ */
 export async function POST(request: NextRequest) {
   console.log('[admin/homepage-sample] POST request received');
 
@@ -131,116 +161,80 @@ export async function POST(request: NextRequest) {
     const auth = await requireFullAdmin(request);
     if (auth.error) return auth.error;
 
-    const contentLength = request.headers.get('content-length');
-    if (contentLength) {
-      const sizeMB = (parseInt(contentLength, 10) / 1024 / 1024).toFixed(2);
-      console.log(`[admin/homepage-sample] Request body size: ${sizeMB} MB`);
-    }
-
-    let formData: FormData;
-    try {
-      formData = await request.formData();
-    } catch (parseError: unknown) {
-      const message = parseError instanceof Error ? parseError.message : '';
-      if (message.includes('body') || message.includes('size') || message.includes('limit')) {
-        return NextResponse.json(
-          {
-            error:
-              'Die Datei ist zu groß für den Standard-Upload. Bitte verwende eine kleinere Datei oder kontaktiere den Administrator.',
-            details: message,
-          },
-          { status: 413 }
-        );
-      }
-      throw parseError;
-    }
-
-    const file = formData.get('file') as File | null;
-    const titleRaw = (formData.get('title') as string | null)?.trim();
-    const title = titleRaw || DEFAULT_TITLE;
+    const body = await request.json();
+    const title = (typeof body.title === 'string' ? body.title.trim() : '') || DEFAULT_TITLE;
+    const audioUrl = typeof body.audioUrl === 'string' ? body.audioUrl.trim() : '';
+    const storagePath = typeof body.storagePath === 'string' ? body.storagePath.trim() : '';
 
     const supabaseAdmin = await createServerAdminClient();
     const existing = await loadSampleConfig(supabaseAdmin);
 
-    if (!file && !existing) {
-      return NextResponse.json(
-        { error: 'Bitte eine MP3-Datei auswählen' },
-        { status: 400 }
-      );
-    }
+    // Nur Titel aktualisieren
+    if (!audioUrl && !storagePath) {
+      if (!existing) {
+        return NextResponse.json(
+          { error: 'Bitte eine MP3-Datei auswählen' },
+          { status: 400 }
+        );
+      }
 
-    if (!file && existing) {
       await upsertConfig(supabaseAdmin, {
         [CONFIG_KEYS.url]: existing.audio_url,
         [CONFIG_KEYS.title]: title,
         [CONFIG_KEYS.path]: existing.path || '',
       });
+
       return NextResponse.json({
         success: true,
         sample: { ...existing, title },
       });
     }
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
-    }
-
-    if (!file.name.toLowerCase().endsWith('.mp3')) {
-      return NextResponse.json({ error: 'Only MP3 files are allowed' }, { status: 400 });
-    }
-
-    const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
-    console.log(`[admin/homepage-sample] File size check: ${fileSizeMB} MB (max: 50 MB)`);
-
-    if (file.size > MAX_FILE_SIZE) {
+    if (!audioUrl || !storagePath) {
       return NextResponse.json(
-        {
-          error: `Die Datei ist zu groß (${fileSizeMB} MB). Maximale Dateigröße: 50 MB.`,
-          fileSize: file.size,
-          maxSize: MAX_FILE_SIZE,
-        },
+        { error: 'audioUrl und storagePath sind erforderlich' },
         { status: 400 }
       );
     }
 
-    const timestamp = Date.now();
-    const randomId = Math.random().toString(36).slice(2, 11);
-    const storagePath = `${FOLDER}/homepage-sample_${timestamp}_${randomId}.mp3`;
-
-    const arrayBuffer = await file.arrayBuffer();
-    const { error: uploadError } = await supabaseAdmin.storage
-      .from(BUCKET)
-      .upload(storagePath, arrayBuffer, {
-        contentType: 'audio/mpeg',
-        cacheControl: '3600',
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error('[admin/homepage-sample] Storage upload error:', uploadError);
-      let errorMessage = 'Fehler beim Hochladen der Datei';
-      if (uploadError.message?.includes('File size exceeds') || uploadError.message?.includes('too large')) {
-        errorMessage = `Die Datei ist zu groß (${fileSizeMB} MB). Bitte komprimiere die Datei oder verwende eine kleinere Version.`;
-      } else if (uploadError.message?.includes('quota') || uploadError.message?.includes('limit')) {
-        errorMessage = 'Speicherplatz-Limit erreicht. Bitte kontaktiere den Administrator.';
-      } else if (uploadError.message?.includes('permission') || uploadError.message?.includes('access')) {
-        errorMessage = 'Zugriff verweigert. Bitte stelle sicher, dass du als Admin eingeloggt bist.';
-      } else {
-        errorMessage = `Fehler beim Hochladen: ${uploadError.message || 'Unbekannter Fehler'}`;
-      }
+    if (!isValidHomepageSamplePath(storagePath)) {
       return NextResponse.json(
-        { error: errorMessage, details: uploadError.message, fileSize: file.size, fileName: file.name },
-        { status: 500 }
+        { error: 'Ungültiger Speicherpfad' },
+        { status: 400 }
       );
     }
 
-    const {
-      data: { publicUrl },
-    } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(storagePath);
+    if (!isValidHomepageSampleUrl(audioUrl, storagePath)) {
+      return NextResponse.json(
+        { error: 'Ungültige Audio-URL' },
+        { status: 400 }
+      );
+    }
+
+    // Prüfe, ob die Datei im Storage existiert
+    const folder = storagePath.includes('/') ? storagePath.slice(0, storagePath.lastIndexOf('/')) : '';
+    const fileName = storagePath.includes('/')
+      ? storagePath.slice(storagePath.lastIndexOf('/') + 1)
+      : storagePath;
+    const { data: listed, error: listError } = await supabaseAdmin.storage
+      .from(BUCKET)
+      .list(folder || undefined, { search: fileName, limit: 20 });
+
+    if (listError) {
+      console.warn('[admin/homepage-sample] Storage list warning:', listError);
+    } else {
+      const found = (listed || []).some((item) => item.name === fileName);
+      if (!found) {
+        return NextResponse.json(
+          { error: 'Hochgeladene Datei wurde im Storage nicht gefunden' },
+          { status: 400 }
+        );
+      }
+    }
 
     try {
       await upsertConfig(supabaseAdmin, {
-        [CONFIG_KEYS.url]: publicUrl,
+        [CONFIG_KEYS.url]: audioUrl,
         [CONFIG_KEYS.title]: title,
         [CONFIG_KEYS.path]: storagePath,
       });
@@ -258,7 +252,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Alte Datei entfernen (nach erfolgreichem Speichern)
     if (existing?.path && existing.path !== storagePath) {
       try {
         await supabaseAdmin.storage.from(BUCKET).remove([existing.path]);
@@ -267,36 +260,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('[admin/homepage-sample] Upload successful:', { storagePath, title });
+    console.log('[admin/homepage-sample] Metadata saved:', { storagePath, title });
 
     return NextResponse.json({
       success: true,
       sample: {
         title,
-        audio_url: publicUrl,
+        audio_url: audioUrl,
         path: storagePath,
       },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[admin/homepage-sample] POST error:', error);
-
-    if (
-      message.includes('body') ||
-      message.includes('size') ||
-      message.includes('limit') ||
-      message.includes('413')
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            'Die Datei ist zu groß für den Standard-Upload. Bitte verwende eine kleinere Datei oder kontaktiere den Administrator.',
-          details: message,
-        },
-        { status: 413 }
-      );
-    }
-
     return NextResponse.json(
       { error: 'Internal server error', details: message },
       { status: 500 }

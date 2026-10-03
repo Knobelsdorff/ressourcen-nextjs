@@ -5,14 +5,35 @@ import Link from "next/link";
 import { ArrowLeft, Headphones, Trash2, Upload } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import AudioPlayer from "@/components/audio/AudioPlayer";
+import { createSPAClient } from "@/lib/supabase/client";
 
 const DEFAULT_TITLE = "Wohlwollende Präsenz";
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
+const BUCKET = "audio-files";
+const FOLDER = "homepage-sample";
 
 interface SampleState {
   title: string;
   audio_url: string;
   path: string | null;
+}
+
+async function parseJsonResponse(response: Response) {
+  const text = await response.text();
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    if (response.status === 413) {
+      throw new Error(
+        "Die Datei ist zu groß für den Server-Upload. Bitte Seite neu laden – der Upload geht direkt zu Supabase."
+      );
+    }
+    throw new Error(
+      text?.startsWith("Request Entity")
+        ? "Upload zu groß für den Server. Bitte Seite neu laden und erneut versuchen."
+        : `Unerwartete Server-Antwort (Status ${response.status})`
+    );
+  }
 }
 
 export default function AdminKostprobePage() {
@@ -40,7 +61,7 @@ export default function AdminKostprobePage() {
       setLoading(true);
       setError(null);
       const response = await fetch("/api/admin/homepage-sample");
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
       if (!response.ok) {
         throw new Error(data.error || "Fehler beim Laden");
       }
@@ -89,24 +110,84 @@ export default function AdminKostprobePage() {
     setMessage(null);
 
     try {
-      const formData = new FormData();
-      formData.append("title", title.trim() || DEFAULT_TITLE);
-      if (file) formData.append("file", file);
+      const resolvedTitle = title.trim() || DEFAULT_TITLE;
+
+      // Nur Titel aktualisieren – kleine JSON-API ohne Datei-Body
+      if (!file) {
+        const response = await fetch("/api/admin/homepage-sample", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: resolvedTitle }),
+        });
+        const data = await parseJsonResponse(response);
+        if (!response.ok) {
+          throw new Error(data.error || "Speichern fehlgeschlagen");
+        }
+        setSample(data.sample);
+        setTitle(data.sample.title || DEFAULT_TITLE);
+        setMessage("Titel aktualisiert.");
+        return;
+      }
+
+      // Direkt-Upload zu Supabase Storage (umgeht Vercel Body-Limit ~4.5 MB)
+      const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).slice(2, 11);
+      const storagePath = `${FOLDER}/homepage-sample_${timestamp}_${randomId}.mp3`;
+
+      console.log(`[kostprobe] Direct upload: ${fileSizeMB} MB → ${storagePath}`);
+
+      const supabaseClient = createSPAClient();
+      const { error: uploadError } = await supabaseClient.storage
+        .from(BUCKET)
+        .upload(storagePath, file, {
+          contentType: "audio/mpeg",
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        const msg = uploadError.message?.toLowerCase() || "";
+        if (msg.includes("row-level security") || msg.includes("permission") || msg.includes("forbidden")) {
+          throw new Error(
+            "Zugriff auf Storage verweigert. Bitte als Admin neu einloggen und erneut versuchen."
+          );
+        }
+        if (msg.includes("bucket")) {
+          throw new Error('Der Storage-Bucket "audio-files" wurde nicht gefunden.');
+        }
+        throw new Error(`Upload-Fehler: ${uploadError.message}`);
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabaseClient.storage.from(BUCKET).getPublicUrl(storagePath);
 
       const response = await fetch("/api/admin/homepage-sample", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: resolvedTitle,
+          audioUrl: publicUrl,
+          storagePath,
+        }),
       });
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
 
       if (!response.ok) {
+        // Orphan-Datei entfernen, falls Metadaten-Speichern scheitert
+        try {
+          await supabaseClient.storage.from(BUCKET).remove([storagePath]);
+        } catch {
+          /* ignore */
+        }
         throw new Error(data.error || "Speichern fehlgeschlagen");
       }
 
       setSample(data.sample);
       setTitle(data.sample.title || DEFAULT_TITLE);
       setFile(null);
-      setMessage(file ? "Kostprobe gespeichert." : "Titel aktualisiert.");
+      setMessage("Kostprobe gespeichert.");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Speichern fehlgeschlagen";
       setError(msg);
@@ -127,7 +208,7 @@ export default function AdminKostprobePage() {
 
     try {
       const response = await fetch("/api/admin/homepage-sample", { method: "DELETE" });
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
       if (!response.ok) {
         throw new Error(data.error || "Löschen fehlgeschlagen");
       }
