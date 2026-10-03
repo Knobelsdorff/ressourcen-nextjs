@@ -10,6 +10,10 @@
       "maxDuration": 120,
       "memory": 1024
     },
+    "src/app/api/admin/homepage-sample/route.ts": {
+      "maxDuration": 120,
+      "memory": 1024
+    },
     "src/app/api/audio/migrate-on-demand/route.ts": {
       "maxDuration": 120,
       "memory": 1024

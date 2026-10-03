@@ -3,7 +3,7 @@
 import { motion, MotionConfig } from "framer-motion";
 import DashboardWelcome from "@/components/dashboard/DashboardWelcome";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, Volume2, User, Mail, Calendar, Clock, Star, Trophy, Target, Shield, HelpCircle, MessageCircle, Bug, Key, Trash, Crown, Zap, TrendingUp, Play, Pause, BarChart3, Lock, Music, RefreshCw, Plus, RotateCcw, CreditCard, Sparkles } from "lucide-react";
+import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, Volume2, User, Mail, Calendar, Clock, Star, Trophy, Target, Shield, HelpCircle, MessageCircle, Bug, Key, Trash, Crown, Zap, TrendingUp, Play, Pause, BarChart3, Lock, Music, RefreshCw, Plus, RotateCcw, CreditCard, Sparkles, Headphones } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -3310,6 +3310,15 @@ ${story.content}
                           >
                             <Music className="w-4 h-4" />
                             Musik verwalten
+                          </Link>
+                        )}
+                        {isAdmin && (
+                          <Link
+                            href="/admin/kostprobe"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors"
+                          >
+                            <Headphones className="w-4 h-4" />
+                            Kostprobe
                           </Link>
                         )}
                         {isAdmin && (

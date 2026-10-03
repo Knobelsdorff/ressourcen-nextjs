@@ -13,6 +13,16 @@ export default function LandingStoryPreview() {
     const controller = new AbortController();
     async function loadPreview() {
       try {
+        const sampleResponse = await fetch('/api/homepage-sample', { signal: controller.signal });
+        const sampleData = await sampleResponse.json();
+        if (sampleResponse.ok && sampleData.success && sampleData.sample?.audio_url) {
+          setStory({
+            title: sampleData.sample.title || 'Wohlwollende Präsenz',
+            audioUrl: sampleData.sample.audio_url,
+          });
+          return;
+        }
+
         const response = await fetch('/api/example-resource', { signal: controller.signal });
         const data = await response.json();
         if (response.ok && data.success && data.resource?.audio_url) {
