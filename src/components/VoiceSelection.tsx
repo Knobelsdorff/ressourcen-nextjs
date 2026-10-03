@@ -531,7 +531,7 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
           {/* Breathing Circle - consistent with AudioPlayback loader */}
           <div className="flex justify-center mb-8">
             <motion.div
-              className="w-20 h-20 lg:w-24 lg:h-24 rounded-full border-2 border-amber-400 relative"
+              className="w-20 h-20 lg:w-24 lg:h-24 rounded-full border-2 border-primary-400 relative"
               animate={{
                 scale: [1, 1.15, 1],
               }}
@@ -542,7 +542,7 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
               }}
             >
               <motion.div
-                className="absolute inset-0 rounded-full bg-amber-400"
+                className="absolute inset-0 rounded-full bg-primary-400"
                 style={{ opacity: 0.08 }}
                 animate={{
                   opacity: [0.05, 0.1, 0.05],
@@ -555,27 +555,27 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
               />
             </motion.div>
           </div>
-          <p className="text-amber-700 max-sm:text-sm">Stimmen werden geladen...</p>
+          <p className="text-primary-700 max-sm:text-sm">Stimmen werden geladen...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto sm:pt-8 pt-5 px-4 pb-24 lg:pb-10">
+    <div className="story-voice-step space-y-6 max-w-7xl mx-auto sm:pt-8 pt-5 px-4 pb-24 lg:pb-10">
       <div className="text-center">
         <h2 
-          className="sm:text-2xl text-xl font-bold text-amber-900 mb-2"
+          className="sm:text-2xl text-xl font-bold text-primary-900 mb-2"
           data-dev-tap-target="true"
           onClick={handleHeadlineTap}
           style={{ cursor: 'default' }}
         >
           Eine Stimme für deine Geschichte
         </h2>
-        <p className="text-amber-700 max-sm:text-sm mb-1">
+        <p className="text-primary-700 max-sm:text-sm mb-1">
           {getFigureSubline(resourceFigure)}
         </p>
-        <p className="text-xs text-amber-600/70 mt-2">
+        <p className="text-xs text-primary-600/70 mt-2">
           Wenn nichts anderes ruft, kannst du bei der Empfehlung bleiben.
         </p>
       </div>
@@ -584,23 +584,29 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
         {(showAllVoices ? filteredVoices : filteredVoices.slice(0, 3)).map((voice, idx) => (
           <Card
             key={voice.id}
-            className={`relative cursor-pointer transition-all duration-200 ${
+            className={`story-voice-card relative cursor-pointer transition-all duration-200 ${
               selectedVoiceId === voice.id
-                ? 'ring-2 ring-amber-400 bg-amber-50'
-                : 'hover:shadow-md hover:bg-amber-50'
+                ? 'ring-2 ring-primary-400 bg-primary-50'
+                : 'hover:shadow-md hover:bg-primary-50'
             }`}
+            data-selected={selectedVoiceId === voice.id}
             onClick={() => onVoiceSelect(voice.id)}
           >
             {/* Empfohlen-Label auf der ersten Karte, wenn nicht showAll */}
             {!showAllVoices && idx === 0 && (
-              <div className="absolute -top-2 left-2 text-[11px] bg-amber-100 text-amber-800 border border-amber-200 rounded px-2 py-0.5">
+              <div className="absolute -top-2 left-2 text-[11px] bg-primary-100 text-primary-800 border border-primary-200 rounded px-2 py-0.5">
                 Empfohlen
               </div>
             )}
 
             <CardHeader className="pb-3">
+              <button type="button" className="story-voice-select" aria-pressed={selectedVoiceId === voice.id} onClick={(event) => { event.stopPropagation(); onVoiceSelect(voice.id); }}>
+                {selectedVoiceId === voice.id ? <Check size={16} aria-hidden="true" /> : <Volume2 size={16} aria-hidden="true" />}
+                {selectedVoiceId === voice.id ? "Ausgewählt" : "Stimme auswählen"}
+                <span className="sr-only">: {voice.name}</span>
+              </button>
               <div className="flex items-center justify-between">
-                <CardTitle className="sm:text-lg text-base text-amber-900">
+                <CardTitle className="sm:text-lg text-base text-primary-900">
                   {(() => {
                     // Extrahiere nur den Vornamen (alles vor dem ersten Leerzeichen)
                     const firstName = voice.name.split(' ')[0];
@@ -717,8 +723,8 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
             onClick={() => setShowAllVoices(!showAllVoices)}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border transition-colors text-sm ${
               showAllVoices
-                ? 'bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200'
-                : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                ? 'bg-primary-100 text-primary-900 border-primary-300 hover:bg-primary-200'
+                : 'bg-primary-50 text-primary-800 border-primary-200 hover:bg-primary-100'
             }`}
           >
             <ChevronUp className={`w-4 h-4 ${showAllVoices ? 'block' : 'hidden'}`} />
@@ -730,7 +736,7 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
 
       {/* Sparmodus Option - nur wenn Dev Mode aktiv */}
       {devMode && (
-        <div className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+        <div className="mt-6 p-4 bg-primary-50 rounded-lg border border-primary-200">
           <div className="flex items-center gap-3">
             <input
               type="checkbox"
@@ -740,13 +746,13 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
                 setSparModus(e.target.checked);
                 onSparModusChange?.(e.target.checked);
               }}
-              className="w-4 h-4 text-amber-600 bg-amber-100 border-amber-300 rounded focus:ring-amber-500 focus:ring-2"
+              className="w-4 h-4 text-primary-600 bg-primary-100 border-primary-300 rounded focus:ring-primary-500 focus:ring-2"
             />
-            <label htmlFor="sparModus" className="text-sm font-medium text-amber-800 cursor-pointer">
+            <label htmlFor="sparModus" className="text-sm font-medium text-primary-800 cursor-pointer">
               Sparmodus aktivieren (nur erster Satz wird als Audio generiert)
             </label>
           </div>
-          <p className="text-xs text-amber-600 mt-1 ml-7">
+          <p className="text-xs text-primary-600 mt-1 ml-7">
             Günstiger und schneller - perfekt zum Testen
           </p>
         </div>
@@ -758,7 +764,7 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={onPrevious}
-          className="px-6 py-3 text-amber-700 border border-amber-300 rounded-lg hover:bg-amber-50 transition-colors flex items-center gap-2 text-base font-medium"
+          className="px-6 py-3 text-primary-700 border border-primary-300 rounded-lg hover:bg-primary-50 transition-colors flex items-center gap-2 text-base font-medium"
         >
           <ChevronLeft className="w-5 h-5" />
           Zurück
@@ -771,8 +777,8 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
           disabled={!selectedVoiceId}
           className={`px-8 py-3 rounded-lg text-white shadow-lg transition-all flex items-center gap-2 text-base font-medium ${
             selectedVoiceId
-              ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600'
-              : 'bg-amber-300 cursor-not-allowed opacity-60'
+              ? 'bg-gradient-to-r from-primary-500 to-orange-500 hover:from-primary-600 hover:to-orange-600'
+              : 'bg-primary-300 cursor-not-allowed opacity-60'
           }`}
         >
           Weiter

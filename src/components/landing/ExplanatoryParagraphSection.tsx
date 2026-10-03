@@ -9,7 +9,7 @@ export default function ExplanatoryParagraphSection() {
   return (
     <section 
       id="was-ist-eine-power-story" 
-      className="py-20 px-4 bg-white scroll-mt-20 md:scroll-mt-24"
+      className="landing-section-plain py-20 px-4 scroll-mt-20 md:scroll-mt-24"
     >
       <div className="max-w-4xl mx-auto">
         <motion.h2
@@ -36,7 +36,7 @@ export default function ExplanatoryParagraphSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="prose prose-lg max-w-none text-center text-amber-800 mb-12"
+          className="landing-prose prose prose-lg max-w-none text-center mb-12"
         >
           <p className="text-lg md:text-xl leading-relaxed mb-4">
             Viele Menschen erleben, dass innere Anspannung nicht verschwindet,
@@ -67,7 +67,7 @@ export default function ExplanatoryParagraphSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="prose prose-lg max-w-none text-center text-amber-800 mb-12"
+          className="landing-prose prose prose-lg max-w-none text-center mb-12"
         >
           <p className="text-lg md:text-xl leading-relaxed mb-4 font-semibold">
             Manchmal zeigt sich die Wirkung ganz leise.
@@ -99,7 +99,7 @@ export default function ExplanatoryParagraphSection() {
               <Button
                 onClick={() => router.push("/ankommen")}
                 size="lg"
-                className="bg-amber-600 hover:bg-amber-700 text-white text-lg px-8 py-6 rounded-lg"
+                className="landing-primary-button"
               >
                 Einfach selbst erleben
               </Button>

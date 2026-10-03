@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
+import { MotionConfig } from 'framer-motion';
+import ResourcePreviewSection from '@/components/landing/ResourcePreviewSection';
+import LandingClosingSection from '@/components/landing/LandingClosingSection';
 import HeroSection from "@/components/landing/HeroSection";
 import StakesSection from "@/components/landing/StakesSection";
 import ValuePropositionSection from "@/components/landing/ValuePropositionSection";
@@ -8,6 +11,7 @@ import EmpathySection from "@/components/landing/EmpathySection";
 import PlanSection from "@/components/landing/PlanSection";
 import ExplanatoryParagraphSection from "@/components/landing/ExplanatoryParagraphSection";
 import { scrollToAnchor } from "@/lib/navigation-helpers";
+import "./landing.css";
 
 // Re-export types for backward compatibility
 export type { ResourceFigure, AudioState, AppState } from "@/lib/types/story";
@@ -27,13 +31,17 @@ export default function RessourcenApp() {
   }, []);
 
   return (
-    <div className="min-h-screen">
+    <MotionConfig reducedMotion="user">
+    <div className="wellness-theme landing-theme min-h-screen">
       <HeroSection />
-      <StakesSection />
       <ValuePropositionSection />
-      <EmpathySection />
       <PlanSection />
+      <ResourcePreviewSection />
+      <StakesSection />
+      <EmpathySection />
       <ExplanatoryParagraphSection />
+      <LandingClosingSection />
     </div>
+    </MotionConfig>
   );
 }

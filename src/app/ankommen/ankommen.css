@@ -1,0 +1,252 @@
+/*
+ * Ankommen – die erste Begegnung mit einer Power Story.
+ *
+ * Vorher lag hier ein Amber-Verlauf (from-orange-50 via-amber-50 to-yellow-50),
+ * während Dashboard und Story-Flow längst das Wellness-Theme tragen. Wer über
+ * die Startseite kam, wechselte mitten im Einstieg die Marke.
+ *
+ * Diese Seite ist der ruhigste Ort der App: jemand hört hier zum ersten Mal zu,
+ * möglicherweise in einem belastenden Moment. Entsprechend zurückhaltend ist
+ * alles gehalten – Elfenbein statt Verlauf, eine einzige Karte als Anker,
+ * keine konkurrierenden Akzente, keine Bewegung, die überrascht.
+ */
+
+.ankommen-page {
+  min-height: 100vh;
+  background: var(--wellness-ivory);
+}
+
+.ankommen-inner {
+  max-width: 620px;
+  margin-inline: auto;
+  padding: clamp(28px, 5vw, 56px) 20px clamp(48px, 8vw, 90px);
+}
+
+/* ------------------------------------------------------------- Kopfbereich */
+
+.ankommen-head { text-align: center; margin-bottom: clamp(26px, 4vw, 40px); }
+
+.ankommen-head h1 {
+  margin-bottom: 14px;
+  font-size: clamp(27px, 3.6vw, 38px);
+  line-height: 1.18;
+  /*
+   * Bewusst 600 statt 700: die Überschrift sagt "Du musst nichts tun" –
+   * ein zu fetter Schnitt widerspricht dem Satz.
+   */
+  font-weight: 600;
+}
+
+.ankommen-lead {
+  max-width: 34ch;
+  margin-inline: auto;
+  color: #69594c;
+  font-size: clamp(14.5px, 1.5vw, 16px);
+  line-height: 1.75;
+}
+
+/*
+ * Ein kleines Zeichen über der Überschrift, aus denselben geometrischen
+ * Grundformen wie die Dashboard-Illustration: Bogen, Kreis, Blatt.
+ */
+.ankommen-mark {
+  position: relative;
+  width: 74px;
+  height: 56px;
+  margin: 0 auto 22px;
+}
+.ankommen-mark > span {
+  position: absolute;
+  left: 16px;
+  width: 44px;
+  height: 52px;
+  background: var(--wellness-sage);
+  border-radius: 26px 26px 16px 16px;
+  transform: rotate(-8deg);
+}
+.ankommen-mark > i {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 19px;
+  height: 19px;
+  background: var(--wellness-yellow);
+  border-radius: 50%;
+}
+.ankommen-mark > i:last-child {
+  top: auto;
+  right: auto;
+  left: 0;
+  bottom: 2px;
+  width: 24px;
+  height: 17px;
+  background: var(--wellness-lavender);
+  border-radius: 60% 60% 40% 40%;
+}
+
+/* ----------------------------------------------------------------- Player */
+
+/*
+ * Die Player-Karte ist der Anker der Seite: dieselbe Sprache wie
+ * .dashboard-story-card, nur ruhiger – die Oberkante in Salbei, weil dies der
+ * geführte, nicht der persönliche Inhalt ist.
+ */
+.ankommen-card {
+  padding: clamp(22px, 3.5vw, 32px);
+  border: 1px solid #e4ded6;
+  border-top: 5px solid var(--wellness-sage);
+  border-radius: 28px;
+  background: white;
+  box-shadow: 0 4px 18px #49301e05;
+}
+.ankommen-card h2 { font-size: 18px; font-weight: 700; }
+.ankommen-theme .ankommen-card .text-secondary-500 { color: #857465; }
+
+/* Fortschritt und Zeiten in den Marken-Tönen. */
+.ankommen-theme .ankommen-card [role='slider'] { background: #e5dfd8; }
+.ankommen-theme .ankommen-card :is(.bg-primary-600, .bg-primary-700) { background: #d96a0b; }
+.ankommen-theme .ankommen-card .border-primary-600 { border-color: #d96a0b; }
+
+/*
+ * Der Play-Knopf: Schokobraun wie jeder Primärknopf der App, mit einem
+ * ruhigen Ring, der ihn als Mittelpunkt setzt (wie .story-audio-play).
+ */
+.ankommen-theme .ankommen-card button.bg-primary-700 {
+  background: var(--wellness-chocolate);
+  outline: 5px solid #eee9e4;
+  outline-offset: 4px;
+}
+.ankommen-theme .ankommen-card button.bg-primary-700:not(:disabled):hover {
+  background: #63452e;
+}
+
+/* Die 15-Sekunden-Knöpfe bleiben sekundär. */
+.ankommen-theme .ankommen-card button:not(.bg-primary-700) { color: #78695e; }
+.ankommen-theme .ankommen-card button:not(.bg-primary-700):hover {
+  background: #f3eee8;
+  color: var(--wellness-chocolate);
+}
+
+/* ------------------------------------------------------------ Zusicherung */
+
+/*
+ * "Wenn du nichts spürst, ist das in Ordnung." – der wichtigste Satz der
+ * Seite. Er bekommt eine eigene, weiche Fläche statt nur kleiner grauer
+ * Schrift, damit er nicht wie eine Fußnote wirkt.
+ */
+.ankommen-reassurance {
+  margin-top: clamp(22px, 3.5vw, 32px);
+  padding: 18px 22px;
+  border: 1px solid #d6dfc1;
+  border-radius: 22px;
+  background: #e9eedf;
+  color: #46543a;
+  font-size: 14px;
+  line-height: 1.7;
+  text-align: center;
+}
+
+/* -------------------------------------------------------- Nach dem Hören */
+
+/*
+ * Erscheint erst, wenn die Geschichte zu Ende ist – nie währenddessen.
+ * Niemand soll während des Zuhörens zu einem nächsten Schritt gedrängt werden.
+ */
+.ankommen-next {
+  margin-top: clamp(26px, 4vw, 40px);
+  padding: clamp(22px, 3.5vw, 30px);
+  border: 1px solid #e4ded6;
+  border-top: 5px solid var(--wellness-lavender);
+  border-radius: 28px;
+  background: #fdfbf8;
+  text-align: center;
+}
+.ankommen-next p {
+  max-width: 42ch;
+  margin: 0 auto 20px;
+  color: #69594c;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.ankommen-theme .ankommen-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 52px;
+  padding: 14px 28px;
+  border-radius: 999px;
+  background: var(--wellness-chocolate);
+  background-image: none;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 3px 0 #38261912;
+  transition: background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+.ankommen-theme .ankommen-button:hover {
+  background: #63452e;
+  box-shadow: 0 5px 14px #49301e18;
+}
+.ankommen-theme .ankommen-button:not(:disabled):active { transform: scale(0.97); }
+
+/* Ein leiser Rückweg – niemand muss weitergehen. */
+.ankommen-skip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-top: 4px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #857465;
+  font-size: 13.5px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: #c9beb4;
+  text-underline-offset: 5px;
+  transition: color 180ms ease, background-color 180ms ease;
+}
+.ankommen-skip:hover { background: #f3eee8; color: var(--wellness-chocolate); }
+
+/* ------------------------------------------------- Laden und Störungen */
+
+.ankommen-state {
+  display: flex;
+  min-height: 70vh;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 20px;
+}
+.ankommen-state-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 32px 28px;
+  border: 1px solid #e4ded6;
+  border-radius: 28px;
+  background: white;
+  box-shadow: 0 4px 18px #49301e05;
+  text-align: center;
+}
+.ankommen-state-card h2 { margin-bottom: 12px; font-size: 21px; font-weight: 700; }
+.ankommen-state-card p { margin-bottom: 22px; color: #69594c; font-size: 14.5px; line-height: 1.65; }
+.ankommen-theme .ankommen-state svg { color: #7e914f; }
+.ankommen-loading-text { color: #69594c; font-size: 15px; }
+
+@media (max-width: 640px) {
+  .ankommen-inner { padding-inline: 16px; }
+  .ankommen-card, .ankommen-next, .ankommen-state-card { border-radius: 24px; }
+  .ankommen-reassurance { padding: 16px 18px; border-radius: 20px; }
+  .ankommen-theme .ankommen-button { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ankommen-theme *, .ankommen-theme *::before, .ankommen-theme *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .ankommen-theme .ankommen-button:not(:disabled):active { transform: none; }
+}

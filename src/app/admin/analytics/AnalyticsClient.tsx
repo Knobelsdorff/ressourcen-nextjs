@@ -401,27 +401,27 @@ export function AnalyticsClient({
   })();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 p-4 md:p-8">
+    <div className="min-h-screen wellness-page-background p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="sm:mb-8 mb-4">
+        <div className="wellness-admin-heading sm:mb-8 mb-4">
           <Link
             href="/dashboard"
-            className="inline-flex max-sm:text-sm items-center gap-2 text-amber-700 hover:text-amber-800 sm:mb-4 mb-2 transition-colors"
+            className="inline-flex max-sm:text-sm items-center gap-2 text-primary-700 hover:text-primary-800 sm:mb-4 mb-2 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             Zurück zum Dashboard
           </Link>
           <div className="flex max-sm:flex-col max-sm:gap-2 sm:items-center justify-between">
             <div>
-              <h1 className="sm:text-3xl text-xl md:text-4xl font-bold text-amber-900 sm:mb-2 mb-1">
+              <h1 className="sm:text-3xl text-xl md:text-4xl font-bold text-primary-900 sm:mb-2 mb-1">
                 Admin Analytics
               </h1>
-              <p className="text-amber-700 max-sm:text-sm">Nutzerverhalten und Statistiken</p>
+              <p className="text-primary-700 max-sm:text-sm">Nutzerverhalten und Statistiken</p>
             </div>
             <Link
               href="/admin/music"
-              className="inline-flex max-sm:justify-center items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors max-sm:text-sm"
+              className="inline-flex max-sm:justify-center items-center gap-2 bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors max-sm:text-sm"
             >
               <Music className="w-4 h-4" />
               Musik verwalten
@@ -430,38 +430,38 @@ export function AnalyticsClient({
         </div>
 
         {/* Filter */}
-        <div className="bg-white rounded-xl shadow-lg sm:p-6 p-3 sm:mb-6 mb-4">
+        <div className="wellness-panel bg-white rounded-xl shadow-lg sm:p-6 p-3 sm:mb-6 mb-4">
           <div className="grid grid-cols-1 md:grid-cols-4 sm:gap-4 gap-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-secondary-700 mb-2">
                 Startdatum
               </label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent sm:text-base text-sm"
+                className="w-full px-3 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-base text-sm"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-secondary-700 mb-2">
                 Enddatum
               </label>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent sm:text-base text-sm"
+                className="w-full px-3 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-base text-sm"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-secondary-700 mb-2">
                 Event-Typ
               </label>
               <select
                 value={eventType}
                 onChange={(e) => setEventType(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent sm:text-base text-sm"
+                className="w-full px-3 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-base text-sm"
               >
                 <option value="">Alle</option>
                 <option value="user_login">User eingeloggt</option>
@@ -473,7 +473,7 @@ export function AnalyticsClient({
               <button
                 onClick={handleRefresh}
                 disabled={isPending}
-                className="w-full bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 max-sm:text-sm"
+                className="w-full bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 max-sm:text-sm"
               >
                 <RefreshCw className={`w-4 h-4 ${isPending ? "animate-spin" : ""}`} />
                 Aktualisieren
@@ -483,115 +483,115 @@ export function AnalyticsClient({
         </div>
 
         {/* Statistik-Karten */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 sm:gap-4 gap-2 sm:mb-6 mb-4">
+        <div className="wellness-metrics grid grid-cols-2 lg:grid-cols-4 sm:gap-4 gap-2 sm:mb-6 mb-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-xl shadow-lg sm:p-6 p-3"
+            className="wellness-panel bg-white rounded-xl shadow-lg sm:p-6 p-3"
           >
             <div className="flex items-center justify-between mb-2">
-              <BarChart3 className="w-8 h-8 text-amber-600" />
+              <BarChart3 className="w-8 h-8 text-primary-600" />
             </div>
-            <p className="sm:text-2xl text-xl font-bold text-gray-900">{stats.totalEvents}</p>
-            <p className="text-sm text-gray-600">Gesamt Events</p>
+            <p className="sm:text-2xl text-xl font-bold text-secondary-900">{stats.totalEvents}</p>
+            <p className="text-sm text-secondary-600">Gesamt Events</p>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white rounded-xl shadow-lg sm:p-6 p-3"
+            className="wellness-panel bg-white rounded-xl shadow-lg sm:p-6 p-3"
           >
             <div className="flex items-center justify-between mb-2">
-              <Users className="w-8 h-8 text-blue-600" />
+              <Users className="w-8 h-8 text-primary-600" />
             </div>
-            <p className="sm:text-2xl text-xl font-bold text-gray-900">{stats.totalUsers}</p>
-            <p className="text-sm text-gray-600">Aktive Nutzer</p>
+            <p className="sm:text-2xl text-xl font-bold text-secondary-900">{stats.totalUsers}</p>
+            <p className="text-sm text-secondary-600">Aktive Nutzer</p>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-white rounded-xl shadow-lg sm:p-6 p-3"
+            className="wellness-panel bg-white rounded-xl shadow-lg sm:p-6 p-3"
           >
             <div className="flex items-center justify-between mb-2">
               <FileText className="w-8 h-8 text-green-600" />
             </div>
-            <p className="sm:text-2xl text-xl font-bold text-gray-900">
+            <p className="sm:text-2xl text-xl font-bold text-secondary-900">
               {stats.resourcesCreated}
             </p>
-            <p className="text-sm text-gray-600">Ressourcen erstellt</p>
+            <p className="text-sm text-secondary-600">Ressourcen erstellt</p>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-white rounded-xl shadow-lg sm:p-6 p-3"
+            className="wellness-panel bg-white rounded-xl shadow-lg sm:p-6 p-3"
           >
             <div className="flex items-center justify-between mb-2">
               <PlayCircle className="w-8 h-8 text-purple-600" />
             </div>
-            <p className="sm:text-2xl text-xl font-bold text-gray-900">
+            <p className="sm:text-2xl text-xl font-bold text-secondary-900">
               {stats.audioCompletions}
             </p>
-            <p className="text-sm text-gray-600">Audio vollständig</p>
+            <p className="text-sm text-secondary-600">Audio vollständig</p>
           </motion.div>
         </div>
 
         {/* Detaillierte Statistiken */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Audio-Statistiken */}
-          <div className="bg-white rounded-xl shadow-lg sm:p-6 p-3">
-            <h2 className="sm:text-xl text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Volume2 className="w-6 h-6 text-amber-600" />
+          <div className="wellness-panel bg-white rounded-xl shadow-lg sm:p-6 p-3">
+            <h2 className="sm:text-xl text-lg font-bold text-secondary-900 mb-4 flex items-center gap-2">
+              <Volume2 className="w-6 h-6 text-primary-600" />
               Audio-Statistiken
             </h2>
             <div className="sm:space-y-4 space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-gray-700 max-sm:text-sm">Audio vollständig:</span>
-                <span className="font-semibold text-gray-900">{stats.audioCompletions}</span>
+                <span className="text-secondary-700 max-sm:text-sm">Audio vollständig:</span>
+                <span className="font-semibold text-secondary-900">{stats.audioCompletions}</span>
               </div>
             </div>
           </div>
 
           {/* Top Ressourcenfiguren */}
-          <div className="bg-white rounded-xl shadow-lg sm:p-6 p-3">
-            <h2 className="sm:text-xl text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <BookOpen className="w-6 h-6 text-amber-600" />
+          <div className="wellness-panel bg-white rounded-xl shadow-lg sm:p-6 p-3">
+            <h2 className="sm:text-xl text-lg font-bold text-secondary-900 mb-4 flex items-center gap-2">
+              <BookOpen className="w-6 h-6 text-primary-600" />
               Top Ressourcenfiguren
             </h2>
             <div className="space-y-2">
               {stats.topResourceFigures.length > 0 ? (
                 stats.topResourceFigures.map((figure, index) => (
                   <div key={figure.name} className="flex justify-between items-center">
-                    <span className="text-gray-700 max-sm:text-sm">
+                    <span className="text-secondary-700 max-sm:text-sm">
                       {index + 1}. {figure.name}
                     </span>
-                    <span className="font-semibold text-gray-900 max-sm:text-sm">
+                    <span className="font-semibold text-secondary-900 max-sm:text-sm">
                       {figure.count}
                     </span>
                   </div>
                 ))
               ) : (
-                <p className="text-gray-500 text-sm">Keine Daten verfügbar</p>
+                <p className="text-secondary-500 text-sm">Keine Daten verfügbar</p>
               )}
             </div>
           </div>
         </div>
 
         {/* Events nach Typ */}
-        <div className="bg-white rounded-xl shadow-lg sm:p-6 p-3 mb-6">
-          <h2 className="sm:text-xl text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-amber-600" />
+        <div className="wellness-panel bg-white rounded-xl shadow-lg sm:p-6 p-3 mb-6">
+          <h2 className="sm:text-xl text-lg font-bold text-secondary-900 mb-4 flex items-center gap-2">
+            <TrendingUp className="w-6 h-6 text-primary-600" />
             Events nach Typ
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {Object.entries(stats.eventsByType).map(([type, count]) => (
-              <div key={type} className="text-center p-4 bg-amber-50 rounded-lg">
-                <p className="sm:text-2xl text-xl font-bold text-gray-900">{count}</p>
-                <p className="text-sm text-gray-600 mt-1">{formatEventType(type)}</p>
+              <div key={type} className="text-center p-4 bg-primary-50 rounded-lg">
+                <p className="sm:text-2xl text-xl font-bold text-secondary-900">{count}</p>
+                <p className="text-sm text-secondary-600 mt-1">{formatEventType(type)}</p>
               </div>
             ))}
           </div>
@@ -599,22 +599,22 @@ export function AnalyticsClient({
 
         {/* Events nach Tag */}
         {stats.eventsByDay.length > 0 && (
-          <div className="bg-white rounded-xl shadow-lg sm:p-6 p-3 mb-6">
-            <h2 className="sm:text-xl text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Calendar className="w-6 h-6 text-amber-600" />
+          <div className="wellness-panel bg-white rounded-xl shadow-lg sm:p-6 p-3 mb-6">
+            <h2 className="sm:text-xl text-lg font-bold text-secondary-900 mb-4 flex items-center gap-2">
+              <Calendar className="w-6 h-6 text-primary-600" />
               Events nach Tag
             </h2>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {stats.eventsByDay.map((day) => (
                 <div key={day.day} className="flex justify-between items-center py-2 border-b">
-                  <span className="text-gray-700 max-sm:text-sm">
+                  <span className="text-secondary-700 max-sm:text-sm">
                     {new Date(day.day).toLocaleDateString("de-DE", {
                       day: "2-digit",
                       month: "2-digit",
                       year: "numeric",
                     })}
                   </span>
-                  <span className="font-semibold text-gray-900">{day.count}</span>
+                  <span className="font-semibold text-secondary-900">{day.count}</span>
                 </div>
               ))}
             </div>
@@ -622,9 +622,9 @@ export function AnalyticsClient({
         )}
 
         {/* Versendete Power Storys (Klient:innen) – aus saved_stories, unabhängig von Analytics-Events */}
-        <div className="bg-white rounded-xl shadow-lg sm:p-6 p-3 mb-6">
+        <div className="wellness-panel bg-white rounded-xl shadow-lg sm:p-6 p-3 mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-            <h2 className="sm:text-xl text-lg font-bold text-gray-900 flex items-center gap-2">
+            <h2 className="sm:text-xl text-lg font-bold text-secondary-900 flex items-center gap-2">
               <Mail className="w-6 h-6 text-green-600" />
               <span>Versendete Power Storys (Klient:innen)</span>
             </h2>
@@ -634,20 +634,20 @@ export function AnalyticsClient({
                 placeholder="E-Mail oder Titel filtern…"
                 value={sentListSearch}
                 onChange={(e) => setSentListSearch(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-full sm:w-64"
+                className="px-3 py-2 border border-secondary-300 rounded-lg text-sm w-full sm:w-64"
               />
               <button
                 type="button"
                 onClick={() => void loadSentResources()}
                 disabled={sentResourcesLoading}
-                className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-amber-300 text-amber-900 hover:bg-amber-50 text-sm disabled:opacity-50 whitespace-nowrap"
+                className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-primary-300 text-primary-900 hover:bg-primary-50 text-sm disabled:opacity-50 whitespace-nowrap"
               >
                 <RefreshCw className={`w-4 h-4 ${sentResourcesLoading ? "animate-spin" : ""}`} />
                 Liste aktualisieren
               </button>
             </div>
           </div>
-          <p className="text-sm text-gray-600 mb-3">
+          <p className="text-sm text-secondary-600 mb-3">
             Hier erscheinen alle Stories mit Klient:innen-E-Mail (z. B. aus dem Batch-Versand), auch wenn sie
             nicht in der Analytics-Tabelle „Ressourcen-Erstellung“ auftauchen.
           </p>
@@ -655,8 +655,8 @@ export function AnalyticsClient({
             <p className="text-red-600 text-sm">{sentResourcesError}</p>
           ) : null}
           {sentResourcesLoading && sentResources.length === 0 ? (
-            <div className="flex items-center gap-2 text-gray-600 py-8 justify-center">
-              <RefreshCw className="w-5 h-5 animate-spin text-amber-600" />
+            <div className="flex items-center gap-2 text-secondary-600 py-8 justify-center">
+              <RefreshCw className="w-5 h-5 animate-spin text-primary-600" />
               <span>Lade versendete Storys…</span>
             </div>
           ) : (
@@ -675,7 +675,7 @@ export function AnalyticsClient({
                   label: "Klient:innen-E-Mail",
                   sortable: true,
                   render: (value) => (
-                    <span className="font-medium text-gray-900">{value || "—"}</span>
+                    <span className="font-medium text-secondary-900">{value || "—"}</span>
                   ),
                 },
                 {
@@ -683,7 +683,7 @@ export function AnalyticsClient({
                   label: "Titel / Figur",
                   sortable: true,
                   render: (_value, row) => (
-                    <span className="text-gray-800">
+                    <span className="text-secondary-800">
                       {row.title ||
                         (typeof row.resource_figure === "object" &&
                         row.resource_figure &&
@@ -699,7 +699,7 @@ export function AnalyticsClient({
                   label: "Story-ID",
                   sortable: true,
                   render: (value: string) => (
-                    <span title={value} className="font-mono text-xs text-gray-500 cursor-help">
+                    <span title={value} className="font-mono text-xs text-secondary-500 cursor-help">
                       {value ? `${value.substring(0, 8)}…` : "—"}
                     </span>
                   ),
@@ -720,14 +720,14 @@ export function AnalyticsClient({
                           void handleResendClientEmail(row.id);
                         }}
                         disabled={resendingResourceId === row.id}
-                        className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-primary-700 hover:text-primary-900 disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Zugangs-E-Mail erneut senden"
                       >
                         <Mail className="w-3.5 h-3.5" />
                         {resendingResourceId === row.id ? "…" : "Erneut"}
                       </button>
                     ) : (
-                      <span className="text-gray-400 text-xs">—</span>
+                      <span className="text-secondary-400 text-xs">—</span>
                     ),
                 },
               ]}
@@ -751,7 +751,7 @@ export function AnalyticsClient({
               key: "email",
               label: "Email",
               sortable: true,
-              render: (value) => <span className="font-medium text-gray-900">{value}</span>,
+              render: (value) => <span className="font-medium text-secondary-900">{value}</span>,
             },
             {
               key: "userLogins",
@@ -759,7 +759,7 @@ export function AnalyticsClient({
               sortable: true,
               align: "center" as const,
               width: "100px",
-              render: (value) => <span className="text-gray-600">{value}</span>,
+              render: (value) => <span className="text-secondary-600">{value}</span>,
             },
             {
               key: "resourcesCreated",
@@ -767,7 +767,7 @@ export function AnalyticsClient({
               sortable: true,
               align: "center" as const,
               width: "150px",
-              render: (value) => <span className="text-gray-600">{value}</span>,
+              render: (value) => <span className="text-secondary-600">{value}</span>,
             },
             {
               key: "audioCompletions",
@@ -775,7 +775,7 @@ export function AnalyticsClient({
               sortable: true,
               align: "center" as const,
               width: "150px",
-              render: (value) => <span className="text-gray-600">{value}</span>,
+              render: (value) => <span className="text-secondary-600">{value}</span>,
             },
             {
               key: "totalEvents",
@@ -783,7 +783,7 @@ export function AnalyticsClient({
               sortable: true,
               align: "center" as const,
               width: "120px",
-              render: (value) => <span className="font-semibold text-gray-900">{value}</span>,
+              render: (value) => <span className="font-semibold text-secondary-900">{value}</span>,
             },
           ]}
           pageSize={10}
@@ -791,7 +791,7 @@ export function AnalyticsClient({
           exportable={true}
           title={
             <div className="flex items-center gap-2">
-              <Users className="w-6 h-6 text-amber-600" />
+              <Users className="w-6 h-6 text-primary-600" />
               <span>User-Statistiken</span>
             </div>
           }
@@ -815,7 +815,7 @@ export function AnalyticsClient({
               label: "User Email",
               sortable: true,
               render: (value) => (
-                <span className="font-medium text-gray-900">{value || "-"}</span>
+                <span className="font-medium text-secondary-900">{value || "-"}</span>
               ),
             },
             {
@@ -827,7 +827,7 @@ export function AnalyticsClient({
                 return row.story_id ? (
                   <button
                     onClick={() => handlePlayResource(row.story_id!, row.user_email)}
-                    className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors"
+                    className="text-primary-600 hover:text-primary-800 hover:underline cursor-pointer transition-colors"
                     title="Ressource anhören"
                   >
                     {value}
@@ -835,7 +835,7 @@ export function AnalyticsClient({
                 ) : (
                   <button
                     onClick={() => handlePlayResourceByName(value, row.user_email)}
-                    className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors"
+                    className="text-primary-600 hover:text-primary-800 hover:underline cursor-pointer transition-colors"
                     title="Ressource anhören (Suche nach Name)"
                   >
                     {value}
@@ -849,11 +849,11 @@ export function AnalyticsClient({
               sortable: true,
               render: (value) =>
                 value ? (
-                  <span title={value} className="cursor-help font-mono text-xs text-gray-500">
+                  <span title={value} className="cursor-help font-mono text-xs text-secondary-500">
                     {value.substring(0, 8)}...
                   </span>
                 ) : (
-                  <span className="text-gray-400">-</span>
+                  <span className="text-secondary-400">-</span>
                 ),
               width: "120px",
             },
@@ -872,14 +872,14 @@ export function AnalyticsClient({
                       handleResendClientEmail(row.story_id);
                     }}
                     disabled={resendingResourceId === row.story_id}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-primary-700 hover:text-primary-900 disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Zugangs-E-Mail erneut an Klient:in senden"
                   >
                     <Mail className="w-3.5 h-3.5" />
                     {resendingResourceId === row.story_id ? "…" : "Erneut"}
                   </button>
                 ) : (
-                  <span className="text-gray-400 text-xs">—</span>
+                  <span className="text-secondary-400 text-xs">—</span>
                 ),
             },
             {
@@ -887,7 +887,7 @@ export function AnalyticsClient({
               label: "Stimme",
               sortable: true,
               render: (value) => (
-                <span className="text-sm text-gray-600">{value || "-"}</span>
+                <span className="text-sm text-secondary-600">{value || "-"}</span>
               ),
               width: "150px",
             },
@@ -914,7 +914,7 @@ export function AnalyticsClient({
               label: "User Email",
               sortable: true,
               render: (value) => (
-                <span className="font-medium text-gray-900">{value || "-"}</span>
+                <span className="font-medium text-secondary-900">{value || "-"}</span>
               ),
             },
             {
@@ -929,7 +929,7 @@ export function AnalyticsClient({
               label: "User ID",
               sortable: true,
               render: (value) => (
-                <span className="font-mono text-xs text-gray-600">
+                <span className="font-mono text-xs text-secondary-600">
                   {value ? value.substring(0, 8) + "..." : "-"}
                 </span>
               ),
@@ -941,7 +941,7 @@ export function AnalyticsClient({
           exportable={true}
           title={
             <div className="flex items-center gap-2">
-              <Users className="w-6 h-6 text-blue-600" />
+              <Users className="w-6 h-6 text-primary-600" />
               <span>Letzte Logins ({recentLogins.length} Nutzer)</span>
             </div>
           }
@@ -966,7 +966,7 @@ export function AnalyticsClient({
             <div className="flex items-center justify-between p-6 border-b">
               <div>
                 {selectedResource.resource_figure && (
-                  <h2 className="sm:text-2xl text-xl font-bold text-gray-900">
+                  <h2 className="sm:text-2xl text-xl font-bold text-secondary-900">
                     Ressourcen-Figur:{" "}
                     {typeof selectedResource.resource_figure === "string"
                       ? selectedResource.resource_figure
@@ -974,7 +974,7 @@ export function AnalyticsClient({
                   </h2>
                 )}
                 {!selectedResource.loading && selectedResource.client_email && (
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-secondary-600 mt-1">
                     Klient:innen-E-Mail:{" "}
                     <span className="font-medium">{selectedResource.client_email}</span>
                   </p>
@@ -982,7 +982,7 @@ export function AnalyticsClient({
               </div>
               <button
                 onClick={closeResourceModal}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-2 hover:bg-secondary-100 rounded-full transition-colors"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -993,8 +993,8 @@ export function AnalyticsClient({
               {selectedResource.loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="text-center">
-                    <RefreshCw className="w-8 h-8 animate-spin text-amber-600 mx-auto mb-2" />
-                    <p className="text-gray-500">Lade Ressource...</p>
+                    <RefreshCw className="w-8 h-8 animate-spin text-primary-600 mx-auto mb-2" />
+                    <p className="text-secondary-500">Lade Ressource...</p>
                   </div>
                 </div>
               ) : selectedResource.question_answers &&
@@ -1008,23 +1008,23 @@ export function AnalyticsClient({
                     return (
                       <div
                         key={`qa-${qaIndex}`}
-                        className="border border-gray-200 rounded-lg p-4"
+                        className="border border-secondary-200 rounded-lg p-4"
                       >
-                        <h4 className="font-semibold text-gray-900 mb-2">
+                        <h4 className="font-semibold text-secondary-900 mb-2">
                           Frage {qa.questionId}: {question?.title || `Frage ${qa.questionId}`}
                         </h4>
-                        <p className="text-sm text-gray-600 mb-3">{question?.question}</p>
+                        <p className="text-sm text-secondary-600 mb-3">{question?.question}</p>
 
                         {qa.selectedBlocks && qa.selectedBlocks.length > 0 && (
                           <div className="mb-3">
-                            <p className="text-sm font-medium text-gray-700 mb-2">
+                            <p className="text-sm font-medium text-secondary-700 mb-2">
                               Ausgewählte Antworten:
                             </p>
                             <ul className="list-disc list-inside space-y-1">
                               {qa.selectedBlocks.map((block: string, blockIndex: number) => (
                                 <li
                                   key={`qa-${qaIndex}-block-${blockIndex}`}
-                                  className="text-sm text-gray-600"
+                                  className="text-sm text-secondary-600"
                                 >
                                   {block}
                                 </li>
@@ -1035,10 +1035,10 @@ export function AnalyticsClient({
 
                         {qa.answer && qa.answer.trim() && (
                           <div className="mb-3">
-                            <p className="text-sm font-medium text-gray-700 mb-1">
+                            <p className="text-sm font-medium text-secondary-700 mb-1">
                               Eigener Text:
                             </p>
-                            <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                            <p className="text-sm text-secondary-600 bg-secondary-50 p-2 rounded">
                               {qa.answer}
                             </p>
                           </div>
@@ -1049,8 +1049,8 @@ export function AnalyticsClient({
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <p className="text-gray-500 mb-2">Keine Fragen-Antworten verfügbar</p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-secondary-500 mb-2">Keine Fragen-Antworten verfügbar</p>
+                  <p className="text-xs text-secondary-400">
                     Diese Ressource wurde möglicherweise ohne Fragebogen erstellt.
                   </p>
                 </div>
@@ -1066,7 +1066,7 @@ export function AnalyticsClient({
                   {selectedResource.audio_url &&
                     isPlayingResource &&
                     resourceAudioElement && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <div className="flex items-center gap-2 text-sm text-secondary-600">
                       <span>
                         {Math.floor(currentTime)}s / {Math.floor(duration)}s
                       </span>
@@ -1079,7 +1079,7 @@ export function AnalyticsClient({
                       type="button"
                       onClick={() => handleResendClientEmail(selectedResource.id)}
                       disabled={resendingResourceId === selectedResource.id}
-                      className="px-4 py-3 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-lg font-medium transition-colors flex items-center gap-2 border border-amber-300 disabled:opacity-50"
+                      className="px-4 py-3 bg-primary-100 hover:bg-primary-200 text-primary-900 rounded-lg font-medium transition-colors flex items-center gap-2 border border-primary-300 disabled:opacity-50"
                     >
                       <Mail className="w-5 h-5" />
                       {resendingResourceId === selectedResource.id

@@ -178,7 +178,7 @@ export default function RelationshipSelection({
 
   return (
     <>
-      <div className="min-h-screen bg-amber-50 pb-20 lg:pb-0">
+      <div className="story-question-step min-h-screen bg-primary-50 pb-20 lg:pb-0">
         <div className="flex items-start justify-center sm:p-4 p-3 sm:pt-8 pt-5">
           <div className="w-full max-w-[851px] max-sm:flex max-sm:flex-col-reverse max-sm:gap-5">
             {/* Main Card */}
@@ -186,7 +186,7 @@ export default function RelationshipSelection({
               initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="bg-white rounded-[20px] shadow-[0px_5px_10px_0px_rgba(0,0,0,0.25)] sm:p-8 py-3 px-4"
+              className="story-step-panel bg-white rounded-[20px] shadow-[0px_5px_10px_0px_rgba(0,0,0,0.25)] sm:p-8 py-3 px-4"
             >
               {/* Header with Emoji and Figure Name */}
               <div className="flex items-center justify-center gap-1 sm:mb-5 mb-2">
@@ -222,7 +222,7 @@ export default function RelationshipSelection({
                           ? 'bg-green-100 text-green-800 border-[#22c55e]'
                           : (useNeutralAccentTheme
                             ? 'bg-gray-50 text-gray-800 border-gray-200'
-                            : 'bg-amber-50 text-amber-800 border-amber-200')
+                            : 'bg-primary-50 text-primary-800 border-primary-200')
                         }`}
                     >
                       {selectedCount === MAX_SELECTIONS && (
@@ -266,12 +266,14 @@ export default function RelationshipSelection({
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => handleBlockToggle(block)}
-                      className={`w-full sm:h-11 max-sm:py-[7px] sm:rounded-[30px] rounded-[20px] border flex items-center gap-3 px-4 transition-all ${currentAnswer.selectedBlocks.includes(block)
+                      aria-pressed={currentAnswer.selectedBlocks.includes(block)}
+                      disabled={selectedCount >= MAX_SELECTIONS && !currentAnswer.selectedBlocks.includes(block)}
+                      className={`story-answer w-full sm:h-11 max-sm:py-[7px] sm:rounded-[30px] rounded-[20px] border flex items-center gap-3 px-4 transition-all ${currentAnswer.selectedBlocks.includes(block)
                         ? (selectedCount === MAX_SELECTIONS
                           ? 'border-green-500 bg-green-50'
                           : (useNeutralAccentTheme
                             ? 'border-zinc-300 bg-gray-50'
-                            : 'border-amber-400 bg-amber-50'))
+                            : 'border-primary-400 bg-primary-50'))
                         : selectedCount >= MAX_SELECTIONS && !currentAnswer.selectedBlocks.includes(block)
                           ? 'border-gray-300 bg-gray-100 opacity-40 cursor-not-allowed'
                           : 'border-zinc-200 bg-gray-50 hover:border-zinc-300'
@@ -281,7 +283,7 @@ export default function RelationshipSelection({
                       <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${currentAnswer.selectedBlocks.includes(block)
                         ? (selectedCount === MAX_SELECTIONS
                           ? 'border-green-600 bg-green-600'
-                          : (useNeutralAccentTheme ? 'border-zinc-400 bg-gray-200' : 'border-amber-500 bg-amber-500'))
+                          : (useNeutralAccentTheme ? 'border-zinc-400 bg-gray-200' : 'border-primary-500 bg-primary-500'))
                         : selectedCount >= MAX_SELECTIONS && !currentAnswer.selectedBlocks.includes(block)
                           ? 'border-gray-400 bg-gray-200'
                           : 'border-stone-300'
@@ -299,7 +301,7 @@ export default function RelationshipSelection({
                         {personalizedBlock}
                       </span>
                       {(currentAnswer.customBlocks || []).includes(block) && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 border border-primary-200">
                           Custom
                         </span>
                       )}
@@ -325,7 +327,7 @@ export default function RelationshipSelection({
                     }}
                     disabled={customLimitReached}
                     placeholder="Deine Formulierung"
-                    className="flex-1 sm:h-11 max-sm:py-1 sm:px-4 px-3 sm:rounded-[12px] rounded-[8px] border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-amber-300 text-sm text-amber-900 leading-none w-[70%]"
+                    className="flex-1 sm:h-11 max-sm:py-1 sm:px-4 px-3 sm:rounded-[12px] rounded-[8px] border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-300 text-sm text-primary-900 leading-none w-[70%]"
                     maxLength={120}
                   />
                   <Button
@@ -378,7 +380,7 @@ export default function RelationshipSelection({
                   whileTap={{ scale: 0.95 }}
                   onClick={handleNextQuestion}
                   disabled={!canProceedFromCurrentQuestion()}
-                  className="px-7 py-3 bg-[#f0fdf4] text-black border border-[#22c55e] rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-base font-normal shadow-sm"
+                  className="story-next-button px-7 py-3 bg-[#f0fdf4] text-black border border-[#22c55e] rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-base font-normal shadow-sm"
                 >
                   {currentQuestionIndex === questionsToUse.length - 1 ? (
                     <>
@@ -407,7 +409,7 @@ export default function RelationshipSelection({
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <motion.div
-                  className="bg-gray-400 h-2 rounded-full"
+                  className="story-question-progress bg-gray-400 h-2 rounded-full"
                   initial={{ width: 0 }}
                   animate={{ width: `${((currentQuestionIndex + 1) / questionsToUse.length) * 100}%` }}
                   transition={{ duration: 0.5, ease: "easeOut" }}

@@ -6,6 +6,7 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
 import { isEnabled } from "@/lib/featureFlags";
 import { motion, AnimatePresence } from "framer-motion";
+import StoryFlowProgress from "@/components/StoryFlowProgress";
 import { ChevronRight } from "lucide-react";
 import ResourceFigureSelection from "@/components/ResourceFigureSelection";
 import RelationshipSelection, { QuestionAnswer } from "@/components/RelationshipSelection";
@@ -50,6 +51,7 @@ function CreateStoryInner() {
   const [storyGenerationError, setStoryGenerationError] = useState<string | null>(null);
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
   const [userDataLoaded, setUserDataLoaded] = useState(false);
+  const [showNameStep, setShowNameStep] = useState(true);
   // Track if story generation was already attempted to prevent double-triggering
   const storyGenerationAttempted = useRef(false);
 
@@ -161,6 +163,7 @@ function CreateStoryInner() {
           return;
         }
         setUserFullName((data as any)?.full_name || null);
+        setShowNameStep(!((data as any)?.full_name || '').trim());
         const rawHint = (data as any)?.pronunciation_hint;
         const parsedHint = rawHint ? rawHint.split('|')[0] : null;
         setUserPronunciationHint(parsedHint);
@@ -517,7 +520,7 @@ function CreateStoryInner() {
 
   if (!mounted || authLoading || shouldRedirect) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
+      <div className="min-h-screen story-flow-background flex items-center justify-center">
         <div className="text-center">
           {/* Breathing Circle - consistent loader */}
           <motion.div
@@ -551,10 +554,11 @@ function CreateStoryInner() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
+    <div className="min-h-screen story-flow-background">
+      <StoryFlowProgress currentStep={appState.currentStep} showNameStep={showNameStep} />
       {/* Sticky mobile button for Figure selection step (step 1) */}
-      {appState.currentStep === 1 && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
+      {appState.currentStep === 1 && !appState.resourceFigure && (
+        <div className="story-mobile-actions lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
           <motion.button
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: canProceed ? 1 : 0.5 }}
@@ -568,7 +572,7 @@ function CreateStoryInner() {
                 : 'cursor-not-allowed'
               }`}
             style={{
-              backgroundColor: 'rgb(217, 119, 6)',
+              backgroundColor: 'var(--wellness-chocolate)',
               opacity: canProceed ? 1 : 0.5,
               transition: 'opacity 0.3s ease'
             }}
@@ -581,7 +585,7 @@ function CreateStoryInner() {
 
       {/* Sticky mobile button for Questions step (step 2) */}
       {appState.currentStep === 2 && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
+        <div className="story-mobile-actions lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
           <motion.button
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: canProceed ? 1 : 0.5 }}
@@ -595,7 +599,7 @@ function CreateStoryInner() {
                 : 'cursor-not-allowed'
               }`}
             style={{
-              backgroundColor: 'rgb(217, 119, 6)',
+              backgroundColor: 'var(--wellness-chocolate)',
               opacity: canProceed ? 1 : 0.5,
               transition: 'opacity 0.3s ease'
             }}
@@ -608,7 +612,7 @@ function CreateStoryInner() {
 
       {/* Sticky mobile button for Voice selection step (step 3) */}
       {appState.currentStep === 3 && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
+        <div className="story-mobile-actions lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
           <motion.button
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: canProceed ? 1 : 0.5 }}
@@ -622,7 +626,7 @@ function CreateStoryInner() {
                 : 'cursor-not-allowed'
               }`}
             style={{
-              backgroundColor: 'rgb(217, 119, 6)',
+              backgroundColor: 'var(--wellness-chocolate)',
               opacity: canProceed ? 1 : 0.5,
               transition: 'opacity 0.3s ease'
             }}
@@ -634,8 +638,8 @@ function CreateStoryInner() {
       )}
 
 
-      <div className="min-h-screen relative">
-        <div className="flex-1 min-h-screen">
+      <div className="relative">
+        <div className="flex-1">
           <AnimatePresence mode="wait">
             <motion.div
               key={appState.currentStep >= 5 ? 'audio-playback' : appState.currentStep}
@@ -766,7 +770,7 @@ function CreateStoryInner() {
 export default function CreateStory() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
+      <div className="min-h-screen story-flow-background flex items-center justify-center">
         <div className="text-amber-600">Lade...</div>
       </div>
     }>

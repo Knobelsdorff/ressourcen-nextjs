@@ -1,0 +1,78 @@
+/*
+ * /figur – der kurze Einstieg in die Figurenwahl.
+ *
+ * Das meiste kommt aus story-flow.css: Kartenform, Rahmen, Hover, Farben und
+ * Typografie sind dort für Schritt 1 des Flows beschrieben und gelten hier
+ * unverändert. Diese Datei ergänzt nur, was es im Flow nicht gibt – die
+ * Unterzeile unter der Überschrift, den Abstand ohne Fortschrittsleiste und
+ * den leisen Rückweg.
+ *
+ * Vorher stand hier ein Amber-Verlauf mit eigenen weissen Karten, also eine
+ * zweite Gestaltung für dieselbe Aufgabe. Wer von hier nach /create-story
+ * ging, sah die Auswahl zweimal verschieden.
+ */
+
+/*
+ * Ohne Fortschrittsleiste fehlt oben der Luftraum, den der Flow mitbringt.
+ *
+ * Die Mindesthöhe steht hier und nicht als min-h-screen im Markup: Zeile 83
+ * in story-flow.css setzt .story-figure-step auf min-height: 0 – sinnvoll im
+ * Flow, wo die Seite schon steht, aber hier stünde sonst ein kurzer
+ * Elfenbein-Block auf hohen Bildschirmen.
+ */
+.story-flow .story-figure-step {
+  min-height: calc(100vh - 90px);
+  padding-top: clamp(18px, 4vw, 40px);
+}
+
+.story-flow .story-step-heading .figur-lead {
+  max-width: 40ch;
+  margin: 12px auto 0;
+  color: var(--color-secondary-600);
+  font-size: clamp(14px, 1.5vw, 15.5px);
+  line-height: 1.65;
+}
+
+/*
+ * Der Kartentitel bezog seine Farbe im Flow aus text-primary-900. Hier steht
+ * die Klasse nicht im Markup, also wird sie über das Token gesetzt.
+ */
+.story-flow .story-figure-card h3 { color: var(--wellness-chocolate); }
+
+/*
+ * Drei Karten statt eines vollen Rasters: schmaler halten, damit sie nicht
+ * über die Breite auseinanderlaufen. Das doppelte .figur-content hebt die
+ * Spezifität über die 150px Bodenabstand aus story-flow.css – die sind für
+ * die feste Schaltfläche am unteren Rand gedacht, die es hier nicht gibt.
+ */
+.story-flow .story-figure-content.figur-content {
+  max-width: 940px;
+  padding-bottom: 40px;
+}
+
+.figur-skip-row { margin-top: 30px; text-align: center; }
+
+/* Leiser Rückweg – erkennbar klickbar, ohne eigene Fläche. */
+.story-flow .figur-skip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #857465;
+  font-size: 13.5px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: #c9beb4;
+  text-underline-offset: 5px;
+  transition: color 180ms ease, background-color 180ms ease;
+}
+.story-flow .figur-skip:hover { background: #eee9e4; color: var(--wellness-chocolate); }
+
+@media (max-width: 640px) {
+  .story-flow .story-figure-content.figur-content { padding-bottom: 28px; }
+  .figur-skip-row { margin-top: 22px; }
+}

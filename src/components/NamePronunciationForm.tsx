@@ -116,14 +116,14 @@ export default function NamePronunciationForm({
   };
 
   return (
-    <div className="bg-amber-50">
+    <div className="story-name-step bg-primary-50">
       <div className="flex items-start justify-center p-4 sm:pt-8 pt-5">
         <div className="w-full max-w-[851px]">
           <motion.div
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="bg-white rounded-[20px] shadow-[0px_5px_10px_0px_rgba(0,0,0,0.25)] sm:p-8 max-sm:px-4 max-sm:py-4"
+            className="story-step-panel bg-white rounded-[20px] shadow-[0px_5px_10px_0px_rgba(0,0,0,0.25)] sm:p-8 max-sm:px-4 max-sm:py-4"
           >
             {/* Header with Emoji and Figure Name */}
             <div className="flex items-center justify-center gap-3 sm:mb-10 mb-6">
@@ -159,7 +159,7 @@ export default function NamePronunciationForm({
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 sm:gap-4 gap-3">
                 <div>
-                  <label htmlFor="fullName" className="block text-sm font-semibold text-blue-900 mb-2">
+                  <label htmlFor="fullName" className="block text-sm font-semibold text-primary-900 mb-2">
                     Vorname oder Spitzname (optional)
                   </label>
                   <input
@@ -167,7 +167,7 @@ export default function NamePronunciationForm({
                     id="fullName"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-blue-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all"
+                    className="w-full px-3 py-2.5 border border-primary-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-all"
                     placeholder="z.B. Andy, Maria, Tom"
                   />
                   <p className="text-gray-600/75 text-xs mt-1.5">
@@ -176,7 +176,7 @@ export default function NamePronunciationForm({
                 </div>
 
                 <div>
-                  <label htmlFor="pronunciationHint" className="block text-sm font-semibold text-blue-900 mb-2">
+                  <label htmlFor="pronunciationHint" className="block text-sm font-semibold text-primary-900 mb-2">
                     Aussprache (optional)
                   </label>
                   <input
@@ -184,7 +184,7 @@ export default function NamePronunciationForm({
                     id="pronunciationHint"
                     value={pronunciationHint}
                     onChange={(e) => setPronunciationHint(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-blue-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all"
+                    className="w-full px-3 py-2.5 border border-primary-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-all"
                     placeholder="z.B. Andi (statt Andy)"
                   />
                   <p className="text-gray-600/75 text-xs mt-1.5">
@@ -221,7 +221,7 @@ export default function NamePronunciationForm({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="sm:px-6 px-4 sm:py-3 py-2 bg-[#f0fdf4] text-black border border-[#22c55e] rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-base font-normal shadow-sm max-sm:w-full max-sm:justify-center"
+                  className="story-next-button sm:px-6 px-4 sm:py-3 py-2 bg-[#f0fdf4] text-black border border-[#22c55e] rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-base font-normal shadow-sm max-sm:w-full max-sm:justify-center"
                 >
                   {loading ? 'Speichern...' : 'Weiter'}
                   <ArrowRight className="w-4 h-4" />
