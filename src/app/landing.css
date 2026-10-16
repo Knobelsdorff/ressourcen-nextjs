@@ -61,68 +61,33 @@
   margin-inline: auto;
 }
 .landing-hero-copy { min-width: 0; }
-.landing-hero h1 {
-  max-width: 17ch;
-  margin-bottom: 18px;
-  font-size: clamp(34px, 4.1vw, 56px);
-  line-height: 1.1;
-}
-.landing-hero-lead {
-  max-width: 44ch;
-  margin-bottom: 26px;
-  color: #69594c;
-  font-size: clamp(16px, 1.55vw, 19px);
-  line-height: 1.65;
-}
 
 /*
- * Erwartbarkeit vor dem Klick: Dauer, Zugang, Bedingungen. Bewusst als Liste
- * mit Trennern statt als bunte Chips – das hier ist Information, kein Schmuck.
+ * Andreas' Header ist bewusst knapp: Versprechen, eine Zeile, ein Button.
+ * Darum darf die Headline gross stehen – wie im Original (text-7xl) –
+ * und die Unterzeile deutlich mehr Gewicht haben als normaler Fliesstext.
  */
-.landing-hero-facts {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 18px;
-  margin: 0 0 28px;
-  padding: 0;
-  list-style: none;
-  color: #6f5f52;
-  font-size: 13px;
-  font-weight: 500;
+.landing-hero h1 {
+  max-width: 14ch;
+  margin-bottom: 22px;
+  font-size: clamp(36px, 4.4vw, 62px);
+  line-height: 1.07;
+  text-wrap: balance;
 }
-.landing-hero-facts li { display: inline-flex; align-items: center; gap: 7px; }
-.landing-theme .landing-hero-facts svg { color: #7e914f; flex-shrink: 0; }
+.landing-hero-lead {
+  max-width: 30ch;
+  margin-bottom: 34px;
+  color: #69594c;
+  font-size: clamp(18px, 1.8vw, 22px);
+  line-height: 1.55;
+}
 
 .landing-hero-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
 }
-
-/* Der leise zweite Weg – erkennbar klickbar, aber ohne Fläche. */
-.landing-ghost-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 52px;
-  padding: 14px 20px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: #69594c;
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: underline;
-  text-decoration-color: #c3b4a5;
-  text-underline-offset: 5px;
-  transition: color 180ms ease, background-color 180ms ease;
-}
-.landing-ghost-button:hover { background: #e6e0d3; color: var(--wellness-chocolate); }
-
-.landing-hero-note { color: #857465; font-size: 12.5px; }
 
 .landing-hero-figure { min-width: 0; }
 
@@ -281,20 +246,26 @@
  * erreicht.
  */
 
-/* Product preview: organic shapes around a working, shared audio player. */
-.landing-story-scene { position: relative; padding: 0 20px 22px; isolation: isolate; }
-.landing-story-scene::before { content: ''; position: absolute; inset: 22px 0 0; z-index: -1; border-radius: 160px 160px 34px 34px; background: #e9e6da; }
-.landing-scene-art { position: relative; height: 258px; max-width: 360px; margin: auto; }
-.scene-sun { position: absolute; width: 100px; height: 100px; top: 12px; right: 14px; background: var(--wellness-yellow); border-radius: 50%; }
-.scene-arch { position: absolute; left: 90px; bottom: 0; width: 150px; height: 202px; background: var(--wellness-sage); border-radius: 90px 90px 24px 24px; transform: rotate(-8deg); }
-.scene-arch i { position: absolute; width: 7px; height: 16px; left: 51px; top: 79px; border-radius: 8px; background: var(--wellness-chocolate); }
-.scene-arch i:nth-child(2) { left: 86px; }
-.scene-arch b { position: absolute; width: 51px; height: 29px; top: 110px; left: 46px; border: 6px solid var(--wellness-chocolate); border-top: 0; border-radius: 0 0 35px 35px; }
-.scene-leaf { position: absolute; bottom: 3px; left: 36px; width: 78px; height: 125px; border-radius: 85px 4px 85px 4px; transform: rotate(-22deg); background: var(--wellness-orange); }
-.scene-pebble { position: absolute; bottom: -3px; right: 22px; width: 106px; height: 70px; background: var(--wellness-lavender); border-radius: 70% 65% 40% 45%; transform: rotate(9deg); }
-.scene-sparkle { position: absolute; top: 66px; left: 24px; color: var(--wellness-chocolate); }
-.scene-caption { position: absolute; top: 9px; left: 0; display: flex; align-items: center; gap: 6px; transform: rotate(-6deg); padding: 9px 13px; background: #fffdf8; border-radius: 999px; font-size: 11px; box-shadow: 0 3px 12px #49301e08; }
-.landing-audio-preview { position: relative; padding: 25px; border-radius: 28px; border: 1px solid #e4ded6; background: #fffdfb; box-shadow: 0 10px 32px #49301e09; }
+/*
+ * Hero-Bild + Hörprobe: Andreas' Bild des Zielzustands im Bogenrahmen, die
+ * Formen des Wellness-Themes (Salbei-Bogen, Sonne, Kiesel) liegen dahinter, die
+ * Karte mit dem Player überlappt den unteren Bildrand.
+ */
+.landing-story-scene { position: relative; isolation: isolate; }
+.landing-scene-photo { position: relative; margin-inline: 34px; }
+.scene-photo-frame {
+  position: relative;
+  aspect-ratio: 6 / 5;
+  overflow: hidden;
+  border-radius: 190px 190px 30px 30px;
+  background: #e9e6da;
+  box-shadow: 0 14px 40px #49301e14;
+}
+.scene-photo-frame img { object-position: 50% 28%; }
+.scene-backdrop { position: absolute; z-index: -1; inset: 0; border-radius: 190px 190px 30px 30px; background: var(--wellness-sage); transform: rotate(-6deg); transform-origin: 50% 85%; }
+.scene-sun { position: absolute; z-index: -1; width: 104px; height: 104px; top: -14px; right: -30px; background: var(--wellness-yellow); border-radius: 50%; }
+.scene-pebble { position: absolute; z-index: -1; top: 52%; right: -32px; width: 92px; height: 64px; background: var(--wellness-lavender); border-radius: 70% 65% 40% 45%; transform: rotate(9deg); }
+.landing-audio-preview { position: relative; margin-top: -88px; padding: 25px; border-radius: 28px; border: 1px solid #e4ded6; background: #fffdfb; box-shadow: 0 10px 32px #49301e12; }
 .preview-kicker { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 17px; font-size: 9px; font-weight: 700; letter-spacing: 0.08em; color: #69594c; }
 .preview-kicker > span:first-child { display: flex; align-items: center; gap: 7px; }
 .preview-kicker > span:last-child { border-radius: 999px; padding: 5px 9px; background: #e5ebd8; letter-spacing: 0; color: #405028; font-size: 10px; }
@@ -310,11 +281,15 @@
 .landing-audio-preview [role='slider'] > .bg-primary-600 { background: #d96a0b; }
 .landing-audio-preview [role='slider'] > .border-primary-600 { border-color: #d96a0b; }
 .preview-status { min-height: 108px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; font-size: 12px; color: #78695e; }
-.scene-bottom-note { display: block; text-align: center; margin-top: 16px; font-size: 11px; color: #69594c; }
 
-.landing-theme h2.text-4xl { max-width: 25ch; margin-inline: auto; font-size: clamp(28px, 3.4vw, 44px); line-height: 1.17; }
-.landing-theme section > div > p.text-xl { font-size: 17px; line-height: 1.65; max-width: 650px; margin-inline: auto; }
-.landing-theme .landing-benefits { background: #fffdf9; padding-top: 70px; }
+.landing-theme h2.text-4xl { max-width: 25ch; margin-inline: auto; font-size: clamp(28px, 3.4vw, 44px); line-height: 1.17; text-wrap: balance; }
+.landing-theme section > div > p.text-xl { font-size: 17px; line-height: 1.65; max-width: 650px; margin-inline: auto; text-wrap: balance; }
+
+/*
+ * Sektionsrhythmus in Andreas' Reihenfolge: Hero (Elfenbein) → Stakes (Weiss)
+ * → Nutzen (Elfenbein) → Empathie (Weiss) → Plan (Sand) → Erklärung (Weiss).
+ */
+.landing-theme .landing-benefits { background: var(--wellness-ivory); }
 .landing-benefits .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
 .landing-benefits .landing-card { background: #e9eedf; border: 0; padding: 26px 22px; border-radius: 28px; }
 .landing-benefits .landing-card:nth-child(2) { background: #eee6fc; }
@@ -376,18 +351,11 @@
   .resource-card-art { height: 150px; }
 }
 @media (max-width: 540px) {
-  .landing-story-scene { padding-inline: 12px; }
-  .landing-scene-art { height: 228px; }
-  .scene-arch { left: calc(50% - 65px); height: 177px; width: 132px; }
-  .scene-arch i { top: 65px; left: 42px; }
-  .scene-arch i:nth-child(2) { left: 77px; }
-  .scene-arch b { top: 97px; left: 36px; }
-  .scene-leaf { left: 10px; width: 68px; height: 102px; }
-  .scene-pebble { right: 2px; width: 80px; height: 55px; }
-  .scene-sun { width: 75px; height: 75px; right: 0; top: 26px; }
-  .scene-caption { left: 0; top: 2px; font-size: 10px; }
-  .scene-sparkle { left: 15px; top: 62px; }
-  .landing-audio-preview { padding: 20px 18px; border-radius: 24px; }
+  .landing-scene-photo { margin-inline: 22px; }
+  .scene-photo-frame, .scene-backdrop { border-radius: 150px 150px 24px 24px; }
+  .scene-sun { width: 70px; height: 70px; top: -10px; right: -18px; }
+  .scene-pebble { right: -20px; width: 64px; height: 44px; }
+  .landing-audio-preview { margin-top: -64px; padding: 20px 18px; border-radius: 24px; }
   .landing-theme .landing-audio-preview h2 { font-size: 21px; }
   .preview-wave { gap: 4px; }
   .landing-resource-grid { grid-template-columns: 1fr; }
@@ -405,26 +373,25 @@
 /* -------------------------------------------------------------- Responsiv */
 
 /*
- * Auf kleineren Bildschirmen folgt die Hörprobe direkt auf Text und Einstieg.
+ * Auf kleineren Bildschirmen folgen Bild und Hörprobe direkt auf Text und
+ * Einstieg – Headline und Button bleiben so ohne Scrollen sichtbar.
  */
 @media (max-width: 1023px) {
   .landing-benefits .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .landing-hero { min-height: 0; padding: 38px 20px 48px; }
-  .landing-hero-inner { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .landing-hero-inner { grid-template-columns: minmax(0, 1fr); gap: 36px; }
   .landing-hero-figure { max-width: 500px; width: 100%; margin-inline: auto; }
   .landing-hero-copy { padding: 0; text-align: center; }
-  .landing-hero h1 { max-width: 18ch; margin-inline: auto; }
+  .landing-hero h1 { max-width: 16ch; margin-inline: auto; }
   .landing-hero-lead { margin-inline: auto; }
-  .landing-hero-facts { justify-content: center; }
   .landing-hero-actions { justify-content: center; }
 }
 
 @media (max-width: 640px) {
   .landing-theme :is(.landing-section, .landing-section-plain, .landing-resource-section) { padding-block: 56px; }
-  .landing-hero h1 { font-size: clamp(28px, 7.5vw, 38px); }
-  .landing-hero-facts { gap: 8px 14px; margin-bottom: 22px; font-size: 12.5px; }
+  .landing-hero h1 { font-size: clamp(31px, 8.6vw, 40px); margin-bottom: 16px; }
+  .landing-hero-lead { margin-bottom: 26px; }
   .landing-hero-actions { flex-direction: column; align-items: stretch; gap: 8px; }
-  .landing-ghost-button { width: 100%; }
   .landing-card { border-radius: 22px; }
   .landing-panel, .landing-quote { border-radius: 24px; }
   .landing-theme :is(button, a).bg-amber-600,

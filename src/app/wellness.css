@@ -89,6 +89,19 @@ header[data-landing='true'] nav :is([data-dashboard-action='create'], .bg-amber-
   box-shadow: 0 4px 12px #49301e1a;
 }
 
+/*
+ * Fusszeile der Landingpage – wie der Header hier statt in landing.css, weil
+ * sie im Root-Layout haengt. Ersetzt Amber durch die Brauntoene des Themes.
+ */
+footer[data-landing='true'][data-landing] {
+  background: #f8f5f2;
+  border-top: 1px solid #e4ded6;
+}
+footer[data-landing='true'] .text-amber-700 { color: #69594c; }
+footer[data-landing='true'] :is(.text-amber-900, a) { color: #49301e; }
+footer[data-landing='true'] a { text-decoration-color: #c3b4a5; text-underline-offset: 4px; }
+footer[data-landing='true'] a:hover { color: #63452e; text-decoration-color: currentColor; }
+
 @media (prefers-reduced-motion: reduce) {
   .wellness-theme *, .wellness-theme *::before, .wellness-theme *::after {
     animation: none !important;

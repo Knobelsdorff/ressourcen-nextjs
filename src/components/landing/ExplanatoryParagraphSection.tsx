@@ -19,7 +19,7 @@ export default function ExplanatoryParagraphSection() {
           transition={{ duration: 0.6 }}
           className="text-4xl md:text-5xl font-bold text-amber-900 text-center mb-4"
         >
-          Was eine Power Story möglich macht
+          Was eine <span className="whitespace-nowrap">Power Story</span> möglich macht
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 20 }}

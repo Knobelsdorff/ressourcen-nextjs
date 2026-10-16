@@ -2,8 +2,6 @@
 
 import { useEffect } from "react";
 import { MotionConfig } from 'framer-motion';
-import ResourcePreviewSection from '@/components/landing/ResourcePreviewSection';
-import LandingClosingSection from '@/components/landing/LandingClosingSection';
 import HeroSection from "@/components/landing/HeroSection";
 import StakesSection from "@/components/landing/StakesSection";
 import ValuePropositionSection from "@/components/landing/ValuePropositionSection";
@@ -30,17 +28,19 @@ export default function RessourcenApp() {
     }
   }, []);
 
+  // Reihenfolge nach dem StoryBrand-Wireframe (Andreas' Struktur):
+  // Header → Stakes → Value Proposition → Guide (Empathie + Beleg) → Plan →
+  // Explanatory Paragraph. Jede Sektion endet mit demselben direkten Weg
+  // (/ankommen). Bitte nur bewusst umstellen – die Abfolge ist die Argumentation.
   return (
     <MotionConfig reducedMotion="user">
     <div className="wellness-theme landing-theme min-h-screen">
       <HeroSection />
-      <ValuePropositionSection />
-      <PlanSection />
-      <ResourcePreviewSection />
       <StakesSection />
+      <ValuePropositionSection />
       <EmpathySection />
+      <PlanSection />
       <ExplanatoryParagraphSection />
-      <LandingClosingSection />
     </div>
     </MotionConfig>
   );

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { Headphones, Leaf, Sparkles } from 'lucide-react';
+import { Headphones } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import AudioPlayer from '@/components/audio/AudioPlayer';
 
@@ -30,12 +31,21 @@ export default function LandingStoryPreview() {
 
   return (
     <div className="landing-story-scene">
-      <div className="landing-scene-art" aria-hidden="true">
-        <div className="scene-sun" />
-        <div className="scene-arch"><i /><i /><b /></div>
-        <div className="scene-leaf" /><div className="scene-pebble" />
-        <Sparkles className="scene-sparkle" size={32} strokeWidth={1.5} />
-        <span className="scene-caption"><Leaf size={15} /> Ein bisschen mehr bei dir.</span>
+      {/* Andreas' Hero-Bild (Zielzustand), gerahmt in der Bogenform des Wellness-Themes. */}
+      <div className="landing-scene-photo">
+        <div className="scene-backdrop" aria-hidden="true" />
+        <div className="scene-sun" aria-hidden="true" />
+        <div className="scene-pebble" aria-hidden="true" />
+        <div className="scene-photo-frame">
+          <Image
+            src="/images/Innere Ruhe aktivieren_Herosection.webp"
+            alt="Innere Ruhe aktivieren"
+            fill
+            sizes="(max-width: 1023px) 92vw, 520px"
+            className="object-cover"
+            priority
+          />
+        </div>
       </div>
       <div className="landing-audio-preview">
         <div className="preview-kicker"><span><Headphones size={15} /> EINFACH MAL REINHÖREN</span><span>Kostenlos</span></div>
@@ -55,7 +65,6 @@ export default function LandingStoryPreview() {
           </div>
         )}
       </div>
-      <span className="scene-bottom-note">Dein Tempo. Dein Moment.</span>
     </div>
   );
 }
