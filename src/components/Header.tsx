@@ -5,18 +5,34 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/components/providers/auth-provider";
 import { scrollToAnchor } from "@/lib/navigation-helpers";
-import { useRouter, usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { Menu, X, UserCircle, ChevronDown } from "lucide-react";
 
 export default function Header() {
   const { user, signOut, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isFirstStoryFlow = pathname === '/create-story' && searchParams.get('first') === 'true';
   
   // All hooks must be called before any conditional returns
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const hamburgerButtonRef = useRef<HTMLButtonElement>(null);
   const firstMenuItemRef = useRef<HTMLElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  const profileName = user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split('@')[0] ||
+    'Mein Zugang';
+  const profileInitials = profileName
+    .split(/\s+/)
+    .map((part: string) => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
 
   // Body scroll lock beim Öffnen des Menüs
   useEffect(() => {
@@ -29,6 +45,24 @@ export default function Header() {
       document.body.style.overflow = '';
     };
   }, [isMobileMenuOpen]);
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsProfileMenuOpen(false);
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, []);
 
   // ESC-Taste zum Schließen des Mobile-Menüs
   useEffect(() => {
@@ -74,7 +108,7 @@ export default function Header() {
   const handleDiscoverPowerStory = () => {
     setIsMobileMenuOpen(false);
     setTimeout(() => {
-      router.push("/ankommen");
+      router.push("/create-story?first=true");
     }, 100);
   };
 
@@ -131,9 +165,15 @@ export default function Header() {
   };
 
   const handleLogout = async () => {
+    setIsProfileMenuOpen(false);
+    setIsMobileMenuOpen(false);
     await signOut();
     router.push('/');
   };
+
+  if (isFirstStoryFlow) {
+    return null;
+  }
 
   if (loading) {
     return (
@@ -212,12 +252,6 @@ export default function Header() {
                 >
                   Mein Raum
                 </Link>
-                <Link
-                  href="/dashboard/profil"
-                  className="text-amber-900/90 font-medium hover:text-amber-900 transition-colors py-2"
-                >
-                  Profil
-                </Link>
                 {/* Handlung: CTA klar vom Text getrennt */}
                 <button
                   onClick={handleCreateStory}
@@ -226,15 +260,39 @@ export default function Header() {
                 >
                   + Neue Power Story
                 </button>
-                {/* Sekundäre Aktion: bewusst aus dem Fokus */}
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="text-amber-800/50 font-normal hover:text-amber-800/75 transition-colors py-2 ml-5"
-                  aria-label="Abmelden"
-                >
-                  Abmelden
-                </button>
+                <div ref={profileMenuRef} className="relative ml-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsProfileMenuOpen((open) => !open)}
+                    aria-expanded={isProfileMenuOpen}
+                    aria-haspopup="menu"
+                    className="flex items-center gap-2 rounded-full border border-amber-200 bg-white px-3 py-1.5 text-amber-900 shadow-sm transition-colors hover:bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+                  >
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-xs font-semibold text-amber-800">
+                      {profileInitials || <UserCircle className="h-4 w-4" aria-hidden="true" />}
+                    </span>
+                    <span className="max-w-28 truncate text-sm font-medium">{profileName}</span>
+                    <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                  </button>
+
+                  {isProfileMenuOpen && (
+                    <div role="menu" className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-amber-100 bg-white p-2 shadow-xl">
+                      <div className="border-b border-amber-100 px-3 pb-3 pt-2">
+                        <p className="text-sm font-semibold text-amber-950">{profileName}</p>
+                        <p className="mt-0.5 truncate text-xs text-gray-500">{user.email}</p>
+                      </div>
+                      <div className="py-2">
+                        <Link role="menuitem" href="/dashboard" onClick={() => setIsProfileMenuOpen(false)} className="block rounded-xl px-3 py-2.5 text-sm text-amber-900 hover:bg-amber-50">Mein Raum</Link>
+                        <Link role="menuitem" href="/dashboard/profil" onClick={() => setIsProfileMenuOpen(false)} className="block rounded-xl px-3 py-2.5 text-sm text-amber-900 hover:bg-amber-50">Profil</Link>
+                        <Link role="menuitem" href="/dashboard/user-settings" onClick={() => setIsProfileMenuOpen(false)} className="block rounded-xl px-3 py-2.5 text-sm text-amber-900 hover:bg-amber-50">Einstellungen</Link>
+                        <button role="menuitem" type="button" onClick={handleCreateStory} className="block w-full rounded-xl px-3 py-2.5 text-left text-sm text-amber-900 hover:bg-amber-50">Neue Power Story</button>
+                      </div>
+                      <div className="border-t border-amber-100 pt-2">
+                        <button role="menuitem" type="button" onClick={handleLogout} className="block w-full rounded-xl px-3 py-2.5 text-left text-sm text-amber-800/60 hover:bg-amber-50 hover:text-amber-900">Abmelden</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </>
             ) : (
               <>
@@ -352,12 +410,15 @@ export default function Header() {
 
                 {/* Konto-Info */}
                 <div className="pb-6">
-                  <p className="text-xs text-gray-400/80 px-4 mb-1.5">
-                    Angemeldet als
-                  </p>
-                  <p className="text-xs text-gray-400/70 px-4 break-all">
-                    {user?.email}
-                  </p>
+                  <div className="mx-4 flex items-center gap-3 rounded-2xl bg-amber-50/60 px-4 py-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-sm font-semibold text-amber-800">
+                      {profileInitials || <UserCircle className="h-5 w-5" aria-hidden="true" />}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-amber-950">{profileName}</p>
+                      <p className="truncate text-xs text-gray-500">{user?.email}</p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Trennlinie */}

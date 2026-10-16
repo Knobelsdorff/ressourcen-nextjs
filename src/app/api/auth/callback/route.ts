@@ -8,6 +8,17 @@ export async function GET(request: Request) {
   const error = searchParams.get('error')
   const errorDescription = searchParams.get('error_description')
   const next = searchParams.get('next') ?? '/dashboard?confirmed=true'
+  const firstStoryAuth = next === '/create-story?first=true'
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const requestHost = forwardedHost ?? request.headers.get('host')
+  const localRequest = requestHost && /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(requestHost)
+  const publicForwardedHost = forwardedHost && /^[a-z0-9.-]+(:\d+)?$/i.test(forwardedHost)
+  const firstStoryOrigin = localRequest
+    ? `http://${requestHost}`
+    : publicForwardedHost
+      ? `${request.headers.get('x-forwarded-proto') === 'http' ? 'http' : 'https'}://${forwardedHost}`
+      : origin
+  const firstStoryErrorUrl = `${firstStoryOrigin}/create-story?first=true&linkError=1`
   const isLocal = searchParams.get('local') === 'true'
 
   console.log('Auth callback:', { 
@@ -24,7 +35,7 @@ export async function GET(request: Request) {
   // Prüfe auf Fehler in URL-Parametern
   if (error) {
     console.error('Auth error in URL:', { error, errorDescription })
-    return NextResponse.redirect(`${origin}/auth/auth-code-error?error=${encodeURIComponent(error)}`)
+    return NextResponse.redirect(firstStoryAuth ? firstStoryErrorUrl : `${origin}/auth/auth-code-error?error=${encodeURIComponent(error)}`)
   }
 
   if (code) {
@@ -41,7 +52,9 @@ export async function GET(request: Request) {
       if (!exchangeError && data?.session) {
         let redirectUrl: string
         
-        if (isLocal) {
+        if (firstStoryAuth) {
+          redirectUrl = `${firstStoryOrigin}${next}`
+        } else if (isLocal) {
           // Wenn local=true, leite zu localhost weiter
           redirectUrl = `http://localhost:3000${next}`
           console.log('Local redirect to:', redirectUrl)
@@ -67,17 +80,17 @@ export async function GET(request: Request) {
         return NextResponse.redirect(redirectUrl)
       } else {
         console.error('Auth exchange error:', exchangeError)
-        return NextResponse.redirect(`${origin}/auth/auth-code-error?error=${encodeURIComponent(exchangeError?.message || 'exchange_failed')}`)
+        return NextResponse.redirect(firstStoryAuth ? firstStoryErrorUrl : `${origin}/auth/auth-code-error?error=${encodeURIComponent(exchangeError?.message || 'exchange_failed')}`)
       }
     } catch (err) {
       console.error('Auth callback error:', err)
-      return NextResponse.redirect(`${origin}/auth/auth-code-error?error=${encodeURIComponent('unexpected_error')}`)
+      return NextResponse.redirect(firstStoryAuth ? firstStoryErrorUrl : `${origin}/auth/auth-code-error?error=${encodeURIComponent('unexpected_error')}`)
     }
   } else {
     // Wenn kein Code vorhanden ist: nicht fälschlich Fehler anzeigen.
     // Einige Provider/Supabase-Flows liefern Tokens im Hash (#) und sind serverseitig nicht sichtbar.
     // Leite in diesem Fall neutral zum Dashboard mit Marker weiter.
     console.log('No code present in callback; redirecting to dashboard as confirmed=true')
-    return NextResponse.redirect(`${origin}/dashboard?confirmed=true`)
+    return NextResponse.redirect(firstStoryAuth ? firstStoryErrorUrl : `${origin}/dashboard?confirmed=true`)
   }
 }

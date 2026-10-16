@@ -157,6 +157,7 @@ export function AuthModal({
   buttonElevation,
   buttonRounded,
   buttonShowArrow,
+  redirectAfterAuth,
   children ,
 }: {
   isOnLandingPage?: boolean;
@@ -181,6 +182,8 @@ export function AuthModal({
   buttonElevation?: "flat" | "low" | "medium" | "high";
   buttonRounded?: "full" | "lg" | "md" | "sm" | "none";
   buttonShowArrow?: boolean;
+  /** Optional path used after authentication. Set to null to stay on the current page. */
+  redirectAfterAuth?: string | null;
   children?: React.ReactNode;
 }) {
   const [isLoading, setIsLoading] = useState(false);
@@ -203,7 +206,9 @@ export function AuthModal({
   const handleAuthButtonClick = () => {
     if (user) {
       // Redirect based on context
-      if (isOnLandingPage) {
+      if (redirectAfterAuth !== undefined) {
+        if (redirectAfterAuth) router.push(redirectAfterAuth);
+      } else if (isOnLandingPage) {
         router.push("/figur");
       } else {
         router.push("/dashboard");
@@ -359,13 +364,18 @@ export function AuthModal({
 
       console.log("OTP verification successful");
 
-      // Success - redirect based on context
+      // Success - allow flows such as first-time story creation to resume in place.
       router.refresh();
-      if (isOnLandingPage) {
-        // If on landing page (/ankommen), redirect to /figur
-        router.push("/figur");
+      if (redirectAfterAuth !== undefined) {
+        if (redirectAfterAuth) {
+          router.push(redirectAfterAuth);
+        }
       } else {
-        router.push("/dashboard");
+        if (isOnLandingPage) {
+          router.push("/figur");
+        } else {
+          router.push("/dashboard");
+        }
       }
 
       toast.success("Successfully verified!");
@@ -384,7 +394,9 @@ export function AuthModal({
   function handleOpenChange(open: boolean) {
     // If user is logged in and trying to open the dialog, redirect based on context
     if (open && user) {
-      if (isOnLandingPage) {
+      if (redirectAfterAuth !== undefined) {
+        if (redirectAfterAuth) router.push(redirectAfterAuth);
+      } else if (isOnLandingPage) {
         router.push("/figur");
       } else {
         router.push("/dashboard");
@@ -442,7 +454,7 @@ export function AuthModal({
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback`,
+          redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback${redirectAfterAuth !== undefined && redirectAfterAuth ? `?next=${encodeURIComponent(redirectAfterAuth)}` : ""}`,
         },
       });
 

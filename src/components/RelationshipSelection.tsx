@@ -29,6 +29,7 @@ interface RelationshipSelectionProps {
   onNext: () => void;
   currentQuestionIndex: number;
   onQuestionIndexChange: (index: number) => void;
+  firstFlow?: boolean;
 }
 
 export default function RelationshipSelection({
@@ -37,7 +38,8 @@ export default function RelationshipSelection({
   onAnswersChange,
   onNext,
   currentQuestionIndex,
-  onQuestionIndexChange
+  onQuestionIndexChange,
+  firstFlow = false
 }: RelationshipSelectionProps) {
   const { user } = useAuth();
   const hasInitialized = useRef(false);
@@ -51,6 +53,7 @@ export default function RelationshipSelection({
 
   const questionsToUse = isPlace ? placeQuestions : getQuestionsWithPronouns(selectedFigure);
   const currentQuestion = questionsToUse[currentQuestionIndex];
+  const MIN_SELECTIONS = 1;
   const MAX_SELECTIONS = 3;
 
   // FIX: Only auto-navigate on initial mount and when answers change (not when currentQuestionIndex changes)
@@ -74,8 +77,8 @@ export default function RelationshipSelection({
 
   // Auto-scroll to top when question changes
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'auto' });
-  }, [currentQuestionIndex]);
+    if (!firstFlow) window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [currentQuestionIndex, firstFlow]);
 
   const currentAnswer = useMemo<QuestionAnswer>(() => {
     return (
@@ -150,7 +153,7 @@ export default function RelationshipSelection({
   };
 
   const canProceedFromCurrentQuestion = () => {
-    return currentAnswer.answer.trim().length > 0 || selectedCount >= MAX_SELECTIONS;
+    return currentAnswer.answer.trim().length > 0 || selectedCount >= MIN_SELECTIONS;
   };
 
   const handleNextQuestion = () => {
@@ -176,20 +179,97 @@ export default function RelationshipSelection({
   const customLimitReached =
   (currentAnswer.customBlocks?.length || 0) >= MAX_SELECTIONS;
 
+  if (firstFlow) {
+    return (
+      <section className="story-first-stage" aria-label={`Angel Frage ${currentQuestionIndex + 1} von ${questionsToUse.length}`}>
+        <div className="story-first-intro">
+          <div className="story-first-character">
+            <span className="story-first-avatar" aria-hidden="true">
+              <AngelIconFinal size={52} className="story-first-avatar-image" />
+            </span>
+            <span>{selectedFigure.name}</span>
+          </div>
+          <p className="story-first-step-count">Frage {currentQuestionIndex + 1} von {questionsToUse.length}</p>
+          <h1>{currentQuestion.question}</h1>
+          <p className="story-first-guidance">Wähle, was sich für dich stimmig anfühlt.</p>
+        </div>
+
+        <div className="story-first-response">
+          <div className="story-first-response-heading">
+            <span>Wähle 1 bis 3 Antworten</span>
+            <span aria-live="polite">{selectedCount} / {MAX_SELECTIONS}</span>
+          </div>
+          <div className="story-first-options" role="group" aria-label="Antwortmöglichkeiten">
+            {[...currentQuestion.blocks, ...(currentAnswer.customBlocks || [])].map((block, index) => {
+              const selected = currentAnswer.selectedBlocks.includes(block);
+              return (
+                <button
+                  key={`${block}-${index}`}
+                  type="button"
+                  className="story-first-option"
+                  aria-pressed={selected}
+                  disabled={selectedCount >= MAX_SELECTIONS && !selected}
+                  onClick={() => handleBlockToggle(block)}
+                >
+                  <span className="story-first-option-mark" aria-hidden="true">{selected && <Check size={15} strokeWidth={2.5} />}</span>
+                  <span>{block}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <details className="story-first-custom">
+            <summary>Eigene Worte hinzufügen <span aria-hidden="true">+</span></summary>
+            <div className="story-first-custom-fields">
+              <input
+                type="text"
+                aria-label="Eigene Worte"
+                value={customSnippet}
+                onChange={(event) => setCustomSnippet(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    addCustomSnippet();
+                  }
+                }}
+                disabled={customLimitReached}
+                placeholder="Deine Formulierung"
+                maxLength={120}
+              />
+              <button type="button" onClick={addCustomSnippet} disabled={customLimitReached || !customSnippet.trim()}>
+                Hinzufügen
+              </button>
+            </div>
+          </details>
+
+          <div className="story-first-actions">
+            <button type="button" className="story-first-previous" onClick={handlePreviousQuestion} disabled={currentQuestionIndex === 0}>
+              <ChevronLeft size={17} aria-hidden="true" /> <span>Zurück</span>
+            </button>
+            <button type="button" className="story-first-next" onClick={handleNextQuestion} disabled={!canProceedFromCurrentQuestion()}>
+              <span>{currentQuestionIndex === questionsToUse.length - 1 ? 'Abschließen' : 'Weiter'}</span>
+              <ArrowRight size={17} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <>
-      <div className="story-question-step min-h-screen bg-primary-50 pb-20 lg:pb-0">
+      <div className={`story-question-step min-h-screen bg-primary-50 pb-20 lg:pb-0 ${firstFlow ? 'story-first-question-step' : ''}`}>
         <div className="flex items-start justify-center sm:p-4 p-3 sm:pt-8 pt-5">
-          <div className="w-full max-w-[851px] max-sm:flex max-sm:flex-col-reverse max-sm:gap-5">
+          <div className={`w-full ${firstFlow ? 'story-first-question-layout' : 'max-w-[851px] max-sm:flex max-sm:flex-col-reverse max-sm:gap-5'}`}>
             {/* Main Card */}
             <motion.div
               initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="story-step-panel bg-white rounded-[20px] shadow-[0px_5px_10px_0px_rgba(0,0,0,0.25)] sm:p-8 py-3 px-4"
+              className={`story-step-panel bg-white rounded-[20px] shadow-[0px_5px_10px_0px_rgba(0,0,0,0.25)] sm:p-8 py-3 px-4 ${firstFlow ? 'story-first-question-panel' : ''}`}
             >
               {/* Header with Emoji and Figure Name */}
-              <div className="flex items-center justify-center gap-1 sm:mb-5 mb-2">
+              <div className={`flex items-center justify-center gap-1 sm:mb-5 mb-2 ${firstFlow ? 'story-first-question-identity' : ''}`}>
                 <div className="sm:text-4xl text-3xl ">
                   {selectedFigure.id === 'ideal-family' ? (
                     <IdealFamilyIconFinal size={windowWidth > 599 ? 48 : 24} className="sm:w-12 sm:h-12 w-8 h-8" />
@@ -209,7 +289,7 @@ export default function RelationshipSelection({
               </div>
 
               {/* Question */}
-              <div className="text-center sm:mb-8 mb-5">
+              <div className={`text-center sm:mb-8 mb-5 ${firstFlow ? 'story-first-question-copy' : ''}`}>
                 <h2 className="sm:text-2xl text-base text-gray-800 font-normal">
                   {currentQuestion.question}
                 </h2>
@@ -241,20 +321,20 @@ export default function RelationshipSelection({
               {/* Alternative Hinweis-Leiste (nur wenn Counter-Chip aus) */}
               {!useCounterChip && (
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-6">
-                  <p className="text-xs text-gray-700 text-center">Wähle 3 Antworten aus</p>
+                  <p className="text-xs text-gray-700 text-center">Wähle bis zu 3 aus</p>
                 </div>
               )}
 
 
               {/* Calm helper hint above options */}
-              <div className="mb-4">
+              <div className={`mb-4 ${firstFlow ? 'story-first-question-helper' : ''}`}>
                 <p className="text-xs text-gray-500/80 text-center">
                   Wähle die Aussagen, die sich im Moment am stimmigsten anfühlen.
                 </p>
               </div>
 
               {/* Answer Blocks - 2 Column Layout (inkl. eigene Snippets) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 sm:gap-4 gap-3 mb-8">
+              <div className={`grid grid-cols-1 md:grid-cols-2 sm:gap-4 gap-3 mb-8 ${firstFlow ? 'story-first-question-answers' : ''}`}>
                 {[...currentQuestion.blocks, ...(currentAnswer.customBlocks || [])].map((block, index) => {
                   const personalizedBlock = block;
                   return (
@@ -311,7 +391,7 @@ export default function RelationshipSelection({
               </div>
 
               {/* Eigene Snippets hinzufügen */}
-              <div className="mb-8 mt-6">
+              <div className={`mb-8 mt-6 ${firstFlow ? 'story-first-question-custom' : ''}`}>
                 <Label htmlFor="custom-snippet" className="text-xs text-gray-600/80 mb-2 block">Eigene Worte (optional):</Label>
                 <div className="flex gap-2 mb-3">
                   <input
@@ -359,7 +439,7 @@ export default function RelationshipSelection({
               </div>
 
               {/* Navigation - Desktop only */}
-              <div className="hidden lg:flex justify-between items-center">
+              <div className={`hidden lg:flex justify-between items-center ${firstFlow ? 'story-first-question-nav' : ''}`}>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
