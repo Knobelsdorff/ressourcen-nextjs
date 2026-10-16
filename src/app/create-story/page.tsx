@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
 import { isEnabled } from "@/lib/featureFlags";
 import { motion, AnimatePresence } from "framer-motion";
 import StoryFlowProgress from "@/components/StoryFlowProgress";
-import { ChevronRight } from "lucide-react";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 import ResourceFigureSelection from "@/components/ResourceFigureSelection";
 import RelationshipSelection, { QuestionAnswer } from "@/components/RelationshipSelection";
 import NamePronunciationForm from "@/components/NamePronunciationForm";
@@ -17,10 +18,43 @@ import AccountCreated from "@/components/AccountCreated";
 import SavedStoriesModal from "@/components/SavedStoriesModal";
 import { useAppReset } from "@/components/providers/app-reset-provider";
 import Paywall from "@/components/Paywall";
+import FirstStoryEmailGate from "@/components/FirstStoryEmailGate";
 import { canCreateResource } from "@/lib/access";
 import { getOrCreateBrowserFingerprint } from "@/lib/browser-fingerprint";
 import { realFigures, fictionalFigures } from "@/data/figures";
 import { ResourceFigure, AudioState, AppState } from "@/lib/types/story";
+
+const FIRST_FLOW_VOICE_ID = "Y5JXXvUD3rmjDInkLVA2";
+const FIRST_FLOW_STORAGE_KEY = "first-power-story-flow";
+const FIRST_FLOW_OWNER_KEY = "first-power-story-owner";
+const FIRST_FLOW_DONE_KEY = "first-power-story-complete";
+const FIRST_FLOW_SNAPSHOT_TTL = 60 * 60 * 1000;
+const FIRST_FLOW_OWNER_TTL = 2 * 60 * 1000;
+
+type FirstFlowSnapshot = Partial<AppState> & { pendingEmail?: string };
+
+function readFirstFlowSnapshot(): FirstFlowSnapshot | null {
+  // localStorage is shared by the original tab and the email-link tab. A copied
+  // sessionStorage value can be stale, so it must not take precedence here.
+  for (const storage of [window.localStorage, window.sessionStorage]) {
+    try {
+      const raw = storage.getItem(FIRST_FLOW_STORAGE_KEY);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw);
+      if (storage === window.localStorage) {
+        if (typeof parsed.savedAt !== 'number' || Date.now() - parsed.savedAt > FIRST_FLOW_SNAPSHOT_TTL) {
+          storage.removeItem(FIRST_FLOW_STORAGE_KEY);
+          continue;
+        }
+        return parsed.state as FirstFlowSnapshot;
+      }
+      return parsed as FirstFlowSnapshot;
+    } catch {
+      storage.removeItem(FIRST_FLOW_STORAGE_KEY);
+    }
+  }
+  return null;
+}
 
 const initialAppState: AppState = {
   currentStep: 1,
@@ -36,7 +70,18 @@ const initialAppState: AppState = {
 function CreateStoryInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [appState, setAppState] = useState<AppState>(initialAppState);
+  const firstFlow = searchParams.get('first') === 'true';
+  const [appState, setAppState] = useState<AppState>(() => {
+    const angel = firstFlow && fictionalFigures.find((figure) => figure.id === 'angel');
+    return angel
+      ? { ...initialAppState, currentStep: 2, resourceFigure: angel, selectedVoice: FIRST_FLOW_VOICE_ID }
+      : initialAppState;
+  });
+  const [firstFlowReady, setFirstFlowReady] = useState(false);
+  const [firstFlowOwner, setFirstFlowOwner] = useState(false);
+  const [firstFlowComplete, setFirstFlowComplete] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const firstFlowTabId = useRef<string | null>(null);
   const [showSavedStories, setShowSavedStories] = useState(false);
   const [showAccountCreated, setShowAccountCreated] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -50,10 +95,155 @@ function CreateStoryInner() {
   const [showPaywall, setShowPaywall] = useState(false);
   const [storyGenerationError, setStoryGenerationError] = useState<string | null>(null);
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
+  const [firstPreparationStatus, setFirstPreparationStatus] = useState<'idle' | 'text' | 'audio' | 'ready' | 'error'>('idle');
+  const [firstPreparationRetry, setFirstPreparationRetry] = useState(0);
   const [userDataLoaded, setUserDataLoaded] = useState(false);
   const [showNameStep, setShowNameStep] = useState(true);
   // Track if story generation was already attempted to prevent double-triggering
   const storyGenerationAttempted = useRef(false);
+  const firstPreparationAttempted = useRef(false);
+  const firstFlowSaved = useRef(false);
+
+  // The first-time flow is deliberately fixed to Angel and Kerstin. The
+  // regular flow below remains unchanged for later stories.
+  useEffect(() => {
+    if (!firstFlow) {
+      setFirstFlowReady(false);
+      return;
+    }
+    if (!mounted) return;
+
+    const angel = fictionalFigures.find((figure) => figure.id === 'angel');
+    if (!angel) return;
+
+    try {
+      const restored = readFirstFlowSnapshot();
+      if (restored) {
+        const restoredStep = (restored.currentStep ?? 0) >= 3 ? 3 : 2;
+        setPendingEmail(restored.pendingEmail ?? null);
+        setAppState({
+          ...initialAppState,
+          ...restored,
+          currentStep: restoredStep,
+          resourceFigure: angel,
+          selectedVoice: FIRST_FLOW_VOICE_ID,
+          // The audio URL is a persisted Supabase URL, not a blob URL.
+          audioState: restored.audioState?.audioUrl ? restored.audioState : null,
+        });
+        setFirstFlowReady(true);
+        return;
+      }
+    } catch { /* Browser storage is optional. */ }
+
+    setAppState((prev) => ({
+      ...prev,
+      currentStep: 2,
+      resourceFigure: angel,
+      selectedVoice: FIRST_FLOW_VOICE_ID,
+    }));
+    setFirstFlowReady(true);
+  }, [firstFlow, mounted]);
+
+  useEffect(() => {
+    if (!firstFlow || !firstFlowReady || authLoading || !user) return;
+    try {
+      const completed = JSON.parse(window.localStorage.getItem(FIRST_FLOW_DONE_KEY) || 'null');
+      if (completed?.userId === user.id && Date.now() - completed.savedAt < FIRST_FLOW_SNAPSHOT_TTL) {
+        setFirstFlowComplete(true);
+        window.sessionStorage.removeItem(FIRST_FLOW_STORAGE_KEY);
+      }
+    } catch { /* Ignore an unavailable completion marker. */ }
+  }, [firstFlow, firstFlowReady, authLoading, user]);
+
+  useEffect(() => {
+    if (!firstFlow || !mounted || !firstFlowReady || firstFlowComplete || firstFlowSaved.current) return;
+    if (appState.currentStep >= 3 && !firstFlowOwner) return;
+    try {
+      const snapshot = {
+        currentStep: appState.currentStep,
+        questionAnswers: appState.questionAnswers,
+        generatedStory: appState.generatedStory,
+        audioState: appState.audioState,
+        pendingEmail: pendingEmail ?? undefined,
+      };
+      window.sessionStorage.setItem(FIRST_FLOW_STORAGE_KEY, JSON.stringify(snapshot));
+      window.localStorage.setItem(FIRST_FLOW_STORAGE_KEY, JSON.stringify({ savedAt: Date.now(), state: snapshot }));
+    } catch {
+      // Session storage is only a resume aid; the in-memory flow still works.
+    }
+  }, [firstFlow, mounted, firstFlowReady, firstFlowOwner, firstFlowComplete, appState.currentStep, appState.questionAnswers, appState.generatedStory, appState.audioState, pendingEmail]);
+
+  // The email link normally opens a second tab. Only the tab that owns this
+  // flow may generate audio or save it; the other tab waits for the owner.
+  useEffect(() => {
+    if (!firstFlow || !firstFlowReady || appState.currentStep < 3 || firstFlowComplete) return;
+    const tabId = firstFlowTabId.current ?? crypto.randomUUID();
+    firstFlowTabId.current = tabId;
+    const claimOrRenew = () => {
+      try {
+        const current = JSON.parse(window.localStorage.getItem(FIRST_FLOW_OWNER_KEY) || 'null');
+        if (!current || current.id === tabId || current.expiresAt < Date.now()) {
+          window.localStorage.setItem(FIRST_FLOW_OWNER_KEY, JSON.stringify({ id: tabId, expiresAt: Date.now() + FIRST_FLOW_OWNER_TTL }));
+          setFirstFlowOwner(true);
+        } else {
+          setFirstFlowOwner(false);
+        }
+      } catch {
+        setFirstFlowOwner(true);
+      }
+    };
+    claimOrRenew();
+    const interval = window.setInterval(claimOrRenew, 3000);
+    window.addEventListener('storage', claimOrRenew);
+    const release = () => {
+      try {
+        const current = JSON.parse(window.localStorage.getItem(FIRST_FLOW_OWNER_KEY) || 'null');
+        if (current?.id === tabId) window.localStorage.removeItem(FIRST_FLOW_OWNER_KEY);
+      } catch { /* The next tab can claim after the lease expires. */ }
+    };
+    window.addEventListener('pagehide', release);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('storage', claimOrRenew);
+      window.removeEventListener('pagehide', release);
+      // Do not release on a React effect re-run: this tab still owns the flow.
+    };
+  }, [firstFlow, firstFlowReady, firstFlowComplete, appState.currentStep]);
+
+  useEffect(() => () => {
+    const tabId = firstFlowTabId.current;
+    if (!tabId) return;
+    try {
+      const current = JSON.parse(window.localStorage.getItem(FIRST_FLOW_OWNER_KEY) || 'null');
+      if (current?.id === tabId) window.localStorage.removeItem(FIRST_FLOW_OWNER_KEY);
+    } catch { /* The lease will expire if storage is unavailable. */ }
+  }, []);
+
+  useEffect(() => {
+    if (!firstFlow || !firstFlowReady || firstFlowOwner || firstFlowComplete) return;
+    const syncFromOwner = () => {
+      try {
+        const completed = JSON.parse(window.localStorage.getItem(FIRST_FLOW_DONE_KEY) || 'null');
+        if (user && completed?.userId === user.id && Date.now() - completed.savedAt < FIRST_FLOW_SNAPSHOT_TTL) {
+          setFirstFlowComplete(true);
+          window.sessionStorage.removeItem(FIRST_FLOW_STORAGE_KEY);
+          return;
+        }
+        const restored = readFirstFlowSnapshot();
+        if (restored?.generatedStory || restored?.audioState?.audioUrl) {
+          setAppState((prev) => ({
+            ...prev,
+            questionAnswers: restored.questionAnswers ?? prev.questionAnswers,
+            generatedStory: restored.generatedStory ?? prev.generatedStory,
+            audioState: restored.audioState?.audioUrl ? restored.audioState : prev.audioState,
+          }));
+        }
+      } catch { /* Keep the in-memory answers. */ }
+    };
+    window.addEventListener('storage', syncFromOwner);
+    syncFromOwner();
+    return () => window.removeEventListener('storage', syncFromOwner);
+  }, [firstFlow, firstFlowReady, firstFlowOwner, firstFlowComplete, user]);
 
   // Access control: Anonymous users can only access if they came from /figur (have figure param)
   // Logged in users can access directly
@@ -63,11 +253,106 @@ function CreateStoryInner() {
     const figureId = searchParams?.get('figure');
 
     // If user is not logged in and there's no figure param, redirect to homepage
-    if (!user && !figureId && !appState.resourceFigure) {
+    if (!user && !figureId && !firstFlow && !appState.resourceFigure) {
       router.replace('/');
       return;
     }
-  }, [user, authLoading, searchParams, appState.resourceFigure, router]);
+  }, [user, authLoading, searchParams, appState.resourceFigure, firstFlow, router]);
+
+  useEffect(() => {
+    if (firstFlow && firstFlowReady && firstFlowOwner && user &&
+        (!pendingEmail || user.email?.toLowerCase() === pendingEmail) &&
+        appState.currentStep === 3 && appState.generatedStory && appState.audioState?.audioUrl) {
+      setAppState((prev) => ({ ...prev, currentStep: 5, selectedVoice: FIRST_FLOW_VOICE_ID }));
+    }
+  }, [firstFlow, firstFlowReady, firstFlowOwner, user, pendingEmail, appState.currentStep, appState.generatedStory, appState.audioState?.audioUrl]);
+
+  // Prepare the complete Angel story while the email link is being sent/opened.
+  // No account record is written here; AudioPlayback associates the ready
+  // story/audio with the authenticated account after the callback.
+  useEffect(() => {
+    if (!firstFlowOwner) firstPreparationAttempted.current = false;
+  }, [firstFlowOwner]);
+
+  useEffect(() => {
+    if (!firstFlow || !firstFlowReady || !firstFlowOwner || firstFlowComplete || appState.currentStep !== 3) return;
+    if (appState.audioState?.audioUrl && appState.generatedStory) {
+      setFirstPreparationStatus('ready');
+      return;
+    }
+    if (firstPreparationAttempted.current) return;
+    firstPreparationAttempted.current = true;
+    let cancelled = false;
+
+    const prepare = async () => {
+      try {
+        let story = appState.generatedStory;
+        if (!story) {
+          setFirstPreparationStatus('text');
+          const response = await fetch('/api/generate-story', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ selectedFigure: appState.resourceFigure, questionAnswers: appState.questionAnswers, sparModus: false }),
+          });
+          if (!response.ok) throw new Error('Der Story-Text konnte nicht erstellt werden.');
+          const result = await response.json();
+          story = typeof result.story === 'string' ? result.story.trim() : '';
+          if (!story) throw new Error('Der Story-Text ist leer.');
+          if (cancelled) return;
+          setAppState((prev) => ({ ...prev, generatedStory: story }));
+          try {
+            const saved = readFirstFlowSnapshot();
+            window.localStorage.setItem(FIRST_FLOW_STORAGE_KEY, JSON.stringify({
+              savedAt: Date.now(), state: { ...saved, currentStep: 3, generatedStory: story },
+            }));
+          } catch { /* The current tab can still finish the story. */ }
+        }
+
+        setFirstPreparationStatus('audio');
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!supabaseUrl || !anonKey) throw new Error('Audio ist momentan nicht verfügbar.');
+        const response = await fetch(`${supabaseUrl}/functions/v1/generate-audio`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${anonKey}`, apikey: anonKey },
+          body: JSON.stringify({ text: story, voiceId: FIRST_FLOW_VOICE_ID, adminPreview: false }),
+        });
+        if (!response.ok) throw new Error('Das Audio konnte nicht erstellt werden.');
+        const result = await response.json();
+        if (typeof result.audioUrl !== 'string' || !result.audioUrl) throw new Error('Das Audio ist nicht verfügbar.');
+        if (cancelled) return;
+        const audioState: AudioState = {
+          audioUrl: result.audioUrl,
+          voiceId: FIRST_FLOW_VOICE_ID,
+          storyText: story,
+          duration: 0,
+          isGenerated: true,
+          filename: result.filename,
+        };
+        // Persist before setState: the auth callback may open in another tab now.
+        try {
+          const saved = readFirstFlowSnapshot();
+          window.localStorage.setItem(FIRST_FLOW_STORAGE_KEY, JSON.stringify({
+            savedAt: Date.now(), state: { ...saved, currentStep: 3, generatedStory: story, audioState },
+          }));
+        } catch { /* The current tab can still finish the story. */ }
+        setAppState((prev) => ({ ...prev, generatedStory: story, audioState }));
+        setFirstPreparationStatus('ready');
+      } catch (error) {
+        if (cancelled) return;
+        setStoryGenerationError(error instanceof Error ? error.message : 'Deine Story konnte noch nicht erstellt werden.');
+        setFirstPreparationStatus('error');
+      }
+    };
+    // Delay until after React's development-mode effect replay, which would
+    // otherwise cancel the first request and leave the attempted ref set.
+    const timer = window.setTimeout(() => void prepare(), 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      firstPreparationAttempted.current = false;
+    };
+  }, [firstFlow, firstFlowReady, firstFlowOwner, firstFlowComplete, appState.currentStep, firstPreparationRetry]);
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -224,6 +509,22 @@ function CreateStoryInner() {
     }));
   }, []);
 
+  const handleFirstStorySaved = useCallback(() => {
+    firstFlowSaved.current = true;
+    try {
+      window.localStorage.setItem(FIRST_FLOW_DONE_KEY, JSON.stringify({ savedAt: Date.now(), userId: user?.id }));
+      window.localStorage.removeItem(FIRST_FLOW_STORAGE_KEY);
+      window.sessionStorage.removeItem(FIRST_FLOW_STORAGE_KEY);
+    } catch { /* The story has already been saved to the account. */ }
+  }, [user?.id]);
+
+  const retryFirstPreparation = useCallback(() => {
+    firstPreparationAttempted.current = false;
+    setStoryGenerationError(null);
+    setFirstPreparationStatus('idle');
+    setFirstPreparationRetry((retry) => retry + 1);
+  }, []);
+
   const handleResetToStart = useCallback(() => {
     if (appState.audioState?.audioUrl) {
       URL.revokeObjectURL(appState.audioState.audioUrl);
@@ -251,7 +552,7 @@ function CreateStoryInner() {
       });
 
       const selectedBlocksLength = currentAnswer?.selectedBlocks?.length || 0;
-      const hasEnoughAnswers = selectedBlocksLength >= 3;
+      const hasEnoughAnswers = selectedBlocksLength >= 1;
 
       return hasEnoughAnswers;
     })()) ||
@@ -350,16 +651,21 @@ function CreateStoryInner() {
     if (appState.currentStep === 2) {
       const questionId = appState.currentQuestionIndex + 1;
       const currentAnswer = appState.questionAnswers.find(a => a.questionId === questionId);
-      if (!currentAnswer || currentAnswer.selectedBlocks.length < 2) {
+      if (!currentAnswer || currentAnswer.selectedBlocks.length < 1) {
         return;
       }
 
       const expectedQuestionCount = appState.resourceFigure?.category === 'place' ? 5 : 6;
       const allQuestionsAnswered = appState.questionAnswers.length === expectedQuestionCount &&
-        appState.questionAnswers.every(a => a.answer.trim().length > 0 || a.selectedBlocks.length >= 2);
+        appState.questionAnswers.every(a => a.answer.trim().length > 0 || a.selectedBlocks.length >= 1);
 
       if (allQuestionsAnswered) {
-        setAppState(prev => ({ ...prev, currentStep: 3, currentQuestionIndex: 0 }));
+        setAppState(prev => ({
+          ...prev,
+          currentStep: firstFlow ? 3 : 5,
+          currentQuestionIndex: 0,
+          selectedVoice: firstFlow ? FIRST_FLOW_VOICE_ID : prev.selectedVoice,
+        }));
       } else {
         const nextQuestionIndex = (appState.currentQuestionIndex + 1) % expectedQuestionCount;
         setAppState(prev => ({ ...prev, currentQuestionIndex: nextQuestionIndex }));
@@ -388,7 +694,7 @@ function CreateStoryInner() {
     if (isStep5Complete || isStep6Complete) {
       setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
     }
-  }, [appState.currentStep, appState.resourceFigure, appState.questionAnswers, appState.generatedStory, appState.selectedVoice, user]);
+  }, [appState.currentStep, appState.resourceFigure, appState.questionAnswers, appState.generatedStory, appState.selectedVoice, user, firstFlow]);
 
   // New step order: 1=Figure, 2=Questions, 3=Voice, 4=Name, 5+=Audio
   const handlePreviousStep = useCallback(() => {
@@ -439,6 +745,7 @@ function CreateStoryInner() {
 
   useEffect(() => {
     const run = async () => {
+      if (firstFlow) return; // Angel is prepared before the account gate.
       if (!appState.resourceFigure) return;
 
       // Skip if we already have a story (restored from localStorage or already generated)
@@ -504,7 +811,7 @@ function CreateStoryInner() {
       }
     };
     run();
-  }, [appState.currentStep, appState.resourceFigure, appState.questionAnswers, appState.selectedVoice, appState.generatedStory, isGeneratingStory, handleStoryGenerated, userFullName, userPronunciationHint, anonymousUserName, anonymousUserPronunciationHint, sparModus, user]);
+  }, [firstFlow, appState.currentStep, appState.resourceFigure, appState.questionAnswers, appState.selectedVoice, appState.generatedStory, isGeneratingStory, handleStoryGenerated, userFullName, userPronunciationHint, anonymousUserName, anonymousUserPronunciationHint, sparModus, user]);
 
   useEffect(() => {
     return () => {
@@ -516,11 +823,11 @@ function CreateStoryInner() {
 
   // Check if anonymous user is trying to access directly (should redirect)
   const figureParam = searchParams?.get('figure');
-  const shouldRedirect = !user && !figureParam && !appState.resourceFigure;
+  const shouldRedirect = !user && !figureParam && !firstFlow && !appState.resourceFigure;
 
-  if (!mounted || authLoading || shouldRedirect) {
+  if (!mounted || authLoading || (firstFlow && !firstFlowReady) || shouldRedirect) {
     return (
-      <div className="min-h-screen story-flow-background flex items-center justify-center">
+      <div className={`min-h-screen story-flow-background flex items-center justify-center ${firstFlow ? 'story-flow-first-loading' : ''}`}>
         <div className="text-center">
           {/* Breathing Circle - consistent loader */}
           <motion.div
@@ -554,8 +861,32 @@ function CreateStoryInner() {
   }
 
   return (
-    <div className="min-h-screen story-flow-background">
-      <StoryFlowProgress currentStep={appState.currentStep} showNameStep={showNameStep} />
+    <div className={`min-h-screen story-flow-background ${firstFlow ? 'story-flow-first' : ''} ${firstFlow && appState.currentStep === 2 ? 'story-flow-first-question' : ''} ${firstFlow && appState.currentStep === 3 ? 'story-flow-first-account' : ''}`}>
+      {firstFlow && (
+        <div className="story-first-flow-header">
+          <button
+            type="button"
+            className="story-first-flow-back"
+            onClick={() => router.push('/')}
+            aria-label="Zurück zur Startseite"
+          >
+            <ArrowLeft aria-hidden="true" />
+            <span>Zurück</span>
+          </button>
+          <Image
+            src="/images/power-storys_logo.webp"
+            alt="Power Storys"
+            width={160}
+            height={48}
+            className="story-first-flow-logo"
+            priority
+          />
+          <span aria-hidden="true" />
+        </div>
+      )}
+      {!firstFlow && (
+        <StoryFlowProgress currentStep={appState.currentStep} showNameStep={showNameStep} />
+      )}
       {/* Sticky mobile button for Figure selection step (step 1) */}
       {appState.currentStep === 1 && !appState.resourceFigure && (
         <div className="story-mobile-actions lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
@@ -584,7 +915,7 @@ function CreateStoryInner() {
       )}
 
       {/* Sticky mobile button for Questions step (step 2) */}
-      {appState.currentStep === 2 && (
+      {appState.currentStep === 2 && !firstFlow && (
         <div className="story-mobile-actions lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
           <motion.button
             initial={{ y: 20, opacity: 0 }}
@@ -611,7 +942,7 @@ function CreateStoryInner() {
       )}
 
       {/* Sticky mobile button for Voice selection step (step 3) */}
-      {appState.currentStep === 3 && (
+      {appState.currentStep === 3 && !firstFlow && (
         <div className="story-mobile-actions lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
           <motion.button
             initial={{ y: 20, opacity: 0 }}
@@ -638,7 +969,7 @@ function CreateStoryInner() {
       )}
 
 
-      <div className="relative">
+      <div className={`relative ${firstFlow && (appState.currentStep === 2 || appState.currentStep === 3) ? 'story-first-flow-content' : ''}`}>
         <div className="flex-1">
           <AnimatePresence mode="wait">
             <motion.div
@@ -649,7 +980,7 @@ function CreateStoryInner() {
               transition={{ duration: 0.15 }}
               className="h-full"
             >
-              {appState.currentStep === 1 && (
+              {appState.currentStep === 1 && !firstFlow && (
                 <ResourceFigureSelection
                   selectedFigure={appState.resourceFigure}
                   onFigureSelect={handleResourceFigureSelect}
@@ -657,7 +988,7 @@ function CreateStoryInner() {
                 />
               )}
 
-              {appState.currentStep === 2 && appState.resourceFigure && (
+              {appState.currentStep === 2 && appState.resourceFigure && !firstFlowComplete && (
                 <RelationshipSelection
                   selectedFigure={appState.resourceFigure}
                   questionAnswers={appState.questionAnswers}
@@ -665,10 +996,11 @@ function CreateStoryInner() {
                   onNext={handleNextStep}
                   currentQuestionIndex={appState.currentQuestionIndex}
                   onQuestionIndexChange={handleQuestionIndexChange}
+                  firstFlow={firstFlow}
                 />
               )}
 
-              {appState.currentStep === 3 && appState.resourceFigure && (
+              {appState.currentStep === 3 && appState.resourceFigure && !firstFlow && (
                 <VoiceSelection
                   onVoiceSelect={(voiceId) => {
                     setAppState(prev => ({ ...prev, selectedVoice: voiceId }));
@@ -679,6 +1011,47 @@ function CreateStoryInner() {
                   resourceFigure={appState.resourceFigure}
                   onSparModusChange={setSparModus}
                 />
+              )}
+
+              {firstFlow && firstFlowComplete && (
+                <div className="story-first-handoff" role="status">
+                  <h1>Deine Power Story ist gespeichert.</h1>
+                  <p>Du findest sie jetzt in deinem Zugang.</p>
+                  <button type="button" onClick={() => router.push('/dashboard')}>Zu meinen Power Storys</button>
+                </div>
+              )}
+
+              {appState.currentStep >= 3 && firstFlow && !firstFlowComplete && !firstFlowOwner && (
+                <div className="story-first-handoff" role="status">
+                  <h1>Deine Power Story entsteht im anderen Tab.</h1>
+                  <p>Deine Antworten sind sicher. Wechsle zum Tab, in dem du deine Fragen beantwortet hast. Dort geht es nach dem Login automatisch weiter. Wenn dieser Tab geschlossen wird, übernehmen wir hier automatisch.</p>
+                </div>
+              )}
+
+              {appState.currentStep === 3 && firstFlow && firstFlowOwner && !firstFlowComplete && user && pendingEmail && user.email?.toLowerCase() !== pendingEmail && (
+                <div className="story-first-handoff" role="alert">
+                  <h1>Bitte nutze den richtigen Account.</h1>
+                  <p>Der Zugangslink wurde an {pendingEmail} geschickt. Melde dich mit diesem Account an, damit deine Antworten zugeordnet werden.</p>
+                  <button type="button" onClick={() => void supabase.auth.signOut()}>Anderen Account verwenden</button>
+                </div>
+              )}
+
+              {appState.currentStep === 3 && firstFlow && firstFlowOwner && !firstFlowComplete && !user && (
+                <FirstStoryEmailGate
+                  linkError={searchParams.get('linkError') === '1'}
+                  onEmailSent={setPendingEmail}
+                  preparationStatus={firstPreparationStatus}
+                  preparationError={storyGenerationError}
+                  onRetryPreparation={retryFirstPreparation}
+                />
+              )}
+
+              {appState.currentStep === 3 && firstFlow && firstFlowOwner && !firstFlowComplete && user && (!pendingEmail || user.email?.toLowerCase() === pendingEmail) && (
+                <div className="story-first-handoff" role="status">
+                  <h1>Deine Power Story wird vorbereitet.</h1>
+                  <p>{firstPreparationStatus === 'audio' ? 'Die Stimme von Kerstin wird gerade erstellt.' : 'Deine Antworten sind gespeichert. Einen Moment noch …'}</p>
+                  {firstPreparationStatus === 'error' && <button type="button" onClick={retryFirstPreparation}>Erneut versuchen</button>}
+                </div>
               )}
 
               {appState.currentStep === 4 && appState.resourceFigure && (
@@ -692,7 +1065,7 @@ function CreateStoryInner() {
                 />
               )}
 
-              {appState.currentStep >= 5 && appState.resourceFigure && appState.selectedVoice && (
+              {appState.currentStep >= 5 && appState.resourceFigure && appState.selectedVoice && (!firstFlow || (firstFlowOwner && !firstFlowComplete)) && (
                 <>
                   {storyGenerationError && (
                     <div className="max-w-4xl mx-auto mb-6 p-6 bg-red-50 border border-red-200 rounded-2xl">
@@ -731,6 +1104,7 @@ function CreateStoryInner() {
                     onShowAccountCreated={() => setShowAccountCreated(true)}
                     storyGenerationError={storyGenerationError}
                     isGeneratingStory={isGeneratingStory}
+                    onFirstStorySaved={firstFlow ? handleFirstStorySaved : undefined}
                   />
                 </>
               )}

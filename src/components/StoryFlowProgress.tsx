@@ -1,13 +1,19 @@
 import { Check, Sparkles } from 'lucide-react';
 
-export default function StoryFlowProgress({ currentStep, showNameStep }: { currentStep: number; showNameStep: boolean }) {
-  const steps = [
-    { step: 1, label: 'Deine Figur' },
-    { step: 2, label: 'Deine Wünsche' },
-    { step: 3, label: 'Deine Stimme' },
-    ...(showNameStep ? [{ step: 4, label: 'Dein Name' }] : []),
-    { step: 5, label: 'Deine Story' },
-  ];
+export default function StoryFlowProgress({ currentStep, showNameStep, firstFlow = false }: { currentStep: number; showNameStep: boolean; firstFlow?: boolean }) {
+  const steps = firstFlow
+    ? [
+      { step: 2, label: 'Deine Wünsche' },
+      { step: 3, label: 'Dein Account' },
+      { step: 5, label: 'Deine Story' },
+    ]
+    : [
+      { step: 1, label: 'Deine Figur' },
+      { step: 2, label: 'Deine Wünsche' },
+      { step: 3, label: 'Deine Stimme' },
+      ...(showNameStep ? [{ step: 4, label: 'Dein Name' }] : []),
+      { step: 5, label: 'Deine Story' },
+    ];
   const activeIndex = steps.findIndex(item => item.step === Math.min(currentStep, 5));
 
   return (

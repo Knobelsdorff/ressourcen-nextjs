@@ -8,7 +8,7 @@ export default function LandingClosingSection() {
       <span className="landing-eyebrow">EIN KLEINER MOMENT FÜR DICH</span>
       <h2 id="landing-closing-title">Du darfst es dir<br />ein bisschen leichter machen.</h2>
       <p>Du hörst zu – mehr ist nicht nötig.<br />Kostenlos ausprobieren. In deinem Tempo.</p>
-      <Link href="/ankommen" className="landing-secondary-button">Jetzt kurz innehalten <ArrowRight size={18} aria-hidden="true" /></Link>
+      <Link href="/create-story?first=true" className="landing-secondary-button">Meine Power Story erstellen <ArrowRight size={18} aria-hidden="true" /></Link>
     </section>
   );
 }

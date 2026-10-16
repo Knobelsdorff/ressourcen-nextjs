@@ -44,6 +44,7 @@ interface AudioPlaybackProps {
   onShowAccountCreated?: () => void;
   storyGenerationError?: string | null;
   isGeneratingStory?: boolean;
+  onFirstStorySaved?: () => void;
 }
 
 // Voices will be loaded dynamically from API
@@ -81,7 +82,8 @@ export default function AudioPlayback({
   questionAnswers = [],
   onShowAccountCreated,
   storyGenerationError = null,
-  isGeneratingStory = false
+  isGeneratingStory = false,
+  onFirstStorySaved
 }: AudioPlaybackProps) {
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
   const [availableVoices, setAvailableVoices] = useState<Voice[]>([]);
@@ -111,6 +113,8 @@ export default function AudioPlayback({
   const [isLoadingAudio, setIsLoadingAudio] = useState(false); // Loading state for both audios
   const [isAudioReady, setIsAudioReady] = useState(false); // Track when audio is actually playable
   const [hasAutoSaved, setHasAutoSaved] = useState(false); // Track ob bereits automatisch gespeichert wurde
+  const firstStorySaveStarted = useRef(false);
+  const firstStorySaveFinished = useRef(false);
   const [hasPlayedOnce, setHasPlayedOnce] = useState(false);
   const [hasStartedPlayback, setHasStartedPlayback] = useState(false); // Track ob User bereits Play gedrückt hat
   const [showPostAudioPanel, setShowPostAudioPanel] = useState(false); // Show calm "after" panel
@@ -151,7 +155,7 @@ export default function AudioPlayback({
 
   // Prüfe beim Mount, ob eine temporäre Geschichte in localStorage vorhanden ist
   useEffect(() => {
-    if (user && !showAuthModal) {
+    if (user && !showAuthModal && !onFirstStorySaved) {
       const savedPendingStory = localStorage.getItem('pendingStory');
       if (savedPendingStory) {
         console.log('poopoo [AudioPlayback] Found pending story in localStorage, parsing...');
@@ -167,7 +171,7 @@ export default function AudioPlayback({
         // that watches for pendingStory changes
       }
     }
-  }, [user, showAuthModal]);
+  }, [user, showAuthModal, onFirstStorySaved]);
 
   // When pendingStory is set and user is logged in, save to database
   // This is the ONLY place that should call savePendingStoryToDatabase
@@ -261,7 +265,7 @@ export default function AudioPlayback({
       
       // WICHTIG: Speichere IMMER in localStorage, auch wenn User nicht eingeloggt ist
       // Dies stellt sicher, dass die Story nach Login gespeichert werden kann
-      if (!hasAutoSaved) {
+      if (!hasAutoSaved && !onFirstStorySaved) {
         console.log('[AutoSave] Speichere Story in localStorage (auch wenn nicht eingeloggt)...');
         savePendingStory(); // Speichere in localStorage
         setHasAutoSaved(true);
@@ -271,6 +275,9 @@ export default function AudioPlayback({
       if (!user) {
         return; // User nicht eingeloggt - Story ist bereits in localStorage gespeichert
       }
+
+      if (onFirstStorySaved && firstStorySaveStarted.current) return;
+      if (onFirstStorySaved) firstStorySaveStarted.current = true;
       
       // Prüfe ob bereits in Datenbank gespeichert wurde (verhindere doppeltes Speichern)
       // Wenn hasAutoSaved true ist, wurde bereits localStorage gespeichert
@@ -286,6 +293,8 @@ export default function AudioPlayback({
         
         if (existingStories && existingStories.length > 0) {
           console.log('[AutoSave] Story bereits in Datenbank vorhanden, überspringe Speichern');
+          firstStorySaveFinished.current = true;
+          onFirstStorySaved?.();
           return;
         }
       } catch (checkError) {
@@ -298,8 +307,13 @@ export default function AudioPlayback({
       // Verwende die bestehende saveStoryToDatabase Funktion
       try {
         await saveStoryToDatabase();
+        if (onFirstStorySaved && !firstStorySaveFinished.current) {
+          firstStorySaveStarted.current = false;
+          setError('Deine Story ist fertig, konnte aber noch nicht gespeichert werden. Bitte versuche es erneut.');
+        }
         console.log('[AutoSave] Ressource wurde automatisch in Datenbank gespeichert');
       } catch (error) {
+        if (onFirstStorySaved) firstStorySaveStarted.current = false;
         console.error('[AutoSave] Fehler beim automatischen Speichern:', error);
         // Fehler ist nicht kritisch - Story ist bereits in localStorage gespeichert
       }
@@ -307,7 +321,7 @@ export default function AudioPlayback({
     
     autoSave();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, generatedStory, audioState?.audioUrl, hasAutoSaved, isGenerating]);
+  }, [user, generatedStory, audioState?.audioUrl, hasAutoSaved, isGenerating, onFirstStorySaved]);
 
   const savePendingStory = () => {
     console.log('Saving pending story to localStorage...');
@@ -502,6 +516,8 @@ export default function AudioPlayback({
       }
 
       if (shouldSkipSave) {
+        firstStorySaveFinished.current = true;
+        onFirstStorySaved?.();
         return;
       }
 
@@ -557,6 +573,8 @@ export default function AudioPlayback({
           voice_id: data?.[0]?.voice_id,
           title: data?.[0]?.title
         }, null, 2));
+        firstStorySaveFinished.current = true;
+        onFirstStorySaved?.();
         
         // Setze localStorage-Flag für zukünftige Sessions (nur für persönliche Stories, nicht Audio-only)
         // AudioPlayback wird nur für persönliche Stories verwendet, daher können wir das Flag sicher setzen
@@ -601,7 +619,7 @@ export default function AudioPlayback({
         }
 
         // Speichere auch die Ankommen-Story wenn vorhanden
-        await saveAnkommenStoryIfExists();
+        if (!onFirstStorySaved) await saveAnkommenStoryIfExists();
 
         // Kein Popup - nur Console-Log
       }
@@ -2113,6 +2131,22 @@ export default function AudioPlayback({
 
   return (
     <div className="story-audio-step min-h-screen p-4 lg:p-12">
+      {onFirstStorySaved && error?.startsWith('Deine Story ist fertig') && (
+        <div className="max-w-4xl mx-auto mb-4 p-4 rounded-xl bg-amber-50 text-amber-950" role="alert">
+          <p>{error}</p>
+          <button type="button" className="mt-2 underline font-semibold" onClick={() => {
+            if (firstStorySaveStarted.current) return;
+            firstStorySaveStarted.current = true;
+            setError(null);
+            void saveStoryToDatabase().then(() => {
+              if (!firstStorySaveFinished.current) {
+                firstStorySaveStarted.current = false;
+                setError('Deine Story ist fertig, konnte aber noch nicht gespeichert werden. Bitte versuche es erneut.');
+              }
+            });
+          }}>Speichern erneut versuchen</button>
+        </div>
+      )}
       <motion.div
         initial={{ y: 30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}

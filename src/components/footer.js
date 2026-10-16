@@ -1,12 +1,14 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 export default function Footer() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isFirstStoryFlow = pathname === '/create-story' && searchParams.get('first') === 'true';
   
-  // Hide footer on /ankommen, /zugang, or /zugang-erhalten pages
-  if (pathname === '/ankommen' || pathname === '/zugang' || pathname === '/zugang-erhalten') {
+  // Hide footer on the isolated first-story flow and access pages.
+  if (isFirstStoryFlow || pathname === '/ankommen' || pathname === '/zugang' || pathname === '/zugang-erhalten') {
     return null;
   }
   
