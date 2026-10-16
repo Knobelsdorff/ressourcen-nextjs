@@ -10,7 +10,7 @@ import LandingStoryPreview from './LandingStoryPreview';
  * Header nach dem StoryBrand-Wireframe – Text und Struktur von Andreas:
  *
  * 1. Ein Versprechen, das in Sekunden verstanden wird (Headline + eine Zeile).
- * 2. Ein direkter Handlungsaufruf – "Kurz innehalten" führt zu /ankommen.
+ * 2. Ein direkter Handlungsaufruf – die erste Power Story beginnt direkt.
  * 3. Ein Bild des Zielzustands: die Frau, die bei sich angekommen ist.
  *
  * Neu ist die Hörprobe auf dem Bild. Sie ist der "transitional CTA" des
@@ -21,7 +21,7 @@ export default function HeroSection() {
   const reduceMotion = useReducedMotion();
 
   const handleCTAClick = () => {
-    router.push("/ankommen");
+    router.push("/create-story?first=true");
   };
 
   // Die Hauskurve aus globals.css (Mobile-Drawer) – ruhig, ohne Nachschwingen.
@@ -64,7 +64,7 @@ export default function HeroSection() {
               size="lg"
               className="landing-primary-button"
             >
-              Kurz innehalten
+              Meine Power Story erstellen
               <ArrowRight size={18} aria-hidden="true" />
             </Button>
           </motion.div>

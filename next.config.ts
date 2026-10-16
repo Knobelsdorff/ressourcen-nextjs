@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  devIndicators: false,
   serverExternalPackages: ['@supabase/supabase-js', 'ffmpeg-static'],
   outputFileTracingIncludes: {
     '/api/audio/migrate-on-demand': ['./node_modules/ffmpeg-static/ffmpeg'],

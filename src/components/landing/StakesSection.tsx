@@ -87,7 +87,7 @@ export default function StakesSection() {
               className="pt-4"
             >
               <Button
-                onClick={() => router.push("/ankommen")}
+                onClick={() => router.push("/create-story?first=true")}
                 size="lg"
                 className="landing-primary-button"
               >
@@ -141,7 +141,7 @@ export default function StakesSection() {
           className="lg:hidden text-center"
         >
           <Button
-            onClick={() => router.push("/ankommen")}
+            onClick={() => router.push("/create-story?first=true")}
             size="lg"
             className="landing-primary-button"
           >

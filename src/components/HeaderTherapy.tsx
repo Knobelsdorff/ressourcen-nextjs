@@ -24,7 +24,7 @@ const HeaderTherapy = () => {
   const handleDiscoverPowerStory = () => {
     setMobileMenuOpen(false);
     setTimeout(() => {
-      router.push("/ankommen");
+      router.push("/create-story?first=true");
     }, 100);
   };
 

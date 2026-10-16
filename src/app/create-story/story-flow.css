@@ -10,6 +10,7 @@
 .story-flow :is(.text-gray-500, .text-gray-600, .text-gray-700) { color: var(--color-secondary-600); }
 .story-flow :is(.text-blue-700, .text-blue-900) { color: #62418c; }
 
+
 .story-flow-progress { max-width: 1120px; margin: 0 auto; padding: 30px 24px 24px; }
 .story-flow-intro { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 22px; color: var(--color-secondary-600); font-size: 12px; }
 .story-flow-intro > span:first-child { display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; }
@@ -104,4 +105,127 @@
   .story-flow .story-answer > span { font-size: 13px; line-height: 1.4; }
   .story-flow .story-selection-summary h3 { font-size: 15px; }
   .story-flow .story-selection-summary button { flex-shrink: 0; }
+}
+
+/* First Angel story: one uninterrupted surface, with only the answer list scrolling. */
+body:has(.story-flow-first-question),
+body:has(.story-flow-first-account) { overflow: hidden; background: #f8f5f2; }
+body:has(.story-flow-first-loading) { overflow: hidden; background: #f8f5f2; }
+body:has(.story-flow-first) > header,
+body:has(.story-flow-first) > footer { display: none !important; }
+body:has(.story-flow-first-loading) > header,
+body:has(.story-flow-first-loading) > footer { display: none !important; }
+body:has(.story-flow-first-question) > main,
+body:has(.story-flow-first-account) > main { flex: 0 0 100dvh; height: 100dvh; min-height: 0; overflow: hidden; }
+body:has(.story-flow-first-loading) > main { flex: 0 0 100dvh; height: 100dvh; min-height: 0; overflow: hidden; }
+.story-flow:has(.story-flow-first) { padding-bottom: 0; }
+.story-flow:has(.story-flow-first-loading) { height: 100dvh; padding-bottom: 0; overflow: hidden; }
+.story-flow-first-loading { height: 100dvh; min-height: 0; }
+.story-flow:has(.story-flow-first-question),
+.story-flow:has(.story-flow-first-account) { height: 100dvh; overflow: hidden; }
+.story-flow-first-question,
+.story-flow-first-account { display: flex; flex-direction: column; height: 100dvh; min-height: 0; overflow: hidden; }
+.story-first-flow-header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; flex: 0 0 68px; padding: 0 clamp(20px, 4vw, 52px); background: #f8f5f2; }
+.story-flow .story-first-flow-back { display: inline-flex; align-items: center; justify-self: start; gap: 8px; width: fit-content; min-height: 40px; padding: 8px 12px; border: 0; border-radius: 10px; background: transparent; color: #49301e; font-size: 13px; font-weight: 600; box-shadow: none; }
+.story-first-flow-back svg { width: 17px; height: 17px; }
+.story-flow .story-first-flow-back:hover { background: #eee8e0; }
+.story-first-flow-logo { width: 132px; height: auto; object-fit: contain; }
+.story-first-flow-content { flex: 1; min-height: 0; overflow: hidden; }
+.story-first-flow-content > div, .story-first-flow-content > div > div { height: 100%; min-height: 0; }
+.story-first-stage { display: grid; grid-template-columns: minmax(260px, .85fr) minmax(0, 1.15fr); align-items: center; gap: clamp(40px, 7vw, 112px); width: min(100%, 1240px); height: 100%; min-height: 0; margin: 0 auto; padding: clamp(20px, 4vw, 52px); color: #49301e; }
+.story-first-intro { min-width: 0; }
+.story-first-character { display: flex; align-items: center; gap: 12px; margin-bottom: clamp(26px, 4vh, 46px); font-size: 14px; font-weight: 600; }
+.story-first-avatar { display: flex; align-items: center; justify-content: center; flex: 0 0 60px; width: 60px; height: 60px; overflow: hidden; border-radius: 50%; background: #eee5d9; }
+.story-first-avatar-image { width: 52px; height: 52px; object-fit: contain; }
+.story-first-step-count { margin-bottom: 14px; color: #8b7868; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.story-flow .story-first-intro h1 { max-width: 510px; margin: 0; color: #49301e; font-size: clamp(30px, 3.1vw, 46px); font-weight: 600; letter-spacing: -.045em; line-height: 1.16; }
+.story-first-guidance { margin-top: 22px; color: #806f60; font-size: 15px; line-height: 1.5; }
+.story-first-response { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 15px; width: 100%; max-width: 580px; height: min(100%, 590px); min-height: 0; margin: auto; }
+.story-first-response-heading { display: flex; justify-content: space-between; gap: 12px; color: #756456; font-size: 13px; font-weight: 600; }
+.story-first-options { display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: 2px 4px 2px 2px; }
+.story-flow .story-first-stage .story-first-option { display: flex; align-items: center; flex: 0 0 auto; gap: 13px; width: 100%; min-height: 54px; padding: 11px 15px; border: 1px solid #ddd2c7; border-radius: 10px; background: #fffcf8; color: #49301e; font-size: 14px; line-height: 1.35; text-align: left; box-shadow: none; transform: none; }
+.story-flow .story-first-stage .story-first-option:hover:not(:disabled) { border-color: #aa9380; background: #f4eee7; }
+.story-flow .story-first-stage .story-first-option[aria-pressed='true'] { border-color: #a48a72; background: #eee6dc; }
+.story-flow .story-first-stage .story-first-option:disabled { opacity: .48; }
+.story-first-option-mark { display: flex; align-items: center; justify-content: center; flex: 0 0 20px; width: 20px; height: 20px; border: 1px solid #b8a697; border-radius: 5px; color: white; }
+.story-first-option[aria-pressed='true'] .story-first-option-mark { border-color: #70513b; background: #70513b; }
+.story-first-custom { color: #715d4e; font-size: 13px; }
+.story-first-custom summary { display: flex; align-items: center; justify-content: space-between; width: fit-content; gap: 8px; cursor: pointer; list-style: none; }
+.story-first-custom summary::-webkit-details-marker { display: none; }
+.story-first-custom[open] summary span { transform: rotate(45deg); }
+.story-first-custom-fields { display: flex; gap: 8px; margin-top: 10px; }
+.story-flow .story-first-stage .story-first-custom input { flex: 1; min-width: 0; min-height: 42px; padding: 8px 12px; border: 1px solid #d9cfc5; border-radius: 10px; background: #fffcf8; font-size: 13px; }
+.story-flow .story-first-stage .story-first-custom button { min-height: 42px; padding: 8px 14px; border: 0; border-radius: 10px; background: #e8dfd5; color: #49301e; font-size: 13px; }
+.story-first-actions { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.story-flow .story-first-stage .story-first-previous,
+.story-flow .story-first-stage .story-first-next { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 11px 18px; border: 0; border-radius: 10px; font-size: 14px; font-weight: 600; box-shadow: none; }
+.story-flow .story-first-stage .story-first-previous { background: transparent; color: #705d4e; }
+.story-flow .story-first-stage .story-first-previous:hover:not(:disabled) { background: #eee8e0; }
+.story-flow .story-first-stage .story-first-previous:disabled { visibility: hidden; }
+.story-flow .story-first-stage .story-first-next { min-width: 150px; background: #49301e; color: white; }
+.story-flow .story-first-stage .story-first-next:hover:not(:disabled) { background: #63452e; }
+.story-flow .story-first-stage .story-first-next:disabled { opacity: .42; }
+.story-flow .story-first-stage :is(button, input, summary):focus-visible,
+.story-flow .story-first-flow-back:focus-visible { outline: 2px solid #79583e; outline-offset: 2px; }
+
+.story-first-email-gate { display: grid; grid-template-columns: minmax(0, 1fr) minmax(330px, .88fr); align-items: center; gap: clamp(44px, 8vw, 120px); width: min(100%, 1160px); height: 100%; min-height: 0; margin: 0 auto; padding: clamp(28px, 5vw, 72px); overflow-y: auto; }
+.story-first-email-intro { min-width: 0; }
+.story-first-email-angel { display: grid; place-items: center; width: 94px; height: 94px; margin-bottom: 28px; border-radius: 50%; background: #eee3d7; box-shadow: 0 0 0 12px #eee3d75c, 0 0 0 26px #eee3d724; }
+.story-first-email-angel-image { width: 76px; height: 76px; object-fit: contain; }
+.story-first-email-kicker { margin-bottom: 12px; color: #846b57; font-size: 12px; font-weight: 700; letter-spacing: .11em; }
+.story-flow .story-first-email-intro h1 { max-width: 530px; margin: 0 0 22px; color: #49301e; font-size: clamp(38px, 4.5vw, 64px); font-weight: 600; letter-spacing: -.055em; line-height: 1.08; }
+.story-first-email-intro > p:not(.story-first-email-kicker) { max-width: 510px; color: #6f5c4d; font-size: clamp(16px, 1.5vw, 18px); line-height: 1.65; }
+.story-first-email-note { display: inline-flex; align-items: center; gap: 9px; margin-top: 30px; color: #6f5c4d; font-size: 13px; font-weight: 600; }
+.story-first-email-note svg { color: #776046; }
+.story-first-preparation { max-width: 510px; margin-top: 20px; color: #70513b; font-size: 13px; line-height: 1.5; }
+.story-first-preparation-error { display: flex; align-items: center; gap: 12px; margin-top: 8px; color: #a53724; font-size: 13px; }
+.story-first-preparation-error button { padding: 0; border: 0; background: transparent; color: #70513b; font-weight: 600; text-decoration: underline; }
+.story-first-handoff { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; width: min(100%, 600px); min-height: calc(100dvh - 68px); margin: auto; padding: 32px 24px; color: #49301e; }
+.story-flow .story-first-handoff h1 { margin: 0 0 18px; font-size: clamp(30px, 4vw, 48px); font-weight: 600; letter-spacing: -.045em; line-height: 1.13; }
+.story-first-handoff p { margin-bottom: 26px; color: #705d4e; font-size: 16px; line-height: 1.55; }
+.story-flow .story-first-handoff button { min-height: 46px; padding: 10px 18px; border: 0; border-radius: 10px; background: #49301e; color: white; font-size: 14px; font-weight: 600; }
+.story-flow .story-first-handoff button:hover { background: #63452e; }
+.story-first-email-form-area { width: 100%; padding: clamp(26px, 3vw, 44px); border: 1px solid #e8ddd1; border-radius: 18px; background: #fffcf8; }
+.story-flow .story-first-email-form-area h2 { margin: 0 0 9px; color: #49301e; font-size: clamp(24px, 2.2vw, 30px); font-weight: 600; letter-spacing: -.035em; line-height: 1.2; }
+.story-first-email-form-area form > p:not(.story-first-email-error),
+.story-first-email-sent > p { color: #746252; font-size: 14px; line-height: 1.55; }
+.story-first-email-form-area form > p:first-of-type { margin-bottom: 28px; }
+.story-first-email-form-area label { display: block; margin-bottom: 9px; color: #49301e; font-size: 13px; font-weight: 600; }
+.story-flow .story-first-email-form-area input { width: 100%; min-height: 52px; padding: 12px 15px; border: 1px solid #d8c9ba; border-radius: 10px; background: white; color: #49301e; font-size: 16px; }
+.story-flow .story-first-email-form-area input:focus { border-color: #79583e; outline: 2px solid #79583e33; outline-offset: 1px; }
+.story-flow .story-first-email-form-area form > button { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 52px; margin-top: 14px; padding: 13px 18px; border: 0; border-radius: 10px; background: #49301e; color: white; font-size: 15px; font-weight: 600; box-shadow: none; }
+.story-flow .story-first-email-form-area form > button:hover:not(:disabled) { background: #63452e; }
+.story-flow .story-first-email-form-area form > button:disabled { opacity: .58; }
+.story-first-email-error { margin-top: 9px; color: #a53724; font-size: 13px; line-height: 1.4; }
+.story-first-email-form-area .story-first-email-fineprint { margin-top: 17px; color: #8a7869; font-size: 12px; text-align: center; }
+.story-first-email-mail-icon { display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: 24px; border-radius: 50%; background: #eee3d7; color: #70513b; }
+.story-first-email-sent strong { color: #49301e; overflow-wrap: anywhere; }
+.story-first-email-sent .story-first-email-hint { margin-top: 16px; }
+.story-first-email-sent-actions { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-top: 28px; }
+.story-flow .story-first-email-sent-actions button { padding: 0; border: 0; border-radius: 0; background: transparent; color: #70513b; font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.story-flow .story-first-email-sent-actions button:disabled { opacity: .55; text-decoration: none; }
+.story-flow .story-first-email-form-area :is(button, input):focus-visible { outline: 2px solid #79583e; outline-offset: 2px; }
+
+@media (max-width: 700px) {
+  .story-first-flow-header { flex-basis: 58px; padding-inline: 16px; }
+  .story-first-flow-logo { width: 108px; }
+  .story-flow .story-first-flow-back { width: 40px; padding: 8px 11px; }
+  .story-first-flow-back span { display: none; }
+  .story-first-stage { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 18px; padding: 12px 18px max(16px, env(safe-area-inset-bottom)); }
+  .story-first-character { gap: 10px; margin-bottom: 12px; font-size: 13px; }
+  .story-first-avatar { flex-basis: 44px; width: 44px; height: 44px; }
+  .story-first-avatar-image { width: 40px; height: 40px; }
+  .story-first-step-count { margin-bottom: 7px; font-size: 11px; }
+  .story-flow .story-first-intro h1 { font-size: clamp(22px, 5.6vw, 30px); line-height: 1.2; }
+  .story-first-guidance { margin-top: 9px; font-size: 12px; }
+  .story-first-response { height: 100%; gap: 10px; }
+  .story-flow .story-first-stage .story-first-option { min-height: 50px; padding: 9px 12px; font-size: 13px; }
+  .story-first-actions { padding-top: 2px; }
+  .story-first-email-gate { grid-template-columns: minmax(0, 1fr); align-content: start; gap: 28px; padding: 20px 18px max(28px, env(safe-area-inset-bottom)); }
+  .story-first-email-angel { width: 62px; height: 62px; margin: 6px 0 22px 7px; box-shadow: 0 0 0 7px #eee3d75c, 0 0 0 15px #eee3d724; }
+  .story-first-email-angel-image { width: 54px; height: 54px; }
+  .story-flow .story-first-email-intro h1 { margin-bottom: 12px; font-size: clamp(32px, 9vw, 42px); }
+  .story-first-email-intro > p:not(.story-first-email-kicker) { font-size: 14px; line-height: 1.5; }
+  .story-first-email-note { margin-top: 14px; }
+  .story-first-email-form-area { padding: 24px 20px; }
 }

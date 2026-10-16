@@ -71,7 +71,7 @@ export default function LandingStoryPreview() {
         ) : (
           <div className="preview-status">
             <p>Die Hörprobe ist gerade nicht verfügbar.</p>
-            <Link href="/ankommen" className="landing-secondary-button">Zum Ankommen</Link>
+            <Link href="/create-story?first=true" className="landing-secondary-button">Meine Power Story erstellen</Link>
           </div>
         )}
       </div>
