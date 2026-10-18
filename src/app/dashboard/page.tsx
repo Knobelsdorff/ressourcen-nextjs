@@ -7,6 +7,7 @@ import type { FirstStoryPhase } from "@/lib/first-story/config";
 import SubscriptionOffer, { SubscriptionOfferVariant } from "@/components/dashboard/SubscriptionOffer";
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
 import SettingsDialog from "@/components/dashboard/SettingsDialog";
+import ArrivalSample, { ArrivalSampleData } from "@/components/dashboard/ArrivalSample";
 import { OPEN_SETTINGS_EVENT } from "@/components/dashboard/settings-events";
 import { FIRST_STORY_TOUR_STEPS, TOUR_ANCHORS } from "@/components/onboarding/firstStoryTour";
 import { scrollToTourAnchor } from "@/components/onboarding/tour-dom";
@@ -128,7 +129,7 @@ export default function Dashboard() {
     }
   }, []);
   const [stories, setStories] = useState<SavedStory[]>([]);
-  const [ankommenStory, setAnkommenStory] = useState<SavedStory | null>(null);
+  const [arrivalSample, setArrivalSample] = useState<ArrivalSampleData | null>(null);
   const [personalStories, setPersonalStories] = useState<SavedStory[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -178,9 +179,6 @@ export default function Dashboard() {
   const [hasSeenDashboardIntro, setHasSeenDashboardIntro] = useState<boolean | null>(null); // null = noch nicht geladen
   
   // Beispiel-Ressourcenfigur Konfiguration (nur für Admins)
-  const [exampleResourceId, setExampleResourceId] = useState<string>("");
-  const [exampleResourceLoading, setExampleResourceLoading] = useState(false);
-  const [exampleResourceError, setExampleResourceError] = useState<string | null>(null);
 
   // Funktion zur Bestimmung des Ressourcen-Typs
   const getResourceTypeLabel = (resourceFigure: any) => {
@@ -586,39 +584,19 @@ export default function Dashboard() {
     }
   }, [user]);
 
-  // Lade Beispiel-Ressource (wie auf /ankommen Seite)
-  const loadExampleResource = useCallback(async () => {
+  // "Zum Ankommen": dieselbe Kostprobe wie im Startseiten-Hero (/admin/kostprobe).
+  const loadArrivalSample = useCallback(async () => {
     try {
-      
-      const response = await fetch('/api/example-resource');
+      const response = await fetch('/api/homepage-sample');
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Fehler beim Laden der Beispiel-Ressourcenfigur');
-      }
-
-      if (data.success && data.resource) {
-        // Konvertiere die Resource zu SavedStory Format für Kompatibilität
-        const exampleStory: SavedStory = {
-          id: data.resource.id,
-          title: data.resource.title,
-          content: data.resource.content,
-          resource_figure: data.resource.resource_figure,
-          question_answers: [],
-          audio_url: data.resource.audio_url,
-          voice_id: data.resource.voice_id,
-          created_at: data.resource.created_at,
-          is_audio_only: false,
-          client_email: null,
-        };
-        
-        setAnkommenStory(exampleStory);
-      } else {
-        throw new Error('Beispiel-Ressourcenfigur nicht gefunden');
-      }
-    } catch (err: any) {
-      console.error('[Dashboard] Error fetching example resource:', err);
-      setAnkommenStory(null);
+      setArrivalSample(
+        response.ok && data.success && data.sample?.audio_url
+          ? { title: data.sample.title || 'Wohlwollende Präsenz', audioUrl: data.sample.audio_url }
+          : null
+      );
+    } catch (err) {
+      console.error('[Dashboard] Kostprobe konnte nicht geladen werden:', err);
+      setArrivalSample(null);
     }
   }, []);
 
@@ -813,7 +791,6 @@ export default function Dashboard() {
 
         setStories(uniqueStories);
 
-        // Note: personalStories is now filtered via useEffect to exclude ankommenStory
 
         calculateUserStats(uniqueStories);
         
@@ -1225,15 +1202,10 @@ export default function Dashboard() {
       loadUserAccess();
       // Lade den vollständigen Namen
       loadFullName();
-      // Lade Beispiel-Ressource (wie auf /ankommen Seite)
-      loadExampleResource();
+      // "Zum Ankommen" (Kostprobe)
+      loadArrivalSample();
       // Lade Dashboard Intro Flag
       loadDashboardIntroFlag();
-
-      // Lade Beispiel-Ressourcenfigur Konfiguration (nur für Admins)
-      if (isAdmin) {
-        fetchExampleResourceConfig();
-      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isAdmin]); // Nur user und isAdmin als Dependency, um Endlosschleife zu vermeiden
@@ -1251,16 +1223,10 @@ export default function Dashboard() {
     }
   }, [hasSeenDashboardIntro, user, markDashboardIntroAsSeen]);
 
-  // Filter personalStories to exclude the ankommenStory (Wohlwollende Präsenz)
-  // This ensures the example resource only shows in "Zum Ankommen" section, not in "Meine Power Storys"
+  // Kopien der Ankommen-Geschichte ("Wohlwollende Präsenz") gehören nicht in
+  // "Meine Power Storys" – sie laufen über "Zum Ankommen".
   useEffect(() => {
-    // Always filter out "Wohlwollende Präsenz" by name/title, regardless of ID
     const filteredStories = stories.filter(story => {
-      // Filter by ankommenStory ID if available
-      if (ankommenStory && story.id === ankommenStory.id) {
-        return false;
-      }
-      // Also forcefully filter by name "Wohlwollende Präsenz"
       if (story.resource_figure?.name === 'Wohlwollende Präsenz') {
         return false;
       }
@@ -1270,68 +1236,7 @@ export default function Dashboard() {
       return true;
     });
     setPersonalStories(filteredStories);
-  }, [stories, ankommenStory]);
-
-  // Lade Beispiel-Ressourcenfigur Konfiguration (nur für Admins)
-  const fetchExampleResourceConfig = useCallback(async () => {
-    if (!isAdmin || !user) return;
-    
-    try {
-      setExampleResourceLoading(true);
-      setExampleResourceError(null);
-
-      const response = await fetch('/api/admin/config');
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        if (data.config) {
-          setExampleResourceId(data.config.value);
-        } else {
-          setExampleResourceId("");
-        }
-      } else {
-        throw new Error(data.error || 'Fehler beim Laden der Konfiguration');
-      }
-    } catch (err: any) {
-      console.error('Error fetching example resource config:', err);
-      setExampleResourceError(err.message || 'Fehler beim Laden der Konfiguration');
-    } finally {
-      setExampleResourceLoading(false);
-    }
-  }, [isAdmin, user]);
-
-
-  // Speichere Beispiel-Ressourcenfigur (nur für Admins)
-  const saveExampleResource = async (resourceId: string) => {
-    try {
-      setExampleResourceLoading(true);
-      setExampleResourceError(null);
-
-      const response = await fetch('/api/admin/config', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ resourceId }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setExampleResourceId(resourceId);
-        setExampleResourceError(null);
-        setFullNameSuccess('Beispiel-Ressourcenfigur erfolgreich gespeichert!');
-        setTimeout(() => setFullNameSuccess(''), 3000);
-      } else {
-        throw new Error(data.error || 'Fehler beim Speichern');
-      }
-    } catch (err: any) {
-      console.error('Error saving example resource:', err);
-      setExampleResourceError(err.message || 'Fehler beim Speichern');
-    } finally {
-      setExampleResourceLoading(false);
-    }
-  };
+  }, [stories]);
 
   // Einziger useEffect für pending stories und URL-Parameter
   useEffect(() => {
@@ -3527,6 +3432,7 @@ ${story.content}
               ) : stories.length === 0 && !pendingStory ? (
                 // Während die Erststory entsteht, erklärt der Hinweis oben alles.
                 firstStoryPreparing ? null : (
+                <>
                 <div className="dashboard-empty bg-white rounded-2xl p-6 sm:p-10">
                   <div className="text-center py-8">
                     <BookOpen className="w-12 h-12 text-secondary-400 mx-auto mb-4" />
@@ -3554,6 +3460,11 @@ ${story.content}
                     </div>
                   </div>
                 </div>
+                {/* Auch ohne eigene Story: die Kostprobe zum Reinhören */}
+                {arrivalSample && (
+                  <ArrivalSample sample={arrivalSample} hasOwnStories={false} onCreateStory={handleCreateStoryClick} />
+                )}
+                </>
                 )
               ) : (
                 <>
@@ -3693,17 +3604,6 @@ ${story.content}
                     </motion.div>
                   )}
                   
-                  {/* Fehlermeldung für Beispiel-Ressourcenfigur (nur für Admins) */}
-                  {isAdmin && exampleResourceError && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4"
-                    >
-                      <p className="text-red-700 text-sm">{exampleResourceError}</p>
-                    </motion.div>
-                  )}
-
                   {personalStories.map((story) => (
                     <StoryCardConnected
                       key={story.id}
@@ -3729,86 +3629,19 @@ ${story.content}
                         player: TOUR_ANCHORS.firstStoryPlayer,
                         trial: TOUR_ANCHORS.firstStoryTrial,
                       } : undefined}
-                      adminExampleControl={
-                        isAdmin && story.audio_url && story.audio_url.trim() !== ''
-                          ? {
-                              isSelected: exampleResourceId === story.id,
-                              isSaving: exampleResourceLoading,
-                              onSelect: () => saveExampleResource(story.id),
-                            }
-                          : undefined
-                      }
                     />
                   ))}
                       </div>
                     )}
                   </div>
 
-                  {/* Section 2: Arrival Space (Ankommen) - SECONDARY - Für alle sichtbar (auch Praxis-Klienten) */}
-                  {ankommenStory && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.6 }}
-                      className="dashboard-arrival rounded-2xl p-6 sm:p-8 mt-8 md:mt-12"
-                    >
-                      {ankommenStory.audio_url ? (
-                        <div className="max-w-lg mx-auto">
-                          <AudioPlayer
-                            audioUrl={ankommenStory.audio_url}
-                            title={ankommenStory.title}
-                            variant="compact"
-                            onPlay={() =>
-                              trackEvent({
-                                eventType: 'audio_play',
-                                metadata: { page_path: '/ankommen' },
-                              })
-                            }
-                            header={
-                              <div className="mb-5 text-center">
-                                <h3 className="text-lg font-medium text-secondary-900">
-                                  {ankommenStory.title}
-                                </h3>
-                                <p className="mt-1 text-sm text-secondary-500">
-                                  Für ruhige Momente zwischendurch
-                                </p>
-                              </div>
-                            }
-                          />
-                          <p className="mt-4 text-center text-sm text-secondary-500">
-                            (immer kostenlos)
-                          </p>
-                          {/* CTA: Eigene Power Story erstellen (ruhig, sekundär) */}
-                          <div className="mt-6 pt-5 border-t border-primary-100">
-                            <p className="text-center text-sm font-medium text-primary-900 mb-1">
-                              {stories.filter((s: SavedStory) => !s.is_audio_only).length === 0
-                                ? 'Möchtest du jetzt deine erste eigene Power Story erstellen?'
-                                : 'Möchtest du eine weitere Power Story erstellen?'}
-                            </p>
-                            <p className="text-center text-xs text-secondary-500 mb-4 max-w-sm mx-auto leading-snug">
-                              In 2–3 Minuten. In deinem Tempo. In Anlehnung an die Arbeit, die wir gemeinsam begonnen haben.
-                            </p>
-                            <div className="flex justify-center">
-                              <button
-                                type="button"
-                                onClick={handleCreateStoryClick}
-                                className="dashboard-secondary-button"
-                              >
-                                <Plus className="w-4 h-4 flex-shrink-0" />
-                                Eine Power Story in deinem Stil entwickeln
-                              </button>
-                            </div>
-                            <p className="text-center text-xs text-secondary-500/70 mt-3 max-w-sm mx-auto leading-snug">
-                              Viele Klient:innen nutzen ihre eigenen Power Storys als sanfte Erinnerung an unsere gemeinsame Arbeit.
-                            </p>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-center py-4 text-primary-600">
-                          <p>Audio wird geladen...</p>
-                        </div>
-                      )}
-                    </motion.div>
+                  {/* Section 2: Zum Ankommen – Kostprobe, immer kostenlos */}
+                  {arrivalSample && (
+                    <ArrivalSample
+                      sample={arrivalSample}
+                      hasOwnStories={stories.some((s: SavedStory) => !s.is_audio_only)}
+                      onCreateStory={handleCreateStoryClick}
+                    />
                   )}
                 </>
               )}

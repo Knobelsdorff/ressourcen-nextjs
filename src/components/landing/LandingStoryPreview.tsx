@@ -21,16 +21,9 @@ export default function LandingStoryPreview() {
             title: sampleData.sample.title || 'Wohlwollende Präsenz',
             audioUrl: sampleData.sample.audio_url,
           });
-          return;
-        }
-
-        const response = await fetch('/api/example-resource', { signal: controller.signal });
-        const data = await response.json();
-        if (response.ok && data.success && data.resource?.audio_url) {
-          setStory({ title: data.resource.title || 'Ein Moment zum Ankommen', audioUrl: data.resource.audio_url });
         }
       } catch {
-        // The existing arrival flow remains available when the preview is unavailable.
+        // Ohne Kostprobe (/admin/kostprobe) zeigt der Hero einfach kein Audio.
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }

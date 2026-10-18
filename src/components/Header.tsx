@@ -137,20 +137,20 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
   };
 
   // Handler für "Neue Power Story erstellen"
-  // Gleiche inhaltliche Logik wie der Button im Dashboard:
-  // - Mit aktivem Zugang: /create-story
-  // - Ohne aktiven Zugang: Paywall auf dem Dashboard (URL bleibt /dashboard)
+  // Gleiche Logik wie der Button im Dashboard (canCreateResource):
+  // - Erste eigene Story ist immer frei, danach braucht es ein aktives Abo → /create-story
+  // - Sonst: Paywall auf dem Dashboard (URL bleibt /dashboard)
   const handleCreateStory = async () => {
     setIsMobileMenuOpen(false);
 
     // Nur eingeloggte Nutzer haben ein Abo-Konzept. Anonyme Nutzer folgen dem bestehenden Flow.
     if (user) {
       try {
-        const { hasActiveAccess } = await import("@/lib/access");
-        const hasAccess = await hasActiveAccess(user.id);
+        const { canCreateResource } = await import("@/lib/access");
+        const canCreate = await canCreateResource(user.id);
 
-        if (!hasAccess) {
-          // Kein aktives Abo:
+        if (!canCreate) {
+          // Freie Story verbraucht und kein aktives Abo:
           // - Wenn wir bereits auf dem Dashboard sind: nur Paywall öffnen, keine Navigation
           if (pathname === "/dashboard") {
             if (typeof window !== "undefined") {

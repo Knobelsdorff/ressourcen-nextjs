@@ -66,12 +66,6 @@ interface StoryCardProps {
   canDelete: boolean;
   isGeneratingAudio?: boolean;
   onGenerateAudio?: () => void;
-  /** Admin: diese Story als Beispiel auf der Startseite zeigen. */
-  adminExampleControl?: {
-    isSelected: boolean;
-    isSaving: boolean;
-    onSelect: () => void;
-  };
   /** Gesperrte Story: Freischalten bzw. Zahlungsmethode aktualisieren. */
   onUnlock?: (reason: StoryLockReason) => void;
   /** Story hat ihr Ende erreicht (siehe useAudioPlayer). */
@@ -95,7 +89,6 @@ export default function StoryCard({
   canDelete,
   isGeneratingAudio = false,
   onGenerateAudio,
-  adminExampleControl,
   onUnlock,
   onCompleted,
   tour,
@@ -239,21 +232,6 @@ export default function StoryCard({
         </div>
       )}
 
-      {adminExampleControl && story.audio_url && (
-        <div className="mt-4 border-t border-secondary-100 pt-3">
-          <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-secondary-600">
-            <input
-              type="radio"
-              name="example-resource"
-              checked={adminExampleControl.isSelected}
-              onChange={adminExampleControl.onSelect}
-              disabled={adminExampleControl.isSaving}
-              className="h-4 w-4 cursor-pointer accent-primary-600 disabled:opacity-50"
-            />
-            Als Beispiel-Ressource auf der Startseite zeigen
-          </label>
-        </div>
-      )}
     </motion.article>
   );
 }

@@ -8,7 +8,9 @@
       "Bash(npm run build:*)",
       "Bash(test:*)",
       "Bash(npx tsc:*)",
-      "mcp__claude-in-chrome__tabs_context_mcp"
+      "mcp__claude-in-chrome__tabs_context_mcp",
+      "ClaudeInChromeDomain(localhost:3000)",
+      "ClaudeInChromeDomain(localhost:3100)"
     ],
     "deny": [],
     "ask": []
