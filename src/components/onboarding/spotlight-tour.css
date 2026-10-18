@@ -1,0 +1,191 @@
+/*
+ * Spotlight-Tour. Farben/Abstände als Variablen, damit ein späteres Redesign
+ * nur hier ansetzen muss. Die Tour liegt per Portal direkt in <body>.
+ */
+.spotlight-tour {
+  --tour-overlay: rgba(36, 24, 16, 0.6);
+  --tour-ring: #fffaf2;
+  --tour-surface: #fffaf2;
+  --tour-border: #ecdfcd;
+  --tour-text: #49301e;
+  --tour-muted: #69594c;
+  --tour-accent: #49301e;
+  --tour-accent-hover: #63452e;
+  --tour-accent-text: #ffffff;
+  --tour-dot: #e2d5c4;
+  --tour-focus: #7952b8;
+
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+  color: var(--tour-text);
+}
+
+.spotlight-tour-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: spotlight-tour-fade 0.3s ease-out;
+}
+
+/* Fängt Klicks außerhalb des Lochs ab; das Loch selbst bleibt bedienbar. */
+.spotlight-tour-dim {
+  fill: var(--tour-overlay);
+  fill-rule: evenodd;
+  pointer-events: visiblePainted;
+}
+
+.spotlight-tour-ring {
+  fill: none;
+  stroke: var(--tour-ring);
+  stroke-opacity: 0.9;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.spotlight-tour-popover {
+  position: fixed;
+  pointer-events: auto;
+  box-sizing: border-box;
+  padding: 20px 22px 18px;
+  border: 1px solid var(--tour-border);
+  border-radius: 22px;
+  background: var(--tour-surface);
+  box-shadow: 0 18px 50px rgba(36, 24, 16, 0.28);
+  animation: spotlight-tour-rise 0.28s ease-out;
+}
+
+.spotlight-tour-popover.is-sheet {
+  left: 12px;
+  right: 12px;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+.spotlight-tour-progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  color: var(--tour-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.spotlight-tour-dots {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.spotlight-tour-dots > span {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--tour-dot);
+  transition: width 0.25s ease, background-color 0.25s ease;
+}
+
+.spotlight-tour-dots > span.is-done {
+  background: var(--tour-muted);
+}
+
+.spotlight-tour-dots > span.is-active {
+  width: 20px;
+  background: var(--tour-accent);
+}
+
+.spotlight-tour-popover h2 {
+  margin: 0 0 6px;
+  font-family: 'Trebuchet MS', Arial, sans-serif;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.spotlight-tour-popover p {
+  margin: 0;
+  color: var(--tour-muted);
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+
+.spotlight-tour-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.spotlight-tour-nav {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.spotlight-tour-popover button {
+  min-height: 44px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.spotlight-tour-skip {
+  padding: 0 4px;
+  background: transparent;
+  color: var(--tour-muted);
+}
+
+.spotlight-tour-skip:hover {
+  color: var(--tour-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.spotlight-tour-back {
+  padding: 0 16px;
+  background: transparent;
+  color: var(--tour-text);
+}
+
+.spotlight-tour-back:hover {
+  background: #f1e8dc;
+}
+
+.spotlight-tour-next {
+  padding: 0 22px;
+  background: var(--tour-accent);
+  color: var(--tour-accent-text);
+}
+
+.spotlight-tour-next:hover {
+  background: var(--tour-accent-hover);
+}
+
+.spotlight-tour-popover button:focus-visible {
+  outline: 3px solid var(--tour-focus);
+  outline-offset: 3px;
+}
+
+@keyframes spotlight-tour-fade {
+  from { opacity: 0; }
+}
+
+@keyframes spotlight-tour-rise {
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spotlight-tour-overlay,
+  .spotlight-tour-popover {
+    animation: none;
+  }
+  .spotlight-tour-dots > span {
+    transition: none;
+  }
+}

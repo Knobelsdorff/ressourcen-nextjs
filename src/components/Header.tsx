@@ -7,6 +7,7 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { scrollToAnchor } from "@/lib/navigation-helpers";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Menu, X, UserCircle, ChevronDown } from "lucide-react";
+import { TOUR_ANCHORS } from "@/components/onboarding/firstStoryTour";
 
 // useSearchParams() im Root-Layout braucht eine Suspense-Grenze, sonst
 // scheitert `next build` beim statischen Rendern jeder Seite. Der Fallback
@@ -225,7 +226,7 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
   return (
     <>
       {/* Header - Global auf allen Seiten */}
-      <header data-dashboard={(pathname?.startsWith('/dashboard') || pathname?.startsWith('/admin') || pathname === '/auth/set-password' || pathname === '/create-story') || undefined} data-landing={pathname === '/' || undefined} className="bg-white border-b border-amber-100/60 lg:sticky lg:top-0 lg:z-50">
+      <header data-tour-offset data-dashboard={(pathname?.startsWith('/dashboard') || pathname?.startsWith('/admin') || pathname === '/auth/set-password' || pathname === '/create-story') || undefined} data-landing={pathname === '/' || undefined} className="bg-white border-b border-amber-100/60 lg:sticky lg:top-0 lg:z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 md:py-5 flex justify-between items-center">
           {/* Logo – eingeloggt: /dashboard, sonst Startseite */}
           <div className="flex items-center space-x-2">
@@ -291,6 +292,7 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
                 <div ref={profileMenuRef} className="relative ml-2">
                   <button
                     type="button"
+                    data-tour={TOUR_ANCHORS.account}
                     onClick={() => setIsProfileMenuOpen((open) => !open)}
                     aria-expanded={isProfileMenuOpen}
                     aria-haspopup="menu"
@@ -353,6 +355,7 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
           <div className="md:hidden flex items-center">
             <button
               ref={hamburgerButtonRef}
+              data-tour={TOUR_ANCHORS.account}
               onClick={() => setIsMobileMenuOpen(true)}
               className="p-2 rounded-lg text-amber-900 hover:bg-amber-50 transition-colors"
               aria-label="Menü öffnen"

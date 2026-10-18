@@ -127,7 +127,7 @@
 
 /* Abo-Angebot: ruhig, kein harter Paywall-Dialog */
 /* div.… schlägt `.dashboard-theme > div { background }` weiter oben. */
-div.subscription-offer-backdrop { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(48, 32, 20, 0.28); animation: subscription-offer-fade 0.25s ease-out; }
+div.subscription-offer-backdrop { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(48, 32, 20, 0.28); animation: subscription-offer-fade 0.25s ease-out; }
 .subscription-offer { width: min(100%, 460px); max-height: calc(100dvh - 32px); overflow-y: auto; padding: 32px 30px 26px; border: 1px solid #ecdfcd; border-radius: 28px; background: #fffaf2; box-shadow: 0 24px 60px rgba(73, 48, 30, 0.18); color: #49301e; text-align: center; animation: subscription-offer-rise 0.3s ease-out; }
 .subscription-offer-icon { display: grid; place-items: center; width: 68px; height: 68px; margin: 0 auto 18px; border-radius: 50%; background: #eee3d7; box-shadow: 0 0 0 8px #eee3d75c; }
 .subscription-offer h2 { font-size: clamp(21px, 2.6vw, 25px); font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; }

@@ -76,6 +76,8 @@ interface StoryCardProps {
   onUnlock?: (reason: StoryLockReason) => void;
   /** Story hat ihr Ende erreicht (siehe useAudioPlayer). */
   onCompleted?: () => void;
+  /** data-tour-Anker für Einführungen (src/components/onboarding). */
+  tour?: { card?: string; player?: string; trial?: string };
 }
 
 export default function StoryCard({
@@ -96,6 +98,7 @@ export default function StoryCard({
   adminExampleControl,
   onUnlock,
   onCompleted,
+  tour,
 }: StoryCardProps) {
   const created = formatDateWithTitle(story.created_at);
   const lockReason = story.access && !story.access.playable ? story.access.lockReason ?? "trial_ended" : null;
@@ -107,6 +110,7 @@ export default function StoryCard({
 
   return (
     <motion.article
+      data-tour={tour?.card}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
@@ -158,7 +162,7 @@ export default function StoryCard({
               </span>
             )}
             {freeDaysLeft > 0 && (
-              <span className="dashboard-badge-trial rounded-full px-2 py-0.5 text-xs font-medium">
+              <span data-tour={tour?.trial} className="dashboard-badge-trial rounded-full px-2 py-0.5 text-xs font-medium">
                 {freeDaysLeft === 1 ? "Noch heute kostenlos" : `Noch ${freeDaysLeft} Tage kostenlos`}
               </span>
             )}
@@ -190,16 +194,20 @@ export default function StoryCard({
           </div>
         </div>
       ) : story.audio_url ? (
-        <AudioPlayer
-          audioUrl={story.audio_url}
-          title={story.title}
-          storyId={story.id}
-          resourceFigure={story.resource_figure}
-          variant={withBLS ? "bls" : "standard"}
-          blsExpanded={blsExpanded}
-          onToggleBLS={onToggleBLS}
-          onCompleted={onCompleted}
-        />
+        // Wrapper immer rendern: Würde er nur für die Tour erscheinen, würde
+        // der Player beim Ende der Tour neu gemountet und laufendes Audio stoppen.
+        <div data-tour={tour?.player}>
+          <AudioPlayer
+            audioUrl={story.audio_url}
+            title={story.title}
+            storyId={story.id}
+            resourceFigure={story.resource_figure}
+            variant={withBLS ? "bls" : "standard"}
+            blsExpanded={blsExpanded}
+            onToggleBLS={onToggleBLS}
+            onCompleted={onCompleted}
+          />
+        </div>
       ) : (
         <div className="rounded-xl bg-secondary-50 px-4 py-6 text-center">
           <p className="mb-4 text-sm text-secondary-600">

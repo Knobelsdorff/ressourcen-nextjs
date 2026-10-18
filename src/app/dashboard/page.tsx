@@ -5,6 +5,9 @@ import DashboardWelcome from "@/components/dashboard/DashboardWelcome";
 import FirstStoryWelcome, { FirstStoryWelcomeState } from "@/components/dashboard/FirstStoryWelcome";
 import type { FirstStoryPhase } from "@/lib/first-story/config";
 import SubscriptionOffer, { SubscriptionOfferVariant } from "@/components/dashboard/SubscriptionOffer";
+import SpotlightTour from "@/components/onboarding/SpotlightTour";
+import { FIRST_STORY_TOUR_STEPS, TOUR_ANCHORS } from "@/components/onboarding/firstStoryTour";
+import { scrollToTourAnchor } from "@/components/onboarding/tour-dom";
 import type { StoryAccess, StoryLockReason } from "@/lib/story-access/shared";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, Volume2, User, Mail, Calendar, Clock, Star, Trophy, Target, Shield, HelpCircle, MessageCircle, Bug, Key, Trash, Crown, Zap, TrendingUp, Play, Pause, BarChart3, Lock, Music, RefreshCw, Plus, RotateCcw, CreditCard, Sparkles, Headphones } from "lucide-react";
@@ -3415,12 +3418,38 @@ ${story.content}
     if (seenError) console.warn('[Dashboard] welcome_seen_at konnte nicht gespeichert werden:', seenError.message);
   }, []);
 
-  const listenToWelcomeStory = useCallback(() => {
-    if (!welcomeStory) return;
-    // Die Erststory ist die neueste und steht deshalb oben in der Liste.
-    document.querySelector('.dashboard-story-list .dashboard-story-card')
-      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    void markWelcomeSeen(welcomeStory.id);
+  // ---------------------------------------------------------------------------
+  // Einführung (Spotlight-Tour) für die Erststory. Startet einmal automatisch,
+  // sobald die Story bereitsteht; "Jetzt anhören" im Hinweis startet sie auch.
+  // Ende oder Überspringen markiert den Willkommens-Hinweis als gesehen
+  // (welcome_seen_at) – danach erscheint beides nicht mehr.
+  // ---------------------------------------------------------------------------
+  const [tourOpen, setTourOpen] = useState(false);
+  const tourAutoStartedRef = useRef(false);
+  // Anker der Tour hängen an der Erststory des Accounts (höchstens eine) –
+  // unabhängig davon, ob der Willkommens-Hinweis schon gesehen wurde.
+  const firstStoryId = personalStories.find((story) => story.first_story_draft_id)?.id ?? null;
+
+  useEffect(() => {
+    if (!welcomeStory || loading || offerVariant || tourAutoStartedRef.current) return;
+    // Kurz warten, bis Liste und Karte stehen. Erst beim Öffnen als gestartet
+    // merken – lädt die Liste zwischendurch neu, wird es erneut versucht.
+    const timer = setTimeout(() => {
+      tourAutoStartedRef.current = true;
+      setTourOpen(true);
+    }, 700);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [welcomeStory?.id, loading, offerVariant]);
+
+  const startTour = useCallback(() => setTourOpen(true), []);
+
+  const handleTourEnd = useCallback(() => {
+    setTourOpen(false);
+    if (welcomeStory) void markWelcomeSeen(welcomeStory.id);
+    // Der Hinweis über der Liste verschwindet dabei und die Karte rückt nach
+    // oben – erst danach zur Story scrollen, damit direkt Play möglich ist.
+    setTimeout(() => scrollToTourAnchor(TOUR_ANCHORS.firstStory), 80);
   }, [welcomeStory, markWelcomeSeen]);
 
   if (authLoading || !user) {
@@ -3446,13 +3475,14 @@ ${story.content}
           <FirstStoryWelcome
             state={welcomeState}
             isFirstStory={personalStories.filter((story) => !story.is_audio_only).length <= 1}
-            onListen={listenToWelcomeStory}
+            onListen={startTour}
             onDismiss={welcomeStory ? () => void markWelcomeSeen(welcomeStory.id) : undefined}
             onRetry={retryFirstStory}
           />
         )}
 
         <SubscriptionOffer variant={offerVariant} onClose={closeOffer} />
+        <SpotlightTour steps={FIRST_STORY_TOUR_STEPS} open={tourOpen} onEnd={handleTourEnd} />
 
         {/* Content */}
         <motion.div
@@ -3502,6 +3532,7 @@ ${story.content}
                       </div>
                       <button
                         onClick={handleCreateStoryClick}
+                        data-tour={TOUR_ANCHORS.newStory}
                         className="dashboard-primary-button"
                       >
                         <Plus className="w-5 h-5" />
@@ -3648,6 +3679,11 @@ ${story.content}
                       onGenerateAudio={() => generateAudio(story.id)}
                       onUnlock={handleUnlockStory}
                       onCompleted={story.access?.policy === 'trial' ? () => void handleStoryCompleted(story.id) : undefined}
+                      tour={story.id === firstStoryId ? {
+                        card: TOUR_ANCHORS.firstStory,
+                        player: TOUR_ANCHORS.firstStoryPlayer,
+                        trial: TOUR_ANCHORS.firstStoryTrial,
+                      } : undefined}
                       adminExampleControl={
                         isAdmin && story.audio_url && story.audio_url.trim() !== ''
                           ? {
