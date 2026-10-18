@@ -2,6 +2,7 @@ import Stripe from 'stripe'
 import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { secureSubscriptionStoriesForStripeSubscription } from '@/lib/story-access/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -144,6 +145,9 @@ export async function POST(req: Request) {
         } else {
           console.log('[stripe/webhook] Subscription status updated successfully')
         }
+        if (updatedSubscription.status !== 'active') {
+          await secureSubscriptionStoriesForStripeSubscription(updatedSubscription.id)
+        }
         break
 
       case 'customer.subscription.deleted':
@@ -169,6 +173,7 @@ export async function POST(req: Request) {
         } else {
           console.log('[stripe/webhook] Subscription access canceled successfully')
         }
+        await secureSubscriptionStoriesForStripeSubscription(deletedSubscription.id)
         break
 
       case 'customer.subscription.paused':
@@ -194,6 +199,7 @@ export async function POST(req: Request) {
         } else {
           console.log('[stripe/webhook] Subscription access paused successfully')
         }
+        await secureSubscriptionStoriesForStripeSubscription(pausedSubscription.id)
         break
 
       case 'customer.subscription.resumed':
@@ -281,6 +287,7 @@ export async function POST(req: Request) {
           } else {
             console.log('[stripe/webhook] Subscription marked as past_due after failed payment')
           }
+          await secureSubscriptionStoriesForStripeSubscription(failedSubscriptionId)
         }
         break
 

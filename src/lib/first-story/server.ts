@@ -18,9 +18,10 @@ import { createServerClient } from '@supabase/ssr';
 import { Database } from '@/lib/types/database.types';
 import { createServerAdminClient } from '@/lib/supabase/serverAdminClient';
 import { fictionalFigures } from '@/data/figures';
-import { AnswerEntry, generateStoryText } from '@/lib/story-text';
+import { type AnswerEntry, generateStoryText } from '@/lib/story-text';
 import { getAppBaseUrl } from '@/lib/app-url';
-import { FIRST_STORY_FIGURE_ID, FIRST_STORY_LINK_DAYS, FirstStoryPhase } from './config';
+import { movePublicAudioToPrivate, publicAudioPath } from '@/lib/story-access/server';
+import { FIRST_STORY_FIGURE_ID, FIRST_STORY_LINK_DAYS, type FirstStoryPhase } from './config';
 
 type AdminClient = Awaited<ReturnType<typeof createServerAdminClient>>;
 
@@ -250,10 +251,32 @@ export async function attachDraftToUser(admin: AdminClient, draftId: string, use
   if (error) console.error('[FirstStory] Zuordnung fehlgeschlagen:', error.message);
 }
 
+const DEFAULT_TRIAL_SECONDS = 7 * 24 * 60 * 60;
+
+/**
+ * Dauer der kostenlosen Testphase der Erststory, ab Speicherung im Account.
+ * FIRST_STORY_TRIAL_MINUTES (nur serverseitig) – lokal z.B. 1 zum Testen.
+ * Nicht gesetzt oder ungültig: 7 Tage.
+ */
+export function firstStoryTrialSeconds(): number {
+  const minutes = Number(process.env.FIRST_STORY_TRIAL_MINUTES);
+  if (!process.env.FIRST_STORY_TRIAL_MINUTES || !Number.isFinite(minutes) || minutes <= 0) {
+    return DEFAULT_TRIAL_SECONDS;
+  }
+  return Math.max(1, Math.round(minutes * 60));
+}
+
 /** Gibt die Story-ID zurück, sobald der Entwurf fertig UND zugeordnet ist. Idempotent. */
 export async function claimFirstStoryDraft(draftId: string): Promise<string | null> {
   const admin = await createServerAdminClient();
-  const { data, error } = await (admin as any).rpc('first_story_claim_draft', { p_draft_id: draftId });
+  let { data, error } = await (admin as any).rpc('first_story_claim_draft', {
+    p_draft_id: draftId,
+    p_trial_seconds: firstStoryTrialSeconds(),
+  });
+  if (error?.code === 'PGRST202') {
+    // Migration 20261018120000 noch nicht eingespielt: alte Variante ohne Dauer.
+    ({ data, error } = await (admin as any).rpc('first_story_claim_draft', { p_draft_id: draftId }));
+  }
   if (error) {
     console.error('[FirstStory] first_story_claim_draft fehlgeschlagen:', error.message);
     return null;
@@ -334,6 +357,24 @@ async function generateAudioUrl(text: string, voiceId: string): Promise<string> 
 }
 
 /**
+ * Die Erststory ist nur 7 Tage frei abspielbar – ihr Audio gehört deshalb von
+ * Anfang an in den privaten Bucket. Fehlt der Bucket (Migration noch nicht
+ * eingespielt), bleibt die öffentliche Datei: Die Story funktioniert dann wie
+ * bisher, und das Dashboard verschiebt sie später.
+ */
+async function storeAudioPrivately(admin: AdminClient, draftId: string, audioUrl: string): Promise<string> {
+  const sourcePath = publicAudioPath(audioUrl);
+  if (!sourcePath) return audioUrl;
+  try {
+    const fileName = sourcePath.split('/').pop() || `${draftId}.mp3`;
+    return await movePublicAudioToPrivate(admin, sourcePath, `first-story/${draftId}/${fileName}`);
+  } catch (e) {
+    console.error('[FirstStory] Audio bleibt vorerst öffentlich:', draftId, e instanceof Error ? e.message : e);
+    return audioUrl;
+  }
+}
+
+/**
  * Erzeugt Text und Audio für einen Entwurf und speichert ihn, falls er schon
  * zugeordnet ist. Sicher bei parallelen Aufrufen: nur wer die Sperre bekommt,
  * arbeitet. Fortsetzbar: bereits erzeugter Text wird nicht neu erzeugt.
@@ -370,7 +411,7 @@ export async function processFirstStoryDraft(draftId: string, maxAttempts = AUTO
     if (!draft.audio_url) {
       console.log('[FirstStory] Erzeuge Audio für', draftId);
       const audioUrl = await generateAudioUrl(story, draft.voice_id);
-      await updateDraft(admin, draftId, { audio_url: audioUrl });
+      await updateDraft(admin, draftId, { audio_url: await storeAudioPrivately(admin, draftId, audioUrl) });
     }
 
     await updateDraft(admin, draftId, { status: 'ready', locked_at: null });

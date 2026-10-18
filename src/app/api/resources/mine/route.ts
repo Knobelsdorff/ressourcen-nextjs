@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { Database } from '@/lib/types/database.types';
 import { createServerAdminClient } from '@/lib/supabase/serverAdminClient';
+import { presentStoriesForUser } from '@/lib/story-access/server';
 
 /**
  * Lädt alle Stories des eingeloggten Users inkl. Zuordnung pending client_email-Ressourcen.
@@ -79,10 +80,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Zugang serverseitig prüfen: gesperrte Storys kommen ohne abspielbare URL.
+    const presented = await presentStoriesForUser(supabaseAdmin, stories || [], user);
+
     return NextResponse.json({
       success: true,
       assignedCount,
-      stories: stories || [],
+      stories: presented,
     });
   } catch (error: any) {
     return NextResponse.json(

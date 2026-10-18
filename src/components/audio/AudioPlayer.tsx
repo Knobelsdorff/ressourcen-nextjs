@@ -28,6 +28,8 @@ interface AudioPlayerProps {
   storyId?: string;
   resourceFigure?: any;
   onEnded?: () => void;
+  /** Stimme hat ihr Ende erreicht (siehe useAudioPlayer). */
+  onCompleted?: () => void;
   /** Wird beim Start der Wiedergabe aufgerufen – z.B. für Analytics. */
   onPlay?: () => void;
   variant?: AudioPlayerVariant;
@@ -47,6 +49,7 @@ export default function AudioPlayer({
   storyId,
   resourceFigure,
   onEnded,
+  onCompleted,
   onPlay,
   variant = "standard",
   blsExpanded = false,
@@ -64,7 +67,7 @@ export default function AudioPlayer({
     seekTo,
     skipBy,
     hasBackgroundMusic,
-  } = useAudioPlayer({ audioUrl, storyId, resourceFigure, onEnded });
+  } = useAudioPlayer({ audioUrl, storyId, resourceFigure, onEnded, onCompleted });
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const statusId = useId();

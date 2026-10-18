@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { Database } from '@/lib/types/database.types';
 import { createServerAdminClient } from '@/lib/supabase/serverAdminClient';
 import { extractFilenameFromUrl } from '@/lib/audio-token';
+import { isPrivateAudioRef } from '@/lib/story-access/server';
 import { tmpdir } from 'os';
 import { join, basename } from 'path';
 import { writeFile, readFile, unlink } from 'fs/promises';
@@ -240,6 +241,11 @@ export async function POST(request: NextRequest) {
 
     if (!story.audio_url) {
       return NextResponse.json({ error: 'Story hat keine Audio-URL' }, { status: 400 });
+    }
+
+    // Privates Audio (Testphase/Abo) nie in den öffentlichen Bucket konvertieren.
+    if (isPrivateAudioRef(story.audio_url)) {
+      return NextResponse.json({ error: 'Privates Audio wird nicht konvertiert' }, { status: 409 });
     }
 
     if (isSafariCompatibleUrl(story.audio_url)) {

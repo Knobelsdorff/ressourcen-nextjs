@@ -18,6 +18,8 @@
 BEGIN;
 
 DROP FUNCTION IF EXISTS public.first_story_claim_draft(uuid);
+-- Variante mit Testphasen-Dauer (ab 20261018120000)
+DROP FUNCTION IF EXISTS public.first_story_claim_draft(uuid, integer);
 DROP FUNCTION IF EXISTS public.first_story_lock_draft(uuid, integer, integer);
 
 DROP INDEX IF EXISTS public.saved_stories_one_first_story_per_user;

@@ -1,21 +1,29 @@
 import Stripe from 'stripe'
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createSSRClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}))
-    const userId = body?.userId as string | undefined
 
     if (!process.env.STRIPE_SECRET_KEY) {
       return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 })
     }
 
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+    // Nur für den eigenen Account – sonst ließe sich das Kundenportal
+    // (Abo kündigen, Rechnungen) eines fremden Accounts öffnen.
+    const authClient = await createSSRClient()
+    const { data: { user } } = await authClient.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Bitte melde dich zuerst an.' }, { status: 401 })
     }
+    if (body?.userId && body.userId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+    const userId = user.id
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
     const requestUrl = new URL(request.url)

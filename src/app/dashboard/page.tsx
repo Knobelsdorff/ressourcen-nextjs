@@ -4,6 +4,8 @@ import { motion, MotionConfig } from "framer-motion";
 import DashboardWelcome from "@/components/dashboard/DashboardWelcome";
 import FirstStoryWelcome, { FirstStoryWelcomeState } from "@/components/dashboard/FirstStoryWelcome";
 import type { FirstStoryPhase } from "@/lib/first-story/config";
+import SubscriptionOffer, { SubscriptionOfferVariant } from "@/components/dashboard/SubscriptionOffer";
+import type { StoryAccess, StoryLockReason } from "@/lib/story-access/shared";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, Volume2, User, Mail, Calendar, Clock, Star, Trophy, Target, Shield, HelpCircle, MessageCircle, Bug, Key, Trash, Crown, Zap, TrendingUp, Play, Pause, BarChart3, Lock, Music, RefreshCw, Plus, RotateCcw, CreditCard, Sparkles, Headphones } from "lucide-react";
 import Link from "next/link";
@@ -48,6 +50,8 @@ interface SavedStory {
   /** Gesetzt bei Storys aus dem Erststory-Flow (Migration 20261017120000). */
   first_story_draft_id?: string | null;
   welcome_seen_at?: string | null;
+  /** Vom Server berechnet: abspielbar oder gesperrt (Migration 20261018120000). */
+  access?: StoryAccess;
 }
 
 /** So lange zeigt das Dashboard den Willkommens-Hinweis für eine neue Erststory. */
@@ -3328,9 +3332,51 @@ ${story.content}
     setFirstStoryPollKey((key) => key + 1);
   }, []);
 
+  // ---------------------------------------------------------------------------
+  // Abo-Angebot: einmalig nach dem ersten vollständigen Hören der Erststory
+  // (der Server entscheidet, ob es gezeigt wird) und bei gesperrten Storys.
+  // ---------------------------------------------------------------------------
+  const [offerVariant, setOfferVariant] = useState<SubscriptionOfferVariant | null>(null);
+  const closeOffer = useCallback(() => setOfferVariant(null), []);
+
+  const handleStoryCompleted = useCallback(async (storyId: string) => {
+    try {
+      const response = await fetch('/api/first-story/completed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ storyId }),
+      });
+      const { showOffer } = await response.json();
+      // Kurz nachklingen lassen, statt das Ende der Geschichte zu überdecken.
+      if (showOffer) setTimeout(() => setOfferVariant('after-first-story'), 2500);
+    } catch { /* Ohne Angebot weiterhören ist in Ordnung. */ }
+  }, []);
+
+  const handleUnlockStory = useCallback(async (reason: StoryLockReason) => {
+    if (reason !== 'payment_failed') {
+      setOfferVariant('locked');
+      return;
+    }
+    // Zahlung fehlgeschlagen: bestehendes Abo reparieren, kein zweites abschließen.
+    try {
+      const response = await fetch('/api/stripe/customer-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: '{}',
+      });
+      const { url } = await response.json();
+      window.location.href = url || '/dashboard/profil';
+    } catch {
+      window.location.href = '/dashboard/profil';
+    }
+  }, []);
+
   const welcomeStory = personalStories.find((story) =>
     story.first_story_draft_id &&
     !story.welcome_seen_at &&
+    story.access?.playable !== false &&
     story.id !== dismissedWelcomeStoryId &&
     Date.now() - new Date(story.created_at).getTime() < FIRST_STORY_WELCOME_DAYS * 24 * 60 * 60 * 1000
   );
@@ -3405,6 +3451,8 @@ ${story.content}
             onRetry={retryFirstStory}
           />
         )}
+
+        <SubscriptionOffer variant={offerVariant} onClose={closeOffer} />
 
         {/* Content */}
         <motion.div
@@ -3598,6 +3646,8 @@ ${story.content}
                       canDelete={personalStories.length > 1}
                       isGeneratingAudio={generatingAudioFor === story.id}
                       onGenerateAudio={() => generateAudio(story.id)}
+                      onUnlock={handleUnlockStory}
+                      onCompleted={story.access?.policy === 'trial' ? () => void handleStoryCompleted(story.id) : undefined}
                       adminExampleControl={
                         isAdmin && story.audio_url && story.audio_url.trim() !== ''
                           ? {

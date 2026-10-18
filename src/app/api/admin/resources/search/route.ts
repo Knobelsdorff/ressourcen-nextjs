@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { Database } from '@/lib/types/database.types';
 import { createServerAdminClient } from '@/lib/supabase/serverAdminClient';
+import { playableAudioUrlForAdmin } from '@/lib/story-access/server';
 
 /**
  * Prüft ob der aktuelle User ein Admin ist (Full Admin)
@@ -107,7 +108,9 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        resource: resource,
+        resource: resource
+          ? { ...resource, audio_url: await playableAudioUrlForAdmin(supabaseAdmin, resource.audio_url) }
+          : resource,
       });
     }
 
@@ -381,9 +384,17 @@ export async function GET(request: NextRequest) {
       console.log('[API/admin/resources/search] No resources found. Query:', query, 'Email:', email);
     }
 
+    // Privates Audio (Testphase/Abo) für die Admin-Ansicht signieren.
+    const playableResources = await Promise.all(
+      (resources || []).map(async (r: any) => ({
+        ...r,
+        audio_url: await playableAudioUrlForAdmin(supabaseAdmin, r.audio_url),
+      }))
+    );
+
     return NextResponse.json({
       success: true,
-      resources: resources || [],
+      resources: playableResources,
       count: resources?.length || 0
     });
   } catch (error: any) {

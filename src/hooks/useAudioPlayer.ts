@@ -27,6 +27,8 @@ export interface UseAudioPlayerOptions {
   /** Bestimmt die Hintergrundmusik. Referenz-instabil – wird bewusst in einer Ref gehalten. */
   resourceFigure?: any;
   onEnded?: () => void;
+  /** Die Stimme hat ihr Ende erreicht – egal ob durchgehört oder vorgespult. */
+  onCompleted?: () => void;
 }
 
 export interface UseAudioPlayerResult {
@@ -108,6 +110,7 @@ export function useAudioPlayer({
   storyId,
   resourceFigure,
   onEnded,
+  onCompleted,
 }: UseAudioPlayerOptions): UseAudioPlayerResult {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -129,9 +132,11 @@ export function useAudioPlayer({
   // Referenz-instabile Werte in Refs spiegeln, damit sie den Audio-Effekt
   // unten NICHT neu auslösen. Genau hier lag der Abbruch-Bug.
   const onEndedRef = useRef(onEnded);
+  const onCompletedRef = useRef(onCompleted);
   const resourceFigureRef = useRef(resourceFigure);
   useEffect(() => {
     onEndedRef.current = onEnded;
+    onCompletedRef.current = onCompleted;
     resourceFigureRef.current = resourceFigure;
   });
 
@@ -351,6 +356,8 @@ export function useAudioPlayer({
     };
 
     const handleEnded = () => {
+      onCompletedRef.current?.();
+
       const music = musicRef.current;
       const musicOutlastsVoice =
         music && !music.paused && !music.ended && music.duration > audio.duration;

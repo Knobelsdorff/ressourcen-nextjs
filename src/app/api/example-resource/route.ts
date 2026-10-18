@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerAdminClient } from '@/lib/supabase/serverAdminClient';
+import { playableAudioUrlForAdmin } from '@/lib/story-access/server';
 
 /**
  * Öffentliche API-Route zum Abrufen der Beispiel-Ressourcenfigur
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
         title: resource.title,
         content: resource.content,
         resource_figure: resource.resource_figure,
-        audio_url: resource.audio_url,
+        audio_url: await playableAudioUrlForAdmin(supabaseAdmin, resource.audio_url),
         voice_id: resource.voice_id,
         created_at: resource.created_at,
       },

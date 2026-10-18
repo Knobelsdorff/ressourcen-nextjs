@@ -26,12 +26,19 @@ export default function PaymentSuccessModal({ onClose, message }: PaymentSuccess
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" suppressHydrationWarning>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#38261966] p-4 backdrop-blur-[5px]"
+      suppressHydrationWarning
+    >
       <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="payment-success-title"
+        initial={{ scale: 0.97, opacity: 0, y: 8 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.97, opacity: 0 }}
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        className="relative w-full max-w-md rounded-[30px] border border-[#e4ded6] bg-[#fdfbf8] p-8 shadow-[0_24px_90px_#38261930]"
       >
         <div className="text-center">
           {/* Success Icon */}
@@ -39,17 +46,18 @@ export default function PaymentSuccessModal({ onClose, message }: PaymentSuccess
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-            className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6"
+            className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#e5ebd8]"
           >
-            <CheckCircle className="w-12 h-12 text-green-600" />
+            <CheckCircle className="h-11 w-11 text-[#526735]" aria-hidden="true" />
           </motion.div>
 
           {/* Title */}
           <motion.h2
+            id="payment-success-title"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="text-2xl font-bold text-gray-900 mb-3"
+            className="mb-3 text-2xl font-bold tracking-[-0.035em] text-[#49301e] [font-family:'Trebuchet_MS',Arial,sans-serif]"
           >
             Zahlung erfolgreich!
           </motion.h2>
@@ -59,7 +67,8 @@ export default function PaymentSuccessModal({ onClose, message }: PaymentSuccess
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className="text-gray-600 mb-6"
+            className="mb-6 leading-relaxed text-[#69594c]"
+            role="status"
           >
             {message || "Dein Zugang wurde aktiviert. Die Seite wird automatisch aktualisiert..."}
           </motion.p>
@@ -69,9 +78,9 @@ export default function PaymentSuccessModal({ onClose, message }: PaymentSuccess
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
-            className="flex items-center justify-center gap-2 text-amber-600"
+            className="flex items-center justify-center gap-2 text-[#857465]"
           >
-            <Sparkles className="w-5 h-5 animate-pulse" />
+            <Sparkles className="h-5 w-5 animate-pulse text-[#ff891f]" aria-hidden="true" />
             <span className="text-sm font-medium">Aktualisiere...</span>
           </motion.div>
         </div>
@@ -79,4 +88,3 @@ export default function PaymentSuccessModal({ onClose, message }: PaymentSuccess
     </div>
   );
 }
-

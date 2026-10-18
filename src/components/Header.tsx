@@ -183,8 +183,20 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
   const handleLogout = async () => {
     setIsProfileMenuOpen(false);
     setIsMobileMenuOpen(false);
-    await signOut();
-    router.push('/');
+    // Beim Abmelden meldet signOut() den User sofort als "nicht eingeloggt".
+    // Die Dashboard-Seite zeigt dann ihren Ladekreis und startet eine eigene
+    // Weiterleitung – die soft-navigierte router.push('/') konnte dagegen
+    // hängen bleiben. Ein harter Seitenwechsel beendet das zuverlässig; die
+    // Zeitgrenze verhindert, dass ein hängender Netzwerkaufruf ihn blockiert.
+    try {
+      await Promise.race([
+        signOut(),
+        new Promise((resolve) => setTimeout(resolve, 3000)),
+      ]);
+    } catch (error) {
+      console.error('Logout failed, leaving the page anyway:', error);
+    }
+    window.location.assign('/');
   };
 
   if (isFirstStoryFlow) {

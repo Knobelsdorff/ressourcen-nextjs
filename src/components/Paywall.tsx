@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, Check, Sparkles } from 'lucide-react';
+import { Lock, Check } from 'lucide-react';
 import { createCheckoutSession } from '@/lib/access';
 import { useAuth } from '@/components/providers/auth-provider';
 
@@ -53,60 +53,63 @@ export default function Paywall({ onClose, message }: PaywallProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[#38261966] p-4 backdrop-blur-[5px]">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full sm:p-8 p-4 relative my-8"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="paywall-title"
+        initial={{ opacity: 0, scale: 0.97, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        className="relative my-8 w-full max-w-lg rounded-[30px] border border-[#e4ded6] bg-[#fdfbf8] p-5 shadow-[0_24px_90px_#38261930] sm:p-9"
       >
         <div className="text-center">
-          <div className="mx-auto sm:w-16 sm:h-16 w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center sm:mb-4 mb-2">
-            <Lock className="sm:w-8 sm:h-8 w-6 h-6 text-amber-600" />
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#e5ebd8] sm:h-16 sm:w-16">
+            <Lock className="h-6 w-6 text-[#49301e] sm:h-7 sm:w-7" aria-hidden="true" />
           </div>
 
-          <h2 className="text-2xl md:text-3xl font-light text-amber-900 mb-6">
+          <h2
+            id="paywall-title"
+            className="mb-6 text-2xl font-bold leading-tight tracking-[-0.035em] text-[#49301e] sm:text-3xl [font-family:'Trebuchet_MS',Arial,sans-serif]"
+          >
             Dein persönlicher Raum für innere Ruhe
           </h2>
 
           {/* Monatliches Abo */}
-          <div className="max-w-md mx-auto mb-6">
-            <div className="border border-amber-200 bg-white rounded-xl p-6 md:p-8">
-              <div className="text-center">
-                <div className="mb-6">
-                  <div className="flex items-baseline justify-center gap-2">
-                    <span className="text-4xl font-light text-amber-900">15 €</span>
-                    <span className="text-amber-600 text-base">/ Monat</span>
-                  </div>
-                </div>
-                <div className="space-y-4 text-left">
-                  <div className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-base text-amber-700">Unbegrenzte personalisierte Power Storys</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-base text-amber-700">Zugriff jederzeit</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-base text-amber-700">Monatlich kündbar</p>
-                  </div>
-                </div>
+          <div className="mx-auto mb-6 max-w-md">
+            <div className="rounded-[26px] border border-[#e4ded6] border-t-[5px] border-t-[#9db36a] bg-white p-6 shadow-[0_4px_18px_#49301e05] md:p-8">
+              <div className="mb-6 flex items-baseline justify-center gap-2">
+                <span className="text-4xl font-bold tracking-[-0.04em] text-[#49301e] [font-family:'Trebuchet_MS',Arial,sans-serif]">15 €</span>
+                <span className="text-base text-[#69594c]">/ Monat</span>
               </div>
+              <ul className="space-y-4 text-left">
+                {[
+                  'Unbegrenzte personalisierte Power Storys',
+                  'Zugriff jederzeit',
+                  'Monatlich kündbar',
+                ].map((benefit) => (
+                  <li key={benefit} className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#dfe7cd]">
+                      <Check className="h-3.5 w-3.5 text-[#49301e]" strokeWidth={2.5} aria-hidden="true" />
+                    </span>
+                    <span className="text-base leading-snug text-[#69594c]">{benefit}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-700">{error}</p>
+            <div role="alert" className="mb-4 rounded-2xl border border-[#e9bba5] bg-[#fff0e9] p-3">
+              <p className="text-sm text-[#8a3b12]">{error}</p>
             </div>
           )}
 
-          <div className="flex sm:flex-row flex-col-reverse gap-3">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row">
             {onClose && (
               <button
                 onClick={onClose}
-                className="flex-1 px-4 py-3 border border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors max-sm:text-sm"
+                className="min-h-[52px] flex-1 rounded-full border border-[#d9cfc5] px-5 py-3 text-[15px] font-semibold text-[#69594c] transition-colors hover:bg-[#eee9e4] hover:text-[#49301e] focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-4 focus-visible:outline-[#7952b8] disabled:opacity-50"
                 disabled={loading}
               >
                 Später
@@ -115,20 +118,20 @@ export default function Paywall({ onClose, message }: PaywallProps) {
             <button
               onClick={handleCheckout}
               disabled={loading || !user}
-              className="flex-1 px-6 py-3 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-lg"
+              className="flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-full bg-[#49301e] px-6 py-3 text-[15px] font-semibold text-white shadow-[0_3px_0_#38261912] transition-all hover:bg-[#63452e] hover:shadow-[0_5px_14px_#49301e18] focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-4 focus-visible:outline-[#7952b8] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                   Wird geladen...
                 </>
               ) : (
-                "Zugang freischalten"
+                'Zugang freischalten'
               )}
             </button>
           </div>
 
-          <p className="text-sm text-amber-600/70 mt-6">
+          <p className="mt-6 text-sm text-[#857465]">
             Du kannst dir Zeit lassen.
           </p>
         </div>
@@ -136,4 +139,3 @@ export default function Paywall({ onClose, message }: PaywallProps) {
     </div>
   );
 }
-

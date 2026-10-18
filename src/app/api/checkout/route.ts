@@ -1,5 +1,6 @@
 import Stripe from 'stripe'
 import { NextResponse } from 'next/server'
+import { createSSRClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 
@@ -15,10 +16,20 @@ const PLAN_CONFIG = {
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}))
-    const priceId = body?.priceId as string | undefined
     const planType = (body?.planType as 'subscription' | undefined) ?? 'subscription'
-    const userId = body?.userId as string | undefined
     const mode = 'subscription' as const // Immer Subscription-Modus für Abo
+
+    // Der Account kommt aus der Session, nicht aus dem Request-Body – sonst
+    // ließe sich ein Abo auf einen fremden Account abschließen.
+    const authClient = await createSSRClient()
+    const { data: { user } } = await authClient.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Bitte melde dich zuerst an.' }, { status: 401 })
+    }
+    if (body?.userId && body.userId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+    const userId = user.id
 
     if (!process.env.STRIPE_SECRET_KEY) {
       return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 })
@@ -33,8 +44,8 @@ export async function POST(request: Request) {
       ? `${requestUrl.protocol}//${requestUrl.host}` // localhost:3000
       : (process.env.APP_BASE_URL || 'https://www.power-storys.de') // Production
 
-    // Verwende Price-ID aus Parameter oder Environment Variable
-    const subscriptionPriceId = priceId || process.env.STRIPE_SUBSCRIPTION_PRICE_ID
+    // Preis nur aus der Konfiguration – nie aus dem Request.
+    const subscriptionPriceId = process.env.STRIPE_SUBSCRIPTION_PRICE_ID
 
     if (!subscriptionPriceId) {
       console.error('Checkout API: No subscription price ID found. Please set STRIPE_SUBSCRIPTION_PRICE_ID in environment variables.')
@@ -61,7 +72,6 @@ export async function POST(request: Request) {
       userId, 
       planType,
       priceId: subscriptionPriceId,
-      source: priceId ? 'parameter' : 'environment',
       paymentMethodTypes: 'DYNAMIC (not set - Stripe will use all enabled methods)',
       mode: 'subscription',
       origin,

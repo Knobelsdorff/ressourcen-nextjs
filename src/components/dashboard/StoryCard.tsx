@@ -10,24 +10,45 @@
  */
 
 import { motion } from "framer-motion";
-import { Volume2 } from "lucide-react";
+import { Lock, Volume2 } from "lucide-react";
 import AudioPlayer from "@/components/audio/AudioPlayer";
 import EditableTitle from "@/components/EditableTitle";
 import EditableSubtitle from "@/components/EditableSubtitle";
 import StoryActionsMenu from "@/components/StoryActionsMenu";
 import { formatDateWithTitle } from "@/lib/format-date";
+import { StoryAccess, StoryLockReason, trialDaysLeft } from "@/lib/story-access/shared";
 
 export interface StoryCardStory {
   id: string;
   title: string;
-  audio_url?: string;
+  audio_url?: string | null;
   resource_figure: any;
   created_at: string;
   is_audio_only?: boolean;
   client_email?: string | null;
   auto_subtitle?: string | null;
   custom_subtitle?: string | null;
+  /** Vom Server berechnet (/api/resources/mine). Fehlt = wie bisher abspielbar. */
+  access?: StoryAccess;
 }
+
+const LOCKED_COPY: Record<StoryLockReason, { title: string; text: string; cta: string }> = {
+  trial_ended: {
+    title: "Deine 7 kostenlosen Tage sind vorbei.",
+    text: "Deine Power Story bleibt hier für dich gespeichert. Mit Power Storys kannst du sie jederzeit wieder anhören.",
+    cta: "Power Storys freischalten",
+  },
+  subscription_inactive: {
+    title: "Dein Abo ist beendet.",
+    text: "Deine Power Story bleibt für dich gespeichert. Sobald du Power Storys wieder freischaltest, kannst du sie sofort anhören.",
+    cta: "Power Storys freischalten",
+  },
+  payment_failed: {
+    title: "Deine letzte Zahlung hat nicht geklappt.",
+    text: "Deine Power Storys pausieren, bis die Zahlung erfolgreich ist. Aktualisiere deine Zahlungsmethode – danach kannst du sofort weiterhören.",
+    cta: "Zahlungsmethode aktualisieren",
+  },
+};
 
 interface StoryCardProps {
   story: StoryCardStory;
@@ -51,6 +72,10 @@ interface StoryCardProps {
     isSaving: boolean;
     onSelect: () => void;
   };
+  /** Gesperrte Story: Freischalten bzw. Zahlungsmethode aktualisieren. */
+  onUnlock?: (reason: StoryLockReason) => void;
+  /** Story hat ihr Ende erreicht (siehe useAudioPlayer). */
+  onCompleted?: () => void;
 }
 
 export default function StoryCard({
@@ -69,8 +94,12 @@ export default function StoryCard({
   isGeneratingAudio = false,
   onGenerateAudio,
   adminExampleControl,
+  onUnlock,
+  onCompleted,
 }: StoryCardProps) {
   const created = formatDateWithTitle(story.created_at);
+  const lockReason = story.access && !story.access.playable ? story.access.lockReason ?? "trial_ended" : null;
+  const freeDaysLeft = story.access?.trialActive ? trialDaysLeft(story.access.trialEndsAt) : 0;
 
   // Mit Andreas aufgenommen vs. selbst erstellt – nur anzeigen, wenn eindeutig.
   const createdWithAndreas = story.is_audio_only === true || story.client_email !== null;
@@ -128,6 +157,11 @@ export default function StoryCard({
                 Selbst erstellt
               </span>
             )}
+            {freeDaysLeft > 0 && (
+              <span className="dashboard-badge-trial rounded-full px-2 py-0.5 text-xs font-medium">
+                {freeDaysLeft === 1 ? "Noch heute kostenlos" : `Noch ${freeDaysLeft} Tage kostenlos`}
+              </span>
+            )}
           </div>
         </div>
 
@@ -138,7 +172,24 @@ export default function StoryCard({
         />
       </header>
 
-      {story.audio_url ? (
+      {lockReason ? (
+        <div className="dashboard-story-locked" role="group" aria-labelledby={`locked-${story.id}`}>
+          <span className="dashboard-story-locked-icon" aria-hidden="true">
+            <Lock size={18} />
+          </span>
+          <div className="min-w-0">
+            <p id={`locked-${story.id}`} className="dashboard-story-locked-title">
+              {LOCKED_COPY[lockReason].title}
+            </p>
+            <p className="dashboard-story-locked-text">{LOCKED_COPY[lockReason].text}</p>
+            {onUnlock && (
+              <button type="button" className="dashboard-primary-button mt-4" onClick={() => onUnlock(lockReason)}>
+                {LOCKED_COPY[lockReason].cta}
+              </button>
+            )}
+          </div>
+        </div>
+      ) : story.audio_url ? (
         <AudioPlayer
           audioUrl={story.audio_url}
           title={story.title}
@@ -147,6 +198,7 @@ export default function StoryCard({
           variant={withBLS ? "bls" : "standard"}
           blsExpanded={blsExpanded}
           onToggleBLS={onToggleBLS}
+          onCompleted={onCompleted}
         />
       ) : (
         <div className="rounded-xl bg-secondary-50 px-4 py-6 text-center">
