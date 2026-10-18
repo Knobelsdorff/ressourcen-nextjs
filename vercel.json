@@ -21,6 +21,15 @@
     "src/app/api/admin/audio/migrate-formats/route.ts": {
       "maxDuration": 120,
       "memory": 1024
+    },
+    "src/app/api/first-story/start/route.ts": {
+      "maxDuration": 120
+    },
+    "src/app/api/first-story/status/route.ts": {
+      "maxDuration": 120
+    },
+    "src/app/willkommen/[token]/route.ts": {
+      "maxDuration": 120
     }
   }
 }

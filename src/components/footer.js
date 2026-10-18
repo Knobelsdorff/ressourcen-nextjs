@@ -1,11 +1,26 @@
 "use client";
 
+import { Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
+// useSearchParams() im Root-Layout braucht eine Suspense-Grenze, sonst
+// scheitert `next build` beim statischen Rendern jeder Seite.
 export default function Footer() {
+  return (
+    <Suspense fallback={<FooterContent isFirstStoryFlow={false} />}>
+      <FooterWithSearchParams />
+    </Suspense>
+  );
+}
+
+function FooterWithSearchParams() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const isFirstStoryFlow = pathname === '/create-story' && searchParams.get('first') === 'true';
+  return <FooterContent isFirstStoryFlow={pathname === '/create-story' && searchParams.get('first') === 'true'} />;
+}
+
+function FooterContent({ isFirstStoryFlow }) {
+  const pathname = usePathname();
   
   // Hide footer on the isolated first-story flow and access pages.
   if (isFirstStoryFlow || pathname === '/ankommen' || pathname === '/zugang' || pathname === '/zugang-erhalten') {

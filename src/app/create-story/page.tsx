@@ -19,12 +19,14 @@ import SavedStoriesModal from "@/components/SavedStoriesModal";
 import { useAppReset } from "@/components/providers/app-reset-provider";
 import Paywall from "@/components/Paywall";
 import FirstStoryEmailGate from "@/components/FirstStoryEmailGate";
+import FirstStoryServerGate from "@/components/FirstStoryServerGate";
+import { FIRST_STORY_VOICE_ID, isFirstStoryServerFlowEnabled } from "@/lib/first-story/config";
 import { canCreateResource } from "@/lib/access";
 import { getOrCreateBrowserFingerprint } from "@/lib/browser-fingerprint";
 import { realFigures, fictionalFigures } from "@/data/figures";
 import { ResourceFigure, AudioState, AppState } from "@/lib/types/story";
 
-const FIRST_FLOW_VOICE_ID = "Y5JXXvUD3rmjDInkLVA2";
+const FIRST_FLOW_VOICE_ID = FIRST_STORY_VOICE_ID;
 const FIRST_FLOW_STORAGE_KEY = "first-power-story-flow";
 const FIRST_FLOW_OWNER_KEY = "first-power-story-owner";
 const FIRST_FLOW_DONE_KEY = "first-power-story-complete";
@@ -71,6 +73,9 @@ function CreateStoryInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const firstFlow = searchParams.get('first') === 'true';
+  // Serverseitiger Erststory-Flow (Feature-Flag). Dann übernimmt der Server
+  // Erzeugung und Speicherung; die Tab-Übergabe unten bleibt inaktiv.
+  const serverFirstFlow = firstFlow && isFirstStoryServerFlowEnabled();
   const [appState, setAppState] = useState<AppState>(() => {
     const angel = firstFlow && fictionalFigures.find((figure) => figure.id === 'angel');
     return angel
@@ -157,7 +162,7 @@ function CreateStoryInner() {
 
   useEffect(() => {
     if (!firstFlow || !mounted || !firstFlowReady || firstFlowComplete || firstFlowSaved.current) return;
-    if (appState.currentStep >= 3 && !firstFlowOwner) return;
+    if (appState.currentStep >= 3 && !firstFlowOwner && !serverFirstFlow) return;
     try {
       const snapshot = {
         currentStep: appState.currentStep,
@@ -171,12 +176,12 @@ function CreateStoryInner() {
     } catch {
       // Session storage is only a resume aid; the in-memory flow still works.
     }
-  }, [firstFlow, mounted, firstFlowReady, firstFlowOwner, firstFlowComplete, appState.currentStep, appState.questionAnswers, appState.generatedStory, appState.audioState, pendingEmail]);
+  }, [firstFlow, serverFirstFlow, mounted, firstFlowReady, firstFlowOwner, firstFlowComplete, appState.currentStep, appState.questionAnswers, appState.generatedStory, appState.audioState, pendingEmail]);
 
   // The email link normally opens a second tab. Only the tab that owns this
   // flow may generate audio or save it; the other tab waits for the owner.
   useEffect(() => {
-    if (!firstFlow || !firstFlowReady || appState.currentStep < 3 || firstFlowComplete) return;
+    if (!firstFlow || serverFirstFlow || !firstFlowReady || appState.currentStep < 3 || firstFlowComplete) return;
     const tabId = firstFlowTabId.current ?? crypto.randomUUID();
     firstFlowTabId.current = tabId;
     const claimOrRenew = () => {
@@ -208,7 +213,7 @@ function CreateStoryInner() {
       window.removeEventListener('pagehide', release);
       // Do not release on a React effect re-run: this tab still owns the flow.
     };
-  }, [firstFlow, firstFlowReady, firstFlowComplete, appState.currentStep]);
+  }, [firstFlow, serverFirstFlow, firstFlowReady, firstFlowComplete, appState.currentStep]);
 
   useEffect(() => () => {
     const tabId = firstFlowTabId.current;
@@ -220,7 +225,7 @@ function CreateStoryInner() {
   }, []);
 
   useEffect(() => {
-    if (!firstFlow || !firstFlowReady || firstFlowOwner || firstFlowComplete) return;
+    if (!firstFlow || serverFirstFlow || !firstFlowReady || firstFlowOwner || firstFlowComplete) return;
     const syncFromOwner = () => {
       try {
         const completed = JSON.parse(window.localStorage.getItem(FIRST_FLOW_DONE_KEY) || 'null');
@@ -243,7 +248,7 @@ function CreateStoryInner() {
     window.addEventListener('storage', syncFromOwner);
     syncFromOwner();
     return () => window.removeEventListener('storage', syncFromOwner);
-  }, [firstFlow, firstFlowReady, firstFlowOwner, firstFlowComplete, user]);
+  }, [firstFlow, serverFirstFlow, firstFlowReady, firstFlowOwner, firstFlowComplete, user]);
 
   // Access control: Anonymous users can only access if they came from /figur (have figure param)
   // Logged in users can access directly
@@ -260,12 +265,12 @@ function CreateStoryInner() {
   }, [user, authLoading, searchParams, appState.resourceFigure, firstFlow, router]);
 
   useEffect(() => {
-    if (firstFlow && firstFlowReady && firstFlowOwner && user &&
+    if (firstFlow && !serverFirstFlow && firstFlowReady && firstFlowOwner && user &&
         (!pendingEmail || user.email?.toLowerCase() === pendingEmail) &&
         appState.currentStep === 3 && appState.generatedStory && appState.audioState?.audioUrl) {
       setAppState((prev) => ({ ...prev, currentStep: 5, selectedVoice: FIRST_FLOW_VOICE_ID }));
     }
-  }, [firstFlow, firstFlowReady, firstFlowOwner, user, pendingEmail, appState.currentStep, appState.generatedStory, appState.audioState?.audioUrl]);
+  }, [firstFlow, serverFirstFlow, firstFlowReady, firstFlowOwner, user, pendingEmail, appState.currentStep, appState.generatedStory, appState.audioState?.audioUrl]);
 
   // Prepare the complete Angel story while the email link is being sent/opened.
   // No account record is written here; AudioPlayback associates the ready
@@ -275,7 +280,7 @@ function CreateStoryInner() {
   }, [firstFlowOwner]);
 
   useEffect(() => {
-    if (!firstFlow || !firstFlowReady || !firstFlowOwner || firstFlowComplete || appState.currentStep !== 3) return;
+    if (!firstFlow || serverFirstFlow || !firstFlowReady || !firstFlowOwner || firstFlowComplete || appState.currentStep !== 3) return;
     if (appState.audioState?.audioUrl && appState.generatedStory) {
       setFirstPreparationStatus('ready');
       return;
@@ -352,7 +357,7 @@ function CreateStoryInner() {
       window.clearTimeout(timer);
       firstPreparationAttempted.current = false;
     };
-  }, [firstFlow, firstFlowReady, firstFlowOwner, firstFlowComplete, appState.currentStep, firstPreparationRetry]);
+  }, [firstFlow, serverFirstFlow, firstFlowReady, firstFlowOwner, firstFlowComplete, appState.currentStep, firstPreparationRetry]);
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -517,6 +522,16 @@ function CreateStoryInner() {
       window.sessionStorage.removeItem(FIRST_FLOW_STORAGE_KEY);
     } catch { /* The story has already been saved to the account. */ }
   }, [user?.id]);
+
+  // Serverseitiger Flow: Die Story gehört jetzt einem Account, die Antworten
+  // im Browser werden nicht mehr gebraucht.
+  const handleServerFirstStoryComplete = useCallback(() => {
+    firstFlowSaved.current = true;
+    try {
+      window.localStorage.removeItem(FIRST_FLOW_STORAGE_KEY);
+      window.sessionStorage.removeItem(FIRST_FLOW_STORAGE_KEY);
+    } catch { /* Browser storage is optional. */ }
+  }, []);
 
   const retryFirstPreparation = useCallback(() => {
     firstPreparationAttempted.current = false;
@@ -1013,7 +1028,15 @@ function CreateStoryInner() {
                 />
               )}
 
-              {firstFlow && firstFlowComplete && (
+              {appState.currentStep === 3 && serverFirstFlow && (
+                <FirstStoryServerGate
+                  questionAnswers={appState.questionAnswers}
+                  linkError={searchParams.get('linkError') === '1'}
+                  onComplete={handleServerFirstStoryComplete}
+                />
+              )}
+
+              {firstFlow && !serverFirstFlow && firstFlowComplete && (
                 <div className="story-first-handoff" role="status">
                   <h1>Deine Power Story ist gespeichert.</h1>
                   <p>Du findest sie jetzt in deinem Zugang.</p>
@@ -1021,14 +1044,14 @@ function CreateStoryInner() {
                 </div>
               )}
 
-              {appState.currentStep >= 3 && firstFlow && !firstFlowComplete && !firstFlowOwner && (
+              {appState.currentStep >= 3 && firstFlow && !serverFirstFlow && !firstFlowComplete && !firstFlowOwner && (
                 <div className="story-first-handoff" role="status">
                   <h1>Deine Power Story entsteht im anderen Tab.</h1>
                   <p>Deine Antworten sind sicher. Wechsle zum Tab, in dem du deine Fragen beantwortet hast. Dort geht es nach dem Login automatisch weiter. Wenn dieser Tab geschlossen wird, übernehmen wir hier automatisch.</p>
                 </div>
               )}
 
-              {appState.currentStep === 3 && firstFlow && firstFlowOwner && !firstFlowComplete && user && pendingEmail && user.email?.toLowerCase() !== pendingEmail && (
+              {appState.currentStep === 3 && firstFlow && !serverFirstFlow && firstFlowOwner && !firstFlowComplete && user && pendingEmail && user.email?.toLowerCase() !== pendingEmail && (
                 <div className="story-first-handoff" role="alert">
                   <h1>Bitte nutze den richtigen Account.</h1>
                   <p>Der Zugangslink wurde an {pendingEmail} geschickt. Melde dich mit diesem Account an, damit deine Antworten zugeordnet werden.</p>
@@ -1036,7 +1059,7 @@ function CreateStoryInner() {
                 </div>
               )}
 
-              {appState.currentStep === 3 && firstFlow && firstFlowOwner && !firstFlowComplete && !user && (
+              {appState.currentStep === 3 && firstFlow && !serverFirstFlow && firstFlowOwner && !firstFlowComplete && !user && (
                 <FirstStoryEmailGate
                   linkError={searchParams.get('linkError') === '1'}
                   onEmailSent={setPendingEmail}
@@ -1046,7 +1069,7 @@ function CreateStoryInner() {
                 />
               )}
 
-              {appState.currentStep === 3 && firstFlow && firstFlowOwner && !firstFlowComplete && user && (!pendingEmail || user.email?.toLowerCase() === pendingEmail) && (
+              {appState.currentStep === 3 && firstFlow && !serverFirstFlow && firstFlowOwner && !firstFlowComplete && user && (!pendingEmail || user.email?.toLowerCase() === pendingEmail) && (
                 <div className="story-first-handoff" role="status">
                   <h1>Deine Power Story wird vorbereitet.</h1>
                   <p>{firstPreparationStatus === 'audio' ? 'Die Stimme von Kerstin wird gerade erstellt.' : 'Deine Antworten sind gespeichert. Einen Moment noch …'}</p>
@@ -1065,7 +1088,7 @@ function CreateStoryInner() {
                 />
               )}
 
-              {appState.currentStep >= 5 && appState.resourceFigure && appState.selectedVoice && (!firstFlow || (firstFlowOwner && !firstFlowComplete)) && (
+              {appState.currentStep >= 5 && appState.resourceFigure && appState.selectedVoice && (!firstFlow || (!serverFirstFlow && firstFlowOwner && !firstFlowComplete)) && (
                 <>
                   {storyGenerationError && (
                     <div className="max-w-4xl mx-auto mb-6 p-6 bg-red-50 border border-red-200 rounded-2xl">

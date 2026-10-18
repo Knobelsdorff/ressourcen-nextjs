@@ -339,6 +339,173 @@ export async function sendResourceReadyEmail({
   }
 }
 
+interface SendFirstStoryLinkEmailParams {
+  to: string;
+  /** Signierter Link auf /willkommen/<token> */
+  link: string;
+  expiresAt: Date;
+}
+
+/** E-Mail für den Erststory-Flow: ein Klick führt direkt ins Dashboard. */
+const getFirstStoryLinkEmailHTML = (link: string, expiresAt: Date) => {
+  const appBaseUrl = getAppBaseUrl();
+  const font = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
+
+  return `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>Deine erste Power Story</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #fffbf5; -webkit-font-smoothing: antialiased;">
+
+  <div style="display: none; max-height: 0; overflow: hidden; opacity: 0; color: transparent;">
+    Ein Klick – und du hörst deine persönliche Engel-Geschichte.
+  </div>
+
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #fffbf5; padding: 32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 560px; margin: 0 auto;">
+
+          <tr>
+            <td style="background: linear-gradient(135deg, #fb923c 0%, #f59e0b 100%); background-color: #f59e0b; padding: 44px 40px 40px; border-radius: 20px 20px 0 0; text-align: center;">
+              <div style="font-size: 34px; line-height: 34px; margin-bottom: 14px;">&#10024;</div>
+              <h1 style="margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: 27px; line-height: 34px; font-weight: 400; color: #ffffff;">
+                Dein Engel wartet auf dich
+              </h1>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="background-color: #ffffff; padding: 40px; border-left: 1px solid #fde9c8; border-right: 1px solid #fde9c8;">
+              <p style="margin: 0 0 18px; font-family: ${font}; font-size: 17px; line-height: 27px; color: #7c2d12;">
+                Hallo,
+              </p>
+              <p style="margin: 0 0 30px; font-family: ${font}; font-size: 17px; line-height: 27px; color: #92400e;">
+                deine persönliche Power Story wird gerade aus deinen Antworten erstellt. Mit einem Klick auf den Button bist du direkt in deinem Bereich &ndash; dort kannst du sie sofort anhören.
+              </p>
+
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td align="center" style="padding-bottom: 26px;">
+                    <a href="${link}"
+                       style="display: inline-block; background-color: #d97706; color: #ffffff; font-family: ${font}; font-size: 17px; font-weight: 600; line-height: 20px; text-decoration: none; padding: 17px 44px; border-radius: 999px;">
+                      Meine Power Story anhören
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-top: 1px solid #fef3c7; padding-top: 22px;">
+                <tr>
+                  <td style="font-family: ${font}; font-size: 14px; line-height: 23px; color: #a16207;">
+                    Du brauchst kein Passwort. Der Link funktioniert auf jedem Gerät und bleibt bis zum <strong style="color: #7c2d12;">${formatGermanDate(expiresAt)}</strong> gültig.
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 30px 0 0; font-family: ${font}; font-size: 17px; line-height: 27px; color: #7c2d12;">
+                Herzliche Grüße<br>
+                <strong style="font-weight: 600;">Andreas</strong>
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="background-color: #ffffff; padding: 0 40px 34px; border-left: 1px solid #fde9c8; border-right: 1px solid #fde9c8; border-bottom: 1px solid #fde9c8; border-radius: 0 0 20px 20px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-top: 1px solid #fef3c7; padding-top: 22px;">
+                <tr>
+                  <td style="font-family: ${font}; font-size: 13px; line-height: 21px; color: #b45309;">
+                    Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br>
+                    <a href="${link}" style="color: #d97706; word-break: break-all; text-decoration: none;">${link}</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td align="center" style="padding: 26px 20px 8px; font-family: ${font}; font-size: 12px; line-height: 20px; color: #c2954a;">
+              Power Storys &middot; Andreas von Knobelsdorff<br>
+              <a href="${appBaseUrl}" style="color: #c2954a; text-decoration: none;">${appBaseUrl.replace(/^https?:\/\//, '')}</a>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+};
+
+const getFirstStoryLinkEmailText = (link: string, expiresAt: Date): string => {
+  const appBaseUrl = getAppBaseUrl();
+  return `Hallo,
+
+deine persönliche Power Story wird gerade aus deinen Antworten erstellt.
+Mit diesem Link bist du direkt in deinem Bereich und kannst sie sofort anhören:
+
+${link}
+
+Du brauchst kein Passwort. Der Link funktioniert auf jedem Gerät und bleibt bis zum ${formatGermanDate(expiresAt)} gültig.
+
+Herzliche Grüße
+Andreas
+
+--
+Power Storys - Andreas von Knobelsdorff
+${appBaseUrl.replace(/^https?:\/\//, '')}
+`;
+};
+
+export async function sendFirstStoryLinkEmail({
+  to,
+  link,
+  expiresAt,
+}: SendFirstStoryLinkEmailParams): Promise<{ success: boolean; error?: string }> {
+  const subject = 'Dein Engel wartet auf dich – deine erste Power Story';
+  const resendApiKey = process.env.RESEND_API_KEY;
+
+  if (!resendApiKey) {
+    // Lokale Entwicklung: Link in der Konsole ausgeben statt zu versenden.
+    console.warn('[Email] ⚠️ RESEND_API_KEY fehlt – Erststory-Link wird nur geloggt.');
+    console.log(`\n📧 ERSTSTORY-LINK für ${to}:\n${link}\n`);
+    return process.env.NODE_ENV === 'production'
+      ? { success: false, error: 'E-Mail-Versand nicht konfiguriert' }
+      : { success: true };
+  }
+
+  try {
+    const resend = new Resend(resendApiKey);
+    const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'andreas@power-storys.de';
+    const emailOptions: any = {
+      from: `Andreas <${resendFromEmail}>`,
+      to: [to],
+      subject,
+      html: getFirstStoryLinkEmailHTML(link, expiresAt),
+      text: getFirstStoryLinkEmailText(link, expiresAt),
+    };
+    if (process.env.RESEND_REPLY_TO) {
+      emailOptions.replyTo = process.env.RESEND_REPLY_TO;
+    }
+
+    const { data, error } = await resend.emails.send(emailOptions);
+    if (error) {
+      console.error('[Email] ❌ Erststory-Link konnte nicht versendet werden:', error);
+      return { success: false, error: error.message || 'Resend error' };
+    }
+    console.log('[Email] ✅ Erststory-Link versendet:', { id: data?.id });
+    return { success: true };
+  } catch (error: any) {
+    console.error('[Email] ❌ Erststory-Link konnte nicht versendet werden:', error?.message);
+    return { success: false, error: error?.message || 'Resend error' };
+  }
+}
+
 interface SendAdminConfirmationEmailParams {
   to: string; // Admin-Email
   clientEmail: string; // Klienten-Email

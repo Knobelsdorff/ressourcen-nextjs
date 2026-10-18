@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -8,13 +8,29 @@ import { scrollToAnchor } from "@/lib/navigation-helpers";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Menu, X, UserCircle, ChevronDown } from "lucide-react";
 
+// useSearchParams() im Root-Layout braucht eine Suspense-Grenze, sonst
+// scheitert `next build` beim statischen Rendern jeder Seite. Der Fallback
+// rendert den normalen Header, damit er weiterhin im statischen HTML steht.
 export default function Header() {
-  const { user, signOut, loading } = useAuth();
-  const router = useRouter();
+  return (
+    <Suspense fallback={<HeaderContent isFirstStoryFlow={false} />}>
+      <HeaderWithSearchParams />
+    </Suspense>
+  );
+}
+
+function HeaderWithSearchParams() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isFirstStoryFlow = pathname === '/create-story' && searchParams.get('first') === 'true';
-  
+  return <HeaderContent isFirstStoryFlow={isFirstStoryFlow} />;
+}
+
+function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
+  const { user, signOut, loading } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+
   // All hooks must be called before any conditional returns
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);

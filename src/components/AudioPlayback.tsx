@@ -115,6 +115,35 @@ export default function AudioPlayback({
   const [hasAutoSaved, setHasAutoSaved] = useState(false); // Track ob bereits automatisch gespeichert wurde
   const firstStorySaveStarted = useRef(false);
   const firstStorySaveFinished = useRef(false);
+  // Mehrere Pfade (autoSave, pendingStory, Login-Modal) können dieselbe Story
+  // gleichzeitig speichern wollen. Pro Story wird nur EIN Insert ausgeführt;
+  // weitere Aufrufe bekommen dasselbe Ergebnis statt einer zweiten Zeile.
+  // `duplicateOf` nennt den Pfad, der den Insert tatsächlich ausgeführt hat.
+  type SaveSource = 'saveStoryToDatabase' | 'savePendingStoryToDatabase';
+  const storyInsertsRef = useRef(new Map<string, { source: SaveSource; promise: Promise<{ data: any; error: any }> }>());
+
+  const insertStoryOnce = async (
+    insertData: Record<string, any>,
+    source: SaveSource
+  ): Promise<{ data: any; error: any; duplicateOf: SaveSource | null }> => {
+    const key = `${insertData.user_id}:${insertData.audio_url || insertData.content || ''}`;
+    const existing = storyInsertsRef.current.get(key);
+    if (existing) {
+      console.log('[AudioPlayback] Story wird bereits gespeichert – kein zweiter Insert');
+      return { ...(await existing.promise), duplicateOf: existing.source };
+    }
+    const promise = (supabase as any)
+      .from('saved_stories')
+      .insert(insertData)
+      .select()
+      .then((result: { data: any; error: any }) => {
+        // Nach einem Fehler darf ein späterer Versuch neu speichern.
+        if (result.error) storyInsertsRef.current.delete(key);
+        return result;
+      });
+    storyInsertsRef.current.set(key, { source, promise });
+    return { ...(await promise), duplicateOf: null };
+  };
   const [hasPlayedOnce, setHasPlayedOnce] = useState(false);
   const [hasStartedPlayback, setHasStartedPlayback] = useState(false); // Track ob User bereits Play gedrückt hat
   const [showPostAudioPanel, setShowPostAudioPanel] = useState(false); // Show calm "after" panel
@@ -409,10 +438,8 @@ export default function AudioPlayback({
         voice_id: insertData.voice_id
       }, null, 2));
 
-      const { data, error } = await (supabase as any)
-        .from('saved_stories')
-        .insert(insertData)
-        .select();
+      const { data, error, duplicateOf } = await insertStoryOnce(insertData, 'savePendingStoryToDatabase');
+      if (!error && duplicateOf === 'savePendingStoryToDatabase') return;
 
       if (error) {
         console.error('poopoo [AudioPlayback] Error saving pending story:', error);
@@ -558,10 +585,12 @@ export default function AudioPlayback({
         voice_id: insertData.voice_id
       }, null, 2));
 
-      const { data, error } = await (supabase as any)
-        .from('saved_stories')
-        .insert(insertData)
-        .select();
+      const { data, error, duplicateOf } = await insertStoryOnce(insertData, 'saveStoryToDatabase');
+      if (!error && duplicateOf === 'saveStoryToDatabase') {
+        firstStorySaveFinished.current = true;
+        onFirstStorySaved?.();
+        return;
+      }
 
       if (error) {
         console.error('poopoo [AudioPlayback] ERROR saving story:', error);

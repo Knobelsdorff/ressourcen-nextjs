@@ -2,6 +2,8 @@
 
 import { motion, MotionConfig } from "framer-motion";
 import DashboardWelcome from "@/components/dashboard/DashboardWelcome";
+import FirstStoryWelcome, { FirstStoryWelcomeState } from "@/components/dashboard/FirstStoryWelcome";
+import type { FirstStoryPhase } from "@/lib/first-story/config";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, Volume2, User, Mail, Calendar, Clock, Star, Trophy, Target, Shield, HelpCircle, MessageCircle, Bug, Key, Trash, Crown, Zap, TrendingUp, Play, Pause, BarChart3, Lock, Music, RefreshCw, Plus, RotateCcw, CreditCard, Sparkles, Headphones } from "lucide-react";
 import Link from "next/link";
@@ -43,7 +45,13 @@ interface SavedStory {
   client_email?: string | null;
   auto_subtitle?: string | null;
   custom_subtitle?: string | null;
+  /** Gesetzt bei Storys aus dem Erststory-Flow (Migration 20261017120000). */
+  first_story_draft_id?: string | null;
+  welcome_seen_at?: string | null;
 }
+
+/** So lange zeigt das Dashboard den Willkommens-Hinweis für eine neue Erststory. */
+const FIRST_STORY_WELCOME_DAYS = 14;
 
 export default function Dashboard() {
   const { user, session, loading: authLoading } = useAuth();
@@ -3258,6 +3266,117 @@ ${story.content}
     };
   }, [audioElements, backgroundMusicElements]);
 
+  // ---------------------------------------------------------------------------
+  // Erststory-Flow: Nach dem Klick auf den E-Mail-Link (?welcome=1) zeigen wir
+  // den Fortschritt, bis die Story serverseitig gespeichert ist. Danach kommt
+  // der Hinweis aus der Datenbank (welcome_seen_at), auch bei späteren Besuchen.
+  // ---------------------------------------------------------------------------
+  const [firstStoryPhase, setFirstStoryPhase] = useState<FirstStoryPhase | null>(null);
+  const [firstStoryPollKey, setFirstStoryPollKey] = useState(0);
+  const [dismissedWelcomeStoryId, setDismissedWelcomeStoryId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.id || typeof window === 'undefined') return;
+    if (new URLSearchParams(window.location.search).get('welcome') !== '1') return;
+
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let sawPending = false;
+    const startedAt = Date.now();
+    const clearWelcomeParam = () => {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('welcome');
+      window.history.replaceState({}, '', url.toString());
+    };
+
+    const poll = async () => {
+      try {
+        const response = await fetch('/api/first-story/status', { cache: 'no-store', credentials: 'include' });
+        if (response.ok) {
+          const { phase } = (await response.json()) as { phase: FirstStoryPhase };
+          if (stopped) return;
+          if (phase === 'claimed' || phase === 'none') {
+            setFirstStoryPhase(null);
+            clearWelcomeParam();
+            // Nur neu laden, wenn die Story beim ersten Laden noch fehlte.
+            if (phase === 'claimed' && sawPending) await loadStories();
+            return;
+          }
+          sawPending = true;
+          setFirstStoryPhase(phase);
+          if (phase === 'failed') return;
+        }
+      } catch { /* Beim nächsten Durchlauf erneut versuchen. */ }
+      if (!stopped && Date.now() - startedAt < 15 * 60 * 1000) {
+        timer = setTimeout(poll, 4000);
+      }
+    };
+
+    void poll();
+    return () => {
+      stopped = true;
+      if (timer) clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, firstStoryPollKey]);
+
+  const retryFirstStory = useCallback(async () => {
+    setFirstStoryPhase('text');
+    try {
+      await fetch('/api/first-story/status', { method: 'POST', credentials: 'include', body: '{}' });
+    } catch { /* Die Statusabfrage zeigt das Ergebnis. */ }
+    setFirstStoryPollKey((key) => key + 1);
+  }, []);
+
+  const welcomeStory = personalStories.find((story) =>
+    story.first_story_draft_id &&
+    !story.welcome_seen_at &&
+    story.id !== dismissedWelcomeStoryId &&
+    Date.now() - new Date(story.created_at).getTime() < FIRST_STORY_WELCOME_DAYS * 24 * 60 * 60 * 1000
+  );
+  const firstStoryPreparing = !welcomeStory && !!firstStoryPhase && firstStoryPhase !== 'claimed' && firstStoryPhase !== 'none';
+  const welcomeState: FirstStoryWelcomeState | null = welcomeStory
+    ? 'ready'
+    : firstStoryPreparing
+      ? firstStoryPhase === 'failed' ? 'failed' : firstStoryPhase === 'audio' ? 'preparing-audio' : 'preparing-text'
+      : null;
+
+  // Wie nach dem Speichern im Browser-Flow: Ereignis einmal erfassen.
+  useEffect(() => {
+    if (!welcomeStory || !session) return;
+    const trackedKey = `ps_first_story_tracked_${welcomeStory.id}`;
+    try {
+      if (localStorage.getItem(trackedKey)) return;
+      localStorage.setItem(trackedKey, '1');
+      localStorage.setItem('ps_has_created_story', 'true');
+    } catch { /* Ohne Storage im Zweifel nicht doppelt erfassen. */ return; }
+    void trackEvent({
+      eventType: 'resource_created',
+      storyId: welcomeStory.id,
+      resourceFigureName: welcomeStory.title,
+      voiceId: welcomeStory.voice_id || undefined,
+    }, { accessToken: session.access_token });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [welcomeStory?.id, session]);
+
+  const markWelcomeSeen = useCallback(async (storyId: string) => {
+    // Nur lokal ausblenden – kein setStories, damit laufende Audios nicht neu starten.
+    setDismissedWelcomeStoryId(storyId);
+    const { error: seenError } = await (supabase as any)
+      .from('saved_stories')
+      .update({ welcome_seen_at: new Date().toISOString() })
+      .eq('id', storyId);
+    if (seenError) console.warn('[Dashboard] welcome_seen_at konnte nicht gespeichert werden:', seenError.message);
+  }, []);
+
+  const listenToWelcomeStory = useCallback(() => {
+    if (!welcomeStory) return;
+    // Die Erststory ist die neueste und steht deshalb oben in der Liste.
+    document.querySelector('.dashboard-story-list .dashboard-story-card')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    void markWelcomeSeen(welcomeStory.id);
+  }, [welcomeStory, markWelcomeSeen]);
+
   if (authLoading || !user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary-50 via-primary-50 to-primary-50 flex items-center justify-center">
@@ -3277,6 +3396,16 @@ ${story.content}
         {/* A consistent welcome, with introductory copy on the first visit. */}
         <DashboardWelcome firstVisit={hasSeenDashboardIntro === false} />
 
+        {welcomeState && (
+          <FirstStoryWelcome
+            state={welcomeState}
+            isFirstStory={personalStories.filter((story) => !story.is_audio_only).length <= 1}
+            onListen={listenToWelcomeStory}
+            onDismiss={welcomeStory ? () => void markWelcomeSeen(welcomeStory.id) : undefined}
+            onRetry={retryFirstStory}
+          />
+        )}
+
         {/* Content */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
@@ -3295,6 +3424,8 @@ ${story.content}
                   <p className="text-red-600">{error}</p>
                 </div>
               ) : stories.length === 0 && !pendingStory ? (
+                // Während die Erststory entsteht, erklärt der Hinweis oben alles.
+                firstStoryPreparing ? null : (
                 <div className="dashboard-empty bg-white rounded-2xl p-6 sm:p-10">
                   <div className="text-center py-8">
                     <BookOpen className="w-12 h-12 text-secondary-400 mx-auto mb-4" />
@@ -3311,6 +3442,7 @@ ${story.content}
                     </button>
                   </div>
                 </div>
+                )
               ) : (
                 <>
                   {/* Section 1: Personal Stories - PRIMARY */}
