@@ -53,6 +53,17 @@ export function scrollTargetIntoView(
   const pinned = el.closest<HTMLElement>('[data-tour-offset]');
   if (pinned && ['sticky', 'fixed'].includes(getComputedStyle(pinned).position)) return;
 
+  // Ziel in einem eigenen Scrollbereich (z.B. Dialog): diesen scrollen.
+  const container = el.closest<HTMLElement>('[data-tour-scroll]');
+  if (container && container.scrollHeight > container.clientHeight) {
+    const box = container.getBoundingClientRect();
+    const visibleTop = Math.max(box.top, top);
+    const visibleBottom = Math.min(box.bottom, bottom);
+    if (rect.top >= visibleTop && rect.bottom + reserveBelow <= visibleBottom) return;
+    container.scrollBy({ top: rect.top - visibleTop - margin, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+    return;
+  }
+
   const needed = rect.height + reserveBelow;
   const alreadyVisible = rect.top >= top && rect.top + needed <= bottom;
   if (alreadyVisible) return;

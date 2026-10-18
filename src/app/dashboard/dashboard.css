@@ -125,6 +125,46 @@
 .dashboard-story-locked-title { font-size: 15px; font-weight: 700; line-height: 1.35; }
 .dashboard-story-locked-text { max-width: 520px; margin-top: 4px; color: #69594c; font-size: 14px; line-height: 1.55; }
 
+/* Einstellungen (Dialog). z-index unter der Einführung (70), damit die Tour darüber liegt. */
+div.settings-backdrop { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(48, 32, 20, 0.28); animation: subscription-offer-fade 0.25s ease-out; }
+.settings-dialog { display: flex; flex-direction: column; width: min(100%, 580px); max-height: calc(100dvh - 32px); overflow: hidden; border: 1px solid #ecdfcd; border-radius: 28px; background: #fffaf2; box-shadow: 0 24px 60px rgba(73, 48, 30, 0.18); color: #49301e; animation: subscription-offer-rise 0.3s ease-out; }
+.settings-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 22px 24px 14px; border-bottom: 1px solid #efe4d6; }
+.settings-header h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.settings-close { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; color: #69594c; }
+.settings-close:hover { background: #f1e8dc; }
+.settings-body { overflow-y: auto; padding: 18px 24px 24px; display: grid; gap: 14px; overscroll-behavior: contain; }
+.settings-section { padding: 18px; border: 1px solid #efe4d6; border-radius: 20px; background: #ffffff; }
+.settings-section h3 { font-size: 16px; font-weight: 700; line-height: 1.3; }
+.settings-section-description { margin-top: 4px; color: #69594c; font-size: 14px; line-height: 1.55; }
+.settings-form { display: grid; gap: 8px; margin-top: 14px; }
+.settings-form label { margin-top: 4px; color: #49301e; font-size: 13px; font-weight: 600; }
+.settings-optional { color: #8a7869; font-weight: 400; }
+.settings-form input, .settings-form textarea { width: 100%; min-height: 46px; padding: 11px 14px; border: 1px solid #ded0c0; border-radius: 12px; background: #fffdf9; color: #49301e; font-size: 16px; }
+.settings-form textarea { resize: vertical; line-height: 1.5; }
+.settings-form input:focus, .settings-form textarea:focus { border-color: #79583e; outline: 2px solid #79583e33; outline-offset: 1px; }
+.settings-help { color: #7d6a5a; font-size: 13px; line-height: 1.5; }
+.settings-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+.settings-actions .dashboard-primary-button:disabled, .settings-actions .dashboard-secondary-button:disabled { opacity: 0.6; }
+.settings-value { margin: 10px 0 6px; font-weight: 600; overflow-wrap: anywhere; }
+.settings-link { display: inline-flex; align-items: center; gap: 6px; padding: 6px 0; color: #70513b; font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.settings-status { margin-top: 6px; font-size: 13px; line-height: 1.45; }
+.settings-status.is-ok { color: #4f6630; }
+.settings-status.is-error { color: #a53724; }
+.settings-dialog :is(button, input, textarea):focus-visible { outline: 3px solid #7952b8; outline-offset: 2px; }
+
+@media (max-width: 640px) {
+  div.settings-backdrop { align-items: flex-end; padding: 0; }
+  .settings-dialog { width: 100%; max-height: 94dvh; border-radius: 26px 26px 0 0; }
+  .settings-header { padding: 18px 18px 12px; }
+  .settings-body { padding: 14px 14px max(20px, env(safe-area-inset-bottom)); }
+  .settings-section { padding: 16px; }
+  .settings-actions > button { flex: 1 1 auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  div.settings-backdrop, .settings-dialog { animation: none; }
+}
+
 /* Abo-Angebot: ruhig, kein harter Paywall-Dialog */
 /* div.… schlägt `.dashboard-theme > div { background }` weiter oben. */
 div.subscription-offer-backdrop { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(48, 32, 20, 0.28); animation: subscription-offer-fade 0.25s ease-out; }

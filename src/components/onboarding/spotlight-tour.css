@@ -172,6 +172,12 @@
   outline-offset: 3px;
 }
 
+/* Während einer Tour: Scrollbereiche (data-tour-scroll) bekommen Platz nach
+   unten, damit jedes Ziel über die Erklärung gescrollt werden kann. */
+html[data-tour-active] [data-tour-scroll] {
+  padding-bottom: 60vh;
+}
+
 @keyframes spotlight-tour-fade {
   from { opacity: 0; }
 }

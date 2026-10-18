@@ -23,6 +23,12 @@ export interface TourStep {
   target: string;
   title: string;
   body: string;
+  /**
+   * Mitmach-Schritt: Die Tour geht weiter, sobald das Ziel angeklickt wird
+   * (z.B. öffnet sich ein Dialog). Der Wert ist die Beschriftung des
+   * Hauptbuttons, der das Ziel stellvertretend anklickt.
+   */
+  clickToContinue?: string;
 }
 
 export type TourEndReason = "completed" | "skipped";
@@ -161,13 +167,17 @@ export default function SpotlightTour({ steps, open, onEnd, labels: labelOverrid
   );
 
   // Öffnen/Schließen: bei Schritt 1 beginnen, Fokus merken und zurückgeben.
+  // data-tour-active gibt Scrollbereichen Luft nach unten (siehe CSS), damit
+  // auch der letzte Abschnitt eines Dialogs nach oben gescrollt werden kann.
   useEffect(() => {
     if (!open) return;
     restoreFocusRef.current = document.activeElement as HTMLElement | null;
+    document.documentElement.setAttribute("data-tour-active", "");
     setIndex(0);
     holeRef.current = null;
     setHole(null);
     return () => {
+      document.documentElement.removeAttribute("data-tour-active");
       restoreFocusRef.current?.focus?.({ preventScroll: true });
     };
   }, [open]);
@@ -283,7 +293,9 @@ export default function SpotlightTour({ steps, open, onEnd, labels: labelOverrid
         end("skipped");
       } else if (event.key === "ArrowRight") {
         event.preventDefault();
-        goTo(index + 1);
+        // Mitmach-Schritt: wie der Hauptbutton das Ziel anklicken, nicht überspringen.
+        if (step?.clickToContinue) targetRef.current?.click();
+        else goTo(index + 1);
       } else if (event.key === "ArrowLeft" && index > 0) {
         event.preventDefault();
         goTo(index - 1);
@@ -304,7 +316,25 @@ export default function SpotlightTour({ steps, open, onEnd, labels: labelOverrid
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, index, goTo, end]);
+  }, [open, index, step, goTo, end]);
+
+  // Mitmach-Schritt: Klick auf das Ziel (im freien Loch) führt weiter.
+  useEffect(() => {
+    if (!open || !step?.clickToContinue) return;
+    let timer = 0;
+    const onClick = (event: MouseEvent) => {
+      const target = targetRef.current;
+      if (target && event.target instanceof Node && target.contains(event.target)) {
+        // Kurz warten, bis z.B. der geöffnete Dialog im DOM steht.
+        timer = window.setTimeout(() => goTo(indexRef.current + 1), 150);
+      }
+    };
+    document.addEventListener("click", onClick, true);
+    return () => {
+      document.removeEventListener("click", onClick, true);
+      window.clearTimeout(timer);
+    };
+  }, [open, step, goTo]);
 
   // Schritte können wegfallen, während die Tour läuft.
   useEffect(() => {
@@ -356,8 +386,13 @@ export default function SpotlightTour({ steps, open, onEnd, labels: labelOverrid
                 {labels.back}
               </button>
             )}
-            <button ref={primaryRef} type="button" className="spotlight-tour-next" onClick={() => goTo(index + 1)}>
-              {isLast ? labels.done : labels.next}
+            <button
+              ref={primaryRef}
+              type="button"
+              className="spotlight-tour-next"
+              onClick={() => (step.clickToContinue ? targetRef.current?.click() : goTo(index + 1))}
+            >
+              {step.clickToContinue ?? (isLast ? labels.done : labels.next)}
             </button>
           </span>
         </div>

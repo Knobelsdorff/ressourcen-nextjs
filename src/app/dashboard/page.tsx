@@ -6,6 +6,8 @@ import FirstStoryWelcome, { FirstStoryWelcomeState } from "@/components/dashboar
 import type { FirstStoryPhase } from "@/lib/first-story/config";
 import SubscriptionOffer, { SubscriptionOfferVariant } from "@/components/dashboard/SubscriptionOffer";
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
+import SettingsDialog from "@/components/dashboard/SettingsDialog";
+import { OPEN_SETTINGS_EVENT } from "@/components/dashboard/settings-events";
 import { FIRST_STORY_TOUR_STEPS, TOUR_ANCHORS } from "@/components/onboarding/firstStoryTour";
 import { scrollToTourAnchor } from "@/components/onboarding/tour-dom";
 import type { StoryAccess, StoryLockReason } from "@/lib/story-access/shared";
@@ -3444,8 +3446,28 @@ ${story.content}
 
   const startTour = useCallback(() => setTourOpen(true), []);
 
+  // ---------------------------------------------------------------------------
+  // Einstellungen als Dialog. Öffnet auch über /dashboard?settings=1 und über
+  // das Profil-Menü im Header (Event "open-settings", ohne Seitenwechsel).
+  // ---------------------------------------------------------------------------
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const openSettings = useCallback(() => setSettingsOpen(true), []);
+  const closeSettings = useCallback(() => setSettingsOpen(false), []);
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('settings') === '1') {
+      setSettingsOpen(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('settings');
+      window.history.replaceState({}, '', url.toString());
+    }
+    window.addEventListener(OPEN_SETTINGS_EVENT, openSettings);
+    return () => window.removeEventListener(OPEN_SETTINGS_EVENT, openSettings);
+  }, [openSettings]);
+
   const handleTourEnd = useCallback(() => {
     setTourOpen(false);
+    setSettingsOpen(false);
     if (welcomeStory) void markWelcomeSeen(welcomeStory.id);
     // Der Hinweis über der Liste verschwindet dabei und die Karte rückt nach
     // oben – erst danach zur Story scrollen, damit direkt Play möglich ist.
@@ -3482,6 +3504,7 @@ ${story.content}
         )}
 
         <SubscriptionOffer variant={offerVariant} onClose={closeOffer} />
+        <SettingsDialog open={settingsOpen} onClose={closeSettings} onNameSaved={() => void loadFullName()} />
         <SpotlightTour steps={FIRST_STORY_TOUR_STEPS} open={tourOpen} onEnd={handleTourEnd} />
 
         {/* Content */}
@@ -3511,13 +3534,24 @@ ${story.content}
                     <p className="text-secondary-500 text-sm max-sm:text-xs mt-2 mb-6">
                       Erstelle deine erste persönliche Ressource, um sie hier zu sehen.
                     </p>
-                    <button
-                      onClick={() => router.push('/create-story')}
-                      className="dashboard-primary-button"
-                    >
-                      <Plus className="w-5 h-5" />
-                      Erstelle deine erste Ressource
-                    </button>
+                    <div className="flex flex-wrap items-center justify-center gap-3">
+                      <button
+                        onClick={() => router.push('/create-story')}
+                        className="dashboard-primary-button"
+                      >
+                        <Plus className="w-5 h-5" />
+                        Erstelle deine erste Ressource
+                      </button>
+                      <button
+                        type="button"
+                        onClick={openSettings}
+                        data-tour={TOUR_ANCHORS.settings}
+                        className="dashboard-secondary-button"
+                      >
+                        <Settings className="w-5 h-5" aria-hidden="true" />
+                        Einstellungen
+                      </button>
+                    </div>
                   </div>
                 </div>
                 )
@@ -3530,14 +3564,25 @@ ${story.content}
                         <h2 className="text-2xl font-bold text-primary-900">Meine Power Storys</h2>
                         <p className="mt-1 text-sm text-secondary-600">Deine Geschichten. In deinem Tempo.</p>
                       </div>
-                      <button
-                        onClick={handleCreateStoryClick}
-                        data-tour={TOUR_ANCHORS.newStory}
-                        className="dashboard-primary-button"
-                      >
-                        <Plus className="w-5 h-5" />
-                        Neue Power Story
-                      </button>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={openSettings}
+                          data-tour={TOUR_ANCHORS.settings}
+                          className="dashboard-secondary-button"
+                        >
+                          <Settings className="w-5 h-5" aria-hidden="true" />
+                          Einstellungen
+                        </button>
+                        <button
+                          onClick={handleCreateStoryClick}
+                          data-tour={TOUR_ANCHORS.newStory}
+                          className="dashboard-primary-button"
+                        >
+                          <Plus className="w-5 h-5" />
+                          Neue Power Story
+                        </button>
+                      </div>
                     </div>
 
                     {/* Admin-Bereich: Musikverwaltung, Analytics, Manuelle Ressource (nur für Admins sichtbar) */}

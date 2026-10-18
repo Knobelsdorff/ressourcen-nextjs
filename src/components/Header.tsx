@@ -8,6 +8,7 @@ import { scrollToAnchor } from "@/lib/navigation-helpers";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Menu, X, UserCircle, ChevronDown } from "lucide-react";
 import { TOUR_ANCHORS } from "@/components/onboarding/firstStoryTour";
+import { openSettings } from "@/components/dashboard/settings-events";
 
 // useSearchParams() im Root-Layout braucht eine Suspense-Grenze, sonst
 // scheitert `next build` beim statischen Rendern jeder Seite. Der Fallback
@@ -181,6 +182,12 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
     router.push("/create-story");
   };
 
+  const handleOpenSettings = () => {
+    setIsProfileMenuOpen(false);
+    setIsMobileMenuOpen(false);
+    openSettings(pathname, (url) => router.push(url));
+  };
+
   const handleLogout = async () => {
     setIsProfileMenuOpen(false);
     setIsMobileMenuOpen(false);
@@ -313,8 +320,7 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
                       </div>
                       <div className="py-2">
                         <Link role="menuitem" href="/dashboard" onClick={() => setIsProfileMenuOpen(false)} className="block rounded-xl px-3 py-2.5 text-sm text-amber-900 hover:bg-amber-50">Mein Raum</Link>
-                        <Link role="menuitem" href="/dashboard/profil" onClick={() => setIsProfileMenuOpen(false)} className="block rounded-xl px-3 py-2.5 text-sm text-amber-900 hover:bg-amber-50">Profil</Link>
-                        <Link role="menuitem" href="/dashboard/user-settings" onClick={() => setIsProfileMenuOpen(false)} className="block rounded-xl px-3 py-2.5 text-sm text-amber-900 hover:bg-amber-50">Einstellungen</Link>
+                        <button role="menuitem" type="button" onClick={handleOpenSettings} className="block w-full rounded-xl px-3 py-2.5 text-left text-sm text-amber-900 hover:bg-amber-50">Einstellungen</button>
                         <button role="menuitem" type="button" onClick={handleCreateStory} className="block w-full rounded-xl px-3 py-2.5 text-left text-sm text-amber-900 hover:bg-amber-50">Neue Power Story</button>
                       </div>
                       <div className="border-t border-amber-100 pt-2">
@@ -424,14 +430,14 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
                     Mein Raum
                   </Link>
                   
-                  {/* Sekundärer Menüpunkt: Profil */}
-                  <Link
-                    href="/dashboard/profil"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                  {/* Sekundärer Menüpunkt: Einstellungen (Dialog im Dashboard) */}
+                  <button
+                    type="button"
+                    onClick={handleOpenSettings}
                     className="block w-full text-left text-amber-900/80 text-base font-normal hover:text-amber-900 transition-colors min-h-[48px] py-4 px-4 rounded-lg hover:bg-amber-50/30 flex items-center"
                   >
-                    Profil
-                  </Link>
+                    Einstellungen
+                  </button>
                 </div>
 
                 {/* Trennlinie */}

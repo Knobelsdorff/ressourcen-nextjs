@@ -7,7 +7,11 @@
  *   firstStoryPlayer  – Player in dieser Karte          (StoryCard)
  *   firstStoryTrial   – "Noch X Tage kostenlos"-Badge   (StoryCard, nur in der Testphase)
  *   newStory          – "Neue Power Story"-Button       (dashboard/page.tsx)
- *   account           – Profil-Menü bzw. Mobil-Menü     (Header.tsx)
+ *   settings          – "Einstellungen"-Button          (dashboard/page.tsx)
+ *   settingsName      – Name & Aussprache               (SettingsDialog)
+ *   settingsPassword  – Passwort                        (SettingsDialog)
+ *   settingsFeedback  – Feedback & Wünsche              (SettingsDialog)
+ *   account           – Profil-Menü bzw. Mobil-Menü     (Header.tsx, derzeit ohne Schritt)
  *
  * Fehlt ein Anker (z.B. keine Testphase), wird der Schritt übersprungen.
  * Beim Umbau des Dashboards nur die Attribute mitnehmen.
@@ -20,6 +24,10 @@ export const TOUR_ANCHORS = {
   firstStoryPlayer: 'first-story-player',
   firstStoryTrial: 'first-story-trial',
   newStory: 'new-story',
+  settings: 'settings',
+  settingsName: 'settings-name',
+  settingsPassword: 'settings-password',
+  settingsFeedback: 'settings-feedback',
   account: 'account',
 } as const;
 
@@ -49,9 +57,28 @@ export const FIRST_STORY_TOUR_STEPS: TourStep[] = [
     body: 'Hier erstellst du neue Geschichten – mit anderen Figuren und Ressourcen für unterschiedliche Themen und Situationen.',
   },
   {
-    id: 'account',
-    target: TOUR_ANCHORS.account,
-    title: 'Dein Bereich',
-    body: 'Hier findest du dein Profil, deine Einstellungen und – wenn du magst – dein Abo.',
+    id: 'settings',
+    target: TOUR_ANCHORS.settings,
+    title: 'Deine Einstellungen',
+    body: 'Hier passt du deinen Namen an, legst ein Passwort fest und schreibst uns. Tippe auf „Einstellungen“.',
+    clickToContinue: 'Einstellungen öffnen',
+  },
+  {
+    id: 'settings-name',
+    target: TOUR_ANCHORS.settingsName,
+    title: 'Dein Name in den Geschichten',
+    body: 'Trag deinen Namen ein und hör dir mit „Anhören“ an, wie er in deinen Power Storys klingt. Klingt er nicht richtig, schreib ihn so, wie er klingen soll.',
+  },
+  {
+    id: 'settings-password',
+    target: TOUR_ANCHORS.settingsPassword,
+    title: 'Passwort – wenn du magst',
+    body: 'Mit einem Passwort meldest du dich auch ohne Link aus der E-Mail an.',
+  },
+  {
+    id: 'settings-feedback',
+    target: TOUR_ANCHORS.settingsFeedback,
+    title: 'Feedback & Wünsche',
+    body: 'Fehlt dir eine Figur oder ein Thema? Schreib uns – wir lesen jede Nachricht.',
   },
 ];

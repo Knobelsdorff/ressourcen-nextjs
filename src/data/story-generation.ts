@@ -1,4 +1,5 @@
 import { ResourceFigure } from '@/lib/types/story';
+import { usablePronunciationHint } from '@/lib/spoken-name';
 
 interface StoryPromptParams {
   selectedFigure: ResourceFigure;
@@ -421,13 +422,9 @@ export function generateStoryPrompt({ selectedFigure, connectionDetails, userNam
   // Wenn ein pronunciation_hint vorhanden ist, verwende ihn als einfachen Ersatz für den Namen
   // Beispiel: Wenn userName="Andy" und pronunciation_hint="Andi", dann verwende "Andi"
   if (userName && userPronunciationHint && userPronunciationHint.trim().length > 0) {
-    // Parse pronunciation_hint: Format kann sein "Andi" (einfacher Name) oder "AN DI|..." (alte komplexe Format)
-    const hintParts = userPronunciationHint.trim().split('|');
-    const simpleName = hintParts[0].trim();
-    
-    // Wenn der pronunciation_hint wie ein normaler Name aussieht (keine Leerzeichen, keine komplexe Formatierung),
-    // verwende ihn direkt als Ersatz für den ursprünglichen Namen
-    if (simpleName.length > 0 && !simpleName.includes(' ') && /^[A-Za-zÄÖÜäöüß-]+$/.test(simpleName)) {
+    // Gleiche Regel wie die Namensvorschau (spokenStoryName).
+    const simpleName = usablePronunciationHint(userPronunciationHint);
+    if (simpleName) {
       userNameWithPronunciation = simpleName;
       console.log(`[story-generation] Using simple name replacement: "${userName}" -> "${simpleName}"`);
     } else {
