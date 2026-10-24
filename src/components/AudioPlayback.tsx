@@ -11,6 +11,7 @@ import { canCreateResource, incrementResourceCount, canAccessResource } from "@/
 import { trackEvent } from "@/lib/analytics";
 import Paywall from "./Paywall";
 import SubscriptionOffer from "./dashboard/SubscriptionOffer";
+import { markFreeStoryOfferShown, shouldShowFreeStoryOffer } from "@/lib/first-story/offer-client";
 import { isEnabled } from "@/lib/featureFlags";
 import { getBackgroundMusicUrl, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
 import { applyMusicVolumeFactor } from "@/lib/musicVolumePreference";
@@ -146,43 +147,47 @@ export default function AudioPlayback({
     storyInsertsRef.current.set(key, { source, promise });
     return { ...(await promise), duplicateOf: null };
   };
-  // Gratis-Story aus dem normalen Flow: Die Datenbank setzt beim Speichern
-  // access_policy = 'trial' (7 Tage, wie die Engel-Erststory). Der Server passt
-  // die Dauer an FIRST_STORY_TRIAL_MINUTES an; nach dem ersten vollständigen
-  // Hören kommt einmalig dasselbe Abo-Angebot wie im Dashboard.
+  // Gratis-Story aus dem normalen Flow: Der Server legt fest, ob die eben
+  // gespeicherte Story die Gratis-Story ist (7 Tage, bzw. FIRST_STORY_TRIAL_MINUTES),
+  // und setzt die Testphase. Sobald sie bis zum Ende gehört oder ans Ende
+  // gespult wurde, kommt einmalig dasselbe Abo-Angebot wie im Dashboard.
   const freeTrialStoryIdRef = useRef<string | null>(null);
-  const freeTrialOfferRequestedRef = useRef(false);
+  const freeTrialOfferBusyRef = useRef(false);
+  const freeTrialOfferScheduledRef = useRef(false);
   const [showSubscriptionOffer, setShowSubscriptionOffer] = useState(false);
   const closeSubscriptionOffer = useCallback(() => setShowSubscriptionOffer(false), []);
 
-  const rememberFreeTrialStory = (row: { id?: string; access_policy?: string; first_story_draft_id?: string | null } | undefined) => {
-    if (!row?.id || row.access_policy !== 'trial' || row.first_story_draft_id) return;
-    freeTrialStoryIdRef.current = row.id;
+  const rememberFreeTrialStory = (row: { id?: string; first_story_draft_id?: string | null; is_audio_only?: boolean } | undefined) => {
+    if (!row?.id || row.first_story_draft_id || row.is_audio_only) return;
+    const storyId = row.id;
     fetch('/api/first-story/free-trial', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ storyId: row.id }),
-    }).catch(() => { /* Ohne Anpassung gelten die 7 Tage aus der Datenbank. */ });
-  };
-
-  const requestFreeTrialOffer = () => {
-    const storyId = freeTrialStoryIdRef.current;
-    if (!storyId || freeTrialOfferRequestedRef.current) return;
-    freeTrialOfferRequestedRef.current = true;
-    fetch('/api/first-story/completed', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({ storyId }),
     })
       .then((response) => response.json())
-      .then(({ showOffer }) => {
-        // Kurz nachklingen lassen, statt das Ende der Geschichte zu überdecken.
-        if (showOffer) setTimeout(() => setShowSubscriptionOffer(true), 2500);
-      })
-      .catch(() => { /* Ohne Angebot weiterhören ist in Ordnung. */ });
+      .then(({ policy }) => { if (policy === 'trial') freeTrialStoryIdRef.current = storyId; })
+      .catch(() => { /* Ohne Antwort kein Angebot – die Story bleibt abspielbar. */ });
   };
+
+  const requestFreeTrialOffer = useCallback(async () => {
+    const storyId = freeTrialStoryIdRef.current;
+    if (!storyId || freeTrialOfferBusyRef.current || freeTrialOfferScheduledRef.current) return;
+    freeTrialOfferBusyRef.current = true;
+    try {
+      if (!(await shouldShowFreeStoryOffer(storyId))) return;
+      freeTrialOfferScheduledRef.current = true;
+      // Kurz nachklingen lassen, statt das Ende der Geschichte zu überdecken.
+      // Als "gezeigt" gilt es erst, wenn es wirklich aufgeht.
+      setTimeout(() => {
+        setShowSubscriptionOffer(true);
+        markFreeStoryOfferShown(storyId);
+      }, 2500);
+    } finally {
+      freeTrialOfferBusyRef.current = false;
+    }
+  }, []);
 
   const [hasPlayedOnce, setHasPlayedOnce] = useState(false);
   const [hasStartedPlayback, setHasStartedPlayback] = useState(false); // Track ob User bereits Play gedrückt hat
@@ -1197,6 +1202,10 @@ export default function AudioPlayback({
 
     console.log('[AudioPlayback] Seeking to:', newTime, 'Voice duration:', voiceDuration);
 
+    // Ans Ende gespult: Hier wird die Stimme pausiert (unten), "ended" feuert
+    // dann nie – das Abo-Angebot der Gratis-Story würde nie kommen.
+    if (voiceDuration > 0 && newTime >= voiceDuration - 3) void requestFreeTrialOffer();
+
     // Setze Voice Audio Zeit (nur wenn innerhalb der Voice-Duration)
     if (newTime < voiceDuration) {
       audio.currentTime = newTime;
@@ -1224,7 +1233,7 @@ export default function AudioPlayback({
     }
 
     setCurrentTime(newTime);
-  }, [backgroundMusicElement, isPlaying]);
+  }, [backgroundMusicElement, isPlaying, requestFreeTrialOffer]);
 
   // Enhanced progress bar click handler for seeking
   const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -1386,7 +1395,7 @@ export default function AudioPlayback({
       // Zeige CTA SOFORT wenn Voice endet (unabhängig von Musik)
       setHasPlayedOnce(true);
       setShowPostAudioPanel(true);
-      requestFreeTrialOffer();
+      void requestFreeTrialOffer();
 
       // Moment 2: Zeige CTA nach 2-3 Sekunden
       setTimeout(() => {

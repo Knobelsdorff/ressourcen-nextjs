@@ -5,6 +5,7 @@ import DashboardWelcome from "@/components/dashboard/DashboardWelcome";
 import FirstStoryWelcome, { FirstStoryWelcomeState } from "@/components/dashboard/FirstStoryWelcome";
 import type { FirstStoryPhase } from "@/lib/first-story/config";
 import SubscriptionOffer, { SubscriptionOfferVariant } from "@/components/dashboard/SubscriptionOffer";
+import { markFreeStoryOfferShown, shouldShowFreeStoryOffer } from "@/lib/first-story/offer-client";
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
 import SettingsDialog from "@/components/dashboard/SettingsDialog";
 import ArrivalSample, { ArrivalSampleData } from "@/components/dashboard/ArrivalSample";
@@ -3257,17 +3258,13 @@ ${story.content}
   const closeOffer = useCallback(() => setOfferVariant(null), []);
 
   const handleStoryCompleted = useCallback(async (storyId: string) => {
-    try {
-      const response = await fetch('/api/first-story/completed', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ storyId }),
-      });
-      const { showOffer } = await response.json();
-      // Kurz nachklingen lassen, statt das Ende der Geschichte zu überdecken.
-      if (showOffer) setTimeout(() => setOfferVariant('after-first-story'), 2500);
-    } catch { /* Ohne Angebot weiterhören ist in Ordnung. */ }
+    if (!(await shouldShowFreeStoryOffer(storyId))) return;
+    // Kurz nachklingen lassen, statt das Ende der Geschichte zu überdecken.
+    // Als "gezeigt" gilt es erst, wenn es wirklich aufgeht.
+    setTimeout(() => {
+      setOfferVariant((current) => current ?? 'after-first-story');
+      markFreeStoryOfferShown(storyId);
+    }, 2500);
   }, []);
 
   const handleUnlockStory = useCallback(async (reason: StoryLockReason) => {

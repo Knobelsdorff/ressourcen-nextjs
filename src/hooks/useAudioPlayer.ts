@@ -21,6 +21,11 @@ import {
   subscribeToMusicVolumeFactor,
 } from "@/lib/musicVolumePreference";
 
+/** Wer so nah ans Ende spult, hat die Geschichte "zu Ende gehört". */
+const COMPLETION_NEAR_END_SECONDS = 3;
+/** Springt man weiter zurück, zählt der nächste Weg ans Ende wieder. */
+const COMPLETION_REARM_SECONDS = 10;
+
 export interface UseAudioPlayerOptions {
   audioUrl: string;
   storyId?: string;
@@ -140,6 +145,15 @@ export function useAudioPlayer({
     resourceFigureRef.current = resourceFigure;
   });
 
+  // "Ende erreicht" zählt auch, wenn jemand ans Ende spult (spielend oder
+  // pausiert) – dann feuert der Browser kein "ended". Pro Durchlauf einmal.
+  const completionFiredRef = useRef(false);
+  const fireCompleted = useCallback(() => {
+    if (completionFiredRef.current) return;
+    completionFiredRef.current = true;
+    onCompletedRef.current?.();
+  }, []);
+
   // --- Safari-Fallback -----------------------------------------------------
 
   useEffect(() => {
@@ -258,6 +272,7 @@ export function useAudioPlayer({
     const audio = new Audio(effectiveAudioUrl);
     audio.preload = "metadata";
     audioRef.current = audio;
+    completionFiredRef.current = false;
 
     setIsLoading(true);
     setCurrentTime(0);
@@ -356,7 +371,7 @@ export function useAudioPlayer({
     };
 
     const handleEnded = () => {
-      onCompletedRef.current?.();
+      fireCompleted();
 
       const music = musicRef.current;
       const musicOutlastsVoice =
@@ -378,7 +393,13 @@ export function useAudioPlayer({
       }, 250);
     };
 
-    const handlePlay = () => setIsPlaying(true);
+    const handlePlay = () => {
+      setIsPlaying(true);
+      // Neuer Durchlauf von vorn: das Ende darf wieder gemeldet werden.
+      if (isFinite(audio.duration) && audio.currentTime < audio.duration - COMPLETION_REARM_SECONDS) {
+        completionFiredRef.current = false;
+      }
+    };
 
     const handlePause = () => {
       if (isUserPausingRef.current) return;
@@ -426,7 +447,7 @@ export function useAudioPlayer({
       setHasBackgroundMusic(false);
       adminMusicVolumeRef.current = DEFAULT_MUSIC_VOLUME;
     };
-  }, [effectiveAudioUrl]);
+  }, [effectiveAudioUrl, fireCompleted]);
 
   // --- Steuerung -----------------------------------------------------------
 
@@ -458,6 +479,13 @@ export function useAudioPlayer({
       }
       setCurrentTime(clamped);
 
+      // Ans Ende gespult: Beim Spielen folgt zwar noch "ended", pausiert aber
+      // nicht – deshalb hier melden (einmal pro Durchlauf).
+      if (vDur > 0) {
+        if (clamped >= vDur - COMPLETION_NEAR_END_SECONDS) fireCompleted();
+        else if (clamped < vDur - COMPLETION_REARM_SECONDS) completionFiredRef.current = false;
+      }
+
       if (resumePlayback && isPlaying) {
         if (clamped < vDur && audio.paused) {
           audio.play().catch(() => {});
@@ -467,7 +495,7 @@ export function useAudioPlayer({
         }
       }
     },
-    [isPlaying]
+    [isPlaying, fireCompleted]
   );
 
   const skipBy = useCallback(
@@ -494,12 +522,21 @@ export function useAudioPlayer({
 
     isUserPausingRef.current = false;
 
+    // Am Ende (z.B. ans Ende gespult): Abspielen beginnt von vorn, statt einen
+    // laufenden Player ohne Ton anzuzeigen.
+    const atEnd = isFinite(audio.duration) && audio.duration > 0 && audio.currentTime >= audio.duration - 0.05;
+    if (atEnd) {
+      audio.currentTime = 0;
+      setCurrentTime(0);
+    }
+    const startAt = atEnd ? 0 : currentTime;
+
     // Stimme und Musik gemeinsam starten, damit sie synchron bleiben.
     if (audio.currentTime < (audio.duration || Infinity)) {
       audio.play().catch((err) => console.warn("[useAudioPlayer] play() abgelehnt:", err));
     }
     if (music) {
-      music.currentTime = Math.min(currentTime, music.duration || 0);
+      music.currentTime = Math.min(startAt, music.duration || 0);
       music.play().catch(() => {});
     }
     setIsPlaying(true);

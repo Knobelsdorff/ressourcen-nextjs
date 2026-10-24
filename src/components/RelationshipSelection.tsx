@@ -14,6 +14,7 @@ import JesusIconFinal from './JesusIconFinal';
 import ArchangelMichaelIconFinal from './ArchangelMichaelIconFinal';
 import AngelIconFinal from './AngelIconFinal';
 import SuperheroIconFinal from './SuperheroIconFinal';
+import AngelQuestionStep from './AngelQuestionStep';
 
 export interface QuestionAnswer {
   questionId: number;
@@ -124,20 +125,20 @@ export default function RelationshipSelection({
   // Zustand für benutzerdefiniertes Snippet
   const [customSnippet, setCustomSnippet] = useState("");
 
-  const addCustomSnippet = () => {
+  /** Gibt true zurück, wenn das Eingabefeld geleert werden soll. */
+  const addCustomText = (raw: string): boolean => {
     const existingCustom = currentAnswer.customBlocks || [];
     // ⛔ no more than MAX_SELECTIONS custom blocks
     if (existingCustom.length >= MAX_SELECTIONS) {
-      return;
+      return false;
     }
 
-    const text = customSnippet.trim();
-    if (!text) return;
-    
+    const text = raw.trim();
+    if (!text) return false;
+
     const isDuplicate = existingCustom.includes(text) || currentQuestion.blocks.includes(text);
     if (isDuplicate) {
-      setCustomSnippet("");
-      return;
+      return true;
     }
 
     const updatedCustom = [...existingCustom, text];
@@ -149,7 +150,11 @@ export default function RelationshipSelection({
     }
 
     updateCurrentAnswer({ customBlocks: updatedCustom, selectedBlocks: updatedSelected });
-    setCustomSnippet("");
+    return true;
+  };
+
+  const addCustomSnippet = () => {
+    if (addCustomText(customSnippet)) setCustomSnippet("");
   };
 
   const canProceedFromCurrentQuestion = () => {
@@ -181,78 +186,20 @@ export default function RelationshipSelection({
 
   if (firstFlow) {
     return (
-      <section className="story-first-stage" aria-label={`Angel Frage ${currentQuestionIndex + 1} von ${questionsToUse.length}`}>
-        <div className="story-first-intro">
-          <div className="story-first-character">
-            <span className="story-first-avatar" aria-hidden="true">
-              <AngelIconFinal size={52} className="story-first-avatar-image" />
-            </span>
-            <span>{selectedFigure.name}</span>
-          </div>
-          <p className="story-first-step-count">Frage {currentQuestionIndex + 1} von {questionsToUse.length}</p>
-          <h1>{currentQuestion.question}</h1>
-          <p className="story-first-guidance">Wähle, was sich für dich stimmig anfühlt.</p>
-        </div>
-
-        <div className="story-first-response">
-          <div className="story-first-response-heading">
-            <span>Wähle 1 bis 3 Antworten</span>
-            <span aria-live="polite">{selectedCount} / {MAX_SELECTIONS}</span>
-          </div>
-          <div className="story-first-options" role="group" aria-label="Antwortmöglichkeiten">
-            {[...currentQuestion.blocks, ...(currentAnswer.customBlocks || [])].map((block, index) => {
-              const selected = currentAnswer.selectedBlocks.includes(block);
-              return (
-                <button
-                  key={`${block}-${index}`}
-                  type="button"
-                  className="story-first-option"
-                  aria-pressed={selected}
-                  disabled={selectedCount >= MAX_SELECTIONS && !selected}
-                  onClick={() => handleBlockToggle(block)}
-                >
-                  <span className="story-first-option-mark" aria-hidden="true">{selected && <Check size={15} strokeWidth={2.5} />}</span>
-                  <span>{block}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <details className="story-first-custom">
-            <summary>Eigene Worte hinzufügen <span aria-hidden="true">+</span></summary>
-            <div className="story-first-custom-fields">
-              <input
-                type="text"
-                aria-label="Eigene Worte"
-                value={customSnippet}
-                onChange={(event) => setCustomSnippet(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    addCustomSnippet();
-                  }
-                }}
-                disabled={customLimitReached}
-                placeholder="Deine Formulierung"
-                maxLength={120}
-              />
-              <button type="button" onClick={addCustomSnippet} disabled={customLimitReached || !customSnippet.trim()}>
-                Hinzufügen
-              </button>
-            </div>
-          </details>
-
-          <div className="story-first-actions">
-            <button type="button" className="story-first-previous" onClick={handlePreviousQuestion} disabled={currentQuestionIndex === 0}>
-              <ChevronLeft size={17} aria-hidden="true" /> <span>Zurück</span>
-            </button>
-            <button type="button" className="story-first-next" onClick={handleNextQuestion} disabled={!canProceedFromCurrentQuestion()}>
-              <span>{currentQuestionIndex === questionsToUse.length - 1 ? 'Abschließen' : 'Weiter'}</span>
-              <ArrowRight size={17} aria-hidden="true" />
-            </button>
-          </div>
-        </div>
-      </section>
+      <AngelQuestionStep
+        figureName={selectedFigure.name}
+        question={currentQuestion}
+        index={currentQuestionIndex}
+        total={questionsToUse.length}
+        selectedBlocks={currentAnswer.selectedBlocks}
+        customBlocks={currentAnswer.customBlocks || []}
+        maxSelections={MAX_SELECTIONS}
+        canProceed={canProceedFromCurrentQuestion()}
+        onToggle={handleBlockToggle}
+        onAddCustom={addCustomText}
+        onPrevious={handlePreviousQuestion}
+        onNext={handleNextQuestion}
+      />
     );
   }
 
