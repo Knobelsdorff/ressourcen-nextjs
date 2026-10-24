@@ -9,7 +9,7 @@ import SpotlightTour from "@/components/onboarding/SpotlightTour";
 import SettingsDialog from "@/components/dashboard/SettingsDialog";
 import ArrivalSample, { ArrivalSampleData } from "@/components/dashboard/ArrivalSample";
 import { OPEN_SETTINGS_EVENT } from "@/components/dashboard/settings-events";
-import { FIRST_STORY_TOUR_STEPS, TOUR_ANCHORS } from "@/components/onboarding/firstStoryTour";
+import { FIRST_STORY_TOUR_STEPS, NEW_ACCOUNT_TOUR_STEPS, TOUR_ANCHORS } from "@/components/onboarding/firstStoryTour";
 import { scrollToTourAnchor } from "@/components/onboarding/tour-dom";
 import type { StoryAccess, StoryLockReason } from "@/lib/story-access/shared";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -132,6 +132,8 @@ export default function Dashboard() {
   const [arrivalSample, setArrivalSample] = useState<ArrivalSampleData | null>(null);
   const [personalStories, setPersonalStories] = useState<SavedStory[]>([]);
   const [loading, setLoading] = useState(false);
+  // Erst nach dem ersten erfolgreichen Laden ist "keine Story" verlässlich.
+  const [storiesLoaded, setStoriesLoaded] = useState(false);
   const [error, setError] = useState('');
   const [generatingAudioFor, setGeneratingAudioFor] = useState<string | null>(null);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
@@ -177,6 +179,9 @@ export default function Dashboard() {
   const [loadingCustomerPortal, setLoadingCustomerPortal] = useState(false);
   const [resourceAccessStatus, setResourceAccessStatus] = useState<Record<string, { canAccess: boolean; isFirst: boolean; trialExpired: boolean; daysRemaining?: number }>>({});
   const [hasSeenDashboardIntro, setHasSeenDashboardIntro] = useState<boolean | null>(null); // null = noch nicht geladen
+  // Wert beim ersten Laden: Das Flag wird kurz danach auf true gesetzt, die
+  // Einführung für neue Accounts braucht aber den ursprünglichen Wert.
+  const [isFirstDashboardVisit, setIsFirstDashboardVisit] = useState<boolean | null>(null);
   
   // Beispiel-Ressourcenfigur Konfiguration (nur für Admins)
 
@@ -793,6 +798,7 @@ export default function Dashboard() {
 
 
         calculateUserStats(uniqueStories);
+        setStoriesLoaded(true);
         
         // Track Dashboard-Visit (nur wenn User eingeloggt ist UND eine gültige Session hat)
         if (user && session) {
@@ -1124,6 +1130,7 @@ export default function Dashboard() {
         }
       } else {
         setHasSeenDashboardIntro((data as any)?.has_seen_dashboard_intro ?? false);
+        setIsFirstDashboardVisit((visit) => visit ?? (data as any)?.has_seen_dashboard_intro !== true);
       }
     } catch (err) {
       console.error('Error loading dashboard intro flag:', err);
@@ -3379,6 +3386,48 @@ ${story.content}
     setTimeout(() => scrollToTourAnchor(TOUR_ANCHORS.firstStory), 80);
   }, [welcomeStory, markWelcomeSeen]);
 
+  // ---------------------------------------------------------------------------
+  // Einführung für neue Accounts ohne Engel-Funnel (normale Registrierung):
+  // einmal beim allerersten Dashboard-Besuch, solange noch keine Story da ist.
+  // "Einmal" hängt an profiles.has_seen_dashboard_intro (wird beim ersten
+  // Besuch gesetzt). Engel-Accounts bekommen stattdessen die Erststory-Tour.
+  // ---------------------------------------------------------------------------
+  const [newAccountTourOpen, setNewAccountTourOpen] = useState(false);
+  const newAccountTourStartedRef = useRef(false);
+  const cameFromWelcomeLinkRef = useRef<boolean | null>(null);
+  if (cameFromWelcomeLinkRef.current === null && typeof window !== 'undefined') {
+    cameFromWelcomeLinkRef.current = new URLSearchParams(window.location.search).get('welcome') === '1';
+  }
+  const isAngelAccount = user?.user_metadata?.signup_method === 'first_story' || cameFromWelcomeLinkRef.current === true;
+
+  useEffect(() => {
+    if (
+      newAccountTourStartedRef.current ||
+      isFirstDashboardVisit !== true ||
+      isAngelAccount ||
+      !storiesLoaded ||
+      loading ||
+      stories.length > 0 ||
+      pendingStory ||
+      firstStoryPhase ||
+      offerVariant ||
+      tourOpen ||
+      settingsOpen
+    ) return;
+    // Kurz warten, bis Leerzustand und Kostprobe stehen.
+    const timer = setTimeout(() => {
+      newAccountTourStartedRef.current = true;
+      setNewAccountTourOpen(true);
+    }, 900);
+    return () => clearTimeout(timer);
+  }, [isFirstDashboardVisit, isAngelAccount, storiesLoaded, loading, stories.length, pendingStory, firstStoryPhase, offerVariant, tourOpen, settingsOpen]);
+
+  const handleNewAccountTourEnd = useCallback(() => {
+    setNewAccountTourOpen(false);
+    setSettingsOpen(false);
+    setTimeout(() => scrollToTourAnchor(TOUR_ANCHORS.startFirstStory), 80);
+  }, []);
+
   if (authLoading || !user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary-50 via-primary-50 to-primary-50 flex items-center justify-center">
@@ -3411,6 +3460,7 @@ ${story.content}
         <SubscriptionOffer variant={offerVariant} onClose={closeOffer} />
         <SettingsDialog open={settingsOpen} onClose={closeSettings} onNameSaved={() => void loadFullName()} />
         <SpotlightTour steps={FIRST_STORY_TOUR_STEPS} open={tourOpen} onEnd={handleTourEnd} />
+        <SpotlightTour steps={NEW_ACCOUNT_TOUR_STEPS} open={newAccountTourOpen} onEnd={handleNewAccountTourEnd} />
 
         {/* Content */}
         <motion.div
@@ -3443,6 +3493,7 @@ ${story.content}
                     <div className="flex flex-wrap items-center justify-center gap-3">
                       <button
                         onClick={() => router.push('/create-story')}
+                        data-tour={TOUR_ANCHORS.startFirstStory}
                         className="dashboard-primary-button"
                       >
                         <Plus className="w-5 h-5" />
@@ -3462,7 +3513,7 @@ ${story.content}
                 </div>
                 {/* Auch ohne eigene Story: die Kostprobe zum Reinhören */}
                 {arrivalSample && (
-                  <ArrivalSample sample={arrivalSample} hasOwnStories={false} onCreateStory={handleCreateStoryClick} />
+                  <ArrivalSample sample={arrivalSample} hasOwnStories={false} onCreateStory={handleCreateStoryClick} tourAnchor={TOUR_ANCHORS.arrivalSample} />
                 )}
                 </>
                 )

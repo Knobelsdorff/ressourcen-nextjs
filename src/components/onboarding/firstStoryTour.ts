@@ -12,6 +12,12 @@
  *   settingsPassword  – Passwort                        (SettingsDialog)
  *   settingsFeedback  – Feedback & Wünsche              (SettingsDialog)
  *   account           – Profil-Menü bzw. Mobil-Menü     (Header.tsx, derzeit ohne Schritt)
+ *   startFirstStory   – "Erstelle deine erste Power Story" im leeren Dashboard (dashboard/page.tsx)
+ *   arrivalSample     – Kostprobe "Zum Ankommen"         (ArrivalSample)
+ *
+ * Zwei Einführungen:
+ *   FIRST_STORY_TOUR_STEPS  – Engel-Funnel: die Erststory liegt schon im Dashboard.
+ *   NEW_ACCOUNT_TOUR_STEPS  – normale Registrierung: erster Besuch, noch keine Story.
  *
  * Fehlt ein Anker (z.B. keine Testphase), wird der Schritt übersprungen.
  * Beim Umbau des Dashboards nur die Attribute mitnehmen.
@@ -29,6 +35,8 @@ export const TOUR_ANCHORS = {
   settingsPassword: 'settings-password',
   settingsFeedback: 'settings-feedback',
   account: 'account',
+  startFirstStory: 'start-first-story',
+  arrivalSample: 'arrival-sample',
 } as const;
 
 export const FIRST_STORY_TOUR_STEPS: TourStep[] = [
@@ -81,4 +89,36 @@ export const FIRST_STORY_TOUR_STEPS: TourStep[] = [
     title: 'Feedback & Wünsche',
     body: 'Fehlt dir eine Figur oder ein Thema? Schreib uns – wir lesen jede Nachricht.',
   },
+];
+
+const settingsSteps = (ids: string[]) => FIRST_STORY_TOUR_STEPS.filter((step) => ids.includes(step.id));
+
+/** Erster Besuch nach normaler Registrierung (ohne Engel-Funnel), noch keine Story. */
+export const NEW_ACCOUNT_TOUR_STEPS: TourStep[] = [
+  {
+    id: 'start-first-story',
+    target: TOUR_ANCHORS.startFirstStory,
+    title: 'Willkommen in deinem Raum',
+    body: 'Hier beginnt deine erste Power Story: Du wählst eine Figur, beantwortest ein paar Fragen und suchst dir eine Stimme aus. In 2–3 Minuten ist sie fertig.',
+  },
+  {
+    id: 'first-story-free',
+    target: TOUR_ANCHORS.startFirstStory,
+    title: 'Deine erste Power Story ist kostenlos',
+    body: 'Du kannst sie 7 Tage lang so oft anhören, wie du magst. Danach bleibt sie hier gespeichert und du kannst sie mit Power Storys jederzeit wieder freischalten.',
+  },
+  {
+    id: 'arrival-sample',
+    target: TOUR_ANCHORS.arrivalSample,
+    title: 'Erst einmal reinhören?',
+    body: 'Diese kurze Power Story ist immer kostenlos. Setz Kopfhörer auf und hör hinein – so bekommst du ein Gefühl dafür, wie sich Power Storys anfühlen.',
+  },
+  ...settingsSteps(['settings', 'settings-name']),
+  {
+    id: 'settings-password',
+    target: TOUR_ANCHORS.settingsPassword,
+    title: 'Dein Passwort',
+    body: 'Hier legst du ein Passwort fest oder änderst es.',
+  },
+  ...settingsSteps(['settings-feedback']),
 ];

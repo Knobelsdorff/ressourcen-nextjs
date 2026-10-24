@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { canCreateResource, incrementResourceCount, canAccessResource } from "@/lib/access";
 import { trackEvent } from "@/lib/analytics";
 import Paywall from "./Paywall";
+import SubscriptionOffer from "./dashboard/SubscriptionOffer";
 import { isEnabled } from "@/lib/featureFlags";
 import { getBackgroundMusicUrl, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
 import { applyMusicVolumeFactor } from "@/lib/musicVolumePreference";
@@ -139,11 +140,50 @@ export default function AudioPlayback({
       .then((result: { data: any; error: any }) => {
         // Nach einem Fehler darf ein späterer Versuch neu speichern.
         if (result.error) storyInsertsRef.current.delete(key);
+        else rememberFreeTrialStory(result.data?.[0]);
         return result;
       });
     storyInsertsRef.current.set(key, { source, promise });
     return { ...(await promise), duplicateOf: null };
   };
+  // Gratis-Story aus dem normalen Flow: Die Datenbank setzt beim Speichern
+  // access_policy = 'trial' (7 Tage, wie die Engel-Erststory). Der Server passt
+  // die Dauer an FIRST_STORY_TRIAL_MINUTES an; nach dem ersten vollständigen
+  // Hören kommt einmalig dasselbe Abo-Angebot wie im Dashboard.
+  const freeTrialStoryIdRef = useRef<string | null>(null);
+  const freeTrialOfferRequestedRef = useRef(false);
+  const [showSubscriptionOffer, setShowSubscriptionOffer] = useState(false);
+  const closeSubscriptionOffer = useCallback(() => setShowSubscriptionOffer(false), []);
+
+  const rememberFreeTrialStory = (row: { id?: string; access_policy?: string; first_story_draft_id?: string | null } | undefined) => {
+    if (!row?.id || row.access_policy !== 'trial' || row.first_story_draft_id) return;
+    freeTrialStoryIdRef.current = row.id;
+    fetch('/api/first-story/free-trial', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ storyId: row.id }),
+    }).catch(() => { /* Ohne Anpassung gelten die 7 Tage aus der Datenbank. */ });
+  };
+
+  const requestFreeTrialOffer = () => {
+    const storyId = freeTrialStoryIdRef.current;
+    if (!storyId || freeTrialOfferRequestedRef.current) return;
+    freeTrialOfferRequestedRef.current = true;
+    fetch('/api/first-story/completed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ storyId }),
+    })
+      .then((response) => response.json())
+      .then(({ showOffer }) => {
+        // Kurz nachklingen lassen, statt das Ende der Geschichte zu überdecken.
+        if (showOffer) setTimeout(() => setShowSubscriptionOffer(true), 2500);
+      })
+      .catch(() => { /* Ohne Angebot weiterhören ist in Ordnung. */ });
+  };
+
   const [hasPlayedOnce, setHasPlayedOnce] = useState(false);
   const [hasStartedPlayback, setHasStartedPlayback] = useState(false); // Track ob User bereits Play gedrückt hat
   const [showPostAudioPanel, setShowPostAudioPanel] = useState(false); // Show calm "after" panel
@@ -1346,6 +1386,7 @@ export default function AudioPlayback({
       // Zeige CTA SOFORT wenn Voice endet (unabhängig von Musik)
       setHasPlayedOnce(true);
       setShowPostAudioPanel(true);
+      requestFreeTrialOffer();
 
       // Moment 2: Zeige CTA nach 2-3 Sekunden
       setTimeout(() => {
@@ -2638,6 +2679,8 @@ export default function AudioPlayback({
           message="Deine kostenlose 3-Tage-Trial-Periode ist abgelaufen. Fühle dich jeden Tag sicher, geborgen und beschützt"
         />
       )}
+
+      <SubscriptionOffer variant={showSubscriptionOffer ? 'after-first-story' : null} onClose={closeSubscriptionOffer} />
 
     </div>
   );

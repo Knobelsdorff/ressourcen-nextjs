@@ -10,11 +10,12 @@
  * Bereich trägt data-tour-scroll, damit die Tour darin scrollen kann.
  */
 
-import { FormEvent, ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useRef, useState } from "react";
 import { ExternalLink, Loader2, Volume2, X } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
 import { usablePronunciationHint } from "@/lib/spoken-name";
+import { useNamePreview } from "@/hooks/useNamePreview";
 import { TOUR_ANCHORS } from "@/components/onboarding/firstStoryTour";
 import MusicVolumeControl from "@/components/audio/MusicVolumeControl";
 
@@ -49,15 +50,13 @@ interface SettingsDialogProps {
 export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsDialogProps) {
   const { user } = useAuth();
   const closeRef = useRef<HTMLButtonElement>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Name & Aussprache
   const [fullName, setFullName] = useState("");
   const [pronunciation, setPronunciation] = useState("");
   const [nameStatus, setNameStatus] = useState<Status>(null);
   const [savingName, setSavingName] = useState(false);
-  const [previewing, setPreviewing] = useState(false);
-  const [spokenAs, setSpokenAs] = useState<string | null>(null);
+  const { playPreview: playNamePreview, previewing, spokenAs, resetPreview } = useNamePreview();
 
   // E-Mail
   const [editingEmail, setEditingEmail] = useState(false);
@@ -92,7 +91,7 @@ export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsD
     setEmailStatus(null);
     setPasswordStatus(null);
     setFeedbackStatus(null);
-    setSpokenAs(null);
+    resetPreview();
     closeRef.current?.focus({ preventScroll: true });
 
     void (async () => {
@@ -118,7 +117,7 @@ export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsD
         setSubscription(null);
       }
     })();
-  }, [open, userId]);
+  }, [open, userId, resetPreview]);
 
   // Esc schließt – außer eine Einführung läuft gerade (die behandelt Esc selbst).
   useEffect(() => {
@@ -130,33 +129,13 @@ export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsD
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
 
-  useEffect(() => () => audioRef.current?.pause(), []);
-
   const hintIgnored = pronunciation.trim().length > 0 && !usablePronunciationHint(pronunciation);
 
-  const playPreview = useCallback(async () => {
-    if (!fullName.trim() || previewing) return;
-    setPreviewing(true);
+  const playPreview = async () => {
     setNameStatus(null);
-    try {
-      const response = await fetch("/api/profile/name-preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ name: fullName, pronunciation }),
-      });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || !result.audio) throw new Error(result.error || "Die Hörprobe konnte nicht erstellt werden.");
-      audioRef.current?.pause();
-      audioRef.current = new Audio(result.audio);
-      setSpokenAs(result.spoken ?? null);
-      await audioRef.current.play();
-    } catch (e) {
-      setNameStatus({ kind: "error", text: e instanceof Error ? e.message : "Die Hörprobe konnte nicht erstellt werden." });
-    } finally {
-      setPreviewing(false);
-    }
-  }, [fullName, pronunciation, previewing]);
+    const previewError = await playNamePreview(fullName, pronunciation);
+    if (previewError) setNameStatus({ kind: "error", text: previewError });
+  };
 
   const saveName = async (event: FormEvent) => {
     event.preventDefault();

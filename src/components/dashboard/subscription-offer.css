@@ -1,0 +1,32 @@
+/* Abo-Angebot: ruhig, kein harter Paywall-Dialog. Wird im Dashboard und nach
+   dem Hören der Gratis-Story auf /create-story gezeigt – deshalb eigenständig,
+   ohne dashboard.css. */
+/* div.… schlägt `.dashboard-theme > div { background }` im Dashboard. */
+div.subscription-offer-backdrop { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(48, 32, 20, 0.28); animation: subscription-offer-backdrop-fade 0.25s ease-out; }
+.subscription-offer { width: min(100%, 460px); max-height: calc(100dvh - 32px); overflow-y: auto; padding: 32px 30px 26px; border: 1px solid #ecdfcd; border-radius: 28px; background: #fffaf2; box-shadow: 0 24px 60px rgba(73, 48, 30, 0.18); color: #49301e; text-align: center; animation: subscription-offer-sheet-rise 0.3s ease-out; }
+.subscription-offer-icon { display: grid; place-items: center; width: 68px; height: 68px; margin: 0 auto 18px; border-radius: 50%; background: #eee3d7; box-shadow: 0 0 0 8px #eee3d75c; }
+.subscription-offer h2 { font-size: clamp(21px, 2.6vw, 25px); font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; }
+.subscription-offer #subscription-offer-text { margin-top: 10px; color: #69594c; font-size: 15px; line-height: 1.6; }
+.subscription-offer-price { display: flex; align-items: baseline; justify-content: center; gap: 6px; margin-top: 22px; }
+.subscription-offer-amount { font-size: 34px; font-weight: 700; letter-spacing: -0.03em; }
+.subscription-offer-period { color: #69594c; font-size: 15px; }
+.subscription-offer-note { display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; color: #5c6d34; font-size: 13px; font-weight: 600; }
+.subscription-offer-error { margin-top: 14px; color: #a53724; font-size: 13px; }
+.subscription-offer-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 24px; }
+.subscription-offer-primary { display: inline-flex; align-items: center; justify-content: center; gap: 9px; width: 100%; min-height: 48px; padding: 12px 24px; border-radius: 999px; background: #49301e; color: white; box-shadow: 0 3px 0 #38261912; font-size: 14px; font-weight: 600; line-height: 1.4; transition: background-color 180ms ease, box-shadow 180ms ease; }
+.subscription-offer-primary:hover { background: #63452e; box-shadow: 0 5px 14px #49301e18; }
+.subscription-offer-primary:disabled { opacity: 0.7; }
+.subscription-offer-secondary { min-height: 44px; padding: 10px 16px; border-radius: 999px; color: #70513b; font-size: 14px; font-weight: 600; }
+.subscription-offer-secondary:hover { background: #f1e8dc; }
+.subscription-offer :is(button):focus-visible { outline: 3px solid #7952b8; outline-offset: 3px; }
+@keyframes subscription-offer-backdrop-fade { from { opacity: 0; } }
+@keyframes subscription-offer-sheet-rise { from { opacity: 0; transform: translateY(12px); } }
+
+@media (max-width: 640px) {
+  div.subscription-offer-backdrop { align-items: flex-end; padding: 0; }
+  .subscription-offer { width: 100%; max-height: 92dvh; padding: 28px 22px max(22px, env(safe-area-inset-bottom)); border-radius: 26px 26px 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  div.subscription-offer-backdrop, .subscription-offer, .subscription-offer-primary { animation: none; transition: none; }
+}

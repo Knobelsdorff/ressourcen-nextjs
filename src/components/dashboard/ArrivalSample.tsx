@@ -20,11 +20,14 @@ interface ArrivalSampleProps {
   /** Ob der Account schon eigene (KI-)Storys hat – steuert den Text des Aufrufs. */
   hasOwnStories: boolean;
   onCreateStory: () => void;
+  /** data-tour-Anker für Einführungen (src/components/onboarding). */
+  tourAnchor?: string;
 }
 
-export default function ArrivalSample({ sample, hasOwnStories, onCreateStory }: ArrivalSampleProps) {
+export default function ArrivalSample({ sample, hasOwnStories, onCreateStory, tourAnchor }: ArrivalSampleProps) {
   return (
     <motion.div
+      data-tour={tourAnchor}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}

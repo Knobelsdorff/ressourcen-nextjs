@@ -3,8 +3,10 @@
 /**
  * Ruhiges Abo-Angebot im Dashboard – kein klassischer Paywall-Dialog.
  *
- *   "after-first-story": einmalig, nachdem die Erststory zum ersten Mal
- *                        vollständig angehört wurde.
+ *   "after-first-story": einmalig, nachdem die Gratis-Story (Engel-Erststory
+ *                        oder erste Story aus dem normalen Flow) zum ersten
+ *                        Mal vollständig angehört wurde – im Dashboard oder
+ *                        direkt auf /create-story.
  *   "locked":            nach Tippen auf eine gesperrte Story.
  *
  * Der Abschluss läuft über den bestehenden Stripe-Checkout.
@@ -15,6 +17,7 @@ import { Check, Loader2 } from "lucide-react";
 import AngelIconFinal from "@/components/AngelIconFinal";
 import { useAuth } from "@/components/providers/auth-provider";
 import { createCheckoutSession } from "@/lib/access";
+import "./subscription-offer.css";
 
 export type SubscriptionOfferVariant = "after-first-story" | "locked";
 
@@ -97,7 +100,7 @@ export default function SubscriptionOffer({ variant, onClose }: SubscriptionOffe
         {error && <p className="subscription-offer-error" role="alert">{error}</p>}
 
         <div className="subscription-offer-actions">
-          <button ref={primaryRef} type="button" className="dashboard-primary-button" onClick={() => void startCheckout()} disabled={loading}>
+          <button ref={primaryRef} type="button" className="subscription-offer-primary" onClick={() => void startCheckout()} disabled={loading}>
             {loading ? <><Loader2 size={18} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> Einen Moment …</> : "Power Storys freischalten"}
           </button>
           <button type="button" className="subscription-offer-secondary" onClick={onClose}>

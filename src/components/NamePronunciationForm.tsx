@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { motion } from "framer-motion";
-import { ArrowRight, ChevronLeft } from "lucide-react";
+import { ArrowRight, ChevronLeft, Loader2, Volume2 } from "lucide-react";
 import { ResourceFigure } from "@/lib/types/story";
 import { supabase } from "@/lib/supabase";
+import { usablePronunciationHint } from "@/lib/spoken-name";
+import { useNamePreview } from "@/hooks/useNamePreview";
 import IdealFamilyIconFinal from './IdealFamilyIconFinal';
 import JesusIconFinal from './JesusIconFinal';
 import ArchangelMichaelIconFinal from './ArchangelMichaelIconFinal';
@@ -19,6 +21,8 @@ interface NamePronunciationFormProps {
   userFullName: string | null;
   userPronunciationHint: string | null;
   onUserDataUpdate: (fullName: string, pronunciationHint: string | null) => void;
+  /** Im Flow gewählte Stimme – die Hörprobe klingt wie die spätere Story. */
+  voiceId?: string | null;
 }
 
 export default function NamePronunciationForm({
@@ -27,7 +31,8 @@ export default function NamePronunciationForm({
   selectedFigure,
   userFullName,
   userPronunciationHint,
-  onUserDataUpdate
+  onUserDataUpdate,
+  voiceId
 }: NamePronunciationFormProps) {
   const { user } = useAuth();
 
@@ -36,6 +41,15 @@ export default function NamePronunciationForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  // "Anhören" wie in den Einstellungen (nur angemeldet – die Vorschau kostet).
+  const { playPreview, previewing, spokenAs } = useNamePreview();
+  const hintIgnored = pronunciationHint.trim().length > 0 && !usablePronunciationHint(pronunciationHint);
+
+  const handlePreview = async () => {
+    setError('');
+    const previewError = await playPreview(fullName, pronunciationHint, voiceId);
+    if (previewError) setError(previewError);
+  };
 
   // Scroll to top when component mounts
   useEffect(() => {
@@ -160,7 +174,7 @@ export default function NamePronunciationForm({
               <div className="grid grid-cols-1 md:grid-cols-2 sm:gap-4 gap-3">
                 <div>
                   <label htmlFor="fullName" className="block text-sm font-semibold text-primary-900 mb-2">
-                    Vorname oder Spitzname (optional)
+                    Wie dürfen wir dich nennen? <span className="font-normal text-gray-600">(optional)</span>
                   </label>
                   <input
                     type="text"
@@ -168,16 +182,18 @@ export default function NamePronunciationForm({
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     className="w-full px-3 py-2.5 border border-primary-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-all"
-                    placeholder="z.B. Andy, Maria, Tom"
+                    placeholder="z. B. Julia"
+                    autoComplete="given-name"
+                    maxLength={60}
                   />
                   <p className="text-gray-600/75 text-xs mt-1.5">
-                    Nur wenn es sich stimmig anfühlt.
+                    Deine Power Story spricht dich ab und zu mit Namen an – nur wenn es sich stimmig anfühlt.
                   </p>
                 </div>
 
                 <div>
                   <label htmlFor="pronunciationHint" className="block text-sm font-semibold text-primary-900 mb-2">
-                    Aussprache (optional)
+                    So soll er klingen <span className="font-normal text-gray-600">(optional)</span>
                   </label>
                   <input
                     type="text"
@@ -185,13 +201,34 @@ export default function NamePronunciationForm({
                     value={pronunciationHint}
                     onChange={(e) => setPronunciationHint(e.target.value)}
                     className="w-full px-3 py-2.5 border border-primary-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-all"
-                    placeholder="z.B. Andi (statt Andy)"
+                    placeholder="z. B. Juh-lia"
+                    aria-describedby="pronunciationHint-help"
+                    maxLength={60}
                   />
-                  <p className="text-gray-600/75 text-xs mt-1.5">
-                    Nur nötig, wenn dein Name oft falsch ausgesprochen wird.
+                  <p id="pronunciationHint-help" className="text-gray-600/75 text-xs mt-1.5">
+                    {hintIgnored
+                      ? 'Bitte nur ein Wort, so geschrieben, wie es klingen soll – z. B. „Juh-lia“. Sonst verwenden wir deinen Namen.'
+                      : 'Schreib deinen Namen so, wie er klingen soll – als ein Wort, gern mit Bindestrichen.'}
                   </p>
                 </div>
               </div>
+
+              {user && (
+                <div className="story-name-preview-row">
+                  <button
+                    type="button"
+                    className="story-name-preview"
+                    onClick={() => void handlePreview()}
+                    disabled={!fullName.trim() || previewing}
+                  >
+                    {previewing ? <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Volume2 className="w-4 h-4" aria-hidden="true" />}
+                    {previewing ? 'Wird erstellt …' : 'Anhören'}
+                  </button>
+                  <p className="text-xs text-gray-600" aria-live="polite">
+                    {spokenAs ? <>Gesprochen als „{spokenAs}“.</> : 'Hör dir an, wie dein Name in deiner Power Story klingt – so oft du magst.'}
+                  </p>
+                </div>
+              )}
 
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">

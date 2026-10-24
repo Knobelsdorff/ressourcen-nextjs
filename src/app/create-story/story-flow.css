@@ -44,6 +44,12 @@
 .story-flow .story-question-step, .story-flow .story-name-step { padding-bottom: 100px; }
 .story-flow .story-question-step .story-step-panel { border-top: 5px solid var(--wellness-sage); }
 .story-flow .story-name-step .story-step-panel { border-top: 5px solid var(--wellness-lavender); }
+/* "Anhören" im Namens-Schritt – wie in den Einstellungen im Dashboard. */
+.story-name-preview-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.story-flow .story-name-preview { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 20px; background: var(--wellness-sage); color: #302516; font-size: 14px; font-weight: 600; }
+.story-flow .story-name-preview:not(:disabled):hover { background: #afc27e; }
+.story-flow .story-name-preview:disabled { opacity: 0.6; }
+.story-flow .story-name-preview:focus-visible { outline: 3px solid #7952b8; outline-offset: 3px; }
 .story-flow .story-answer { min-height: 48px; height: auto; padding: 12px 16px; border-radius: 24px; background: #f8f5f2; border: 1px solid #e4ded6; text-align: left; }
 .story-flow .story-answer > div { flex-shrink: 0; border-radius: 50%; }
 .story-flow .story-answer[aria-pressed='true'] { background: #e5ebd8; border-color: #81954f; box-shadow: 0 0 0 2px #9db36a20; }

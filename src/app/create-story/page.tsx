@@ -677,7 +677,9 @@ function CreateStoryInner() {
       if (allQuestionsAnswered) {
         setAppState(prev => ({
           ...prev,
-          currentStep: firstFlow ? 3 : 5,
+          // Erststory: 3 = Account-Gate. Sonst: 3 = Stimme wählen – ohne Stimme
+          // rendert Schritt 5 nichts und der Flow bleibt hängen.
+          currentStep: 3,
           currentQuestionIndex: 0,
           selectedVoice: firstFlow ? FIRST_FLOW_VOICE_ID : prev.selectedVoice,
         }));
@@ -709,7 +711,7 @@ function CreateStoryInner() {
     if (isStep5Complete || isStep6Complete) {
       setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
     }
-  }, [appState.currentStep, appState.resourceFigure, appState.questionAnswers, appState.generatedStory, appState.selectedVoice, user, firstFlow]);
+  }, [appState.currentStep, appState.currentQuestionIndex, appState.resourceFigure, appState.questionAnswers, appState.generatedStory, appState.selectedVoice, user, userFullName, firstFlow]);
 
   // New step order: 1=Figure, 2=Questions, 3=Voice, 4=Name, 5+=Audio
   const handlePreviousStep = useCallback(() => {
@@ -1085,6 +1087,7 @@ function CreateStoryInner() {
                   userFullName={user ? userFullName : anonymousUserName}
                   userPronunciationHint={user ? userPronunciationHint : anonymousUserPronunciationHint}
                   onUserDataUpdate={handleUserDataUpdate}
+                  voiceId={appState.selectedVoice}
                 />
               )}
 
