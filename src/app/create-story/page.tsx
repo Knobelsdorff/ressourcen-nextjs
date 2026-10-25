@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { isEnabled } from "@/lib/featureFlags";
 import { motion, AnimatePresence } from "framer-motion";
 import StoryFlowProgress from "@/components/StoryFlowProgress";
-import { ArrowLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import ResourceFigureSelection from "@/components/ResourceFigureSelection";
 import RelationshipSelection, { QuestionAnswer } from "@/components/RelationshipSelection";
 import NamePronunciationForm from "@/components/NamePronunciationForm";
@@ -25,6 +25,7 @@ import { canCreateResource } from "@/lib/access";
 import { getOrCreateBrowserFingerprint } from "@/lib/browser-fingerprint";
 import { realFigures, fictionalFigures } from "@/data/figures";
 import { ResourceFigure, AudioState, AppState } from "@/lib/types/story";
+import { generateStoryWithProgress } from "@/lib/generate-story-client";
 
 const FIRST_FLOW_VOICE_ID = FIRST_STORY_VOICE_ID;
 const FIRST_FLOW_STORAGE_KEY = "first-power-story-flow";
@@ -104,6 +105,8 @@ function CreateStoryInner() {
   const [firstPreparationRetry, setFirstPreparationRetry] = useState(0);
   const [userDataLoaded, setUserDataLoaded] = useState(false);
   const [showNameStep, setShowNameStep] = useState(true);
+  // Schritt 1 → 2 prüft erst den Zugang; so lange wartet "Weiter" sichtbar.
+  const [checkingAccess, setCheckingAccess] = useState(false);
   // Track if story generation was already attempted to prevent double-triggering
   const storyGenerationAttempted = useRef(false);
   const firstPreparationAttempted = useRef(false);
@@ -558,25 +561,6 @@ function CreateStoryInner() {
   }, [setResetFunction, handleResetToStart]);
 
   // New step order: 1=Figure, 2=Questions, 3=Voice, 4=Name, 5+=Audio
-  const canProceed =
-    (appState.currentStep === 1 && appState.resourceFigure) ||
-    (appState.currentStep === 2 && (() => {
-      const currentAnswer = appState.questionAnswers.find(a => {
-        const questionId = appState.currentQuestionIndex + 1;
-        return a.questionId === questionId;
-      });
-
-      const selectedBlocksLength = currentAnswer?.selectedBlocks?.length || 0;
-      const hasEnoughAnswers = selectedBlocksLength >= 1;
-
-      return hasEnoughAnswers;
-    })()) ||
-    (appState.currentStep === 3 && appState.selectedVoice) ||
-    (appState.currentStep === 4) || // Name step - always can proceed
-    (appState.currentStep === 5 && appState.selectedVoice) ||
-    (appState.currentStep === 6 && appState.selectedVoice);
-
-  // New step order: 1=Figure, 2=Questions, 3=Voice, 4=Name, 5+=Audio
   const handleNextStep = useCallback(() => {
     const isStep1Complete = appState.currentStep === 1 && appState.resourceFigure;
     const isStep3Complete = appState.currentStep === 3 && appState.selectedVoice;
@@ -591,6 +575,7 @@ function CreateStoryInner() {
 
       if (user && paywallEnabled) {
         const checkPaywall = async () => {
+          setCheckingAccess(true);
           try {
             const { data: existingStories } = await supabase
               .from('saved_stories')
@@ -622,6 +607,8 @@ function CreateStoryInner() {
           } catch (error) {
             console.error('[handleNextStep] Error checking paywall:', error);
             setShowPaywall(true);
+          } finally {
+            setCheckingAccess(false);
           }
         };
 
@@ -629,6 +616,7 @@ function CreateStoryInner() {
         return;
       } else if (!user && paywallEnabled) {
         const checkAnonymousRateLimit = async () => {
+          setCheckingAccess(true);
           try {
             const fingerprint = await getOrCreateBrowserFingerprint();
 
@@ -651,6 +639,8 @@ function CreateStoryInner() {
           } catch (error) {
             console.error('[handleNextStep] Error checking anonymous rate limit:', error);
             setAppState(prev => ({ ...prev, currentStep: 2 }));
+          } finally {
+            setCheckingAccess(false);
           }
         };
 
@@ -750,6 +740,29 @@ function CreateStoryInner() {
     });
   }, [user, userFullName]);
 
+  const retryStoryGeneration = useCallback(() => {
+    setStoryGenerationError(null);
+    storyGenerationAttempted.current = false;
+    setAppState(prev => ({ ...prev, generatedStory: '' }));
+  }, []);
+
+  const backToVoiceSelection = useCallback(() => {
+    setStoryGenerationError(null);
+    storyGenerationAttempted.current = false;
+    setAppState(prev => ({ ...prev, currentStep: 3, audioState: null }));
+  }, []);
+
+  // Raus aus dem Flow. Unterwegs nachfragen – sonst gehen Antworten oder die
+  // gerade entstehende Story verloren.
+  const exitLabel = user ? 'Meine Storys' : 'Startseite';
+  const handleExit = useCallback(() => {
+    const generating = appState.currentStep >= 5 && !appState.audioState?.audioUrl;
+    const answering = appState.currentStep >= 2 && appState.currentStep < 5 && appState.questionAnswers.length > 0;
+    if (generating && !window.confirm('Deine Power Story wird gerade erstellt. Wenn du jetzt gehst, wird sie nicht fertig. Trotzdem verlassen?')) return;
+    if (answering && !window.confirm('Deine Antworten gehen verloren, wenn du jetzt gehst. Trotzdem verlassen?')) return;
+    router.push(user ? '/dashboard' : '/');
+  }, [appState.currentStep, appState.audioState?.audioUrl, appState.questionAnswers.length, router, user]);
+
   const handleUserDataUpdate = useCallback((fullName: string, pronunciationHint: string | null) => {
     if (user) {
       setUserFullName(fullName || null);
@@ -798,24 +811,10 @@ function CreateStoryInner() {
             sparModus: sparModus
           };
 
-          const response = await fetch('/api/generate-story', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
-          });
-
-          if (response.ok) {
-            const { story } = await response.json();
-            if (story && story.trim().length > 0) {
-              handleStoryGenerated(story);
-              setStoryGenerationError(null);
-            } else {
-              throw new Error('Empty story received from API');
-            }
-          } else {
-            const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-            throw new Error(errorData.message || `HTTP ${response.status}: Failed to generate story`);
-          }
+          // Stream: der Loader zeigt, wie viel der Geschichte schon geschrieben ist.
+          const story = await generateStoryWithProgress(requestBody);
+          handleStoryGenerated(story);
+          setStoryGenerationError(null);
         } catch (error: any) {
           console.error('Story generation failed:', error);
           const errorMessage = error.message || 'Failed to generate story. Please try again.';
@@ -844,41 +843,17 @@ function CreateStoryInner() {
 
   if (!mounted || authLoading || (firstFlow && !firstFlowReady) || shouldRedirect) {
     return (
-      <div className={`min-h-screen story-flow-background flex items-center justify-center ${firstFlow ? 'story-flow-first-loading' : ''}`}>
-        <div className="text-center">
-          {/* Breathing Circle - consistent loader */}
-          <motion.div
-            className="w-20 h-20 rounded-full border-2 border-amber-400 relative mx-auto mb-6"
-            animate={{
-              scale: [1, 1.15, 1],
-            }}
-            transition={{
-              duration: 5.5,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          >
-            <motion.div
-              className="absolute inset-0 rounded-full bg-amber-400"
-              style={{ opacity: 0.08 }}
-              animate={{
-                opacity: [0.05, 0.1, 0.05],
-              }}
-              transition={{
-                duration: 5.5,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-          </motion.div>
-          <p className="text-amber-600">Lade...</p>
+      <div className={`min-h-screen story-flow-background story-flow-boot flex items-center justify-center ${firstFlow ? 'story-flow-first-loading' : ''}`}>
+        <div className="story-boot" role="status">
+          <span className="story-boot-breath" aria-hidden="true" />
+          <p>Einen Moment …</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen story-flow-background ${firstFlow ? 'story-flow-first' : ''} ${firstFlow && appState.currentStep === 2 ? 'story-flow-first-question' : ''} ${firstFlow && appState.currentStep === 3 ? 'story-flow-first-account' : ''}`}>
+    <div className={`min-h-screen story-flow-background ${firstFlow ? 'story-flow-first' : 'story-flow-app'} ${firstFlow && appState.currentStep === 2 ? 'story-flow-first-question' : ''} ${firstFlow && appState.currentStep === 3 ? 'story-flow-first-account' : ''}`}>
       {firstFlow && (
         <div className="story-first-flow-header">
           <button
@@ -902,91 +877,10 @@ function CreateStoryInner() {
         </div>
       )}
       {!firstFlow && (
-        <StoryFlowProgress currentStep={appState.currentStep} showNameStep={showNameStep} />
-      )}
-      {/* Sticky mobile button for Figure selection step (step 1) */}
-      {appState.currentStep === 1 && !appState.resourceFigure && (
-        <div className="story-mobile-actions lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
-          <motion.button
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: canProceed ? 1 : 0.5 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              handleNextStep();
-            }}
-            disabled={!canProceed}
-            className={`w-full px-4 py-3 text-white rounded-lg transition-all text-base font-semibold flex items-center justify-center gap-2 shadow-lg max-sm:text-sm ${canProceed
-                ? 'cursor-pointer'
-                : 'cursor-not-allowed'
-              }`}
-            style={{
-              backgroundColor: 'var(--wellness-chocolate)',
-              opacity: canProceed ? 1 : 0.5,
-              transition: 'opacity 0.3s ease'
-            }}
-          >
-            Weiter
-            <ChevronRight className="w-5 h-5" />
-          </motion.button>
-        </div>
+        <StoryFlowProgress currentStep={appState.currentStep} showNameStep={showNameStep} onExit={handleExit} exitLabel={exitLabel} />
       )}
 
-      {/* Sticky mobile button for Questions step (step 2) */}
-      {appState.currentStep === 2 && !firstFlow && (
-        <div className="story-mobile-actions lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
-          <motion.button
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: canProceed ? 1 : 0.5 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              handleNextStep();
-            }}
-            disabled={!canProceed}
-            className={`w-full px-4 py-3 text-white rounded-lg transition-all text-base font-semibold flex items-center justify-center gap-2 shadow-lg max-sm:text-sm ${canProceed
-                ? 'cursor-pointer'
-                : 'cursor-not-allowed'
-              }`}
-            style={{
-              backgroundColor: 'var(--wellness-chocolate)',
-              opacity: canProceed ? 1 : 0.5,
-              transition: 'opacity 0.3s ease'
-            }}
-          >
-            Weiter
-            <ChevronRight className="w-5 h-5" />
-          </motion.button>
-        </div>
-      )}
-
-      {/* Sticky mobile button for Voice selection step (step 3) */}
-      {appState.currentStep === 3 && !firstFlow && (
-        <div className="story-mobile-actions lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-orange-100 p-3 z-10">
-          <motion.button
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: canProceed ? 1 : 0.5 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              handleNextStep();
-            }}
-            disabled={!canProceed}
-            className={`w-full px-4 py-3 text-white rounded-lg transition-all text-base font-semibold flex items-center justify-center gap-2 shadow-lg max-sm:text-sm ${canProceed
-                ? 'cursor-pointer'
-                : 'cursor-not-allowed'
-              }`}
-            style={{
-              backgroundColor: 'var(--wellness-chocolate)',
-              opacity: canProceed ? 1 : 0.5,
-              transition: 'opacity 0.3s ease'
-            }}
-          >
-            Weiter
-            <ChevronRight className="w-5 h-5" />
-          </motion.button>
-        </div>
-      )}
-
-
-      <div className={`relative ${firstFlow && (appState.currentStep === 2 || appState.currentStep === 3) ? 'story-first-flow-content' : ''}`}>
+      <div className={`relative ${!firstFlow || appState.currentStep === 2 || appState.currentStep === 3 ? 'story-first-flow-content' : ''}`}>
         <div className="flex-1">
           <AnimatePresence mode="wait">
             <motion.div
@@ -994,7 +888,7 @@ function CreateStoryInner() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
+              transition={{ duration: 0.25 }}
               className="h-full"
             >
               {appState.currentStep === 1 && !firstFlow && (
@@ -1002,6 +896,7 @@ function CreateStoryInner() {
                   selectedFigure={appState.resourceFigure}
                   onFigureSelect={handleResourceFigureSelect}
                   onNext={handleNextStep}
+                  busy={checkingAccess}
                 />
               )}
 
@@ -1013,7 +908,7 @@ function CreateStoryInner() {
                   onNext={handleNextStep}
                   currentQuestionIndex={appState.currentQuestionIndex}
                   onQuestionIndexChange={handleQuestionIndexChange}
-                  firstFlow={firstFlow}
+                  onPrevious={firstFlow ? undefined : handlePreviousStep}
                 />
               )}
 
@@ -1092,32 +987,6 @@ function CreateStoryInner() {
               )}
 
               {appState.currentStep >= 5 && appState.resourceFigure && appState.selectedVoice && (!firstFlow || (!serverFirstFlow && firstFlowOwner && !firstFlowComplete)) && (
-                <>
-                  {storyGenerationError && (
-                    <div className="max-w-4xl mx-auto mb-6 p-6 bg-red-50 border border-red-200 rounded-2xl">
-                      <div className="flex items-start gap-4">
-                        <div className="flex-shrink-0 text-3xl">⚠️</div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-red-900 mb-2">
-                            Fehler bei der Story-Generierung
-                          </h3>
-                          <p className="text-red-700 mb-4">
-                            {storyGenerationError}
-                          </p>
-                          <button
-                            onClick={() => {
-                              setStoryGenerationError(null);
-                              storyGenerationAttempted.current = false;
-                              setAppState(prev => ({ ...prev, generatedStory: '' }));
-                            }}
-                            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                          >
-                            Erneut versuchen
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                   <AudioPlayback
                     selectedFigure={appState.resourceFigure}
                     generatedStory={appState.generatedStory}
@@ -1131,8 +1000,9 @@ function CreateStoryInner() {
                     storyGenerationError={storyGenerationError}
                     isGeneratingStory={isGeneratingStory}
                     onFirstStorySaved={firstFlow ? handleFirstStorySaved : undefined}
+                    onRetryStory={retryStoryGeneration}
+                    onChangeVoice={firstFlow ? undefined : backToVoiceSelection}
                   />
-                </>
               )}
 
             </motion.div>

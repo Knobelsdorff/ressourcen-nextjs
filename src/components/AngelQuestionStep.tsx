@@ -1,7 +1,8 @@
 "use client";
 
 /**
- * Eine Frage der Engel-Erststory (/create-story?first=true).
+ * Eine Frage im Story-Flow – zuerst für die Engel-Erststory
+ * (/create-story?first=true) gebaut, inzwischen für jede Figur.
  *
  * Aufbau: Frage + Fortschritt (links bzw. oben), Antworten (rechts bzw. unten)
  * und eine feste Leiste mit "Zurück" / "Weiter". Die Leiste liegt außerhalb des
@@ -14,10 +15,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Check, ChevronLeft, Plus } from "lucide-react";
-import AngelIconFinal from "./AngelIconFinal";
+import FigureIcon from "./story-flow/FigureIcon";
+import { ResourceFigure } from "@/lib/types/story";
 
 interface AngelQuestionStepProps {
-  figureName: string;
+  figure: ResourceFigure;
   question: { id: number; question: string; blocks: string[] };
   index: number;
   total: number;
@@ -30,10 +32,12 @@ interface AngelQuestionStepProps {
   onAddCustom: (text: string) => boolean;
   onPrevious: () => void;
   onNext: () => void;
+  /** "Zurück" bei der ersten Frage (z. B. zur Figurenwahl). Ohne: unsichtbar. */
+  onExit?: () => void;
 }
 
 export default function AngelQuestionStep({
-  figureName,
+  figure,
   question,
   index,
   total,
@@ -45,10 +49,14 @@ export default function AngelQuestionStep({
   onAddCustom,
   onPrevious,
   onNext,
+  onExit,
 }: AngelQuestionStepProps) {
   const selectedCount = selectedBlocks.length;
   const isLast = index === total - 1;
   const customLimitReached = customBlocks.length >= maxSelections;
+  const options = [...question.blocks, ...customBlocks];
+  // Orte haben bis zu 15 Antworten – auf breiten Bildschirmen dann zweispaltig.
+  const dense = options.length > 8;
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const customRef = useRef<HTMLDetailsElement>(null);
@@ -90,13 +98,13 @@ export default function AngelQuestionStep({
   };
 
   return (
-    <section className="story-first-stage" aria-label={`Angel Frage ${index + 1} von ${total}`}>
+    <section className="story-first-stage" aria-label={`${figure.name} – Frage ${index + 1} von ${total}`}>
       <div className="story-first-intro">
         <div className="story-first-character">
           <span className="story-first-avatar" aria-hidden="true">
-            <AngelIconFinal size={52} className="story-first-avatar-image" />
+            <FigureIcon figure={figure} size={52} className="story-first-avatar-image" />
           </span>
-          <span>{figureName}</span>
+          <span>{figure.name}</span>
         </div>
 
         <div className="story-first-progress">
@@ -134,8 +142,8 @@ export default function AngelQuestionStep({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: "easeOut" }}
         >
-          <div className="story-first-options" role="group" aria-label="Antwortmöglichkeiten">
-            {[...question.blocks, ...customBlocks].map((block, i) => {
+          <div className="story-first-options" data-dense={dense || undefined} role="group" aria-label="Antwortmöglichkeiten">
+            {options.map((block, i) => {
               const selected = selectedBlocks.includes(block);
               return (
                 <button
@@ -182,7 +190,7 @@ export default function AngelQuestionStep({
         </motion.div>
 
         <div className="story-first-actions">
-          <button type="button" className="story-first-previous" onClick={onPrevious} disabled={index === 0}>
+          <button type="button" className="story-first-previous" onClick={index === 0 ? onExit : onPrevious} disabled={index === 0 && !onExit}>
             <ChevronLeft size={17} aria-hidden="true" /> <span>Zurück</span>
           </button>
           <button type="button" className="story-first-next" onClick={onNext} disabled={!canProceed}>
