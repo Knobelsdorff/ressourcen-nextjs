@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, RotateCcw, Volume2, Heart, ChevronRight, Loader2, Save } from "lucide-react";
+import { Play, Pause, RotateCcw, Loader2, Headphones } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ResourceFigure, AudioState } from "@/lib/types/story";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -16,11 +16,9 @@ import { isEnabled } from "@/lib/featureFlags";
 import { getBackgroundMusicUrl, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
 import { applyMusicVolumeFactor } from "@/lib/musicVolumePreference";
 import { getOrCreateBrowserFingerprint } from "@/lib/browser-fingerprint";
-import IdealFamilyIconFinal from "./IdealFamilyIconFinal";
-import JesusIconFinal from "./JesusIconFinal";
-import ArchangelMichaelIconFinal from "./ArchangelMichaelIconFinal";
-import AngelIconFinal from "./AngelIconFinal";
-import SuperheroIconFinal from "./SuperheroIconFinal";
+import FigureIcon from "./story-flow/FigureIcon";
+import StoryGenerationLoader from "./story-flow/StoryGenerationLoader";
+import { storyTimeline } from "@/lib/story-progress";
 
 interface Voice {
   id: string;
@@ -47,6 +45,10 @@ interface AudioPlaybackProps {
   storyGenerationError?: string | null;
   isGeneratingStory?: boolean;
   onFirstStorySaved?: () => void;
+  /** Story-Text neu anfordern, nachdem er nicht erstellt werden konnte. */
+  onRetryStory?: () => void;
+  /** Zurück zur Stimmwahl, wenn die Stimme nicht aufgenommen werden konnte. */
+  onChangeVoice?: () => void;
 }
 
 // Voices will be loaded dynamically from API
@@ -85,7 +87,9 @@ export default function AudioPlayback({
   onShowAccountCreated,
   storyGenerationError = null,
   isGeneratingStory = false,
-  onFirstStorySaved
+  onFirstStorySaved,
+  onRetryStory,
+  onChangeVoice
 }: AudioPlaybackProps) {
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
   const [availableVoices, setAvailableVoices] = useState<Voice[]>([]);
@@ -97,7 +101,6 @@ export default function AudioPlayback({
   const [error, setError] = useState<string | null>(null);
   const [testMode, setTestMode] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
-  const [generationStatus, setGenerationStatus] = useState('Vorbereitung...');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('register');
@@ -984,42 +987,12 @@ export default function AudioPlayback({
 
   // Generate audio with Supabase storage and progress tracking
   const generateAudio = async (text: string, voiceId: string) => {
-    let progressInterval: NodeJS.Timeout | null = null;
-    let statusInterval: NodeJS.Timeout | null = null;
-    
     try {
       setIsGenerating(true);
       setError(null);
       setGenerationProgress(0);
-      setGenerationStatus('Vorbereitung...');
-
-      // Simulate realistic progress based on text length
-      const textLength = text.length;
-      const estimatedTime = Math.max(30, Math.min(120, textLength / 20)); // 30-120 seconds based on text length
-      
-      progressInterval = setInterval(() => {
-        setGenerationProgress(prev => {
-          if (prev >= 90) return prev; // Stop at 90% until completion
-          const increment = Math.random() * 3 + 1; // 1-4% per interval
-          return Math.min(90, prev + increment);
-        });
-      }, 1000);
-
-      // Update status messages
-      statusInterval = setInterval(() => {
-        setGenerationStatus(prev => {
-          const statuses = [
-            'Text wird analysiert...',
-            'Stimme wird vorbereitet...',
-            'Audio wird generiert...',
-            'Qualität wird optimiert...',
-            'Finalisierung läuft...'
-          ];
-          const currentIndex = statuses.indexOf(prev);
-          const nextIndex = (currentIndex + 1) % statuses.length;
-          return statuses[nextIndex];
-        });
-      }, 15000);
+      // Der Loader schätzt die Dauer aus der Textlänge (src/lib/story-progress.ts).
+      storyTimeline.audioStarted(text.length);
 
       // Use Supabase Edge Function (no timeout limits, cheaper than Vercel)
       const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -1047,19 +1020,14 @@ export default function AudioPlayback({
       });
 
       if (!response.ok) {
-        if (progressInterval) clearInterval(progressInterval);
-        if (statusInterval) clearInterval(statusInterval);
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
         throw new Error(errorData.error || `HTTP ${response.status}: Failed to generate audio`);
       }
 
-      // Clear intervals and set final progress
-      if (progressInterval) clearInterval(progressInterval);
-      if (statusInterval) clearInterval(statusInterval);
       setGenerationProgress(100);
-      setGenerationStatus('Fertig!');
 
       const result = await response.json();
+      storyTimeline.audioDone(text.length, sparModus);
 
       console.log('poopoo [AudioPlayback] Audio generation response:', JSON.stringify({
         audioUrl: result.audioUrl,
@@ -1084,11 +1052,8 @@ export default function AudioPlayback({
       setIsGenerating(false); // Audio erfolgreich geladen
     } catch (err: any) {
       console.error('Audio generation error:', err);
-      
-      // Clear intervals on error
-      if (progressInterval) clearInterval(progressInterval);
-      if (statusInterval) clearInterval(statusInterval);
-      
+
+            
       // Spezifische Fehlermeldungen basierend auf dem Fehlertyp
       let errorMessage = 'Failed to generate audio. Please try again.';
       
@@ -2035,471 +2000,238 @@ export default function AudioPlayback({
   
   const loadingProgress = getLoadingProgress();
 
-  // Verhindere Hydration-Mismatch - zeige Loading bis Mount
-  if (!mounted) {
-    return (
-      <div className="story-audio-step min-h-screen p-4 lg:p-12">
-        <div className="max-w-4xl mx-auto">
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="story-step-panel bg-white rounded-3xl p-6 lg:p-8 shadow-xl border border-orange-100 mb-6"
-          >
-            {/* Übergangsraum - ruhiger Ladebildschirm */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-16 lg:py-20"
-            >
-              {/* Figure Name */}
-              <h1 className="text-2xl lg:text-3xl font-light text-primary-900 mb-8">
-                {selectedFigure.name}
-              </h1>
-              
-              {/* Figure Icon */}
-              <div className="flex justify-center mb-12">
-                {selectedFigure.id === 'ideal-family' ? (
-                  <IdealFamilyIconFinal size={48} className="w-12 h-12" />
-                ) : selectedFigure.id === 'jesus' ? (
-                  <JesusIconFinal size={48} className="w-12 h-12" />
-                ) : selectedFigure.id === 'archangel-michael' ? (
-                  <ArchangelMichaelIconFinal size={48} className="w-12 h-12" />
-                ) : selectedFigure.id === 'angel' ? (
-                  <AngelIconFinal size={48} className="w-12 h-12" />
-                ) : selectedFigure.id === 'superhero' ? (
-                  <SuperheroIconFinal size={48} className="w-12 h-12" />
-                ) : (
-                  <span className="text-4xl">{selectedFigure.emoji}</span>
-                )}
-              </div>
-              
-              {/* Breathing Circle */}
-              <div className="flex justify-center mb-8">
-                <motion.div
-                  className="w-20 h-20 lg:w-24 lg:h-24 rounded-full border-2 border-primary-400 relative"
-                  animate={{
-                    scale: [1, 1.15, 1],
-                  }}
-                  transition={{
-                    duration: 5.5,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                >
-                  {/* Light fill with pulsing opacity */}
-                  <motion.div
-                    className="absolute inset-0 rounded-full bg-primary-400"
-                    style={{ opacity: 0.08 }}
-                    animate={{
-                      opacity: [0.05, 0.1, 0.05],
-                    }}
-                    transition={{
-                      duration: 5.5,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                  />
-                </motion.div>
-              </div>
-              
-              {/* Haupttext */}
-              <h2 className="text-primary-800 text-xl lg:text-2xl font-medium mb-6">
-                Deine Power Story nimmt nun Gestalt an
-              </h2>
-              
-              {/* Sekundärtext */}
-              <p className="text-primary-600 text-sm lg:text-base opacity-70">
-                Es ist alles gut – du darfst dir jetzt einen Moment Zeit lassen
-              </p>
-            </motion.div>
-          </motion.div>
-        </div>
-      </div>
-    );
-  }
+  // Drei Ansichten im selben Baum: Warten (Loader), Fehler, Player. Das
+  // <audio>-Element bleibt dabei immer eingehängt – so kann es schon laden,
+  // während der Ring sich schließt.
+  const hasStory = !!generatedStory && generatedStory.trim().length > 0;
+  const hasAudio = !!audioState?.audioUrl;
+  const saveError = !!onFirstStorySaved && !!error?.startsWith('Deine Story ist fertig');
+  const failure = hasAudio ? null : (storyGenerationError || error);
+  const waiting = !mounted || isGeneratingStory || (!failure && (isGenerating || !hasStory || !hasAudio));
+  // Nach dem Warten schließt sich der Ring kurz ("Fertig."), dann kommt der Player.
+  const [reveal, setReveal] = useState<'idle' | 'waiting' | 'ready' | 'done'>('idle');
+  if (waiting && reveal !== 'waiting') setReveal('waiting');
+  if (!waiting && hasAudio && reveal === 'waiting') setReveal('ready');
+  useEffect(() => {
+    if (reveal !== 'ready') return;
+    const id = window.setTimeout(() => setReveal('done'), 1400);
+    return () => window.clearTimeout(id);
+  }, [reveal]);
 
-  // Show loading state during story OR audio generation - ruhiger Übergangsraum
-  // Use unified loader for consistent UX
-  const hasStory = generatedStory && generatedStory.trim().length > 0;
-  const hasAudio = audioState?.audioUrl;
-  // Show loader only while: generating story, generating audio, or no story/audio yet
-  const showUnifiedLoader = isGenerating || isGeneratingStory || (!hasStory && !storyGenerationError) || (hasStory && !hasAudio && !storyGenerationError);
-  if (showUnifiedLoader) {
-    return (
-      <div className="story-audio-step min-h-screen p-4 lg:p-12">
-        <div className="max-w-4xl mx-auto">
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="story-step-panel bg-white rounded-3xl p-6 lg:p-8 shadow-xl border border-orange-100 mb-6"
-          >
-            {/* Übergangsraum - ruhiger Ladebildschirm */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-16 lg:py-20"
-            >
-              {/* Figure Name */}
-              <h1 className="text-2xl lg:text-3xl font-light text-primary-900 mb-8">
-                {selectedFigure.name}
-              </h1>
-              
-              {/* Figure Icon */}
-              <div className="flex justify-center mb-12">
-                {selectedFigure.id === 'ideal-family' ? (
-                  <IdealFamilyIconFinal size={48} className="w-12 h-12" />
-                ) : selectedFigure.id === 'jesus' ? (
-                  <JesusIconFinal size={48} className="w-12 h-12" />
-                ) : selectedFigure.id === 'archangel-michael' ? (
-                  <ArchangelMichaelIconFinal size={48} className="w-12 h-12" />
-                ) : selectedFigure.id === 'angel' ? (
-                  <AngelIconFinal size={48} className="w-12 h-12" />
-                ) : selectedFigure.id === 'superhero' ? (
-                  <SuperheroIconFinal size={48} className="w-12 h-12" />
-                ) : (
-                  <span className="text-4xl">{selectedFigure.emoji}</span>
-                )}
-              </div>
-              
-              {/* Breathing Circle */}
-              <div className="flex justify-center mb-8">
-                <motion.div
-                  className="w-20 h-20 lg:w-24 lg:h-24 rounded-full border-2 border-primary-400 relative"
-                  animate={{
-                    scale: [1, 1.15, 1],
-                  }}
-                  transition={{
-                    duration: 5.5,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                >
-                  {/* Light fill with pulsing opacity */}
-                  <motion.div
-                    className="absolute inset-0 rounded-full bg-primary-400"
-                    style={{ opacity: 0.08 }}
-                    animate={{
-                      opacity: [0.05, 0.1, 0.05],
-                    }}
-                    transition={{
-                      duration: 5.5,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                  />
-                </motion.div>
-              </div>
-              
-              {/* Haupttext */}
-              <h2 className="text-primary-800 text-xl lg:text-2xl font-medium mb-6">
-                Deine Power Story nimmt nun Gestalt an
-              </h2>
-              
-              {/* Sekundärtext */}
-              <p className="text-primary-600 text-sm lg:text-base opacity-70">
-                Es ist alles gut – du darfst dir jetzt einen Moment Zeit lassen
-              </p>
-            </motion.div>
-          </motion.div>
-        </div>
-      </div>
-    );
-  }
+  const view = waiting || reveal === 'ready' ? 'loader' : failure ? 'error' : 'player';
+  const voiceFirstName = selectedVoice && selectedVoice.name !== 'Selected Voice' ? selectedVoice.name.split(' ')[0].replace(/[.,:;]+$/, '') : null;
+  const audioBusy = isLoading || isLoadingAudio || (hasAudio && !isAudioReady);
+
+  const retryAfterFailure = () => {
+    if (storyGenerationError) {
+      onRetryStory?.();
+      return;
+    }
+    if (selectedVoice) void generateAudio(generatedStory, selectedVoice.id);
+  };
+
+  const viewMotion = {
+    initial: { opacity: 0, y: 10 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -8 },
+    transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as const },
+  };
 
   return (
-    <div className="story-audio-step min-h-screen p-4 lg:p-12">
-      {onFirstStorySaved && error?.startsWith('Deine Story ist fertig') && (
-        <div className="max-w-4xl mx-auto mb-4 p-4 rounded-xl bg-amber-50 text-amber-950" role="alert">
-          <p>{error}</p>
-          <button type="button" className="mt-2 underline font-semibold" onClick={() => {
-            if (firstStorySaveStarted.current) return;
-            firstStorySaveStarted.current = true;
-            setError(null);
-            void saveStoryToDatabase().then(() => {
-              if (!firstStorySaveFinished.current) {
-                firstStorySaveStarted.current = false;
-                setError('Deine Story ist fertig, konnte aber noch nicht gespeichert werden. Bitte versuche es erneut.');
-              }
-            });
-          }}>Speichern erneut versuchen</button>
-        </div>
-      )}
-      <motion.div
-        initial={{ y: 30, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="max-w-4xl mx-auto"
-      >
-        {/* Header */}
-        <motion.div
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="text-center sm:mb-8 mb-5"
-        >
-          <h2 className="text-2xl lg:text-3xl font-light text-primary-900 mb-4">
-            {selectedFigure.name}
-          </h2>
-          {/* Figure Icon */}
-          <div className="flex justify-center mb-4">
-            {selectedFigure.id === 'ideal-family' ? (
-              <IdealFamilyIconFinal size={48} className="w-12 h-12" />
-            ) : selectedFigure.id === 'jesus' ? (
-              <JesusIconFinal size={48} className="w-12 h-12" />
-            ) : selectedFigure.id === 'archangel-michael' ? (
-              <ArchangelMichaelIconFinal size={48} className="w-12 h-12" />
-            ) : selectedFigure.id === 'angel' ? (
-              <AngelIconFinal size={48} className="w-12 h-12" />
-            ) : selectedFigure.id === 'superhero' ? (
-              <SuperheroIconFinal size={48} className="w-12 h-12" />
-            ) : (
-              <span className="text-4xl">{selectedFigure.emoji}</span>
-            )}
-          </div>
-        </motion.div>
+    <div className="story-audio-stage">
+      <AnimatePresence mode="wait" initial={false}>
+        {view === 'loader' && (
+          <motion.div key="loader" className="story-stage-center" {...viewMotion}>
+            <StoryGenerationLoader figure={selectedFigure} voiceName={voiceFirstName} ready={!waiting} />
+          </motion.div>
+        )}
 
-        {/* Main Audio Player Card */}
-         {audioState?.audioUrl && !isGenerating && (
-        <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="story-step-panel bg-white rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl border border-orange-100 mb-6"
-        >
-          {/* Pre-Play Calming Microcopy */}
-          {audioState?.audioUrl && !isGenerating && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="text-center mb-8"
-            >
-              <p className="text-sm md:text-base text-primary-700/80 max-w-md mx-auto leading-relaxed space-y-1">
-                {isFirstStoryPlayback === false ? (
-                  // Returning user: shorter version
-                  <>
-                    <span className="block">Du kannst dich jetzt einfach begleiten lassen –</span>
-                    <span className="block">in deinem eigenen Rhythmus.</span>
-                  </>
-                ) : (
-                  // First-time user: supportive guidance (default)
-                  <>
-                    <span className="block">Du musst nichts tun.</span>
-                    <span className="block">{getFigurePresenceText(selectedFigure)}</span>
-                    <span className="block">Du kannst einfach zuhören – oder jederzeit pausieren.</span>
-                  </>
-                )}
-              </p>
-            </motion.div>
-          )}
-
-          {/* Audio Controls */}
-          <div className="space-y-8">
-            {/* Admin-Sparmodus wird bereits bei Frage 6 gesetzt – hier kein zweiter Schalter */}
-            {/* Error Message */}
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-800 text-center"
-              >
-                {error}
-                <button
-                  onClick={() => selectedVoice && generateAudio(generatedStory, selectedVoice.id)}
-                  className="ml-2 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
-                >
-                  Erneut versuchen
+        {view === 'error' && (
+          <motion.div key="error" className="story-stage-center" {...viewMotion}>
+            <section className="story-stage-message" role="alert">
+              <span className="story-first-avatar" aria-hidden="true">
+                <FigureIcon figure={selectedFigure} size={52} className="story-first-avatar-image" />
+              </span>
+              <p className="story-stage-kicker">Einen Moment bitte</p>
+              <h1>
+                {storyGenerationError
+                  ? 'Deine Geschichte konnte gerade nicht geschrieben werden.'
+                  : 'Die Stimme konnte gerade nicht aufgenommen werden.'}
+              </h1>
+              <p>Deine Antworten sind sicher. Meist klappt es beim zweiten Versuch.</p>
+              <div className="story-stage-message-actions">
+                <button type="button" className="story-first-next" onClick={retryAfterFailure}>
+                  <RotateCcw size={16} aria-hidden="true" /> <span>Erneut versuchen</span>
                 </button>
-              </motion.div>
-            )}
+                {onChangeVoice && (
+                  <button type="button" className="story-first-previous" onClick={onChangeVoice}>
+                    <span>Andere Stimme wählen</span>
+                  </button>
+                )}
+              </div>
+              <p className="story-stage-message-detail">{failure}</p>
+            </section>
+          </motion.div>
+        )}
 
-            {/* Loading State */}
-            {(isGenerating || isLoading) && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-8"
-              >
-                <div className="flex justify-center mb-4">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+        {view === 'player' && (
+          <motion.div key="player" className="story-stage-center" {...viewMotion}>
+            <section className="story-player" aria-label="Deine Power Story">
+              {saveError && (
+                <div className="story-player-alert" role="alert">
+                  <p>{error}</p>
+                  <button type="button" onClick={() => {
+                    if (firstStorySaveStarted.current) return;
+                    firstStorySaveStarted.current = true;
+                    setError(null);
+                    void saveStoryToDatabase().then(() => {
+                      if (!firstStorySaveFinished.current) {
+                        firstStorySaveStarted.current = false;
+                        setError('Deine Story ist fertig, konnte aber noch nicht gespeichert werden. Bitte versuche es erneut.');
+                      }
+                    });
+                  }}>Speichern erneut versuchen</button>
                 </div>
-                <p className="text-primary-700">
-                  {isGenerating ? 'Erstelle und lade deine Audiogeschichte hoch...' : 'Lade Audio...'}
-                </p>
-              </motion.div>
-            )}
+              )}
 
-            {/* Enhanced Audio Player */}
-            {audioState?.audioUrl && !isGenerating && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="sm:space-y-6 space-y-4"
-              >
-                {/* Beautiful Progress Bar */}
-                <div className="space-y-3">
-                  <div
-                    ref={progressBarRef}
-                    onMouseDown={handleProgressBarMouseDown}
-                    className={`story-audio-track relative w-full h-4 bg-gradient-to-r from-orange-100 to-primary-100 rounded-full overflow-hidden cursor-pointer group shadow-inner select-none ${isDragging ? 'cursor-grabbing' : 'cursor-pointer'}`}
-                  >
-                    {/* Loading Progress (zeigt Ladezustand wenn Audio noch nicht bereit) */}
-                    {(isLoading || isLoadingAudio) && (
-                      <motion.div
-                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-200 to-blue-300 rounded-full"
-                        style={{ width: `${loadingProgress}%` }}
-                        transition={{ duration: 0.3 }}
-                      />
-                    )}
+              <div className="story-first-character story-player-figure">
+                <span className="story-first-avatar" aria-hidden="true">
+                  <FigureIcon figure={selectedFigure} size={52} className="story-first-avatar-image" />
+                </span>
+                <span>{selectedFigure.name}</span>
+              </div>
 
-                    {/* Buffered Progress */}
-                    <motion.div
-                      className="story-audio-buffer absolute inset-y-0 left-0 bg-gradient-to-r from-orange-200 to-primary-200 rounded-full"
-                      style={{ width: `${bufferedPercentage}%` }}
-                      transition={{ duration: 0.3 }}
-                    />
-
-                    {/* Current Progress */}
-                    <motion.div
-                      className="story-audio-fill absolute inset-y-0 left-0 bg-gradient-to-r from-primary-400 via-orange-500 to-primary-500 rounded-full shadow-sm"
-                      style={{ width: `${progressPercentage}%` }}
-                      transition={{ duration: isDragging ? 0 : 0.1 }}
-                    >
-                      {/* Animated shine effect */}
-                      {!isDragging && (
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 animate-pulse" />
-                      )}
-                    </motion.div>
-
-                    {/* Draggable thumb / Interactive hover indicator */}
-                    <motion.div
-                      className={`absolute inset-y-0 w-1 bg-white rounded-full shadow-lg transition-opacity duration-200 ${isDragging ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-                      style={{
-                        left: `${progressPercentage}%`,
-                        transform: 'translateX(-50%)'
-                      }}
-                    >
-                      <div className={`absolute -top-1 -bottom-1 w-5 bg-gradient-to-b from-primary-400 to-orange-500 rounded-full shadow-lg -translate-x-1/2 ${isDragging ? 'scale-110' : ''}`} />
-                    </motion.div>
-                  </div>
-
-                  <div className="flex justify-between items-center text-sm text-primary-600">
-                    <span className="font-medium">{formatTime(currentTime)}</span>
-                    <div className="flex items-center gap-2">
-                      {(isLoading || isLoadingAudio) && <Loader2 className="w-3 h-3 animate-spin" />}
-                      {(isLoading || isLoadingAudio) && <span className="text-xs">Lädt...</span>}
-                      <span className="font-medium">{formatTime(effectiveDuration)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Enhanced Control Buttons */}
-                <div className={`flex items-center justify-center ${hasStartedPlayback ? 'space-x-6' : ''}`}>
-                  {hasStartedPlayback && (
-                    <motion.button
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      whileHover={{ scale: 1.1, rotate: -15 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={restart}
-                      className="p-4 bg-gradient-to-br from-orange-100 to-primary-100 text-primary-700 rounded-full hover:from-orange-200 hover:to-primary-200 transition-all duration-300 shadow-lg hover:shadow-xl"
-                    >
-                      <RotateCcw className="w-5 h-5" />
-                    </motion.button>
-                  )}
-
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={togglePlayPause}
-                    disabled={isLoading || isLoadingAudio || (audioState?.audioUrl && !isAudioReady) as any}
-                    className="story-audio-play sm:p-6 p-5 max-sm:w-[72px] max-sm:h-[72px] bg-gradient-to-br from-primary-500 via-orange-500 to-primary-600 text-white rounded-full shadow-xl hover:shadow-2xl hover:from-primary-600 hover:to-orange-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {(isLoading || isLoadingAudio || (audioState?.audioUrl && !isAudioReady)) ? (
-                      <Loader2 className="w-7 h-7 animate-spin" />
-                    ) : isPlaying ? (
-                      <Pause className="w-7 h-7" />
-                    ) : (
-                      <Play className="w-7 h-7 ml-1" />
-                    )}
-                  </motion.button>
-
-                </div>
-
-                {/* Hidden Audio Element */}
-                <audio 
-                  ref={audioRef} 
-                  preload="metadata"
-                  onLoadedData={() => setIsLoading(false)}
-                />
-
-                {/* Moment 1 & 2: Post-Audio Panel */}
-                {showPostAudioPanel && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="mt-8 pt-8 border-t border-primary-100"
-                  >
-                    {/* Moment 1: Calm "after" text */}
-                    <div className="text-center mb-6">
-                      <h3 className="text-lg font-light text-primary-900 mb-3">
-                        {isFirstStoryPlayback === false
-                          ? 'Vielleicht magst du dem Gehörten noch einen Moment Raum geben.'
-                          : 'Lass das Gehörte einen Moment nachwirken.'}
-                      </h3>
-                      <p className="text-sm md:text-base text-primary-700/80 max-w-md mx-auto leading-relaxed">
-                        {isFirstStoryPlayback === false ? (
-                          'Oder du gehst einfach weiter, wenn es sich stimmig anfühlt.'
-                        ) : (
-                          <>
-                            Du musst nichts festhalten oder verstehen.
-                            <br />
-                            Manchmal reicht es, etwas wirken zu lassen.
-                          </>
-                        )}
-                      </p>
-                    </div>
-
-                    {/* Moment 2: CTA Button (revealed after delay) */}
-                    {showPostAudioCTA && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4 }}
-                        className="flex justify-center"
-                      >
-                        <button
-                          onClick={async () => {
-                            // Moment 3: Route to access page if not authenticated
-                            if (!user) {
-                              router.push('/geschichte-speichern');
-                            } else {
-                              // User is authenticated, reset state and navigate to create-story
-                              // Use window.location for a full page reload to ensure clean state
-                              window.location.href = '/create-story';
-                            }
-                          }}
-                          className="px-8 py-3 bg-gradient-to-r from-primary-500 to-orange-500 text-white font-medium rounded-xl shadow-lg hover:from-primary-600 hover:to-orange-600 transition-all duration-200"
-                        >
-                          {user
-                            ? isFirstStoryPlayback === false
-                              ? 'Neue Power Story erstellen'
-                              : 'Eine weitere persönliche Geschichte erstellen'
-                            : 'Diese Geschichte für mich behalten'}
-                        </button>
-                      </motion.div>
-                    )}
+              <AnimatePresence mode="wait" initial={false}>
+                {showPostAudioPanel ? (
+                  <motion.div key="after" className="story-player-copy" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.5 }}>
+                    <h1>
+                      {isFirstStoryPlayback === false
+                        ? 'Vielleicht magst du dem Gehörten noch einen Moment Raum geben.'
+                        : 'Lass das Gehörte einen Moment nachwirken.'}
+                    </h1>
+                    <p>
+                      {isFirstStoryPlayback === false
+                        ? 'Oder du gehst einfach weiter, wenn es sich stimmig anfühlt.'
+                        : 'Du musst nichts festhalten oder verstehen. Manchmal reicht es, etwas wirken zu lassen.'}
+                    </p>
+                  </motion.div>
+                ) : (
+                  <motion.div key="before" className="story-player-copy" exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+                    <h1>Deine Power Story ist da</h1>
+                    <p>
+                      {isFirstStoryPlayback === false
+                        ? 'Du kannst dich jetzt einfach begleiten lassen – in deinem eigenen Rhythmus.'
+                        : <>Du musst nichts tun. {getFigurePresenceText(selectedFigure)} Du kannst einfach zuhören – oder jederzeit pausieren.</>}
+                    </p>
                   </motion.div>
                 )}
+              </AnimatePresence>
 
-              </motion.div>
-            )}
-          </div>
-        </motion.div>
-         )}
-            {/* Hinweis: zusätzlicher Button unten entfernt für klare visuelle Hierarchie */}
-      </motion.div>
+              {error && !saveError && (
+                <p className="story-form-message" data-tone="error" role="alert">
+                  {error}{' '}
+                  <button type="button" onClick={() => selectedVoice && generateAudio(generatedStory, selectedVoice.id)}>Erneut versuchen</button>
+                </p>
+              )}
+
+              <div className="story-player-controls">
+                <span className="story-player-side">
+                  {hasStartedPlayback && (
+                    <motion.button
+                      type="button"
+                      className="story-player-restart"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      onClick={restart}
+                      aria-label="Von vorn anhören"
+                    >
+                      <RotateCcw size={18} aria-hidden="true" />
+                    </motion.button>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  className="story-player-play"
+                  data-playing={isPlaying || undefined}
+                  onClick={togglePlayPause}
+                  disabled={audioBusy}
+                  aria-label={audioBusy ? 'Audio lädt' : isPlaying ? 'Pausieren' : 'Power Story anhören'}
+                >
+                  {audioBusy ? (
+                    <Loader2 size={28} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                  ) : isPlaying ? (
+                    <Pause size={28} fill="currentColor" aria-hidden="true" />
+                  ) : (
+                    <Play size={28} fill="currentColor" className="story-player-play-icon" aria-hidden="true" />
+                  )}
+                </button>
+                <span className="story-player-side" />
+              </div>
+
+              <div className="story-player-progress">
+                <div
+                  ref={progressBarRef}
+                  onMouseDown={handleProgressBarMouseDown}
+                  className="story-player-track"
+                  data-dragging={isDragging || undefined}
+                  role="slider"
+                  aria-label="Position in der Power Story"
+                  aria-valuemin={0}
+                  aria-valuemax={Math.round(effectiveDuration || 0)}
+                  aria-valuenow={Math.round(currentTime)}
+                  aria-valuetext={`${formatTime(currentTime)} von ${formatTime(effectiveDuration)}`}
+                >
+                  {(isLoading || isLoadingAudio) && <span className="story-player-loaded" style={{ width: `${loadingProgress}%` }} />}
+                  <span className="story-player-buffer" style={{ width: `${bufferedPercentage}%` }} />
+                  <span className="story-player-fill" style={{ width: `${progressPercentage}%` }} />
+                  <span className="story-player-thumb" style={{ left: `${progressPercentage}%` }} />
+                </div>
+                <div className="story-player-times">
+                  <span>{formatTime(currentTime)}</span>
+                  {audioBusy && <span>Lädt …</span>}
+                  <span>{formatTime(effectiveDuration)}</span>
+                </div>
+              </div>
+
+              <AnimatePresence mode="wait" initial={false}>
+                {showPostAudioPanel && showPostAudioCTA ? (
+                  <motion.div key="cta" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+                    <button
+                      type="button"
+                      className="story-first-next story-player-cta"
+                      onClick={() => {
+                        // Moment 3: Route to access page if not authenticated
+                        if (!user) {
+                          router.push('/geschichte-speichern');
+                        } else {
+                          // Full reload for a clean flow state
+                          window.location.href = '/create-story';
+                        }
+                      }}
+                    >
+                      {user
+                        ? isFirstStoryPlayback === false
+                          ? 'Neue Power Story erstellen'
+                          : 'Eine weitere persönliche Geschichte erstellen'
+                        : 'Diese Geschichte für mich behalten'}
+                    </button>
+                  </motion.div>
+                ) : (
+                  <motion.p key="hint" className="story-stage-hint story-player-hint" exit={{ opacity: 0 }}>
+                    <Headphones size={15} aria-hidden="true" /> Am schönsten mit Kopfhörern
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </section>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <audio
+        ref={audioRef}
+        preload="metadata"
+        onLoadedData={() => setIsLoading(false)}
+      />
 
       {/* Auth Modal - MOTIVIEREND & ANSPRECHEND */}
       {showAuthModal && (

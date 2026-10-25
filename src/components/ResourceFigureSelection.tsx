@@ -1,872 +1,387 @@
 "use client";
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Card, CardContent } from '@/components/ui/card';
-import { Check, ChevronDown } from 'lucide-react';
+/**
+ * Schritt 1 im Story-Flow: Figur wählen – im Aufbau des Engel-Flows
+ * (Frage links, Auswahl rechts, feste Leiste mit "Weiter").
+ *
+ * Alle Figuren einer Kategorie passen als kompakte Kacheln auf eine Seite.
+ * Pronomen (z. B. Partner/in) und eigene Figuren werden direkt im rechten
+ * Bereich abgefragt statt in einem Modal.
+ */
+
+import React, { useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowRight, Check, ChevronLeft, Plus } from 'lucide-react';
 import { realFigures, fictionalFigures } from '@/data/figures';
 import { ResourceFigure } from '@/lib/types/story';
-import IdealFamilyIconFinal from './IdealFamilyIconFinal';
-import JesusIconFinal from './JesusIconFinal';
-import ArchangelMichaelIconFinal from './ArchangelMichaelIconFinal';
-import AngelIconFinal from './AngelIconFinal';
-import SuperheroIconFinal from './SuperheroIconFinal';
+import FigureIcon from './story-flow/FigureIcon';
+import { useScrollFade } from './story-flow/useScrollFade';
 
 interface ResourceFigureSelectionProps {
   selectedFigure: ResourceFigure | null;
   onFigureSelect: (figure: ResourceFigure) => void;
   onNext?: () => void;
+  /** Zugang wird gerade geprüft – "Weiter" wartet. */
+  busy?: boolean;
 }
 
-// Die 5 initialen fiktiven Figuren für den Fiktiv-Tab
-const INITIAL_FICTIONAL_FIGURES = [
-  'angel',
-  'archangel-michael',
-  'godmother',
-  'animal-spirit',
-  'wise-wizard'
-];
+type Section = 'fictional' | 'real' | 'places';
+type Panel = { kind: 'grid' } | { kind: 'pronouns'; figure: ResourceFigure } | { kind: 'custom' };
 
-// Spezifische Texte für die ersten drei Figuren
+// Diese fünf zuerst, danach die übrigen fiktiven Figuren.
+const INITIAL_FICTIONAL_FIGURES = ['angel', 'archangel-michael', 'godmother', 'animal-spirit', 'wise-wizard'];
+
 const FICTIONAL_FIGURE_TEXTS: Record<string, string> = {
   'angel': 'Sanft, mitfühlend und ruhig an deiner Seite',
   'archangel-michael': 'Starker Beschützer – gibt dir Halt und klare Ausrichtung',
   'godmother': 'Nährend, haltend und tief verbunden mit allem Leben'
 };
 
-// Ambivalente Figuren, die eine Pronomen-Auswahl benötigen
-const ambivalentFigures = [
-  'partner',
-  'teacher', 
-  'sibling',
-  'best-friend',
-  'pet-dog',
-  'pet-cat'
+const PLACE_FIGURES: ResourceFigure[] = [
+  { id: 'place-safe', name: 'Sicherer Ort', emoji: '🏠', description: 'Ein Ort voller Geborgenheit und Schutz', category: 'place', pronouns: 'es/sein', isCustom: false },
+  { id: 'place-healing', name: 'Heilungsraum', emoji: '✨', description: 'Ein Raum für Heilung und Regeneration', category: 'place', pronouns: 'es/sein', isCustom: false },
+  { id: 'place-garden', name: 'Innerer Garten', emoji: '🌱', description: 'Ein Garten voller Wachstum und Leben', category: 'place', pronouns: 'es/sein', isCustom: false },
+  { id: 'place-power', name: 'Kraftplatz', emoji: '⚡', description: 'Ein Ort voller Energie und Stärke', category: 'place', pronouns: 'es/sein', isCustom: false },
+  { id: 'place-temple', name: 'Innerer Tempel', emoji: '🕍', description: 'Ein heiliger Raum der Stille', category: 'place', pronouns: 'es/sein', isCustom: false },
+  { id: 'place-harbor', name: 'Mein sicherer Hafen', emoji: '⚓', description: 'Ein sicherer Ankerplatz für deine Seele', category: 'place', pronouns: 'es/sein', isCustom: false },
+  { id: 'place-soul', name: 'Mein Seelenplatz', emoji: '💫', description: 'Ein Ort der tiefen Verbindung', category: 'place', pronouns: 'es/sein', isCustom: false },
 ];
+
+const FIGURES: Record<Section, ResourceFigure[]> = {
+  fictional: [
+    ...INITIAL_FICTIONAL_FIGURES.map((id) => fictionalFigures.find((f) => f.id === id)).filter((f): f is ResourceFigure => !!f),
+    ...fictionalFigures.filter((f) => !INITIAL_FICTIONAL_FIGURES.includes(f.id)),
+  ].map((f) => ({ ...f, description: FICTIONAL_FIGURE_TEXTS[f.id] || f.description })),
+  real: realFigures,
+  places: PLACE_FIGURES,
+};
+
+const SECTIONS: { id: Section; label: string }[] = [
+  { id: 'fictional', label: 'Fiktiv' },
+  { id: 'real', label: 'Real' },
+  { id: 'places', label: 'Orte' },
+];
+
+// Figuren, bei denen erst die Form (sie/er) feststehen muss.
+const PRONOUN_CHOICES: Record<string, [string, string]> = {
+  'partner': ['Partnerin', 'Partner'],
+  'teacher': ['Lieblingslehrerin', 'Lieblingslehrer'],
+  'sibling': ['Schwester', 'Bruder'],
+  'best-friend': ['Beste Freundin', 'Bester Freund'],
+  'pet-dog': ['Weiblich', 'Männlich'],
+  'pet-cat': ['Weiblich', 'Männlich'],
+};
+
+const PRONOUN_OPTIONS = [
+  { value: 'sie/ihr', label: 'sie / ihr' },
+  { value: 'er/ihm', label: 'er / ihm' },
+  { value: 'es/sein', label: 'es / sein' },
+];
+
+function sectionOf(figure: ResourceFigure | null): Section {
+  if (!figure) return 'fictional';
+  if (figure.category === 'place') return 'places';
+  if (figure.category === 'real') return 'real';
+  return 'fictional';
+}
+
+const EMPTY_CUSTOM = { name: '', pronouns: 'sie/ihr', description: '', placeType: '', safetyFeatures: '' };
 
 export default function ResourceFigureSelection({
   selectedFigure,
   onFigureSelect,
-  onNext
+  onNext,
+  busy = false,
 }: ResourceFigureSelectionProps) {
-  const [activeSection, setActiveSection] = useState<'fictional' | 'real' | 'custom'>('fictional');
-  const [showMoreFictional, setShowMoreFictional] = useState(false);
-  const [showMoreReal, setShowMoreReal] = useState(false);
-  const [showMorePlaces, setShowMorePlaces] = useState(false);
-  const [showCustomForm, setShowCustomForm] = useState(false);
-  const [showPronounSelection, setShowPronounSelection] = useState(false);
-  const [pendingFigure, setPendingFigure] = useState<ResourceFigure | null>(null);
-  const [customFigure, setCustomFigure] = useState({ 
-    name: '', 
-    pronouns: 'sie/ihr', 
-    description: '', 
-    placeType: '', 
-    safetyFeatures: '' 
-  });
+  const [section, setSection] = useState<Section>(() => sectionOf(selectedFigure));
+  const [panel, setPanel] = useState<Panel>({ kind: 'grid' });
+  const [preview, setPreview] = useState<ResourceFigure | null>(null);
+  const [custom, setCustom] = useState(EMPTY_CUSTOM);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const moreBelow = useScrollFade(scrollRef, `${section}-${panel.kind}`);
 
-  const handleSectionChange = (section: 'real' | 'fictional' | 'custom') => {
-    setActiveSection(section);
-    setShowCustomForm(false);
-    setCustomFigure({ name: '', pronouns: 'sie/ihr', description: '', placeType: '', safetyFeatures: '' });
+  const isPlaces = section === 'places';
+  const shown = preview ?? selectedFigure;
+  const customSelected = !!selectedFigure?.isCustom && sectionOf(selectedFigure) === section;
+
+  const changeSection = (next: Section) => {
+    setSection(next);
+    setPanel({ kind: 'grid' });
+    setPreview(null);
   };
 
-  const handleFigureClick = (figure: ResourceFigure) => {
-    if (ambivalentFigures.includes(figure.id)) {
-      setPendingFigure(figure);
-      setShowPronounSelection(true);
-    } else {
-      onFigureSelect(figure);
+  const pick = (figure: ResourceFigure) => {
+    if (PRONOUN_CHOICES[figure.id]) {
+      setPanel({ kind: 'pronouns', figure });
+      return;
     }
+    onFigureSelect(figure);
   };
 
-  const handlePronounSelection = (pronouns: string) => {
-    if (pendingFigure) {
-      const figureWithPronouns = {
-        ...pendingFigure,
-        pronouns: pronouns
-      };
-      onFigureSelect(figureWithPronouns);
-      setShowPronounSelection(false);
-      setPendingFigure(null);
-    }
+  const openCustom = () => {
+    // Eine schon angelegte eigene Figur lässt sich hier weiter bearbeiten.
+    setCustom(customSelected && selectedFigure
+      ? { ...EMPTY_CUSTOM, name: selectedFigure.name, pronouns: selectedFigure.pronouns, description: selectedFigure.description || '' }
+      : { ...EMPTY_CUSTOM, pronouns: isPlaces ? 'es/sein' : 'sie/ihr' });
+    setPanel({ kind: 'custom' });
   };
 
-  const handleCustomFigureSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (customFigure.name.trim() && customFigure.pronouns.trim()) {
-      const newFigure: ResourceFigure = {
-        id: `custom-${Date.now()}`,
-        name: customFigure.name,
-        emoji: '✨',
-        description: customFigure.description,
-        category: 'custom',
-        pronouns: customFigure.pronouns,
-        isCustom: true
-      };
-      onFigureSelect(newFigure);
-      setCustomFigure({ name: '', pronouns: 'sie/ihr', description: '', placeType: '', safetyFeatures: '' });
-      setShowCustomForm(false);
-    }
-  };
-
-  // Hole die initialen 5 fiktiven Figuren
-  const getInitialFictionalFigures = (): ResourceFigure[] => {
-    const figures: ResourceFigure[] = [];
-    for (const id of INITIAL_FICTIONAL_FIGURES) {
-      const figure = fictionalFigures.find(f => f.id === id);
-      if (figure) {
-        // Überschreibe den Text für die ersten drei Figuren
-        const customText = FICTIONAL_FIGURE_TEXTS[id];
-        figures.push({
-          ...figure,
-          description: customText || figure.description
-        });
+  const submitCustom = (event: React.FormEvent) => {
+    event.preventDefault();
+    const name = custom.name.trim();
+    if (!name) return;
+    onFigureSelect(isPlaces
+      ? {
+        id: `custom-place-${Date.now()}`,
+        name,
+        emoji: '🏞️',
+        description: [custom.placeType, custom.description, custom.safetyFeatures].map((part) => part.trim()).filter(Boolean).join('. '),
+        category: 'place',
+        pronouns: 'es/sein',
+        isCustom: true,
       }
-    }
-    return figures;
+      : {
+        id: `custom-${Date.now()}`,
+        name,
+        emoji: '✨',
+        description: custom.description.trim(),
+        category: 'custom',
+        pronouns: custom.pronouns,
+        isCustom: true,
+      });
+    setPanel({ kind: 'grid' });
   };
 
-  // Hole zusätzliche fiktive Figuren
-  const getAdditionalFictionalFigures = (): ResourceFigure[] => {
-    return fictionalFigures.filter(f => !INITIAL_FICTIONAL_FIGURES.includes(f.id));
-  };
-
-  // Hole initiale reale Personen (max 5)
-  const getInitialRealFigures = (): ResourceFigure[] => {
-    return realFigures.slice(0, 5);
-  };
-
-  // Hole zusätzliche reale Personen
-  const getAdditionalRealFigures = (): ResourceFigure[] => {
-    return realFigures.slice(5);
-  };
-
-  // Place figures
-  const placeFigures: ResourceFigure[] = [
-    {
-      id: 'place-safe',
-      name: 'Sicherer Ort',
-      emoji: '🏠',
-      description: 'Ein Ort voller Geborgenheit und Schutz',
-      category: 'place',
-      pronouns: 'es/sein',
-      isCustom: false
-    },
-    {
-      id: 'place-healing',
-      name: 'Heilungsraum',
-      emoji: '✨',
-      description: 'Ein Raum für Heilung und Regeneration',
-      category: 'place',
-      pronouns: 'es/sein',
-      isCustom: false
-    },
-    {
-      id: 'place-garden',
-      name: 'Innerer Garten',
-      emoji: '🌱',
-      description: 'Ein Garten voller Wachstum und Leben',
-      category: 'place',
-      pronouns: 'es/sein',
-      isCustom: false
-    },
-    {
-      id: 'place-power',
-      name: 'Kraftplatz',
-      emoji: '⚡',
-      description: 'Ein Ort voller Energie und Stärke',
-      category: 'place',
-      pronouns: 'es/sein',
-      isCustom: false
-    },
-    {
-      id: 'place-temple',
-      name: 'Innerer Tempel',
-      emoji: '🕍',
-      description: 'Ein heiliger Raum der Stille',
-      category: 'place',
-      pronouns: 'es/sein',
-      isCustom: false
-    },
-    {
-      id: 'place-harbor',
-      name: 'Mein sicherer Hafen',
-      emoji: '⚓',
-      description: 'Ein sicherer Ankerplatz für deine Seele',
-      category: 'place',
-      pronouns: 'es/sein',
-      isCustom: false
-    },
-    {
-      id: 'place-soul',
-      name: 'Mein Seelenplatz',
-      emoji: '💫',
-      description: 'Ein Ort der tiefen Verbindung',
-      category: 'place',
-      pronouns: 'es/sein',
-      isCustom: false
-    }
-  ];
-
-  const getInitialPlaceFigures = (): ResourceFigure[] => {
-    return placeFigures.slice(0, 5);
-  };
-
-  const getAdditionalPlaceFigures = (): ResourceFigure[] => {
-    return placeFigures.slice(5);
-  };
-
-  const renderFigureCard = (figure: ResourceFigure) => {
-    const isSelected = selectedFigure?.id === figure.id;
-    
-    return (
-      <motion.button
-        type="button"
-        aria-pressed={isSelected}
-        aria-label={figure.name}
-        key={figure.id}
-        whileHover={{ scale: 1.02, y: -2 }}
-        whileTap={{ scale: 0.98 }}
-        onClick={() => handleFigureClick(figure)}
-        className={`story-figure-card w-full h-[14.5rem] sm:h-[18rem] relative cursor-pointer transition-all ${
-          isSelected ? 'ring-4 ring-primary-500 ring-offset-2' : ''
-        }`}
-      >
-        <div className={`w-full h-full rounded-2xl shadow-lg border-2 flex flex-col ${
-          isSelected 
-            ? 'border-primary-500 bg-gradient-to-br from-primary-100 to-orange-100'
-            : 'border-primary-300 bg-gradient-to-br from-primary-50 to-orange-50 hover:border-primary-400'
-        }`}>
-          <div className="w-full h-full flex flex-col items-center justify-start p-4 text-center">
-            {/* Fixed-size icon container */}
-            <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mb-3 flex-shrink-0">
-              {figure.id === 'ideal-family' ? (
-                <IdealFamilyIconFinal size={60} className="w-full h-full object-contain" />
-              ) : figure.id === 'jesus' ? (
-                <JesusIconFinal size={60} className="w-full h-full object-contain" />
-              ) : figure.id === 'archangel-michael' ? (
-                <ArchangelMichaelIconFinal size={60} className="w-full h-full object-contain" />
-              ) : figure.id === 'angel' ? (
-                <AngelIconFinal size={60} className="w-full h-full object-contain" />
-              ) : figure.id === 'superhero' ? (
-                <SuperheroIconFinal size={60} className="w-full h-full object-contain" />
-              ) : (
-                <span className="text-4xl sm:text-5xl">{figure.emoji}</span>
-              )}
-            </div>
-            {/* Titel: feste Mindesthöhe (2 Zeilen), damit Beschreibung immer auf gleicher Höhe startet */}
-            <h3 className="text-base sm:text-lg font-semibold text-primary-900 mb-2 min-h-[2.5em] flex items-center justify-center flex-shrink-0">
-              {figure.name}
-            </h3>
-            {/* Beschreibung: feste Mindesthöhe (3 Zeilen), 2–3 Zeilen Text – Karten bleiben gleich hoch */}
-            <p className="text-xs sm:text-sm text-primary-700 leading-snug min-h-[3.75em] sm:min-h-[4em] flex-shrink-0 text-center w-full">
-              {figure.description}
-            </p>
-          </div>
-        </div>
-      </motion.button>
-    );
+  const panelMotion = {
+    initial: { opacity: 0, y: 8 },
+    animate: { opacity: 1, y: 0 },
+    // Der ausblendende Bereich darf keine Klicks mehr annehmen.
+    exit: { opacity: 0, y: -6, pointerEvents: 'none' as const, transition: { duration: 0.15 } },
+    transition: { duration: 0.25, ease: 'easeOut' as const },
   };
 
   return (
-    <div className="story-figure-step min-h-screen bg-white pb-20 lg:pb-0">
-      {/* Hero Section */}
-      <div className="story-step-heading text-center py-0 lg:py-16 px-0 lg:px-4 bg-white">
-        <motion.div 
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          <h2 className="sm:text-2xl text-xl lg:text-3xl font-light text-primary-800 sm:mb-4 mb-2 px-3">
-            Welche Figur möchtest du für deine Power Story wählen?
-          </h2>
-        </motion.div>
-      </div>
+    <section className="story-first-stage story-figure-stage" aria-label="Figur wählen">
+      <div className="story-first-intro">
+        <p className="story-stage-kicker">Deine Figur</p>
+        <h1>Wer soll in deiner Power Story an deiner Seite sein?</h1>
+        <p className="story-first-guidance">Eine Figur, ein lieber Mensch oder ein sicherer Ort – wähle, was dir gerade Halt gibt.</p>
 
-      <div className="story-category-tabs" role="group" aria-label="Art der Ressource">
-        {([
-          { id: 'fictional', label: 'Fiktiv' },
-          { id: 'real', label: 'Real' },
-          { id: 'custom', label: 'Orte' },
-        ] as const).map(section => (
-          <button key={section.id} type="button"
-            aria-pressed={activeSection === section.id}
-            onClick={() => handleSectionChange(section.id)}
-            className={`rounded-full px-6 py-3 text-sm font-semibold transition-colors ${activeSection === section.id ? 'bg-primary-700 text-white' : 'bg-primary-50 text-primary-800'}`}
-          >{section.label}</button>
-        ))}
-      </div>
-
-      {/* Content Area */}
-      <div className="story-figure-content bg-white pt-10 sm:pt-12 sm:px-6 px-4 pb-6">
         <AnimatePresence mode="wait">
-          {/* Fiktiv Tab */}
-          {activeSection === 'fictional' && (
+          {shown && (
             <motion.div
-              key="fictional"
-              initial={{ opacity: 0, y: 20 }}
+              key={shown.id}
+              className="story-figure-choice"
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className="text-center"
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
             >
-              {/* Initial Fictional Figures: 4 auf Mobile (2×2), 5 auf Desktop */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 max-w-7xl mx-auto sm:px-4 mb-2 mt-2">
-                {getInitialFictionalFigures().map((figure, index) => (
-                  <div
-                    key={figure.id}
-                    className={index === 4 ? 'hidden sm:block' : ''}
-                  >
-                    {renderFigureCard(figure)}
-                  </div>
-                ))}
-              </div>
-
-              {/* Weitere fiktive Figuren anzeigen (nur sichtbar, bis aktiviert; danach CTA entfernt) */}
-              {!showMoreFictional && (getAdditionalFictionalFigures().length > 0 || getInitialFictionalFigures().length > 4) && (
-                <div className="text-center mt-8 sm:mt-7 mb-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowMoreFictional(true)}
-                    className="inline-flex items-center justify-center gap-1.5 text-primary-700/90 hover:text-primary-800 text-sm sm:text-base underline decoration-primary-400/80 hover:decoration-primary-500/90 transition-colors duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-primary-400/70 focus:ring-offset-2 rounded"
-                  >
-                    <ChevronDown
-                      className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-600/90 flex-shrink-0"
-                      aria-hidden
-                    />
-                    <span>Weitere fiktive Figuren anzeigen</span>
-                  </button>
-                </div>
-              )}
-
-              {/* Additional Fictional Figures (Mobile: inkl. 5. Figur; Desktop: nur Zusatzfiguren); eng unter Grid, wenn CTA weg */}
-              <AnimatePresence>
-                {showMoreFictional && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="mt-3 sm:mt-4 md:mt-6"
-                  >
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 max-w-7xl mx-auto sm:px-4">
-                      {/* 5. Figur nur auf Mobile in „Mehr“-Bereich sichtbar */}
-                      {getInitialFictionalFigures().length > 4 && (
-                        <div className="sm:hidden">
-                          {renderFigureCard(getInitialFictionalFigures()[4])}
-                        </div>
-                      )}
-                      {getAdditionalFictionalFigures().map(figure => renderFigureCard(figure))}
-                      {/* Custom Figure Card */}
-                      <motion.div
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setShowCustomForm(true)}
-                        className="w-full h-[14.5rem] sm:h-[18rem] relative cursor-pointer transition-all"
-                      >
-                        <div className="w-full h-full rounded-2xl shadow-lg border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-indigo-50 hover:border-blue-400 flex flex-col">
-                          <div className="w-full h-full flex flex-col items-center justify-start p-4 text-center">
-                            <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mb-3 flex-shrink-0">
-                              <span className="text-4xl sm:text-5xl">➕</span>
-                            </div>
-                            <h3 className="text-base sm:text-lg font-semibold text-blue-900 mb-2 min-h-[2.5em] flex items-center justify-center flex-shrink-0">
-                              Eigene Figur
-                            </h3>
-                            <p className="text-xs sm:text-sm text-blue-700 leading-snug min-h-[3.75em] sm:min-h-[4em] flex-shrink-0 text-center w-full">
-                              Erstelle deine eigene, personalisierte Figur
-                            </p>
-                          </div>
-                        </div>
-                      </motion.div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Custom Figure Form for Fictional Tab */}
-              {showCustomForm && activeSection === 'fictional' && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="max-w-md mx-auto mt-8"
-                >
-                  <form onSubmit={handleCustomFigureSubmit} className="bg-white rounded-2xl p-6 shadow-lg border border-primary-200">
-                    <h3 className="text-lg font-semibold text-primary-900 mb-4 text-center">
-                      Eigene Figur erstellen
-                    </h3>
-                    <div className="space-y-4">
-                      <input
-                        type="text"
-                        placeholder="Name der Figur"
-                        value={customFigure.name}
-                        onChange={(e) => setCustomFigure(prev => ({ ...prev, name: e.target.value }))}
-                        className="w-full px-4 py-2 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        required
-                      />
-                      <select
-                        value={customFigure.pronouns}
-                        onChange={(e) => setCustomFigure(prev => ({ ...prev, pronouns: e.target.value }))}
-                        className="w-full px-4 py-2 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        required
-                      >
-                        <option value="sie/ihr">sie/ihr</option>
-                        <option value="er/ihm">er/ihm</option>
-                        <option value="es/sein">es/sein</option>
-                      </select>
-                      <textarea
-                        placeholder="Beschreibung (optional)"
-                        value={customFigure.description}
-                        onChange={(e) => setCustomFigure(prev => ({ ...prev, description: e.target.value }))}
-                        className="w-full px-4 py-2 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent h-24"
-                      />
-                      <div className="flex gap-3">
-                        <button
-                          type="submit"
-                          className="flex-1 px-6 py-2 bg-gradient-to-r from-primary-500 to-orange-500 text-white rounded-lg font-medium hover:from-primary-600 hover:to-orange-600 transition-all"
-                        >
-                          Erstellen
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShowCustomForm(false)}
-                          className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-all"
-                        >
-                          Abbrechen
-                        </button>
-                      </div>
-                    </div>
-                  </form>
-                </motion.div>
-              )}
-            </motion.div>
-          )}
-
-          {/* Real Tab */}
-          {activeSection === 'real' && (
-            <motion.div
-              key="real"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className="text-center"
-            >
-              {/* Initial Real Figures: 4 auf Mobile (2×2), 5 auf Desktop */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 max-w-7xl mx-auto sm:px-4 mb-2 mt-2">
-                {getInitialRealFigures().map((figure, index) => (
-                  <div
-                    key={figure.id}
-                    className={index === 4 ? 'hidden sm:block' : ''}
-                  >
-                    {renderFigureCard(figure)}
-                  </div>
-                ))}
-              </div>
-
-              {/* Weitere reale Personen anzeigen (nur sichtbar bis aktiviert) */}
-              {!showMoreReal && (getAdditionalRealFigures().length > 0 || getInitialRealFigures().length > 4) && (
-                <div className="text-center mt-8 sm:mt-7 mb-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowMoreReal(true)}
-                    className="inline-flex items-center justify-center gap-1.5 text-primary-700/90 hover:text-primary-800 text-sm sm:text-base underline decoration-primary-400/80 hover:decoration-primary-500/90 transition-colors duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-primary-400/70 focus:ring-offset-2 rounded"
-                  >
-                    <ChevronDown
-                      className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-600/90 flex-shrink-0"
-                      aria-hidden
-                    />
-                    <span>Weitere reale Personen anzeigen</span>
-                  </button>
-                </div>
-              )}
-
-              {/* Additional Real Figures (Mobile: inkl. 5. Figur; Desktop: nur Zusatzfiguren) */}
-              <AnimatePresence>
-                {showMoreReal && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="mt-3 sm:mt-4 md:mt-6"
-                  >
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 max-w-7xl mx-auto sm:px-4">
-                      {getInitialRealFigures().length > 4 && (
-                        <div className="sm:hidden">
-                          {renderFigureCard(getInitialRealFigures()[4])}
-                        </div>
-                      )}
-                      {getAdditionalRealFigures().map(figure => renderFigureCard(figure))}
-                      {/* Custom Figure Card */}
-                      <motion.div
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setShowCustomForm(true)}
-                        className="w-full h-[14.5rem] sm:h-[18rem] relative cursor-pointer transition-all"
-                      >
-                        <div className="w-full h-full rounded-2xl shadow-lg border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-indigo-50 hover:border-blue-400 flex flex-col">
-                          <div className="w-full h-full flex flex-col items-center justify-start p-4 text-center">
-                            <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mb-3 flex-shrink-0">
-                              <span className="text-4xl sm:text-5xl">➕</span>
-                            </div>
-                            <h3 className="text-base sm:text-lg font-semibold text-blue-900 mb-2 min-h-[2.5em] flex items-center justify-center flex-shrink-0">
-                              Eigene Figur
-                            </h3>
-                            <p className="text-xs sm:text-sm text-blue-700 leading-snug min-h-[3.75em] sm:min-h-[4em] flex-shrink-0 text-center w-full">
-                              Erstelle deine eigene, personalisierte Figur
-                            </p>
-                          </div>
-                        </div>
-                      </motion.div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Custom Figure Form for Real Tab */}
-              {showCustomForm && activeSection === 'real' && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="max-w-md mx-auto mt-8"
-                >
-                  <form onSubmit={handleCustomFigureSubmit} className="bg-white rounded-2xl p-6 shadow-lg border border-primary-200">
-                    <h3 className="text-lg font-semibold text-primary-900 mb-4 text-center">
-                      Eigene Figur erstellen
-                    </h3>
-                    <div className="space-y-4">
-                      <input
-                        type="text"
-                        placeholder="Name der Figur"
-                        value={customFigure.name}
-                        onChange={(e) => setCustomFigure(prev => ({ ...prev, name: e.target.value }))}
-                        className="w-full px-4 py-2 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        required
-                      />
-                      <select
-                        value={customFigure.pronouns}
-                        onChange={(e) => setCustomFigure(prev => ({ ...prev, pronouns: e.target.value }))}
-                        className="w-full px-4 py-2 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        required
-                      >
-                        <option value="sie/ihr">sie/ihr</option>
-                        <option value="er/ihm">er/ihm</option>
-                        <option value="es/sein">es/sein</option>
-                      </select>
-                      <textarea
-                        placeholder="Beschreibung (optional)"
-                        value={customFigure.description}
-                        onChange={(e) => setCustomFigure(prev => ({ ...prev, description: e.target.value }))}
-                        className="w-full px-4 py-2 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent h-24"
-                      />
-                      <div className="flex gap-3">
-                        <button
-                          type="submit"
-                          className="flex-1 px-6 py-2 bg-gradient-to-r from-primary-500 to-orange-500 text-white rounded-lg font-medium hover:from-primary-600 hover:to-orange-600 transition-all"
-                        >
-                          Erstellen
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShowCustomForm(false)}
-                          className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-all"
-                        >
-                          Abbrechen
-                        </button>
-                      </div>
-                    </div>
-                  </form>
-                </motion.div>
-              )}
-            </motion.div>
-          )}
-
-          {/* Orte Tab */}
-          {activeSection === 'custom' && (
-            <motion.div
-              key="custom"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className="text-center"
-            >
-              {/* Initial Place Figures: 4 auf Mobile (2×2), 5 auf Desktop */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 max-w-7xl mx-auto sm:px-4 mb-2 mt-2">
-                {getInitialPlaceFigures().map((figure, index) => (
-                  <div
-                    key={figure.id}
-                    className={index === 4 ? 'hidden sm:block' : ''}
-                  >
-                    {renderFigureCard(figure)}
-                  </div>
-                ))}
-              </div>
-
-              {/* Weitere Orte anzeigen (nur sichtbar bis aktiviert) */}
-              {!showMorePlaces && (getAdditionalPlaceFigures().length > 0 || getInitialPlaceFigures().length > 4) && (
-                <div className="text-center mt-8 sm:mt-7 mb-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowMorePlaces(true)}
-                    className="inline-flex items-center justify-center gap-1.5 text-primary-700/90 hover:text-primary-800 text-sm sm:text-base underline decoration-primary-400/80 hover:decoration-primary-500/90 transition-colors duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-primary-400/70 focus:ring-offset-2 rounded"
-                  >
-                    <ChevronDown
-                      className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-600/90 flex-shrink-0"
-                      aria-hidden
-                    />
-                    <span>Weitere Orte anzeigen</span>
-                  </button>
-                </div>
-              )}
-
-              {/* Additional Place Figures (Mobile: inkl. 5. Ort; Desktop: nur Zusatzorte) */}
-              <AnimatePresence>
-                {showMorePlaces && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="mt-3 sm:mt-4 md:mt-6"
-                  >
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 max-w-7xl mx-auto sm:px-4">
-                      {getInitialPlaceFigures().length > 4 && (
-                        <div className="sm:hidden">
-                          {renderFigureCard(getInitialPlaceFigures()[4])}
-                        </div>
-                      )}
-                      {getAdditionalPlaceFigures().map(figure => renderFigureCard(figure))}
-                      {/* Custom Place Card */}
-                      <motion.div
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setShowCustomForm(true)}
-                        className="w-full h-[14.5rem] sm:h-[18rem] relative cursor-pointer transition-all"
-                      >
-                        <div className="w-full h-full rounded-2xl shadow-lg border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-indigo-50 hover:border-blue-400 flex flex-col">
-                          <div className="w-full h-full flex flex-col items-center justify-start p-4 text-center">
-                            <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mb-3 flex-shrink-0">
-                              <span className="text-4xl sm:text-5xl">➕</span>
-                            </div>
-                            <h3 className="text-base sm:text-lg font-semibold text-blue-900 mb-2 min-h-[2.5em] flex items-center justify-center flex-shrink-0">
-                              Eigenen Ort
-                            </h3>
-                            <p className="text-xs sm:text-sm text-blue-700 leading-snug min-h-[3.75em] sm:min-h-[4em] flex-shrink-0 text-center w-full">
-                              Erstelle deinen eigenen sicheren Ort
-                            </p>
-                          </div>
-                        </div>
-                      </motion.div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Custom Place Form */}
-              {showCustomForm && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="max-w-md mx-auto mt-8"
-                >
-                  <form onSubmit={handleCustomFigureSubmit} className="bg-white rounded-2xl p-6 shadow-lg border border-primary-200">
-                    <h3 className="text-lg font-semibold text-primary-900 mb-4 text-center">
-                      Eigenen sicheren Ort erstellen
-                    </h3>
-                    <div className="space-y-4">
-                      <input
-                        type="text"
-                        placeholder="Name des Ortes"
-                        value={customFigure.name}
-                        onChange={(e) => setCustomFigure(prev => ({ ...prev, name: e.target.value }))}
-                        className="w-full px-4 py-2 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        required
-                      />
-                      <input
-                        type="text"
-                        placeholder="Art des Ortes (z.B. Strand, Berg, Garten)"
-                        value={customFigure.placeType || ''}
-                        onChange={(e) => setCustomFigure(prev => ({ ...prev, placeType: e.target.value }))}
-                        className="w-full px-4 py-2 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        required
-                      />
-                      <textarea
-                        placeholder="Beschreibung des Ortes (optional)"
-                        value={customFigure.description}
-                        onChange={(e) => setCustomFigure(prev => ({ ...prev, description: e.target.value }))}
-                        className="w-full px-4 py-2 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent h-24"
-                      />
-                      <textarea
-                        placeholder="Was macht diesen Ort besonders sicher für dich? (optional)"
-                        value={customFigure.safetyFeatures || ''}
-                        onChange={(e) => setCustomFigure(prev => ({ ...prev, safetyFeatures: e.target.value }))}
-                        className="w-full px-4 py-2 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent h-24"
-                      />
-                      <div className="flex gap-3">
-                        <button
-                          type="submit"
-                          className="flex-1 px-6 py-2 bg-gradient-to-r from-primary-500 to-orange-500 text-white rounded-lg font-medium hover:from-primary-600 hover:to-orange-600 transition-all"
-                        >
-                          Erstellen
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShowCustomForm(false)}
-                          className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-all"
-                        >
-                          Abbrechen
-                        </button>
-                      </div>
-                    </div>
-                  </form>
-                </motion.div>
-              )}
-
+              <span className="story-first-avatar" aria-hidden="true">
+                <FigureIcon figure={shown} size={52} className="story-first-avatar-image" />
+              </span>
+              <span>
+                <strong>{shown.name}</strong>
+                {shown.description && <span>{shown.description}</span>}
+              </span>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Selected Figure Display - Fixed Position */}
-      <AnimatePresence>
-        {selectedFigure && (
-          <motion.div
-            initial={{ y: 30, opacity: 0, scale: 0.9 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: -30, opacity: 0, scale: 0.9 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="story-selection-summary fixed bottom-0 max-w-2xl left-0 right-0 z-30 w-full m-auto pb-2 sm:px-6 px-2"
-          >
-            <Card className="story-selection-confirmation bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50 border-green-200 shadow-lg rounded-2xl lg:rounded-3xl overflow-hidden">
-              <CardContent className="p-2 lg:p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <motion.div
-                      animate={{ 
-                        scale: [1, 1.1, 1],
-                        rotate: [0, 5, -5, 0]
-                      }}
-                      transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                      className="story-selection-check w-8 h-8 sm:w-12 sm:h-12 lg:w-16 lg:h-16 bg-green-500 rounded-full flex items-center justify-center shadow-lg flex-shrink-0"
-                    >
-                      <Check className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
-                    </motion.div>
-                    <div className="min-w-0 flex-1">
-                      <motion.span 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="text-green-800 font-medium block sm:mb-2 sm:text-sm text-xs lg:text-base"
+      <div className="story-first-response story-figure-response">
+        <div className="story-figure-tabs" role="tablist" aria-label="Art der Figur">
+          {SECTIONS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={section === item.id}
+              onClick={() => changeSection(item.id)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        <div ref={scrollRef} className="story-first-scroll" data-more-below={moreBelow || undefined}>
+          <AnimatePresence mode="wait" initial={false}>
+            {panel.kind === 'grid' && (
+              <motion.div key={`grid-${section}`} {...panelMotion}>
+                <div className="story-figure-grid" role="group" aria-label={SECTIONS.find((s) => s.id === section)?.label}>
+                  {FIGURES[section].map((figure) => {
+                    const selected = selectedFigure?.id === figure.id;
+                    return (
+                      <button
+                        key={figure.id}
+                        type="button"
+                        className="story-figure-tile"
+                        aria-pressed={selected}
+                        onClick={() => pick(figure)}
+                        onMouseEnter={() => setPreview(figure)}
+                        onMouseLeave={() => setPreview(null)}
                       >
-                        ✨ Deine Figur:
-                      </motion.span>
-                      <div className="flex items-center sm:gap-3 gap-1">
-                        <motion.span 
-                          animate={{ rotate: [0, 10, -10, 0] }}
-                          transition={{ duration: 2, repeat: Infinity, repeatDelay: 4 }}
-                          className="text-2xl lg:text-4xl flex-shrink-0"
-                        >
-                          {selectedFigure.id === 'ideal-family' ? (
-                            <IdealFamilyIconFinal size={48} className="w-8 h-8 lg:w-12 lg:h-12" />
-                          ) : selectedFigure.id === 'jesus' ? (
-                            <JesusIconFinal size={48} className="w-8 h-8 lg:w-12 lg:h-12" />
-                          ) : selectedFigure.id === 'archangel-michael' ? (
-                            <ArchangelMichaelIconFinal size={48} className="w-8 h-8 lg:w-12 lg:h-12" />
-                          ) : selectedFigure.id === 'angel' ? (
-                            <AngelIconFinal size={48} className="w-8 h-8 lg:w-12 lg:h-12" />
-                          ) : selectedFigure.id === 'superhero' ? (
-                            <SuperheroIconFinal size={48} className="w-8 h-8 lg:w-12 lg:h-12" />
-                          ) : (
-                            selectedFigure.emoji
-                          )}
-                        </motion.span>
-                        <div className="min-w-0 flex-1">
-                          <h3 className="text-base sm:text-lg lg:text-2xl font-semibold text-primary-900 leading-tight">
-                            {selectedFigure.name}
-                          </h3>
-                        </div>
+                        <span className="story-figure-tile-icon" aria-hidden="true">
+                          <FigureIcon figure={figure} size={44} />
+                        </span>
+                        <span className="story-figure-tile-name">{figure.name}</span>
+                        {figure.description && <span className="sr-only">{figure.description}</span>}
+                        {selected && <span className="story-figure-tile-check" aria-hidden="true"><Check size={12} strokeWidth={3} /></span>}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    className="story-figure-tile story-figure-tile--custom"
+                    aria-pressed={customSelected}
+                    onClick={openCustom}
+                  >
+                    <span className="story-figure-tile-icon" aria-hidden="true">
+                      {customSelected && selectedFigure ? <FigureIcon figure={selectedFigure} size={44} /> : <Plus size={22} strokeWidth={2} />}
+                    </span>
+                    <span className="story-figure-tile-name">
+                      {customSelected && selectedFigure ? selectedFigure.name : isPlaces ? 'Eigener Ort' : 'Eigene Figur'}
+                    </span>
+                    {customSelected && <span className="story-figure-tile-check" aria-hidden="true"><Check size={12} strokeWidth={3} /></span>}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {panel.kind === 'pronouns' && (
+              <motion.div key="pronouns" className="story-figure-panel" {...panelMotion}>
+                <div className="story-figure-panel-head">
+                  <span className="story-first-avatar" aria-hidden="true">
+                    <FigureIcon figure={panel.figure} size={44} className="story-first-avatar-image" />
+                  </span>
+                  <div>
+                    <p className="story-stage-kicker">{panel.figure.name}</p>
+                    <h2>Welche Form passt für dich?</h2>
+                  </div>
+                </div>
+                <p className="story-figure-panel-text">Damit deine Geschichte die richtigen Worte findet.</p>
+                <div className="story-first-options">
+                  {(['sie/ihr', 'er/ihm'] as const).map((pronouns, i) => (
+                    <button
+                      key={pronouns}
+                      type="button"
+                      className="story-first-option"
+                      aria-pressed={selectedFigure?.id === panel.figure.id && selectedFigure.pronouns === pronouns}
+                      onClick={() => {
+                        onFigureSelect({ ...panel.figure, pronouns });
+                        setPanel({ kind: 'grid' });
+                      }}
+                    >
+                      <span className="story-first-option-mark" aria-hidden="true">
+                        {selectedFigure?.id === panel.figure.id && selectedFigure.pronouns === pronouns && <Check size={15} strokeWidth={2.5} />}
+                      </span>
+                      <span>{PRONOUN_CHOICES[panel.figure.id][i]} <span className="story-option-note">({pronouns.replace('/', ' / ')})</span></span>
+                    </button>
+                  ))}
+                </div>
+                <button type="button" className="story-figure-panel-back" onClick={() => setPanel({ kind: 'grid' })}>
+                  <ChevronLeft size={16} aria-hidden="true" /> Andere Figur wählen
+                </button>
+              </motion.div>
+            )}
+
+            {panel.kind === 'custom' && (
+              <motion.form key="custom" className="story-figure-panel story-figure-form" onSubmit={submitCustom} {...panelMotion}>
+                <h2>{isPlaces ? 'Dein eigener sicherer Ort' : 'Deine eigene Figur'}</h2>
+                <label>
+                  <span>{isPlaces ? 'Name des Ortes' : 'Name der Figur'}</span>
+                  <input
+                    type="text"
+                    value={custom.name}
+                    onChange={(e) => setCustom((prev) => ({ ...prev, name: e.target.value }))}
+                    placeholder={isPlaces ? 'z. B. Mein Strand' : 'z. B. Tante Anna'}
+                    maxLength={60}
+                    required
+                    autoFocus
+                  />
+                </label>
+                {isPlaces ? (
+                  <>
+                    <label>
+                      <span>Art des Ortes <em>(optional)</em></span>
+                      <input
+                        type="text"
+                        value={custom.placeType}
+                        onChange={(e) => setCustom((prev) => ({ ...prev, placeType: e.target.value }))}
+                        placeholder="z. B. Strand, Berg, Garten"
+                        maxLength={80}
+                      />
+                    </label>
+                    <label>
+                      <span>Was macht ihn sicher für dich? <em>(optional)</em></span>
+                      <input
+                        type="text"
+                        value={custom.safetyFeatures}
+                        onChange={(e) => setCustom((prev) => ({ ...prev, safetyFeatures: e.target.value }))}
+                        placeholder="z. B. Niemand kann mich hier stören"
+                        maxLength={160}
+                      />
+                    </label>
+                  </>
+                ) : (
+                  <>
+                    <div className="story-figure-form-row" role="group" aria-label="Pronomen">
+                      <span>Pronomen</span>
+                      <div className="story-segmented">
+                        {PRONOUN_OPTIONS.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            aria-pressed={custom.pronouns === option.value}
+                            onClick={() => setCustom((prev) => ({ ...prev, pronouns: option.value }))}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
                       </div>
                     </div>
-                  </div>
-                  
-                  {/* Weiter Button */}
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={onNext}
-                    className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-primary-500 to-orange-500 text-white rounded-full font-medium hover:from-primary-600 hover:to-orange-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-2 max-sm:text-sm"
-                  >
-                    Weiter
-                    <span className="text-white">→</span>
-                  </motion.button>
+                    <label>
+                      <span>Was macht sie besonders? <em>(optional)</em></span>
+                      <input
+                        type="text"
+                        value={custom.description}
+                        onChange={(e) => setCustom((prev) => ({ ...prev, description: e.target.value }))}
+                        placeholder="z. B. Warm, geduldig, immer für mich da"
+                        maxLength={160}
+                      />
+                    </label>
+                  </>
+                )}
+                <div className="story-figure-form-actions">
+                  <button type="button" className="story-figure-panel-back" onClick={() => setPanel({ kind: 'grid' })}>
+                    <ChevronLeft size={16} aria-hidden="true" /> Abbrechen
+                  </button>
+                  <button type="submit" className="story-figure-form-submit" disabled={!custom.name.trim()}>
+                    Übernehmen
+                  </button>
                 </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              </motion.form>
+            )}
+          </AnimatePresence>
+        </div>
 
-      {/* Pronomen-Auswahl Modal */}
-      <AnimatePresence>
-        {showPronounSelection && pendingFigure && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowPronounSelection(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="text-center sm:mb-6 mb-4">
-                <div className="text-4xl mb-3">{pendingFigure.emoji}</div>
-                <h3 className="text-xl font-semibold text-primary-900 mb-2">
-                  {pendingFigure.name}
-                </h3>
-                <p className="text-primary-700 max-sm:text-sm">
-                  Wähle die Pronomen für {pendingFigure.id === 'pet-dog' ? 'deinen' : pendingFigure.id === 'pet-cat' ? 'deine' : 'deine'} {pendingFigure.name}:
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <button
-                  onClick={() => handlePronounSelection('sie/ihr')}
-                  className="w-full sm:p-4 max-sm:py-2 max-sm:px-4 border-2 border-primary-200 rounded-xl hover:border-primary-400 hover:bg-primary-50 transition-all duration-200 text-left"
-                >
-                  <div className="font-semibold text-primary-900">sie/ihr ({pendingFigure.id === 'sibling' ? 'schwester' : 'weiblich'})</div>
-                  <div className="text-sm text-primary-700">Für {pendingFigure.id === 'pet-dog' ? 'einen weiblichen' : pendingFigure.id === 'pet-cat' ? 'eine weibliche' : 'eine weibliche'} {pendingFigure.name}</div>
-                </button>
-                
-                <button
-                  onClick={() => handlePronounSelection('er/ihm')}
-                  className="w-full sm:p-4 max-sm:py-2 max-sm:px-4 border-2 border-primary-200 rounded-xl hover:border-primary-400 hover:bg-primary-50 transition-all duration-200 text-left"
-                >
-                  <div className="font-semibold text-primary-900">er/ihm ({pendingFigure.id === 'sibling' ? 'bruder' : 'männlich'})</div>
-                  <div className="text-sm text-primary-700">Für {pendingFigure.id === 'pet-dog' ? 'einen männlichen' : pendingFigure.id === 'pet-cat' ? 'einen männlichen' : 'einen männlichen'} {pendingFigure.name}</div>
-                </button>
-              </div>
-              
-              <button
-                onClick={() => setShowPronounSelection(false)}
-                className="w-full max-sm:text-sm sm:mt-6 mt-4 p-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300 transition-all duration-200"
-              >
-                Abbrechen
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+        <div className="story-first-actions">
+          <p className="story-picked" aria-live="polite">
+            {selectedFigure ? (
+              <>
+                <span className="story-picked-icon" aria-hidden="true"><FigureIcon figure={selectedFigure} size={26} /></span>
+                <span><span className="story-picked-label">Gewählt:</span> {selectedFigure.name}</span>
+              </>
+            ) : (
+              <span className="story-picked-empty">Wähle eine Figur</span>
+            )}
+          </p>
+          <button type="button" className="story-first-next" onClick={onNext} disabled={!selectedFigure || busy || panel.kind !== 'grid'}>
+            <span>{busy ? 'Einen Moment …' : 'Weiter'}</span>
+            <ArrowRight size={17} aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+    </section>
   );
 }

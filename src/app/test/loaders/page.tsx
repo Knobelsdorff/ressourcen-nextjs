@@ -14,20 +14,33 @@ import ThoughtsLoader from "./_components/ThoughtsLoader";
 import ArriveLoader from "./_components/ArriveLoader";
 import DawnLoader from "./_components/DawnLoader";
 import SmallLoaders from "./_components/SmallLoaders";
+import CalmHaloLoader from "./_components/CalmHaloLoader";
+import FinalLoader from "./_components/FinalLoader";
+import CalmStageLoader from "./_components/CalmStageLoader";
+import CalmLineLoader from "./_components/CalmLineLoader";
+import CalmCountLoader from "./_components/CalmCountLoader";
+import CalmCardLoader from "./_components/CalmCardLoader";
 
 /* ---------- Varianten + Notizen ---------- */
 
-type VariantId = "current" | "breath" | "words" | "lines" | "thoughts" | "arrive" | "dawn" | "small";
+type VariantId =
+  | "current" | "breath" | "words" | "lines" | "thoughts" | "arrive" | "dawn" | "small"
+  | "calm-halo" | "calm-stage" | "calm-line" | "calm-count" | "calm-card" | "final";
 
 interface Variant {
   id: VariantId;
   tab: string;
   name: string;
   Component?: React.ComponentType<LoaderProps>;
+  /** "calm" = Atemraum, neu (1A–1E): eigene Gruppe in der Tab-Leiste. */
+  group?: "calm";
   idea: string;
   why: string;
   implement: string;
 }
+
+const CALM_SYSTEM =
+  "Shared system for 1A–1E: the Angel-flow palette only (ivory, chocolate, sand circles, sage only for 'done'), no white card, no shadows, no orange or lavender accents. Progress model (storyProgress): typical durations 15 s text + 60 s voice (calibrate from real logs; the voice scales with text length), percent only rises and stays at max 99 until the audio exists, remaining time only falls and becomes 'Gleich fertig' instead of going negative, and an overdue note appears if it runs long. Try 'Wait 150 s' to see the overdue case. The breath is pure CSS (10 s cycle: 4 s in, 6 s out), so nothing re-renders per frame and it stays smooth on low-end phones; with reduced motion everything stands still and the cue reads 'Atme in deinem Rhythmus'.";
 
 const VARIANTS: Variant[] = [
   {
@@ -101,6 +114,66 @@ const VARIANTS: Variant[] = [
     why: "Consistency: one breathing motion, one palette (the boot loader is still amber), and skeletons shaped like the content they replace.",
     implement: "Each one is a small local change in the file named on its card.",
   },
+  {
+    id: "final",
+    tab: "★ Final",
+    name: "Final – live in /create-story",
+    Component: FinalLoader,
+    group: "calm",
+    idea: "1A without the second countdown (no clock time), wired to real progress: the ring follows the characters GPT actually streams, then the voice estimate from the real text length.",
+    why: "This is the exact component the flow uses (components/story-flow/StoryGenerationLoader). Percent only rises, remaining time only falls; the ring closes and turns sage before the player appears.",
+    implement: "Live. Numbers from src/lib/story-progress.ts; each device calibrates itself after its first story. Try 'Wait 75 s' to see the slow note – the default voice estimate is ~24 s.",
+  },
+  {
+    id: "calm-halo",
+    tab: "1A · Countdown",
+    name: "Atemraum, neu – Countdown",
+    Component: CalmHaloLoader,
+    group: "calm",
+    idea: "The remaining time IS the headline: 'Noch etwa 40 Sekunden', with a short breathing line under it. A thin chocolate ring around the breathing angel halo fills up to 100 % when the story is ready; the three segments show which step is running.",
+    why: "Answers the client's question in the first second: how long do I wait? A countdown in plain words is the most direct form, and the ring gives a glanceable second signal.",
+    implement: `Drop-in for showUnifiedLoader in AudioPlayback. All numbers come from storyProgress(phase, elapsed, phaseElapsed) in CalmShared. ${CALM_SYSTEM}`,
+  },
+  {
+    id: "calm-stage",
+    tab: "1B · Fahrplan",
+    name: "Atemraum, neu – Fahrplan",
+    Component: CalmStageLoader,
+    group: "calm",
+    idea: "A timetable: 'Fertig um ca. 14:32 Uhr' chip at the top, then every step with its own time (Geschichte · ca. 15 Sek. → 'nach 12 Sek.' once done; Stimme · noch etwa 40 Sekunden) and its own little bar. The breathing disc sits on the right.",
+    why: "The most transparent: customers see what happens, in which order and how long each part takes, like a delivery tracker. Great on desktop.",
+    implement: `Step times = EXPECTED_TEXT / EXPECTED_AUDIO; the real text duration is shown once it is known. ${CALM_SYSTEM}`,
+  },
+  {
+    id: "calm-line",
+    tab: "1C · Prozent",
+    name: "Atemraum, neu – Prozent",
+    Component: CalmLineLoader,
+    group: "calm",
+    idea: "A big percentage (e.g. 62 %) with 'Noch etwa 30 Sekunden' beside it, a thick progress bar with a milestone where the story text is done, and a legend 'Geschichte · Stimme · Fertig ≈ 14:32'. The breathing capsule moves below as a companion.",
+    why: "The most familiar pattern (like a download or upload) – everyone reads a percentage instantly. Front-loaded on purpose: it moves quickly at first, which makes the wait feel shorter.",
+    implement: `Percent never goes back and never shows 100 before the audio exists (max 99). The milestone sits at TEXT_SHARE (20 %). ${CALM_SYSTEM}`,
+  },
+  {
+    id: "calm-count",
+    tab: "1D · Atemzüge",
+    name: "Atemraum, neu – Atemzüge",
+    Component: CalmCountLoader,
+    group: "calm",
+    idea: "Time measured in breaths: 'Noch etwa 4 Atemzüge' (one breath = 10 s). Eight dots = the usual wait; they fill as time passes, the current one pulses, and the end of the row says 'Fertig ≈ 14:32'.",
+    why: "Translates the waiting time into the product's own language: you get the exact ETA, but as a calming task instead of a ticking clock.",
+    implement: `Dots = EXPECTED_TOTAL / 10 s; filled = total − remaining breaths, so headline and dots always agree. ${CALM_SYSTEM}`,
+  },
+  {
+    id: "calm-card",
+    tab: "1E · Karte",
+    name: "Atemraum, neu – Karte",
+    Component: CalmCardLoader,
+    group: "calm",
+    idea: "Compact card in the dashboard-banner style: a progress ring around the figure with a '62 %' badge, headline 'Fertig in etwa 30 Sekunden.', the clock time in the text, segments and a small breathing pill. Ready: 'Jetzt anhören'.",
+    why: "Fits existing accounts creating a new story from the dashboard, and the same card can sit on the dashboard while a story is still being made – progress looks identical everywhere.",
+    implement: `Reuses the dashboard banner values (border #e7d9c6, radius 24, #fffaf2). ${CALM_SYSTEM}`,
+  },
 ];
 
 const SPEEDS = [
@@ -131,7 +204,7 @@ function estimate(phase: Phase, phaseElapsed: number) {
 const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
 export default function LoaderLabPage() {
-  const [variantId, setVariantId] = useState<VariantId>("breath");
+  const [variantId, setVariantId] = useState<VariantId>("final");
   const [speedId, setSpeedId] = useState<(typeof SPEEDS)[number]["id"]>("typical");
   const [phaseMode, setPhaseMode] = useState<"auto" | Phase>("auto");
   const [figureId, setFigureId] = useState("angel");
@@ -213,7 +286,7 @@ export default function LoaderLabPage() {
 
       {Component ? (
         <>
-          <StoryFlowProgress currentStep={5} showNameStep />
+          <StoryFlowProgress currentStep={5} showNameStep onExit={() => {}} exitLabel="Meine Storys" />
           <AnimatePresence mode="wait">
             <motion.div key={`${variantId}-${runKey}-${figureId}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
               <Component {...loaderProps} />
@@ -263,7 +336,7 @@ export default function LoaderLabPage() {
         <div className="ll-dock" data-open={dockOpen}>
           <div className="ll-dock-top">
             <div className="ll-tabs" role="tablist" aria-label="Loader variants">
-              {VARIANTS.map((v) => (
+              {VARIANTS.filter((v) => !v.group).map((v) => (
                 <button key={v.id} type="button" role="tab" aria-selected={v.id === variantId} onClick={() => setVariantId(v.id)}>
                   {v.tab}
                 </button>
@@ -275,6 +348,16 @@ export default function LoaderLabPage() {
             <button type="button" className="ll-icon-btn" onClick={() => setDockOpen((o) => !o)} aria-label={dockOpen ? "Collapse controls" : "Expand controls"} aria-expanded={dockOpen}>
               {dockOpen ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
             </button>
+          </div>
+
+          {/* Atemraum, neu: eigene Zeile unter den bisherigen Demos. */}
+          <div className="ll-tabs ll-tabs--group" role="tablist" aria-label="Atemraum, neu">
+            <span className="ll-tabs-group" aria-hidden="true">Atemraum, neu</span>
+            {VARIANTS.filter((v) => v.group === "calm").map((v) => (
+              <button key={v.id} type="button" role="tab" aria-selected={v.id === variantId} onClick={() => setVariantId(v.id)}>
+                {v.tab}
+              </button>
+            ))}
           </div>
 
           {dockOpen && variantId !== "small" && (

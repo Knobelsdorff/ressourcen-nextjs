@@ -1,11 +1,21 @@
 'use client';
 
+/**
+ * Schritt 3 im Story-Flow: Stimme wählen – im Aufbau des Engel-Flows.
+ *
+ * Jede Stimme ist eine Zeile: antippen wählt sie, der runde Knopf spielt die
+ * Hörprobe. Die Hörprobe zeigt ehrlich, was gerade passiert: lädt, wird erstellt
+ * (mit Sekunden, wenn es dauert), läuft (Ring = Fortschritt) oder ist gerade
+ * nicht verfügbar. Fertige Hörproben bleiben im Speicher und starten beim
+ * zweiten Mal sofort. Beim Verlassen des Schritts verstummt alles.
+ */
+
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Button } from './ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Badge } from './ui/badge';
-import { Play, Pause, Volume2, ChevronRight, ChevronLeft, Check, ChevronDown, ChevronUp } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { ArrowRight, Check, ChevronDown, ChevronLeft, ChevronUp, Headphones, Pause, Play, RotateCcw } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ResourceFigure } from '@/lib/types/story';
+import FigureIcon from './story-flow/FigureIcon';
+import { useScrollFade } from './story-flow/useScrollFade';
 
 interface Voice {
   id: string;
@@ -26,24 +36,112 @@ interface VoiceSelectionProps {
   onNext: () => void;
   onPrevious: () => void;
   selectedVoiceId?: string;
-  resourceFigure?: {
-    name: string;
-    category?: string;
-    pronouns: string;
-  };
+  resourceFigure?: ResourceFigure;
   onSparModusChange?: (enabled: boolean) => void;
+}
+
+type PreviewStatus = 'loading' | 'playing' | 'paused' | 'blocked' | 'error';
+interface PreviewState {
+  voiceId: string;
+  status: PreviewStatus;
+  startedAt: number;
+}
+
+const DEMO_TEXT = 'Das ist ein kurzer Test. Hörst du meine Stimme klar und angenehm?';
+const VISIBLE_VOICES = 3;
+const RING_R = 19;
+const RING_C = 2 * Math.PI * RING_R;
+
+/** Kurze deutsche Beschreibung pro Stimme (Voice-ID), sonst nach Stimmtyp. */
+function voiceDescription(voice: Voice): string {
+  let description = '';
+  if (voice.id === '8N2ng9i2uiUWqstgmWlH') { // Beth
+    description = 'sanft & mütterlich';
+  } else if (voice.id === 'E0OS48T5F0KU7O2NInWS') { // Lucy
+    description = 'warm & erzählend';
+  } else if (voice.id === 'Z3R5wn05IrDiVCyEkUrK') { // Arabella
+    description = 'elegant & geheimnisvoll';
+  } else if (voice.id === 'SHTtk5n3RQvLx4dcvfGR') { // Warm and easy-to-listen-to voice
+    description = 'klar & verständlich';
+  } else if (voice.id === 'Y5JXXvUD3rmjDInkLVA2') { // Kerstin - Calm, gentle, and sensual
+    description = 'ruhig & sanft';
+  } else if (voice.id === 'WHaUUVTDq47Yqc9aDbkH') { // Friendly and mature female voice
+    description = 'freundlich & motivierend';
+  } else if (voice.id === 'cpy7GcpDa9iah3sbx3uA') { // Tanja B. - Empathetic and warm-hearted
+    description = 'einfühlsam & warmherzig';
+  } else if (voice.id === 'E0OS48T5F0KU7O2NInWS') { // Professional Young German Female
+    description = 'professionell & fesselnd';
+  } else if (voice.id === 'rwMvgbQxwV0LJTium7sd') { // Lucy Fennek - Studio-Quality German Audiobooks
+    description = 'ausdrucksstark & fesselnd';
+  } else if (voice.id === 'rAmra0SCIYOxYmRNDSm3') { // Female meditation voice
+    description = 'meditativ & neugierig';
+  } else if (voice.id === 'dCnu06FiOZma2KVNUoPZ') { // Female, 20s-30s, opinionated and confident
+    description = 'selbstbewusst & einfühlsam';
+  } else if (voice.id === 'uvysWDLbKpA4XvpD3GI6') { // Leonie - Captivating German studio-quality voice
+    description = 'vielseitig & klar';
+  } else if (voice.id === 'SaqYcK3ZpDKBAImA8AdW') { // Jane
+    description = 'intim & vertraut';
+  } else if (voice.id === 'oae6GCCzwoEbfc5FHdEu') { // William - gentle bedtime narrator
+    description = 'sanft & beruhigend';
+  } else if (voice.id === '8TMmdpPgqHKvDOGYP2lN') { // Gregory Grumble - gruff but lovable
+    description = 'gemütlich & warmherzig';
+  } else if (voice.id === 'iMHt6G42evkXunaDU065') { // Stefan - middle-aged German - UPDATED
+    description = 'beruhigend & erfahren';
+  } else if (voice.id === 'fNQuGwgi0iD0nacRyExh') { // Timothy Twilight - calm and soothing
+    description = 'ruhig & anmutig';
+  } else if (voice.id === 'oYuK6X6xL9cwJKfgStee') { // German resonant male voice
+    description = 'resonant & vertrauensvoll';
+  } else if (voice.id === 'dWlo9A8YyLspmlvHk1dB') { // Sawyer - deep soothing rhythm
+    description = 'tief & klar';
+  } else if (voice.id === 'e0K1gavG8dJdPZiwQ7Np') { // Marcus
+    description = 'warm & ausgewogen';
+  } else if (voice.id === 'g298lY8JIucgBDyOpRLj') { // German meditation voice
+    description = 'meditativ & sanft';
+  } else if (voice.id === 'oziFLKtaxVDHQAh7o45V') { // Alexander
+    description = 'charismatisch & klar';
+  } else {
+    // Fallback basierend auf voiceType - mit einzigartigen Beschreibungen
+    if (voice.voiceType === 'maternal') {
+      description = 'warm & fürsorglich';
+    } else if (voice.voiceType === 'paternal') {
+      description = 'stark & weise';
+    } else if (voice.voiceType === 'elderly') {
+      description = 'erfahren & liebevoll';
+    } else if (voice.voiceType === 'friendly') {
+      description = 'freundlich & unterstützend';
+    } else {
+      description = 'beruhigend & klar';
+    }
+  }
+  return description;
+}
+
+/** Was unter der Stimme steht, während die Hörprobe lädt. */
+function loadingNote(seconds: number) {
+  if (seconds < 2.5) return 'Hörprobe wird geladen …';
+  if (seconds < 10) return `Die Hörprobe wird erstellt – einen Moment noch (${Math.floor(seconds)} s)`;
+  return `Dauert heute etwas länger – gleich geht es los (${Math.floor(seconds)} s)`;
 }
 
 export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, selectedVoiceId, resourceFigure, onSparModusChange }: VoiceSelectionProps) {
   const [voices, setVoices] = useState<Voice[]>([]);
   const [filteredVoices, setFilteredVoices] = useState<Voice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
-  const [audioElements, setAudioElements] = useState<{ [key: string]: HTMLAudioElement }>({});
   const [mounted, setMounted] = useState(false);
   const [sparModus, setSparModus] = useState(false);
   const [showAllVoices, setShowAllVoices] = useState(false);
-  
+  const [preview, setPreview] = useState<PreviewState | null>(null);
+  const [previewProgress, setPreviewProgress] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const requestRef = useRef(0);
+  // Fertige Hörproben (Preview-URL oder erzeugtes Audio) pro Stimme.
+  const sourcesRef = useRef<Record<string, string>>({});
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const moreBelow = useScrollFade(scrollRef, `${showAllVoices}-${filteredVoices.length}-${loading}`);
+
   // Dev Mode state (sessionStorage)
   const [devMode, setDevMode] = useState(false);
   const tapCountRef = useRef(0);
@@ -345,7 +443,8 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
       })
       .map(x => x.voice);
 
-    setFilteredVoices(ranked);
+    // Passt keine Stimme zum Geschlecht der Figur, lieber alle zeigen als keine.
+    setFilteredVoices(ranked.length > 0 ? ranked : voices);
   }, [voices, resourceFigure]);
 
   // Empfohlene Vorauswahl: wenn keine Stimme gewählt ist, setze die erste gefilterte als Standard
@@ -355,17 +454,22 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
     }
   }, [filteredVoices, selectedVoiceId, onVoiceSelect]);
 
+  // Eine gewählte Stimme außerhalb der ersten drei bleibt sichtbar.
+  useEffect(() => {
+    const index = filteredVoices.findIndex((voice) => voice.id === selectedVoiceId);
+    if (index >= VISIBLE_VOICES) setShowAllVoices(true);
+  }, [filteredVoices, selectedVoiceId]);
+
   const fetchVoices = async () => {
+    setLoading(true);
     try {
       // Lade nur Collection-Stimmen
       const response = await fetch('/api/voices?collections_only=true');
       const data = await response.json();
-      
-      if (data.voices.length > 0) {
-        console.log(`Loaded ${data.voices.length} voices from collections`);
+
+      if (data.voices?.length > 0) {
         setVoices(data.voices);
       } else {
-        console.log('No voices in collections, loading all voices as fallback');
         const fallbackResponse = await fetch('/api/voices');
         const fallbackData = await fallbackResponse.json();
         setVoices(fallbackData.voices || []);
@@ -377,74 +481,112 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
     }
   };
 
-  const playVoicePreview = async (voice: Voice) => {
+  const stopPreview = useCallback(() => {
+    requestRef.current += 1;
+    abortRef.current?.abort();
+    abortRef.current = null;
+    const audio = audioRef.current;
+    if (audio) {
+      audio.onended = audio.onerror = audio.ontimeupdate = audio.onplaying = null;
+      audio.pause();
+    }
+    audioRef.current = null;
+    setPreview(null);
+    setPreviewProgress(0);
+  }, []);
+
+  // Weiter, Zurück oder Seitenwechsel: keine Hörprobe läuft im Hintergrund weiter.
+  useEffect(() => stopPreview, [stopPreview]);
+
+  // Sekunden zählen, solange eine Hörprobe lädt.
+  useEffect(() => {
+    if (preview?.status !== 'loading') return;
+    const id = window.setInterval(() => setNow(Date.now()), 500);
+    return () => window.clearInterval(id);
+  }, [preview?.status]);
+
+  const startAudio = async (voiceId: string, source: string, request: number) => {
+    const audio = new Audio(source);
+    audioRef.current = audio;
+    audio.ontimeupdate = () => {
+      if (audio.duration) setPreviewProgress(audio.currentTime / audio.duration);
+    };
+    audio.onplaying = () => {
+      if (request === requestRef.current) setPreview((p) => (p ? { ...p, status: 'playing' } : p));
+    };
+    audio.onended = () => {
+      if (request !== requestRef.current) return;
+      setPreview(null);
+      setPreviewProgress(0);
+    };
+    audio.onerror = () => {
+      if (request !== requestRef.current) return;
+      delete sourcesRef.current[voiceId];
+      setPreview((p) => (p ? { ...p, status: 'error' } : p));
+    };
     try {
-      // Stoppe aktuell spielende Stimme
-      if (playingVoiceId && audioElements[playingVoiceId]) {
-        audioElements[playingVoiceId].pause();
-        audioElements[playingVoiceId].currentTime = 0;
-      }
-
-      setPlayingVoiceId(voice.id);
-
-      // 1) Wenn eine fertige Preview-URL vorhanden ist, nutze diese (verbraucht keine Credits)
-      if (voice.previewUrl && voice.previewUrl.trim().length > 0) {
-        const audio = new Audio(voice.previewUrl);
-        audio.onended = () => setPlayingVoiceId(null);
-        audio.onerror = () => setPlayingVoiceId(null);
-        setAudioElements(prev => ({ ...prev, [voice.id]: audio }));
-        await audio.play();
-        return;
-      }
-
-      // Generiere Demo-Audio
-      const demoText = voice.demoText && voice.demoText.trim().length > 0
-        ? voice.demoText
-        : 'Das ist ein kurzer Test. Hörst du meine Stimme klar und angenehm?';
-      const response = await fetch('/api/voice-preview', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          voiceId: voice.id,
-          text: demoText,
-        }),
-      });
-
-      if (!response.ok) {
-        const errText = await response.text().catch(() => '');
-        console.error('Voice preview request failed', { status: response.status, statusText: response.statusText, body: errText });
-        throw new Error(`Failed to generate preview (${response.status})`);
-      }
-
-      const { audioData, mimeType } = await response.json();
-      
-      // Erstelle Audio-Element
-      const audio = new Audio(`data:${mimeType};base64,${audioData}`);
-      audio.onended = () => setPlayingVoiceId(null);
-      audio.onerror = () => setPlayingVoiceId(null);
-      
-      setAudioElements(prev => ({ ...prev, [voice.id]: audio }));
       await audio.play();
     } catch (error) {
-      console.error('Error playing voice preview:', error);
-      const msg = (error as Error)?.message || '';
-      if (msg.includes('(401)')) {
-        try { alert('Vorschau fehlgeschlagen: Keine gültigen ElevenLabs‑Credits/API‑Zugriff. Wenn möglich, nutze eine Stimme mit eingebauter Vorschau oder lade Credits nach.'); } catch {}
-      } else {
-        try { alert('Vorschau konnte nicht erzeugt werden. Bitte später erneut versuchen.'); } catch {}
-      }
-      setPlayingVoiceId(null);
+      if (request !== requestRef.current) return;
+      // Manche Browser (iOS) erlauben nach längerem Laden kein automatisches
+      // Abspielen mehr – dann liegt die Hörprobe bereit für den nächsten Tipp.
+      const blocked = (error as DOMException)?.name === 'NotAllowedError';
+      setPreview((p) => (p ? { ...p, status: blocked ? 'blocked' : 'error' } : p));
     }
   };
 
-  const stopVoicePreview = () => {
-    if (playingVoiceId && audioElements[playingVoiceId]) {
-      audioElements[playingVoiceId].pause();
-      audioElements[playingVoiceId].currentTime = 0;
+  const playVoicePreview = async (voice: Voice) => {
+    stopPreview();
+    const request = requestRef.current;
+    const startedAt = Date.now();
+    setNow(startedAt);
+    setPreview({ voiceId: voice.id, status: 'loading', startedAt });
+
+    try {
+      let source = sourcesRef.current[voice.id] || voice.previewUrl?.trim();
+      if (!source) {
+        // Demo-Audio erzeugen (kostet Credits – deshalb wird es gemerkt)
+        const controller = new AbortController();
+        abortRef.current = controller;
+        const response = await fetch('/api/voice-preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ voiceId: voice.id, text: voice.demoText?.trim() || DEMO_TEXT }),
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error(`Failed to generate preview (${response.status})`);
+        const { audioData, mimeType } = await response.json();
+        source = `data:${mimeType};base64,${audioData}`;
+      }
+      if (request !== requestRef.current) return;
+      sourcesRef.current[voice.id] = source;
+      await startAudio(voice.id, source, request);
+    } catch (error) {
+      if ((error as Error)?.name === 'AbortError' || request !== requestRef.current) return;
+      console.error('Error playing voice preview:', error);
+      setPreview((p) => (p ? { ...p, status: 'error' } : p));
     }
-    setPlayingVoiceId(null);
+  };
+
+  const togglePreview = (voice: Voice) => {
+    const audio = audioRef.current;
+    if (preview?.voiceId === voice.id) {
+      if (preview.status === 'loading') {
+        stopPreview();
+        return;
+      }
+      if (audio && preview.status === 'playing') {
+        audio.pause();
+        setPreview({ ...preview, status: 'paused' });
+        return;
+      }
+      if (audio && (preview.status === 'paused' || preview.status === 'blocked')) {
+        setPreview({ ...preview, status: 'playing' });
+        audio.play().catch(() => setPreview((p) => (p ? { ...p, status: 'error' } : p)));
+        return;
+      }
+    }
+    void playVoicePreview(voice);
   };
 
   // Generiere figurenspezifische Subline mit korrektem Artikel
@@ -524,267 +666,177 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
     return `Höre kurz hinein und wähle die Stimme, die sich für ${figureName} im Moment stimmig anfühlt.`;
   };
 
-  if (!mounted || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="text-center">
-          {/* Breathing Circle - consistent with AudioPlayback loader */}
-          <div className="flex justify-center mb-8">
-            <motion.div
-              className="w-20 h-20 lg:w-24 lg:h-24 rounded-full border-2 border-primary-400 relative"
-              animate={{
-                scale: [1, 1.15, 1],
-              }}
-              transition={{
-                duration: 5.5,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            >
-              <motion.div
-                className="absolute inset-0 rounded-full bg-primary-400"
-                style={{ opacity: 0.08 }}
-                animate={{
-                  opacity: [0.05, 0.1, 0.05],
-                }}
-                transition={{
-                  duration: 5.5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-            </motion.div>
-          </div>
-          <p className="text-primary-700 max-sm:text-sm">Stimmen werden geladen...</p>
-        </div>
-      </div>
-    );
-  }
+  const visibleVoices = showAllVoices ? filteredVoices : filteredVoices.slice(0, VISIBLE_VOICES);
+
+  const statusNote = (voice: Voice) => {
+    if (preview?.voiceId !== voice.id) return null;
+    switch (preview.status) {
+      case 'loading': return loadingNote((now - preview.startedAt) / 1000);
+      case 'playing': return 'Hörprobe läuft';
+      case 'paused': return 'Hörprobe pausiert';
+      case 'blocked': return 'Bereit – tippe noch einmal auf Abspielen';
+      case 'error': return 'Hörprobe gerade nicht verfügbar – tippe zum erneuten Versuch';
+    }
+  };
 
   return (
-    <div className="story-voice-step space-y-6 max-w-7xl mx-auto sm:pt-8 pt-5 px-4 pb-24 lg:pb-10">
-      <div className="text-center">
-        <h2 
-          className="sm:text-2xl text-xl font-bold text-primary-900 mb-2"
+    <section className="story-first-stage story-voice-stage" aria-label="Stimme wählen">
+      <div className="story-first-intro">
+        {resourceFigure && (
+          <div className="story-first-character">
+            <span className="story-first-avatar" aria-hidden="true">
+              <FigureIcon figure={resourceFigure} size={52} className="story-first-avatar-image" />
+            </span>
+            <span>{resourceFigure.name}</span>
+          </div>
+        )}
+        <p className="story-stage-kicker">Deine Stimme</p>
+        <h1
           data-dev-tap-target="true"
           onClick={handleHeadlineTap}
           style={{ cursor: 'default' }}
         >
           Eine Stimme für deine Geschichte
-        </h2>
-        <p className="text-primary-700 max-sm:text-sm mb-1">
-          {getFigureSubline(resourceFigure)}
-        </p>
-        <p className="text-xs text-primary-600/70 mt-2">
-          Wenn nichts anderes ruft, kannst du bei der Empfehlung bleiben.
-        </p>
+        </h1>
+        <p className="story-first-guidance">{getFigureSubline(resourceFigure)}</p>
+        <p className="story-stage-hint"><Headphones size={15} aria-hidden="true" /> Am schönsten mit Kopfhörern</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
-        {(showAllVoices ? filteredVoices : filteredVoices.slice(0, 3)).map((voice, idx) => (
-          <Card
-            key={voice.id}
-            className={`story-voice-card relative cursor-pointer transition-all duration-200 ${
-              selectedVoiceId === voice.id
-                ? 'ring-2 ring-primary-400 bg-primary-50'
-                : 'hover:shadow-md hover:bg-primary-50'
-            }`}
-            data-selected={selectedVoiceId === voice.id}
-            onClick={() => onVoiceSelect(voice.id)}
-          >
-            {/* Empfohlen-Label auf der ersten Karte, wenn nicht showAll */}
-            {!showAllVoices && idx === 0 && (
-              <div className="absolute -top-2 left-2 text-[11px] bg-primary-100 text-primary-800 border border-primary-200 rounded px-2 py-0.5">
-                Empfohlen
-              </div>
-            )}
+      <div className="story-first-response">
+        <div className="story-first-response-heading">
+          <span>Wenn nichts anderes ruft, bleib bei der Empfehlung.</span>
+          {!loading && filteredVoices.length > 1 && <span>{filteredVoices.length} Stimmen</span>}
+        </div>
 
-            <CardHeader className="pb-3">
-              <button type="button" className="story-voice-select" aria-pressed={selectedVoiceId === voice.id} onClick={(event) => { event.stopPropagation(); onVoiceSelect(voice.id); }}>
-                {selectedVoiceId === voice.id ? <Check size={16} aria-hidden="true" /> : <Volume2 size={16} aria-hidden="true" />}
-                {selectedVoiceId === voice.id ? "Ausgewählt" : "Stimme auswählen"}
-                <span className="sr-only">: {voice.name}</span>
-              </button>
-              <div className="flex items-center justify-between">
-                <CardTitle className="sm:text-lg text-base text-primary-900">
-                  {(() => {
-                    // Extrahiere nur den Vornamen (alles vor dem ersten Leerzeichen)
-                    const firstName = voice.name.split(' ')[0];
-                    
-                    // Erstelle einzigartige deutsche Beschreibung basierend auf Stimmenname und Eigenschaften
-                    let description = '';
-                    const name = voice.name.toLowerCase();
-                    
-                    // Spezifische Beschreibungen für bekannte Stimmen basierend auf Voice-ID
-                    if (voice.id === '8N2ng9i2uiUWqstgmWlH') { // Beth
-                      description = 'sanft & mütterlich';
-                    } else if (voice.id === 'E0OS48T5F0KU7O2NInWS') { // Lucy
-                      description = 'warm & erzählend';
-                    } else if (voice.id === 'Z3R5wn05IrDiVCyEkUrK') { // Arabella
-                      description = 'elegant & geheimnisvoll';
-                    } else if (voice.id === 'SHTtk5n3RQvLx4dcvfGR') { // Warm and easy-to-listen-to voice
-                      description = 'klar & verständlich';
-                    } else if (voice.id === 'Y5JXXvUD3rmjDInkLVA2') { // Kerstin - Calm, gentle, and sensual
-                      description = 'ruhig & sanft';
-                    } else if (voice.id === 'WHaUUVTDq47Yqc9aDbkH') { // Friendly and mature female voice
-                      description = 'freundlich & motivierend';
-                    } else if (voice.id === 'cpy7GcpDa9iah3sbx3uA') { // Tanja B. - Empathetic and warm-hearted
-                      description = 'einfühlsam & warmherzig';
-                    } else if (voice.id === 'E0OS48T5F0KU7O2NInWS') { // Professional Young German Female
-                      description = 'professionell & fesselnd';
-                    } else if (voice.id === 'rwMvgbQxwV0LJTium7sd') { // Lucy Fennek - Studio-Quality German Audiobooks
-                      description = 'ausdrucksstark & fesselnd';
-                    } else if (voice.id === 'rAmra0SCIYOxYmRNDSm3') { // Female meditation voice
-                      description = 'meditativ & neugierig';
-                    } else if (voice.id === 'dCnu06FiOZma2KVNUoPZ') { // Female, 20s-30s, opinionated and confident
-                      description = 'selbstbewusst & einfühlsam';
-                    } else if (voice.id === 'uvysWDLbKpA4XvpD3GI6') { // Leonie - Captivating German studio-quality voice
-                      description = 'vielseitig & klar';
-                    } else if (voice.id === 'SaqYcK3ZpDKBAImA8AdW') { // Jane
-                      description = 'intim & vertraut';
-                    } else if (voice.id === 'oae6GCCzwoEbfc5FHdEu') { // William - gentle bedtime narrator
-                      description = 'sanft & beruhigend';
-                    } else if (voice.id === '8TMmdpPgqHKvDOGYP2lN') { // Gregory Grumble - gruff but lovable
-                      description = 'gemütlich & warmherzig';
-                    } else if (voice.id === 'iMHt6G42evkXunaDU065') { // Stefan - middle-aged German - UPDATED
-                      description = 'beruhigend & erfahren';
-                    } else if (voice.id === 'fNQuGwgi0iD0nacRyExh') { // Timothy Twilight - calm and soothing
-                      description = 'ruhig & anmutig';
-                    } else if (voice.id === 'oYuK6X6xL9cwJKfgStee') { // German resonant male voice
-                      description = 'resonant & vertrauensvoll';
-                    } else if (voice.id === 'dWlo9A8YyLspmlvHk1dB') { // Sawyer - deep soothing rhythm
-                      description = 'tief & klar';
-                    } else if (voice.id === 'e0K1gavG8dJdPZiwQ7Np') { // Marcus
-                      description = 'warm & ausgewogen';
-                    } else if (voice.id === 'g298lY8JIucgBDyOpRLj') { // German meditation voice
-                      description = 'meditativ & sanft';
-                    } else if (voice.id === 'oziFLKtaxVDHQAh7o45V') { // Alexander
-                      description = 'charismatisch & klar';
-                    } else {
-                      // Fallback basierend auf voiceType - mit einzigartigen Beschreibungen
-                      if (voice.voiceType === 'maternal') {
-                        description = 'warm & fürsorglich';
-                      } else if (voice.voiceType === 'paternal') {
-                        description = 'stark & weise';
-                      } else if (voice.voiceType === 'elderly') {
-                        description = 'erfahren & liebevoll';
-                      } else if (voice.voiceType === 'friendly') {
-                        description = 'freundlich & unterstützend';
-                      } else {
-                        description = 'beruhigend & klar';
-                      }
-                    }
-                    
-                    return `${firstName} - ${description}`;
-                  })()}
-                </CardTitle>
+        <div ref={scrollRef} className="story-first-scroll" data-more-below={moreBelow || undefined}>
+          {(!mounted || loading) ? (
+            <div className="story-voice-list" aria-busy="true">
+              {Array.from({ length: VISIBLE_VOICES }).map((_, i) => (
+                <div key={i} className="story-voice-row story-voice-row--skeleton" aria-hidden="true">
+                  <span className="story-skeleton-line" />
+                  <span className="story-skeleton-dot" />
+                </div>
+              ))}
+              <p className="story-voice-loading" role="status">Stimmen werden geladen …</p>
+            </div>
+          ) : filteredVoices.length === 0 ? (
+            <div className="story-voice-failed" role="alert">
+              <p>Die Stimmen konnten gerade nicht geladen werden.</p>
+              <button type="button" onClick={() => void fetchVoices()}><RotateCcw size={15} aria-hidden="true" /> Erneut versuchen</button>
+            </div>
+          ) : (
+            <div className="story-voice-list">
+              <div role="radiogroup" aria-label="Stimmen" className="story-voice-list">
+                {visibleVoices.map((voice, idx) => {
+                  const selected = selectedVoiceId === voice.id;
+                  const state = preview?.voiceId === voice.id ? preview.status : null;
+                  const note = statusNote(voice);
+                  const firstName = voice.name.split(' ')[0].replace(/[.,:;]+$/, '');
+                  const heard = state === 'playing' || state === 'paused' ? previewProgress : 0;
+                  return (
+                    <div key={voice.id} className="story-voice-row" data-selected={selected || undefined} data-preview={state || undefined}>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        className="story-voice-pick"
+                        onClick={() => onVoiceSelect(voice.id)}
+                      >
+                        <span className="story-voice-mark" aria-hidden="true">{selected && <Check size={14} strokeWidth={3} />}</span>
+                        <span className="story-voice-text">
+                          <span className="story-voice-name">
+                            {firstName}
+                            {idx === 0 && <span className="story-voice-badge">Empfohlen</span>}
+                          </span>
+                          <span className="story-voice-desc">{voiceDescription(voice)}</span>
+                          <AnimatePresence initial={false}>
+                            {note && (
+                              <motion.span
+                                key="note"
+                                className="story-voice-note"
+                                data-tone={state === 'error' ? 'error' : undefined}
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                transition={{ duration: 0.2 }}
+                              >
+                                {state === 'playing' && <span className="story-voice-eq" aria-hidden="true"><i /><i /><i /></span>}
+                                <span role="status">{note}</span>
+                              </motion.span>
+                            )}
+                          </AnimatePresence>
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        className="story-voice-play"
+                        data-state={state || undefined}
+                        onClick={() => togglePreview(voice)}
+                        aria-label={
+                          state === 'playing' ? `Hörprobe von ${firstName} pausieren`
+                            : state === 'loading' ? `Hörprobe von ${firstName} abbrechen`
+                              : `Hörprobe von ${firstName} anhören`
+                        }
+                      >
+                        <svg viewBox="0 0 44 44" className="story-voice-play-ring" aria-hidden="true">
+                          <circle cx="22" cy="22" r={RING_R} className="story-voice-play-track" />
+                          <circle cx="22" cy="22" r={RING_R} className="story-voice-play-arc" strokeDasharray={RING_C} strokeDashoffset={RING_C * (1 - heard)} />
+                        </svg>
+                        {state === 'loading' ? (
+                          <span className="story-voice-spinner" aria-hidden="true" />
+                        ) : state === 'playing' ? (
+                          <Pause size={16} fill="currentColor" aria-hidden="true" />
+                        ) : state === 'error' ? (
+                          <RotateCcw size={16} aria-hidden="true" />
+                        ) : (
+                          <Play size={16} fill="currentColor" className="story-voice-play-icon" aria-hidden="true" />
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
-            </CardHeader>
-            
-            <CardContent className="pt-0">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (playingVoiceId === voice.id) {
-                      stopVoicePreview();
-                    } else {
-                      playVoicePreview(voice);
-                    }
-                  }}
-                  className="flex items-center gap-1 text-xs"
+
+              {filteredVoices.length > VISIBLE_VOICES && (
+                <button
+                  type="button"
+                  className="story-voice-more"
+                  aria-expanded={showAllVoices}
+                  onClick={() => setShowAllVoices(!showAllVoices)}
                 >
-                  <span key={playingVoiceId === voice.id ? 'pause' : 'play'}>
-                    {playingVoiceId === voice.id ? (
-                      <Pause className="h-3.5 w-3.5" />
-                    ) : (
-                      <Play className="h-3.5 w-3.5" />
-                    )}
-                  </span>
-                  {playingVoiceId === voice.id ? 'Stoppen' : 'Reinhören'}
-                </Button>
+                  {showAllVoices ? <ChevronUp size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}
+                  {showAllVoices ? 'Weniger anzeigen' : `Weitere ${filteredVoices.length - VISIBLE_VOICES} Stimmen anzeigen`}
+                </button>
+              )}
 
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Toggle unterhalb der Liste */}
-      {filteredVoices.length > 3 && (
-        <div className="flex justify-center">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            type="button"
-            aria-expanded={showAllVoices}
-            onClick={() => setShowAllVoices(!showAllVoices)}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border transition-colors text-sm ${
-              showAllVoices
-                ? 'bg-primary-100 text-primary-900 border-primary-300 hover:bg-primary-200'
-                : 'bg-primary-50 text-primary-800 border-primary-200 hover:bg-primary-100'
-            }`}
-          >
-            <ChevronUp className={`w-4 h-4 ${showAllVoices ? 'block' : 'hidden'}`} />
-            <ChevronDown className={`w-4 h-4 ${showAllVoices ? 'hidden' : 'block'}`} />
-            {showAllVoices ? 'Weniger anzeigen' : `Weitere ${filteredVoices.length - 3} Stimmen anzeigen`}
-          </motion.button>
+              {/* Sparmodus Option - nur wenn Dev Mode aktiv */}
+              {devMode && (
+                <label className="story-voice-dev">
+                  <input
+                    type="checkbox"
+                    checked={sparModus}
+                    onChange={(e) => {
+                      setSparModus(e.target.checked);
+                      onSparModusChange?.(e.target.checked);
+                    }}
+                  />
+                  <span>Sparmodus: nur der erste Satz wird vertont – günstiger und schneller zum Testen</span>
+                </label>
+              )}
+            </div>
+          )}
         </div>
-      )}
 
-      {/* Sparmodus Option - nur wenn Dev Mode aktiv */}
-      {devMode && (
-        <div className="mt-6 p-4 bg-primary-50 rounded-lg border border-primary-200">
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="sparModus"
-              checked={sparModus}
-              onChange={(e) => {
-                setSparModus(e.target.checked);
-                onSparModusChange?.(e.target.checked);
-              }}
-              className="w-4 h-4 text-primary-600 bg-primary-100 border-primary-300 rounded focus:ring-primary-500 focus:ring-2"
-            />
-            <label htmlFor="sparModus" className="text-sm font-medium text-primary-800 cursor-pointer">
-              Sparmodus aktivieren (nur erster Satz wird als Audio generiert)
-            </label>
-          </div>
-          <p className="text-xs text-primary-600 mt-1 ml-7">
-            Günstiger und schneller - perfekt zum Testen
-          </p>
+        <div className="story-first-actions">
+          <button type="button" className="story-first-previous" onClick={onPrevious}>
+            <ChevronLeft size={17} aria-hidden="true" /> <span>Zurück</span>
+          </button>
+          <button type="button" className="story-first-next" onClick={onNext} disabled={!selectedVoiceId}>
+            <span>Weiter</span>
+            <ArrowRight size={17} aria-hidden="true" />
+          </button>
         </div>
-      )}
-
-      {/* Navigation Buttons (nur Desktop) */}
-      <div className="hidden lg:flex justify-center items-center mt-6 gap-4">
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={onPrevious}
-          className="px-6 py-3 text-primary-700 border border-primary-300 rounded-lg hover:bg-primary-50 transition-colors flex items-center gap-2 text-base font-medium"
-        >
-          <ChevronLeft className="w-5 h-5" />
-          Zurück
-        </motion.button>
-
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={onNext}
-          disabled={!selectedVoiceId}
-          className={`px-8 py-3 rounded-lg text-white shadow-lg transition-all flex items-center gap-2 text-base font-medium ${
-            selectedVoiceId
-              ? 'bg-gradient-to-r from-primary-500 to-orange-500 hover:from-primary-600 hover:to-orange-600'
-              : 'bg-primary-300 cursor-not-allowed opacity-60'
-          }`}
-        >
-          Weiter
-          <ChevronRight className="w-5 h-5" />
-        </motion.button>
       </div>
-    </div>
+    </section>
   );
 }

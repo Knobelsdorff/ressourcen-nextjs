@@ -212,6 +212,8 @@
 .ll-dock-top { display: flex; align-items: center; gap: 8px; }
 .ll-tabs { display: flex; flex: 1; gap: 4px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .ll-tabs::-webkit-scrollbar { display: none; }
+.ll-tabs--group { align-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--ll-line); }
+.ll-tabs-group { display: inline-flex; align-items: center; flex-shrink: 0; padding: 0 10px 0 6px; color: var(--ll-sage-ink); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
 .story-flow .ll-tabs button { flex-shrink: 0; min-height: 36px; padding: 6px 12px; border: 0; background: transparent; color: var(--ll-muted); font-size: 13px; font-weight: 600; white-space: nowrap; }
 .story-flow .ll-tabs button:hover { background: var(--ll-sand); }
 .story-flow .ll-tabs button[aria-selected='true'] { background: var(--ll-choc); color: white; }

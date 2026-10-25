@@ -20,6 +20,11 @@ export interface GenerateStoryTextParams {
   userName?: string;
   userPronunciationHint?: string;
   sparModus?: boolean;
+  /**
+   * Wird beim Schreiben mit der Zahl der bisher erzeugten Zeichen aufgerufen
+   * (OpenAI-Stream). Der fertige Text ist derselbe wie ohne Callback.
+   */
+  onProgress?: (chars: number) => void;
 }
 
 /**
@@ -120,6 +125,7 @@ export async function generateStoryText({
   userName,
   userPronunciationHint,
   sparModus,
+  onProgress,
 }: GenerateStoryTextParams): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
 
@@ -208,17 +214,31 @@ export async function generateStoryText({
       console.log('⚠ Keine SSML-Tags im Story-Prompt gefunden');
     }
 
-    const completion = await openai.chat.completions.create({
+    const request = {
       model: 'gpt-4o',
       messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: storyPrompt }
+        { role: 'system' as const, content: systemPrompt },
+        { role: 'user' as const, content: storyPrompt }
       ],
       max_tokens: maxTokens,
       temperature: 0.7,
-    });
+    };
 
-    story = completion.choices[0]?.message?.content || '';
+    let rawStory = '';
+    if (onProgress) {
+      const stream = await openai.chat.completions.create({ ...request, stream: true });
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta?.content;
+        if (!delta) continue;
+        rawStory += delta;
+        onProgress(rawStory.length);
+      }
+    } else {
+      const completion = await openai.chat.completions.create(request);
+      rawStory = completion.choices[0]?.message?.content || '';
+    }
+
+    story = rawStory;
 
     // Entferne Doppelungen aus der generierten Story
     const originalLength = story.length;
@@ -281,7 +301,7 @@ export async function generateStoryText({
   if (sparModus) {
     const firstSentence = story.match(/^[^.!?]*[.!?]/);
     story = firstSentence ? firstSentence[0] : story.split('.')[0] + '.';
-    console.log('Sparmodus applied - original length:', completion.choices[0]?.message?.content?.length, 'final length:', story.length);
+    console.log('Sparmodus applied - original length:', rawStory.length, 'final length:', story.length);
   }
     if (!story) throw new Error('No story returned');
   } catch (openaiError: any) {

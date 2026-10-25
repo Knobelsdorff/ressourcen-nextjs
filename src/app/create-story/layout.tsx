@@ -2,6 +2,7 @@
 
 import { MotionConfig } from 'framer-motion';
 import './story-flow.css';
+import './story-stage.css';
 
 export default function CreateStoryLayout({ children }: { children: React.ReactNode }) {
   return (

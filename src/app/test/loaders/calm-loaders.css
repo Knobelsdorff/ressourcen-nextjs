@@ -1,0 +1,242 @@
+/*
+ * Atemraum, neu (Varianten 1A–1E) – nur für /test/loaders. Alles unter .lc-*.
+ *
+ * Werte aus dem Engel-Flow (story-flow.css, .story-first-*) und dem
+ * Dashboard-Hinweis (dashboard.css, .dashboard-first-story): Elfenbein-Fläche,
+ * Schokobraun, Sand-Kreise, Salbei nur für "fertig". Keine Karten-Schatten,
+ * keine Orange-/Lila-Akzente.
+ *
+ * Atem: ein Zyklus = 10 s, 4 s ein (0–40 %), 6 s aus (40–100 %).
+ */
+.lc {
+  --lc-ivory: #f8f5f2;
+  --lc-paper: #fffcf8;
+  --lc-card: #fffaf2;
+  --lc-choc: #49301e;
+  --lc-choc-2: #63452e;
+  --lc-brown: #70513b;
+  --lc-text: #69594c;
+  --lc-soft: #806f60;
+  --lc-kicker: #846b57;
+  --lc-line: #e4ded6;
+  --lc-border: #ddd2c7;
+  --lc-border-warm: #e7d9c6;
+  --lc-sand: #eee3d7;
+  --lc-sage: #a9ba87;
+  --lc-sage-deep: #6d803f;
+  --lc-cycle: 10s;
+  --lc-ease: cubic-bezier(.37, 0, .63, 1);
+  color: var(--lc-choc);
+}
+
+.lc-center { display: flex; justify-content: center; padding: clamp(28px, 6vh, 64px) 18px 48px; }
+.lc-col { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 460px; text-align: center; }
+.lc-col--wide { max-width: 540px; }
+
+/* ---------- Typo (wie .story-first-*) ---------- */
+.lc-kicker { margin: 0 0 10px; color: var(--lc-kicker); font-size: 12px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }
+.story-flow .lc-title { margin: 0; color: var(--lc-choc); font-size: clamp(25px, 2.6vw, 34px); font-weight: 600; letter-spacing: -.045em; line-height: 1.18; }
+.story-flow .lc-title--xl { max-width: 480px; font-size: clamp(30px, 3.1vw, 44px); line-height: 1.16; }
+.lc-lead { max-width: 400px; margin: 14px 0 0; color: var(--lc-soft); font-size: 15px; line-height: 1.55; }
+.lc-figure { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; font-size: 14px; font-weight: 600; }
+.lc-avatar { display: inline-flex; align-items: center; justify-content: center; flex: none; overflow: hidden; border-radius: 50%; background: var(--lc-sand); }
+.lc-avatar img { width: 82%; height: 82%; object-fit: contain; }
+
+/* ---------- Atem-Hinweis "Einatmen / Ausatmen" ---------- */
+.lc-cue { display: inline-grid; justify-items: center; color: var(--lc-brown); font-size: 15px; font-weight: 600; letter-spacing: .02em; }
+.lc-cue > span { grid-area: 1 / 1; white-space: nowrap; opacity: 0; animation-duration: var(--lc-cycle); animation-timing-function: linear; animation-iteration-count: infinite; }
+.lc-cue > .lc-cue-in { animation-name: lc-cue-in; }
+.lc-cue > .lc-cue-out { animation-name: lc-cue-out; }
+.lc-cue-still { display: none; }
+
+/* ---------- Segmente (wie .story-first-segments) ---------- */
+.lc-steps { width: 100%; max-width: 360px; margin-top: 30px; }
+.lc-steps[data-align='start'] { max-width: 420px; margin-top: 18px; }
+.lc-steps ol { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+.lc-steps li { display: flex; flex-direction: column; gap: 8px; color: #a1907f; font-size: 12px; font-weight: 600; text-align: left; transition: color .4s ease; }
+.lc-steps li[data-state='done'] { color: var(--lc-text); }
+.lc-steps li[data-state='active'] { color: var(--lc-choc); }
+.lc-steps-bar { position: relative; height: 4px; overflow: hidden; border-radius: 4px; background: var(--lc-line); }
+.lc-steps-bar > i { position: absolute; inset: 0; border-radius: inherit; background: var(--lc-choc); transform-origin: left; transition: transform .6s ease; }
+.lc-steps li[data-state='done'] .lc-steps-bar > i { background: var(--lc-sage); }
+.lc-steps-status { margin: 14px 0 0; color: var(--lc-text); font-size: 14px; }
+.lc-steps-status span { color: #a1907f; }
+
+.lc-slow { overflow: hidden; max-width: 400px; margin: 18px auto 0; color: var(--lc-brown); font-size: 13px; line-height: 1.5; }
+
+/* ---------- Bereit ---------- */
+.lc-ready { display: flex; flex-direction: column; align-items: center; max-width: 440px; text-align: center; }
+.story-flow .lc-play { display: grid; place-items: center; width: 84px; height: 84px; margin: 22px 0 40px; padding: 0; border: 0; border-radius: 50%; background: var(--lc-choc); color: white; box-shadow: 0 0 0 12px #eee3d7, 0 0 0 26px #eee3d75c; transition: background-color .2s ease, transform .2s ease; }
+.story-flow .lc-play:hover { background: var(--lc-choc-2); transform: scale(1.03); }
+.lc-play svg { margin-left: 4px; }
+.story-flow .lc-ready-title { margin: 0; color: var(--lc-choc); font-size: clamp(26px, 2.8vw, 36px); font-weight: 600; letter-spacing: -.045em; line-height: 1.16; }
+.lc-ready-sub { margin: 12px 0 0; color: var(--lc-soft); font-size: 15px; line-height: 1.55; }
+.lc-ready-hint { display: inline-flex; align-items: center; gap: 8px; margin: 22px 0 0; color: var(--lc-text); font-size: 13px; font-weight: 600; }
+
+/* ---------- 1A · Halo ---------- */
+.lc-halo { position: relative; display: grid; place-items: center; width: 240px; height: 240px; margin-bottom: 18px; }
+.lc-halo-ring { position: absolute; border-radius: 50%; background: var(--lc-sand); animation: lc-breathe var(--lc-cycle) infinite; }
+.lc-halo-ring--outer { inset: 0; opacity: .32; --lc-from: .6; }
+.lc-halo-ring--inner { inset: 15%; opacity: .62; --lc-from: .74; animation-delay: .12s; }
+.lc-halo-avatar { position: relative; box-shadow: 0 0 0 1px #e6d8c8; }
+.lc-halo-cue { min-height: 22px; margin-bottom: 34px; }
+/* Fortschrittsring um den Halo; die Sand-Kreise atmen innerhalb. */
+.lc-halo--ring { width: 260px; height: 260px; }
+.lc-halo--ring .lc-halo-ring--outer { inset: 7%; }
+.lc-halo--ring .lc-halo-ring--inner { inset: 21%; }
+.lc-halo-progress { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.lc-halo-progress-track { fill: none; stroke: var(--lc-line); stroke-width: 1; }
+.lc-halo-progress-arc { fill: none; stroke: var(--lc-choc); stroke-width: 1.6; stroke-linecap: round; transition: stroke-dashoffset .8s ease; }
+.story-flow .lc-countdown { font-size: clamp(30px, 3.4vw, 44px); font-variant-numeric: tabular-nums; }
+
+/* ---------- 1B · Bühne (Raster wie .story-first-stage) ---------- */
+.lc-stage {
+  display: grid;
+  grid-template-columns: minmax(260px, .95fr) minmax(0, 1.05fr);
+  grid-template-areas: "head breath" "steps breath";
+  align-items: center;
+  column-gap: clamp(40px, 7vw, 112px);
+  width: min(100%, 1160px);
+  margin: 0 auto;
+  padding: clamp(28px, 5vh, 56px) clamp(20px, 4vw, 52px) 48px;
+}
+.lc-stage-head { grid-area: head; align-self: end; }
+.lc-stage-head .lc-lead { max-width: 430px; }
+.lc-stage-breath { grid-area: breath; display: flex; flex-direction: column; align-items: center; }
+.lc-stage-orbit { position: relative; display: grid; place-items: center; width: min(360px, 72vw); aspect-ratio: 1; border: 1px dashed var(--lc-border); border-radius: 50%; }
+.lc-stage-disc { position: absolute; inset: 7%; border: 1px solid var(--lc-border); border-radius: 50%; background: radial-gradient(circle at 50% 38%, #fffdf9, #f4ece2 70%, #eee3d7); --lc-from: .56; animation: lc-breathe var(--lc-cycle) infinite; }
+.lc-stage-cue { position: relative; font-size: 19px; }
+.lc-stage-caption { margin: 18px 0 0; color: #a1907f; font-size: 12px; font-weight: 600; letter-spacing: .06em; }
+.lc-stage-steps { grid-area: steps; align-self: start; margin-top: 30px; }
+.lc-stage-steps ol { position: relative; display: flex; flex-direction: column; gap: 18px; margin: 0; padding: 0; list-style: none; }
+.lc-stage-steps ol::before { content: ''; position: absolute; top: 12px; bottom: 12px; left: 11px; width: 1px; background: var(--lc-border); }
+.lc-stage-steps li { position: relative; display: flex; align-items: flex-start; gap: 14px; }
+.lc-stage-mark { display: grid; place-items: center; flex: 0 0 23px; width: 23px; height: 23px; border: 1px solid var(--lc-border); border-radius: 50%; background: var(--lc-ivory); color: white; }
+.lc-stage-steps li[data-state='done'] .lc-stage-mark { border-color: var(--lc-sage); background: var(--lc-sage); }
+.lc-stage-steps li[data-state='active'] .lc-stage-mark { border: 2px solid var(--lc-choc); }
+.lc-stage-steps li[data-state='active'] .lc-stage-mark::after { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--lc-choc); animation: lc-blink 1.8s ease-in-out infinite; }
+.lc-eta { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 16px; padding: 7px 14px 7px 11px; border-radius: 999px; background: #f1e8dc; color: var(--lc-text); font-size: 13px; }
+.lc-eta strong { color: var(--lc-choc); font-weight: 700; font-variant-numeric: tabular-nums; }
+.lc-stage-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; max-width: 380px; padding-top: 1px; }
+.lc-stage-line { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.lc-stage-line em { flex-shrink: 0; color: var(--lc-soft); font-size: 12px; font-style: normal; font-weight: 600; font-variant-numeric: tabular-nums; }
+.lc-stage-steps li[data-state='active'] .lc-stage-line em { color: var(--lc-choc); }
+.lc-stage-bar { position: relative; display: block; height: 3px; margin-top: 8px; overflow: hidden; border-radius: 3px; background: var(--lc-line); }
+.lc-stage-bar > i { position: absolute; inset: 0; border-radius: inherit; background: var(--lc-choc); transform-origin: left; transition: transform .6s ease; }
+.lc-stage-text strong { color: var(--lc-choc); font-size: 15px; font-weight: 600; }
+.lc-stage-text span { color: var(--lc-soft); font-size: 13px; }
+.lc-stage-steps li[data-state='todo'] strong { color: #a1907f; }
+.lc-stage-steps .lc-slow { margin-left: 0; }
+
+/* ---------- 1C · Atemlinie ---------- */
+.lc-line { position: relative; display: grid; place-items: center; width: 100%; height: 64px; margin-top: 34px; border: 1px solid var(--lc-border); border-radius: 999px; background: var(--lc-paper); }
+.lc-line-fill { position: absolute; inset: 5px; border-radius: 999px; background: linear-gradient(90deg, #eee3d7, #dccbb8); animation: lc-line var(--lc-cycle) infinite; }
+.lc-line-cue { position: relative; }
+.lc-line-scale { display: flex; justify-content: space-between; width: 100%; margin-top: 10px; padding: 0 6px; color: #a1907f; font-size: 12px; font-weight: 600; }
+.lc-line--small { height: 48px; margin-top: 10px; }
+.lc-breath-label { margin: 34px 0 0; color: var(--lc-soft); font-size: 13px; }
+/* Prozent-Balken mit Etappen */
+.lc-meter { width: 100%; margin-top: 30px; text-align: left; }
+.lc-meter-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.lc-meter-percent { color: var(--lc-choc); font-family: 'Trebuchet MS', Arial, sans-serif; font-size: clamp(44px, 5vw, 60px); font-weight: 600; letter-spacing: -.05em; line-height: 1; font-variant-numeric: tabular-nums; }
+.lc-meter-percent small { margin-left: 4px; color: var(--lc-soft); font-size: .42em; letter-spacing: 0; }
+.lc-meter-eta { color: var(--lc-choc); font-size: 15px; font-weight: 600; text-align: right; }
+.lc-meter-track { position: relative; height: 12px; overflow: hidden; border-radius: 999px; background: var(--lc-line); }
+.lc-meter-track > i { position: absolute; inset: 0; border-radius: inherit; background: var(--lc-choc); transform-origin: left; transition: transform .6s ease; }
+.lc-meter-tick { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--lc-ivory); }
+.lc-meter-legend { display: flex; gap: 8px; margin-top: 8px; color: #a1907f; font-size: 12px; font-weight: 600; }
+.lc-meter-legend span:nth-child(2) { flex: 1; }
+.lc-meter-legend span:last-child { flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.lc-meter-legend span[data-state='done'] { color: var(--lc-sage-deep); }
+.lc-meter-legend span[data-state='active'] { color: var(--lc-choc); }
+
+/* ---------- 1D · Atemzüge ---------- */
+.lc-ripple { position: relative; display: grid; place-items: center; width: 240px; height: 240px; margin-bottom: 18px; }
+.lc-ripple-ring { position: absolute; width: 88px; height: 88px; border: 1px solid #cdb9a4; border-radius: 50%; opacity: 0; animation: lc-ripple var(--lc-cycle) infinite; }
+.lc-ripple-ring--late { animation-delay: .7s; }
+.lc-ripple-core { position: relative; display: grid; place-items: center; border-radius: 50%; box-shadow: 0 0 0 10px #eee3d78c; --lc-from: .9; animation: lc-breathe var(--lc-cycle) infinite; }
+.lc-count { display: flex; gap: 10px; margin: 30px 0 0; padding: 0; list-style: none; }
+.lc-count li { position: relative; width: 12px; height: 12px; overflow: hidden; border: 1px solid var(--lc-border); border-radius: 50%; background: var(--lc-paper); transition: border-color .4s ease; }
+.lc-count li > i { position: absolute; inset: 0; border-radius: 50%; background: var(--lc-sage); transform: scale(0); }
+.lc-count li[data-state='done'] { border-color: var(--lc-sage); }
+.lc-count li[data-state='done'] > i { transform: scale(1); }
+.lc-count li[data-state='current'] { border-color: var(--lc-choc); }
+.lc-count li[data-state='current'] > i { background: var(--lc-choc); transform: scale(.45); animation: lc-blink 1.8s ease-in-out infinite; }
+.lc-count-legend { display: flex; justify-content: space-between; width: 100%; max-width: 172px; margin: 10px 0 0; color: #a1907f; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.lc-status { display: inline-flex; align-items: center; gap: 9px; margin: 22px 0 0; color: var(--lc-text); font-size: 13px; font-weight: 600; }
+.lc-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--lc-sage-deep); animation: lc-blink 1.8s ease-in-out infinite; }
+
+/* ---------- 1E · Karte (wie .dashboard-first-story) ---------- */
+.lc-card { display: flex; align-items: flex-start; gap: 24px; width: min(100%, 720px); padding: 28px 32px 28px 28px; border: 1px solid var(--lc-border-warm); border-radius: 24px; background: var(--lc-card); }
+.lc-card-icon { position: relative; display: grid; place-items: center; flex: none; width: 76px; height: 76px; border-radius: 50%; background: var(--lc-sand); }
+.lc-card-icon::before { content: ''; position: absolute; inset: -9px; border-radius: 50%; background: #eee3d75c; z-index: -1; --lc-from: .82; animation: lc-breathe var(--lc-cycle) infinite; }
+.lc-card-icon { isolation: isolate; }
+.lc-card-icon.is-still::before { animation: none; }
+.lc-card-icon img { width: 52px; height: 52px; object-fit: contain; }
+/* Prozent-Ring um die Figur */
+.lc-card-dial { position: relative; display: grid; place-items: center; flex: none; width: 112px; height: 112px; }
+.lc-card-dial svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.lc-card-dial-track { fill: none; stroke: var(--lc-line); stroke-width: 3; }
+.lc-card-dial-arc { fill: none; stroke: var(--lc-choc); stroke-width: 3.5; stroke-linecap: round; transition: stroke-dashoffset .8s ease; }
+.lc-card-dial .lc-card-icon { width: 70px; height: 70px; }
+.lc-card-percent { position: absolute; left: 50%; bottom: -12px; padding: 2px 10px; border: 1px solid var(--lc-border-warm); border-radius: 999px; background: var(--lc-card); color: var(--lc-choc); font-size: 12px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; transform: translateX(-50%); }
+.lc-card-text strong { color: var(--lc-choc); font-variant-numeric: tabular-nums; }
+.lc-card-copy { flex: 1; min-width: 0; }
+.lc-eyebrow { display: inline-flex; align-items: center; gap: 8px; color: var(--lc-choc); font-size: 10px; font-weight: 700; letter-spacing: .14em; }
+.lc-eyebrow > span { width: 8px; height: 8px; border-radius: 50%; background: var(--lc-sage-deep); }
+.story-flow .lc-card-title { margin: 10px 0 8px; color: var(--lc-choc); font-size: clamp(20px, 2.2vw, 26px); font-weight: 700; letter-spacing: -.035em; line-height: 1.2; }
+.lc-card-text { max-width: 560px; margin: 0; color: var(--lc-text); font-size: 15px; line-height: 1.6; }
+.lc-card-breath { display: inline-flex; align-items: center; gap: 8px; margin: 16px 0 0; padding: 6px 14px 6px 10px; border-radius: 999px; background: #f3ebe1; color: var(--lc-text); font-size: 13px; font-weight: 600; }
+.lc-card-breath-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--lc-brown); --lc-from: .45; animation: lc-breathe var(--lc-cycle) infinite; }
+.lc-card-cue { min-width: 72px; justify-items: start; color: var(--lc-choc); font-size: 13px; }
+.story-flow .lc-pill-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 48px; margin-top: 18px; padding: 12px 24px; border: 0; border-radius: 999px; background: var(--lc-choc); color: white; font-size: 14px; font-weight: 600; box-shadow: 0 3px 0 #38261912; }
+.story-flow .lc-pill-button:hover { background: var(--lc-choc-2); box-shadow: 0 5px 14px #49301e18; }
+.lc-card .lc-slow { margin-left: 0; }
+
+/* ---------- Fokus ---------- */
+.story-flow .lc :is(button):focus-visible { outline: 2px solid #79583e; outline-offset: 3px; }
+
+/* ---------- Keyframes ---------- */
+@keyframes lc-breathe {
+  0% { transform: scale(var(--lc-from, .7)); animation-timing-function: var(--lc-ease); }
+  40% { transform: scale(1); animation-timing-function: var(--lc-ease); }
+  100% { transform: scale(var(--lc-from, .7)); }
+}
+@keyframes lc-line {
+  0% { clip-path: inset(0 86% 0 0 round 999px); animation-timing-function: var(--lc-ease); }
+  40% { clip-path: inset(0 0 0 0 round 999px); animation-timing-function: var(--lc-ease); }
+  100% { clip-path: inset(0 86% 0 0 round 999px); }
+}
+@keyframes lc-ripple {
+  0%, 40% { transform: scale(1); opacity: 0; }
+  44% { opacity: .9; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+@keyframes lc-cue-in { 0% { opacity: 0; } 4%, 35% { opacity: 1; } 40%, 100% { opacity: 0; } }
+@keyframes lc-cue-out { 0%, 40% { opacity: 0; } 45%, 94% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes lc-blink { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+
+/* ---------- Bewegung reduzieren: alles steht, Hinweis statt Takt ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .lc *, .lc *::before, .lc *::after { animation: none !important; }
+  .lc .lc-cue-in, .lc .lc-cue-out { display: none; }
+  .lc .lc-cue-still { display: block; opacity: 1; }
+  .lc .lc-line-fill { clip-path: inset(0 40% 0 0 round 999px); }
+}
+
+/* ---------- Mobil ---------- */
+@media (max-width: 760px) {
+  .lc-stage { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "breath" "steps"; row-gap: 26px; padding-top: 20px; }
+  .lc-stage-head { align-self: start; }
+  .lc-stage-orbit { width: min(260px, 70vw); }
+  .lc-stage-steps { margin-top: 0; }
+}
+@media (max-width: 640px) {
+  .lc-center { padding-top: 22px; }
+  .lc-halo, .lc-ripple { width: 200px; height: 200px; }
+  .lc-card { flex-direction: column; gap: 18px; padding: 22px 20px; border-radius: 22px; }
+  .lc-card-dial { width: 96px; height: 96px; }
+  .lc-card-dial .lc-card-icon { width: 60px; height: 60px; }
+  .lc-card-icon img { width: 40px; height: 40px; }
+  .lc-halo--ring { width: 230px; height: 230px; }
+}
