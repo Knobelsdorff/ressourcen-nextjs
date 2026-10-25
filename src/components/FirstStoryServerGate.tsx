@@ -6,6 +6,7 @@ import { ArrowRight, Check, Loader2, Mail } from "lucide-react";
 import AngelIconFinal from "@/components/AngelIconFinal";
 import { useAuth } from "@/components/providers/auth-provider";
 import { FIRST_STORY_DRAFT_STORAGE_KEY, FirstStoryPhase } from "@/lib/first-story/config";
+import { getAnalyticsId, track } from "@/lib/product-analytics/client";
 
 const RESEND_WAIT_SECONDS = 60;
 const POLL_INTERVAL_MS = 4000;
@@ -79,6 +80,12 @@ export default function FirstStoryServerGate({ questionAnswers, linkError = fals
     }
   }, []);
 
+  // Funnel: Konto-Schritt (E-Mail) wird angezeigt – nur ohne Login.
+  useEffect(() => {
+    if (authLoading || user) return;
+    track("signup_viewed", { flow: "angel", gate: "angel_email" });
+  }, [authLoading, user]);
+
   useEffect(() => {
     if (secondsUntilResend <= 0) return;
     const timer = window.setTimeout(() => setSecondsUntilResend((seconds) => seconds - 1), 1000);
@@ -97,7 +104,7 @@ export default function FirstStoryServerGate({ questionAnswers, linkError = fals
         const response = await fetch("/api/first-story/start", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(stored ? { draftId: stored.draftId, key: stored.key, adopt: true } : { questionAnswers }),
+          body: JSON.stringify(stored ? { draftId: stored.draftId, key: stored.key, adopt: true } : { questionAnswers, analyticsId: getAnalyticsId() }),
         });
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error);
@@ -173,7 +180,7 @@ export default function FirstStoryServerGate({ questionAnswers, linkError = fals
         body: JSON.stringify(
           existing
             ? { draftId: existing.draftId, key: existing.key, email: normalizedEmail }
-            : { email: normalizedEmail, questionAnswers }
+            : { email: normalizedEmail, questionAnswers, analyticsId: getAnalyticsId() }
         ),
       });
       const result = await response.json().catch(() => ({}));

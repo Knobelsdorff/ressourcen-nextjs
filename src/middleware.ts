@@ -15,6 +15,14 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(redirectUrl, 301) // 301 = Permanent Redirect
     }
 
+    // next.config.ts setzt skipTrailingSlashRedirect (für PostHog unter /ingest).
+    // Für alle anderen Seiten wie bisher: /seite/ → /seite.
+    if (url.pathname.length > 1 && url.pathname.endsWith('/')) {
+        // Plain URL: NextURL hängt den ursprünglichen Slash beim Serialisieren wieder an.
+        const target = new URL(`${url.pathname.replace(/\/+$/, '') || '/'}${url.search}`, request.url)
+        return NextResponse.redirect(target, 308)
+    }
+
     // Stelle sicher, dass die Supabase-Session für alle Routen aktualisiert wird,
     // damit Auth-Cookies korrekt gesetzt werden und API-Routen den User erkennen.
     const response = await updateSession(request)
@@ -70,6 +78,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
-        '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+        // /ingest = PostHog-Proxy: keine Session-Prüfung, keine Slash-Weiterleitung.
+        '/((?!_next/static|_next/image|ingest/|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
     ],
 }

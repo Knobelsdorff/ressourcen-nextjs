@@ -18,6 +18,7 @@ import { useRef, useEffect, useId } from "react";
 import { Play, Pause, RotateCcw, RotateCw, Eye, EyeOff } from "lucide-react";
 import { useAudioPlayer, formatTime } from "@/hooks/useAudioPlayer";
 import AudioProgressBar from "./AudioProgressBar";
+import { type StoryPlayContext, storyPlayCompleted, storyPlayStarted } from "@/lib/product-analytics/story-plays";
 import MusicVolumeControl from "./MusicVolumeControl";
 
 export type AudioPlayerVariant = "standard" | "bls" | "compact";
@@ -32,6 +33,8 @@ interface AudioPlayerProps {
   onCompleted?: () => void;
   /** Wird beim Start der Wiedergabe aufgerufen – z.B. für Analytics. */
   onPlay?: () => void;
+  /** Nur für eigene Power Storys: Funnel-Events (Start, Ende, erneutes Hören). Hörproben ohne. */
+  playAnalytics?: StoryPlayContext;
   variant?: AudioPlayerVariant;
   /** BLS-Ebene ein-/ausklappen (nur variant="bls"). */
   blsExpanded?: boolean;
@@ -51,6 +54,7 @@ export default function AudioPlayer({
   onEnded,
   onCompleted,
   onPlay,
+  playAnalytics,
   variant = "standard",
   blsExpanded = false,
   onToggleBLS,
@@ -67,7 +71,25 @@ export default function AudioPlayer({
     seekTo,
     skipBy,
     hasBackgroundMusic,
-  } = useAudioPlayer({ audioUrl, storyId, resourceFigure, onEnded, onCompleted });
+  } = useAudioPlayer({
+    audioUrl,
+    storyId,
+    resourceFigure,
+    onEnded,
+    onCompleted: () => {
+      if (playAnalytics) storyPlayCompleted(playAnalytics);
+      onCompleted?.();
+    },
+  });
+
+  // Funnel: Start einer Hör-Sitzung (storyPlayStarted entdoppelt Pausen und Fortsetzen).
+  const playAnalyticsRef = useRef(playAnalytics);
+  useEffect(() => {
+    playAnalyticsRef.current = playAnalytics;
+  });
+  useEffect(() => {
+    if (isPlaying && playAnalyticsRef.current) storyPlayStarted(playAnalyticsRef.current);
+  }, [isPlaying]);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const statusId = useId();

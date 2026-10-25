@@ -1,6 +1,7 @@
 import Stripe from 'stripe'
-import { NextResponse } from 'next/server'
+import { after, NextRequest, NextResponse } from 'next/server'
 import { createSSRClient } from '@/lib/supabase/server'
+import { captureServerEvent, requestHasConsent, userHasConsent } from '@/lib/product-analytics/server'
 
 export const runtime = 'nodejs'
 
@@ -13,7 +14,7 @@ const PLAN_CONFIG = {
   },
 } as const
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}))
     const planType = (body?.planType as 'subscription' | undefined) ?? 'subscription'
@@ -124,6 +125,14 @@ export async function POST(request: Request) {
       klarnaIncluded: session.payment_method_types?.includes('klarna'),
       note: 'payment_method_types was not set - Stripe selected methods dynamically',
     })
+
+    // Funnel: Checkout gestartet (nur mit Einwilligung – Cookie oder Account).
+    if (requestHasConsent(request) || userHasConsent(user)) {
+      after(() => captureServerEvent('checkout_started', { plan: planType }, {
+        distinctId: userId,
+        dedupeKey: `checkout_started:${session.id}`,
+      }))
+    }
 
     return NextResponse.json({ sessionId: session.id, url: session.url })
   } catch (e: any) {

@@ -89,7 +89,7 @@ export default function ValuePropositionSection() {
               className="text-center mb-8"
             >
               <Button
-                onClick={() => router.push("/create-story?first=true")}
+                data-analytics-cta="value-proposition" onClick={() => router.push("/create-story?first=true")}
                 size="lg"
                 className="landing-primary-button"
               >

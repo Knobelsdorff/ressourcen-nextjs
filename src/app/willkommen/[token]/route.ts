@@ -22,10 +22,13 @@ import {
   draftNeedsWork,
   getSessionUser,
   loadDraft,
+  loadDraftAnalyticsId,
   processFirstStoryDraft,
   requestOrigin,
   verifyFirstStoryLinkToken,
 } from '@/lib/first-story/server';
+import { captureServerEvent, identifyServer } from '@/lib/product-analytics/server';
+import { signupEventFor } from '@/lib/product-analytics/signup';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
@@ -130,6 +133,21 @@ export async function GET(
     if (!storyId && draftNeedsWork(draft)) {
       after(() => processFirstStoryDraft(draft.id));
     }
+
+    // Funnel: Der Link wird oft auf einem anderen Gerät geöffnet als dem, auf
+    // dem die Fragen beantwortet wurden. Mit Einwilligung (analytics_id am
+    // Entwurf) beide Kennungen zusammenführen; neuer Account → signup_completed.
+    const sessionUserForAnalytics = sessionData.session.user;
+    const accountCreated = !createError;
+    after(async () => {
+      const analyticsId = await loadDraftAnalyticsId(admin, draft.id);
+      if (!analyticsId) return;
+      await identifyServer(userId, analyticsId, accountCreated ? { signup_method: 'first_story' } : undefined);
+      if (accountCreated) {
+        const { props, options } = signupEventFor(sessionUserForAnalytics);
+        await captureServerEvent('signup_completed', props, options);
+      }
+    });
 
     const response = NextResponse.redirect(dashboardUrl);
     sessionCookies.forEach(({ name, value, options }) => response.cookies.set(name, value, options));

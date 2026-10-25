@@ -183,7 +183,8 @@ export default function NamePronunciationForm({
                 disabled={!fullName.trim() || previewing}
               >
                 {previewing ? <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Volume2 className="w-4 h-4" aria-hidden="true" />}
-                {previewing ? 'Wird erstellt …' : 'Anhören'}
+                {/* Text im eigenen Element: Browser-Übersetzer ersetzen nackte Textknoten. */}
+                <span>{previewing ? 'Wird erstellt …' : 'Anhören'}</span>
               </button>
               <p aria-live="polite">
                 {spokenAs ? <>Gesprochen als „{spokenAs}“.</> : 'Hör dir an, wie dein Name in deiner Power Story klingt.'}

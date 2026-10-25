@@ -2,6 +2,7 @@
 
 import { Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import { openConsentSettings } from "@/lib/product-analytics/consent";
 
 // useSearchParams() im Root-Layout braucht eine Suspense-Grenze, sonst
 // scheitert `next build` beim statischen Rendern jeder Seite.
@@ -43,6 +44,9 @@ function FooterContent({ isFirstStoryFlow }) {
           <a href="/Datenschutz" className="text-amber-900 hover:text-amber-700 transition-colors underline">
             Datenschutz
           </a>
+          <button type="button" onClick={openConsentSettings} className="text-amber-900 hover:text-amber-700 transition-colors underline">
+            Cookie-Einstellungen
+          </button>
         </div>
       </div>
     </footer>

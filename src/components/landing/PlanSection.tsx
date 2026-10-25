@@ -92,7 +92,7 @@ export default function PlanSection() {
               className="text-center"
             >
               <Button
-                onClick={() => router.push("/create-story?first=true")}
+                data-analytics-cta="plan" onClick={() => router.push("/create-story?first=true")}
                 size="lg"
                 className="landing-primary-button"
               >

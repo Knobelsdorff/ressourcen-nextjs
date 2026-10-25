@@ -33,7 +33,10 @@ import {
   processFirstStoryDraft,
   resumeKeyMatches,
   sanitizeQuestionAnswers,
+  saveDraftAnalyticsId,
 } from '@/lib/first-story/server';
+import { figureProps } from '@/lib/product-analytics/events';
+import { captureServerEvent, validAnalyticsId } from '@/lib/product-analytics/server';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
@@ -50,6 +53,22 @@ function error(message: string, status: number, extra: Record<string, unknown> =
 }
 
 type AdminClient = Awaited<ReturnType<typeof createServerAdminClient>>;
+
+/**
+ * Funnel: Die Erzeugung beginnt mit dem Anlegen des Entwurfs. Nur wenn der
+ * Browser seine PostHog-Kennung mitschickt – das tut er nur mit Einwilligung.
+ */
+function trackGenerationStarted(admin: AdminClient, draftId: string, analyticsId: string | null, userId?: string) {
+  if (!analyticsId) return;
+  after(async () => {
+    await saveDraftAnalyticsId(admin, draftId, analyticsId);
+    await captureServerEvent(
+      'story_generation_started',
+      { flow: 'angel', ...figureProps(getFirstStoryFigure()) },
+      { distinctId: userId ?? analyticsId, dedupeKey: `story_generation_started:${draftId}` }
+    );
+  });
+}
 
 /**
  * Bestehender Account: normaler Zugangslink (/zugang/<token> → /dashboard)
@@ -170,6 +189,7 @@ export async function POST(request: NextRequest) {
     // -----------------------------------------------------------------------
     // Neuer Entwurf
     // -----------------------------------------------------------------------
+    const analyticsId = validAnalyticsId(body.analyticsId);
     const questionAnswers = sanitizeQuestionAnswers(body.questionAnswers);
     if (!questionAnswers) return error('Deine Antworten fehlen. Bitte beantworte die Fragen erneut.', 400);
 
@@ -197,6 +217,7 @@ export async function POST(request: NextRequest) {
         .single();
       if (insertError || !draft) throw new Error(insertError?.message ?? 'Entwurf konnte nicht angelegt werden');
 
+      trackGenerationStarted(admin, draft.id, analyticsId, sessionUser.id);
       after(() => processFirstStoryDraft(draft.id));
       return NextResponse.json({ draftId: draft.id, key, signedIn: true });
     }
@@ -245,6 +266,7 @@ export async function POST(request: NextRequest) {
       return error('Der Link konnte nicht gesendet werden. Bitte versuche es erneut.', 502);
     }
 
+    trackGenerationStarted(admin, draft.id, analyticsId);
     after(() => processFirstStoryDraft(draft.id));
     return NextResponse.json({ draftId: draft.id, key, email, emailSent: true });
   } catch (e) {

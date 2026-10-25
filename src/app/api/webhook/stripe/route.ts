@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
+import { trackSubscriptionStarted } from '@/lib/product-analytics/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
@@ -172,6 +173,9 @@ export async function POST(request: NextRequest) {
         }
         
         console.log('[webhook/stripe] ✅ Subscription access created successfully for user', userId, { accessId: data });
+
+        // Funnel: Abo abgeschlossen (nur mit Einwilligung am Account).
+        after(() => trackSubscriptionStarted(userId, session.id, new Date((event.created || Date.now() / 1000) * 1000)));
       } else {
         console.warn('[webhook/stripe] Session is not a subscription, skipping access creation');
       }

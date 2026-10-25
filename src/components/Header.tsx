@@ -342,7 +342,7 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
                 </button>
                 <button
                   type="button"
-                  onClick={handleDiscoverPowerStory}
+                  data-analytics-cta="header" onClick={handleDiscoverPowerStory}
                   className="bg-amber-600/90 hover:bg-amber-600 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:ring-offset-2"
                 >
                   Eine Power Story entdecken
@@ -482,7 +482,7 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
                 <div className="space-y-3">
                   <button
                     ref={firstMenuItemRef as React.Ref<HTMLButtonElement>}
-                    onClick={handleDiscoverPowerStory}
+                    data-analytics-cta="header-mobile" onClick={handleDiscoverPowerStory}
                     className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-4 px-6 rounded-xl transition-colors text-center"
                   >
                     Eine Power Story entdecken

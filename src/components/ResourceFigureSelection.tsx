@@ -366,7 +366,7 @@ export default function ResourceFigureSelection({
         </div>
 
         <div className="story-first-actions">
-          <p className="story-picked" aria-live="polite">
+          <div className="story-picked" aria-live="polite">
             {selectedFigure ? (
               <>
                 <span className="story-picked-icon" aria-hidden="true"><FigureIcon figure={selectedFigure} size={26} /></span>
@@ -375,7 +375,7 @@ export default function ResourceFigureSelection({
             ) : (
               <span className="story-picked-empty">Wähle eine Figur</span>
             )}
-          </p>
+          </div>
           <button type="button" className="story-first-next" onClick={onNext} disabled={!selectedFigure || busy || panel.kind !== 'grid'}>
             <span>{busy ? 'Einen Moment …' : 'Weiter'}</span>
             <ArrowRight size={17} aria-hidden="true" />

@@ -64,7 +64,8 @@ export default function AngelQuestionStep({
   const [draft, setDraft] = useState("");
 
   // Neue Frage: leeres Feld. Der Bereich selbst wird pro Frage neu aufgebaut (key),
-  // beginnt also immer oben.
+  // beginnt also immer oben. Er blendet von 0.35 statt von 0 ein – sonst ist die
+  // Seite beim Weiterklicken einen Moment leer und wirkt, als flackere sie.
   useEffect(() => setDraft(""), [question.id]);
 
   const updateMoreBelow = useCallback(() => {
@@ -118,9 +119,9 @@ export default function AngelQuestionStep({
 
         <motion.div
           key={question.id}
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0.35, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: "easeOut" }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
         >
           <h1>{question.question}</h1>
           <p className="story-first-guidance">Wähle, was sich für dich stimmig anfühlt.</p>
@@ -138,9 +139,9 @@ export default function AngelQuestionStep({
           ref={scrollRef}
           className="story-first-scroll"
           data-more-below={moreBelow || undefined}
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0.35, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: "easeOut" }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
         >
           <div className="story-first-options" data-dense={dense || undefined} role="group" aria-label="Antwortmöglichkeiten">
             {options.map((block, i) => {

@@ -97,7 +97,7 @@ export default function ExplanatoryParagraphSection() {
               className="text-center"
             >
               <Button
-                onClick={() => router.push("/create-story?first=true")}
+                data-analytics-cta="explanatory" onClick={() => router.push("/create-story?first=true")}
                 size="lg"
                 className="landing-primary-button"
               >

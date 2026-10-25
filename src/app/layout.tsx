@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Analytics } from '@vercel/analytics/next';
 import CookieConsent from "@/components/Cookies";
-import { GoogleAnalytics } from '@next/third-parties/google'
+import ProductAnalytics from "@/components/product-analytics/ProductAnalytics";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { AppResetProvider } from "@/components/providers/app-reset-provider";
 import Header from "@/components/Header";
@@ -62,9 +62,8 @@ export default function RootLayout({
           
           <Analytics />
           {/* <CookieConsent /> */}
-          { gaID && (
-            <GoogleAnalytics gaId={gaID}/>
-          )}
+          {/* PostHog-Funnel und Google Analytics – beides erst nach Einwilligung. */}
+          <ProductAnalytics gaId={gaID} />
         </AppResetProvider>
       </AuthProvider>
     </body>

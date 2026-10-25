@@ -30,6 +30,8 @@ export interface StoryCardStory {
   custom_subtitle?: string | null;
   /** Vom Server berechnet (/api/resources/mine). Fehlt = wie bisher abspielbar. */
   access?: StoryAccess;
+  /** Erstes vollständiges Anhören (Migration 20261018200000) – für "erneut gehört". */
+  first_completed_at?: string | null;
 }
 
 const LOCKED_COPY: Record<StoryLockReason, { title: string; text: string; cta: string }> = {
@@ -199,6 +201,13 @@ export default function StoryCard({
             blsExpanded={blsExpanded}
             onToggleBLS={onToggleBLS}
             onCompleted={onCompleted}
+            playAnalytics={{
+              storyId: story.id,
+              access: story.access?.policy ?? "always",
+              location: "dashboard",
+              createdAt: story.created_at,
+              firstCompletedAt: story.first_completed_at ?? null,
+            }}
           />
         </div>
       ) : (

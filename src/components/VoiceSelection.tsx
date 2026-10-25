@@ -10,7 +10,7 @@
  * zweiten Mal sofort. Beim Verlassen des Schritts verstummt alles.
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ArrowRight, Check, ChevronDown, ChevronLeft, ChevronUp, Headphones, Pause, Play, RotateCcw } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ResourceFigure } from '@/lib/types/story';
@@ -48,6 +48,36 @@ interface PreviewState {
 }
 
 const DEMO_TEXT = 'Das ist ein kurzer Test. Hörst du meine Stimme klar und angenehm?';
+
+// Die Stimmenliste ändert sich während eines Besuchs nicht: einmal laden und
+// behalten. create-story holt sie schon während der Fragen (prefetchVoices),
+// damit dieser Schritt ohne Ladeplatzhalter erscheint.
+let voicesLoaded: Voice[] | null = null;
+let voicesRequest: Promise<Voice[]> | null = null;
+
+async function loadVoiceList(): Promise<Voice[]> {
+  const response = await fetch('/api/voices?collections_only=true');
+  const data = await response.json();
+  if (data.voices?.length > 0) return data.voices;
+  const fallbackResponse = await fetch('/api/voices');
+  const fallbackData = await fallbackResponse.json();
+  return fallbackData.voices || [];
+}
+
+export function prefetchVoices(): Promise<Voice[]> {
+  voicesRequest ??= loadVoiceList().then(
+    (list) => {
+      if (list.length > 0) voicesLoaded = list;
+      else voicesRequest = null;
+      return list;
+    },
+    (error) => {
+      voicesRequest = null;
+      throw error;
+    }
+  );
+  return voicesRequest;
+}
 const VISIBLE_VOICES = 3;
 const RING_R = 19;
 const RING_C = 2 * Math.PI * RING_R;
@@ -124,10 +154,8 @@ function loadingNote(seconds: number) {
 }
 
 export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, selectedVoiceId, resourceFigure, onSparModusChange }: VoiceSelectionProps) {
-  const [voices, setVoices] = useState<Voice[]>([]);
-  const [filteredVoices, setFilteredVoices] = useState<Voice[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [mounted, setMounted] = useState(false);
+  const [voices, setVoices] = useState<Voice[]>(() => voicesLoaded ?? []);
+  const [loading, setLoading] = useState(() => !voicesLoaded);
   const [sparModus, setSparModus] = useState(false);
   const [showAllVoices, setShowAllVoices] = useState(false);
   const [preview, setPreview] = useState<PreviewState | null>(null);
@@ -140,7 +168,6 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
   // Fertige Hörproben (Preview-URL oder erzeugtes Audio) pro Stimme.
   const sourcesRef = useRef<Record<string, string>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
-  const moreBelow = useScrollFade(scrollRef, `${showAllVoices}-${filteredVoices.length}-${loading}`);
 
   // Dev Mode state (sessionStorage)
   const [devMode, setDevMode] = useState(false);
@@ -281,15 +308,14 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
   }, []);
 
   useEffect(() => {
-    setMounted(true);
     fetchVoices();
   }, []);
 
-  // Filtere Stimmen basierend auf der Ressourcenfigur
-  useEffect(() => {
+  // Filtere Stimmen basierend auf der Ressourcenfigur. Direkt beim Rendern
+  // berechnet: als Effekt stand für einen Frame "keine Stimmen" da.
+  const filteredVoices = useMemo<Voice[]>(() => {
     if (voices.length === 0 || !resourceFigure) {
-      setFilteredVoices(voices);
-      return;
+      return voices;
     }
 
     const figureName = resourceFigure.name.toLowerCase();
@@ -444,8 +470,10 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
       .map(x => x.voice);
 
     // Passt keine Stimme zum Geschlecht der Figur, lieber alle zeigen als keine.
-    setFilteredVoices(ranked.length > 0 ? ranked : voices);
+    return ranked.length > 0 ? ranked : voices;
   }, [voices, resourceFigure]);
+
+  const moreBelow = useScrollFade(scrollRef, `${showAllVoices}-${filteredVoices.length}-${loading}`);
 
   // Empfohlene Vorauswahl: wenn keine Stimme gewählt ist, setze die erste gefilterte als Standard
   useEffect(() => {
@@ -461,19 +489,14 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
   }, [filteredVoices, selectedVoiceId]);
 
   const fetchVoices = async () => {
+    if (voicesLoaded) {
+      setVoices(voicesLoaded);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      // Lade nur Collection-Stimmen
-      const response = await fetch('/api/voices?collections_only=true');
-      const data = await response.json();
-
-      if (data.voices?.length > 0) {
-        setVoices(data.voices);
-      } else {
-        const fallbackResponse = await fetch('/api/voices');
-        const fallbackData = await fallbackResponse.json();
-        setVoices(fallbackData.voices || []);
-      }
+      setVoices(await prefetchVoices());
     } catch (error) {
       console.error('Error fetching voices:', error);
     } finally {
@@ -709,7 +732,7 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
         </div>
 
         <div ref={scrollRef} className="story-first-scroll" data-more-below={moreBelow || undefined}>
-          {(!mounted || loading) ? (
+          {loading ? (
             <div className="story-voice-list" aria-busy="true">
               {Array.from({ length: VISIBLE_VOICES }).map((_, i) => (
                 <div key={i} className="story-voice-row story-voice-row--skeleton" aria-hidden="true">

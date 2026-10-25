@@ -5,6 +5,8 @@ import { ResourceFigure } from "@/lib/types/story";
 import { getQuestionsWithPronouns } from "@/data/questions";
 import { placeQuestions } from "@/data/placeQuestions";
 import AngelQuestionStep from './AngelQuestionStep';
+import { track } from "@/lib/product-analytics/client";
+import { figureProps, type StoryFlow } from "@/lib/product-analytics/events";
 
 export interface QuestionAnswer {
   questionId: number;
@@ -22,6 +24,8 @@ interface RelationshipSelectionProps {
   onQuestionIndexChange: (index: number) => void;
   /** "Zurück" bei der ersten Frage – zur Figurenwahl. Ohne: Button versteckt. */
   onPrevious?: () => void;
+  /** Für die Funnel-Analyse: Engel-Erststory oder normaler Flow. */
+  analyticsFlow?: StoryFlow;
 }
 
 export default function RelationshipSelection({
@@ -31,9 +35,11 @@ export default function RelationshipSelection({
   onNext,
   currentQuestionIndex,
   onQuestionIndexChange,
-  onPrevious
+  onPrevious,
+  analyticsFlow = 'regular'
 }: RelationshipSelectionProps) {
   const hasInitialized = useRef(false);
+  const startedAtRef = useRef(Date.now());
 
   // Bestimme, welche Fragen verwendet werden sollen
   const isPlace = selectedFigure.category === 'place';
@@ -61,6 +67,16 @@ export default function RelationshipSelection({
       hasInitialized.current = true;
     }
   }, [questionAnswers]); // REMOVED: currentQuestionIndex and onQuestionIndexChange from dependencies
+
+  // Funnel: erste Frage einer neuen Erstellung (nicht beim Wiederherstellen).
+  useEffect(() => {
+    if (questionAnswers.length > 0) return;
+    track('story_creation_started', {
+      flow: analyticsFlow,
+      ...figureProps(selectedFigure),
+      question_count: questionsToUse.length,
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- einmal pro Erstellung
 
   const currentAnswer = useMemo<QuestionAnswer>(() => {
     return (
@@ -136,10 +152,24 @@ export default function RelationshipSelection({
   };
 
   const handleNextQuestion = () => {
+    // Funnel: nur Zahlen – welche Frage, nie die Antwort.
+    track('personalization_question_completed', {
+      flow: analyticsFlow,
+      question_number: currentQuestionIndex + 1,
+      question_count: questionsToUse.length,
+    });
     if (currentQuestionIndex < questionsToUse.length - 1) {
       onQuestionIndexChange(currentQuestionIndex + 1);
     } else {
       // All questions completed
+      track('personalization_completed', {
+        flow: analyticsFlow,
+        ...figureProps(selectedFigure),
+        personalization_completed: true,
+        question_count: questionsToUse.length,
+        custom_answer_count: questionAnswers.reduce((sum, a) => sum + (a.customBlocks?.length ?? 0), 0),
+        duration_seconds: Math.round((Date.now() - startedAtRef.current) / 1000),
+      });
       onNext();
     }
   };

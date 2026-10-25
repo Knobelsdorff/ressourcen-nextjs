@@ -17,6 +17,14 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Gleicher Account, gleiche Daten → dasselbe Objekt behalten. Supabase meldet
+// bei jeder Rückkehr in den Tab erneut SIGNED_IN mit frischen Objekten; ohne
+// das liefen alle [user]-Effekte neu (z.B. wurde ein angefangenes Namensfeld
+// mit dem gespeicherten Profil überschrieben).
+function keepIfSame<T>(prev: T | null, next: T | null): T | null {
+  return prev && next && JSON.stringify(prev) === JSON.stringify(next) ? prev : next;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -127,8 +135,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await handleHashFragment();
       
       const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
+      setSession((prev) => keepIfSame(prev, session));
+      setUser((prev) => keepIfSame(prev, session?.user ?? null));
       setLoading(false);
     };
 
@@ -168,8 +176,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        setSession(session);
-        setUser(session?.user ?? null);
+        setSession((prev) => keepIfSame(prev, session));
+        setUser((prev) => keepIfSame(prev, session?.user ?? null));
         setLoading(false);
 
         // Track login event

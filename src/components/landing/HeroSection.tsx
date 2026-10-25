@@ -60,7 +60,7 @@ export default function HeroSection() {
 
           <motion.div variants={item} className="landing-hero-actions">
             <Button
-              onClick={handleCTAClick}
+              data-analytics-cta="hero" onClick={handleCTAClick}
               size="lg"
               className="landing-primary-button"
             >

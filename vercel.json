@@ -2,6 +2,9 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "framework": "nextjs",
+  "crons": [
+    { "path": "/api/cron/free-access-expired", "schedule": "15 6 * * *" }
+  ],
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 60

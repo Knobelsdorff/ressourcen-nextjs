@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Mail } from "lucide-react";
+import { track } from "@/lib/product-analytics/client";
 
 type ViewState = "save-story" | "magic-link-sent";
 
@@ -19,6 +20,11 @@ export default function GeschichteSpeichernPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Funnel: Konto-Schritt des normalen Flows (Story speichern).
+  useEffect(() => {
+    track("signup_viewed", { flow: "regular", gate: "save_story" });
+  }, []);
 
   // Redirect if already logged in
   useEffect(() => {

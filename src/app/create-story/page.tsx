@@ -12,7 +12,7 @@ import { ArrowLeft } from "lucide-react";
 import ResourceFigureSelection from "@/components/ResourceFigureSelection";
 import RelationshipSelection, { QuestionAnswer } from "@/components/RelationshipSelection";
 import NamePronunciationForm from "@/components/NamePronunciationForm";
-import VoiceSelection from "@/components/VoiceSelection";
+import VoiceSelection, { prefetchVoices } from "@/components/VoiceSelection";
 import AudioPlayback from "@/components/AudioPlayback";
 import AccountCreated from "@/components/AccountCreated";
 import SavedStoriesModal from "@/components/SavedStoriesModal";
@@ -26,6 +26,8 @@ import { getOrCreateBrowserFingerprint } from "@/lib/browser-fingerprint";
 import { realFigures, fictionalFigures } from "@/data/figures";
 import { ResourceFigure, AudioState, AppState } from "@/lib/types/story";
 import { generateStoryWithProgress } from "@/lib/generate-story-client";
+import { track } from "@/lib/product-analytics/client";
+import { figureProps } from "@/lib/product-analytics/events";
 
 const FIRST_FLOW_VOICE_ID = FIRST_STORY_VOICE_ID;
 const FIRST_FLOW_STORAGE_KEY = "first-power-story-flow";
@@ -396,6 +398,11 @@ function CreateStoryInner() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Stimmen schon während der Fragen laden – Schritt 3 steht dann sofort da.
+  useEffect(() => {
+    if (!firstFlow && appState.currentStep === 2) prefetchVoices().catch(() => {});
+  }, [firstFlow, appState.currentStep]);
 
   useEffect(() => {
     const figureId = searchParams?.get('figure');
@@ -811,6 +818,11 @@ function CreateStoryInner() {
             sparModus: sparModus
           };
 
+          track('story_generation_started', {
+            flow: 'regular',
+            ...figureProps(appState.resourceFigure),
+            economy_mode: sparModus,
+          });
           // Stream: der Loader zeigt, wie viel der Geschichte schon geschrieben ist.
           const story = await generateStoryWithProgress(requestBody);
           handleStoryGenerated(story);
@@ -909,6 +921,7 @@ function CreateStoryInner() {
                   currentQuestionIndex={appState.currentQuestionIndex}
                   onQuestionIndexChange={handleQuestionIndexChange}
                   onPrevious={firstFlow ? undefined : handlePreviousStep}
+                  analyticsFlow={firstFlow ? 'angel' : 'regular'}
                 />
               )}
 

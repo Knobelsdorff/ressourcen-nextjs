@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Lock, Check } from 'lucide-react';
 import { createCheckoutSession } from '@/lib/access';
 import { useAuth } from '@/components/providers/auth-provider';
+import { track } from '@/lib/product-analytics/client';
 
 interface PaywallProps {
   onClose?: () => void;
@@ -21,6 +22,8 @@ export default function Paywall({ onClose, message }: PaywallProps) {
       return;
     }
 
+    // Funnel: harte Sperre (weitere Story ohne Abo) – kein Soft-Paywall-View.
+    track('subscription_cta_clicked', { variant: 'create-limit', location: 'paywall' }, { beacon: true });
     setLoading(true);
     setError(null);
 

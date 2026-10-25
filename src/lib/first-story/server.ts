@@ -21,6 +21,8 @@ import { fictionalFigures } from '@/data/figures';
 import { type AnswerEntry, generateStoryText } from '@/lib/story-text';
 import { getAppBaseUrl } from '@/lib/app-url';
 import { movePublicAudioToPrivate, publicAudioPath } from '@/lib/story-access/server';
+import { figureProps } from '@/lib/product-analytics/events';
+import { captureServerEvent } from '@/lib/product-analytics/server';
 import { FIRST_STORY_FIGURE_ID, FIRST_STORY_LINK_DAYS, type FirstStoryPhase } from './config';
 
 type AdminClient = Awaited<ReturnType<typeof createServerAdminClient>>;
@@ -42,6 +44,8 @@ export interface FirstStoryDraft {
   resume_key_hash: string;
   last_email_sent_at: string | null;
   created_at: string;
+  /** PostHog-Kennung, nur mit Einwilligung (Migration 20261025120000). Nicht in DRAFT_COLUMNS – die Spalte kann fehlen. */
+  analytics_id?: string | null;
 }
 
 const DRAFT_COLUMNS =
@@ -309,6 +313,26 @@ export async function findUserIdByEmail(admin: AdminClient, email: string): Prom
 }
 
 // ---------------------------------------------------------------------------
+// Funnel-Analyse (nur mit Einwilligung, siehe src/lib/product-analytics)
+// ---------------------------------------------------------------------------
+// Bewusst getrennt von DRAFT_COLUMNS: Fehlt die Spalte (Migration noch nicht
+// eingespielt), funktioniert der Flow unverändert, nur ohne diese Events.
+
+export async function loadDraftAnalyticsId(admin: AdminClient, draftId: string): Promise<string | null> {
+  const { data, error } = await (admin as any)
+    .from('first_story_drafts')
+    .select('analytics_id')
+    .eq('id', draftId)
+    .maybeSingle();
+  return error ? null : (data?.analytics_id ?? null);
+}
+
+export async function saveDraftAnalyticsId(admin: AdminClient, draftId: string, analyticsId: string): Promise<void> {
+  const { error } = await (admin as any).from('first_story_drafts').update({ analytics_id: analyticsId }).eq('id', draftId);
+  if (error) console.warn('[FirstStory] analytics_id nicht gespeichert (Migration 20261025120000 eingespielt?):', error.message);
+}
+
+// ---------------------------------------------------------------------------
 // Fortschritt
 // ---------------------------------------------------------------------------
 
@@ -419,6 +443,20 @@ export async function processFirstStoryDraft(draftId: string, maxAttempts = AUTO
     await updateDraft(admin, draftId, { status: 'ready', locked_at: null });
     const storyId = await claimFirstStoryDraft(draftId);
     console.log('[FirstStory] Entwurf fertig', draftId, storyId ? `→ Story ${storyId}` : '(wartet auf Link-Klick)');
+
+    // Frisch lesen: Die Kennung wird parallel zum Start der Erzeugung gespeichert.
+    const analyticsId = draft.analytics_id ?? (await loadDraftAnalyticsId(admin, draftId));
+    if (analyticsId) {
+      await captureServerEvent(
+        'story_generated',
+        {
+          flow: 'angel',
+          ...figureProps(getFirstStoryFigure()),
+          duration_seconds: Math.round((Date.now() - new Date(draft.created_at).getTime()) / 1000),
+        },
+        { distinctId: draft.user_id ?? analyticsId, dedupeKey: `story_generated:${draftId}` }
+      );
+    }
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     console.error('[FirstStory] Erzeugung fehlgeschlagen für', draftId, message);

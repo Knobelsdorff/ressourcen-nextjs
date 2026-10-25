@@ -18,7 +18,11 @@ import { applyMusicVolumeFactor } from "@/lib/musicVolumePreference";
 import { getOrCreateBrowserFingerprint } from "@/lib/browser-fingerprint";
 import FigureIcon from "./story-flow/FigureIcon";
 import StoryGenerationLoader from "./story-flow/StoryGenerationLoader";
+import { prefetchVoices } from "./VoiceSelection";
 import { storyTimeline } from "@/lib/story-progress";
+import { track } from "@/lib/product-analytics/client";
+import { figureProps } from "@/lib/product-analytics/events";
+import { type StoryPlayContext, storyPlayCompleted, storyPlayStarted } from "@/lib/product-analytics/story-plays";
 
 interface Voice {
   id: string;
@@ -144,7 +148,10 @@ export default function AudioPlayback({
       .then((result: { data: any; error: any }) => {
         // Nach einem Fehler darf ein späterer Versuch neu speichern.
         if (result.error) storyInsertsRef.current.delete(key);
-        else rememberFreeTrialStory(result.data?.[0]);
+        else {
+          savedStoryIdRef.current = result.data?.[0]?.id ?? savedStoryIdRef.current;
+          rememberFreeTrialStory(result.data?.[0]);
+        }
         return result;
       });
     storyInsertsRef.current.set(key, { source, promise });
@@ -155,6 +162,13 @@ export default function AudioPlayback({
   // und setzt die Testphase. Sobald sie bis zum Ende gehört oder ans Ende
   // gespult wurde, kommt einmalig dasselbe Abo-Angebot wie im Dashboard.
   const freeTrialStoryIdRef = useRef<string | null>(null);
+  // Funnel: gespeicherte Story (für Start/Ende/erneutes Hören), sonst "unsaved".
+  const savedStoryIdRef = useRef<string | null>(null);
+  const playContext = (): StoryPlayContext => ({
+    storyId: savedStoryIdRef.current ?? 'unsaved',
+    access: freeTrialStoryIdRef.current ? 'trial' : savedStoryIdRef.current ? 'always' : 'unsaved',
+    location: 'create_story',
+  });
   const freeTrialOfferBusyRef = useRef(false);
   const freeTrialOfferScheduledRef = useRef(false);
   const [showSubscriptionOffer, setShowSubscriptionOffer] = useState(false);
@@ -370,6 +384,7 @@ export default function AudioPlayback({
         
         if (existingStories && existingStories.length > 0) {
           console.log('[AutoSave] Story bereits in Datenbank vorhanden, überspringe Speichern');
+          clearPendingStoryBackup();
           firstStorySaveFinished.current = true;
           onFirstStorySaved?.();
           return;
@@ -399,6 +414,13 @@ export default function AudioPlayback({
     autoSave();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, generatedStory, audioState?.audioUrl, hasAutoSaved, isGenerating, onFirstStorySaved]);
+
+  // Liegt die Story in der Datenbank, wird die Sicherung im Browser nicht mehr
+  // gebraucht. Sonst hält das Dashboard sie für neu: Es zeigt kurz eine
+  // Platzhalter-Karte und lädt die Liste ein zweites Mal (Flackern).
+  const clearPendingStoryBackup = () => {
+    try { localStorage.removeItem('pendingStory'); } catch { /* nur Sicherung */ }
+  };
 
   const savePendingStory = () => {
     console.log('Saving pending story to localStorage...');
@@ -591,6 +613,7 @@ export default function AudioPlayback({
       }
 
       if (shouldSkipSave) {
+        clearPendingStoryBackup();
         firstStorySaveFinished.current = true;
         onFirstStorySaved?.();
         return;
@@ -635,6 +658,7 @@ export default function AudioPlayback({
 
       const { data, error, duplicateOf } = await insertStoryOnce(insertData, 'saveStoryToDatabase');
       if (!error && duplicateOf === 'saveStoryToDatabase') {
+        clearPendingStoryBackup();
         firstStorySaveFinished.current = true;
         onFirstStorySaved?.();
         return;
@@ -650,6 +674,7 @@ export default function AudioPlayback({
           voice_id: data?.[0]?.voice_id,
           title: data?.[0]?.title
         }, null, 2));
+        clearPendingStoryBackup();
         firstStorySaveFinished.current = true;
         onFirstStorySaved?.();
         
@@ -882,9 +907,9 @@ export default function AudioPlayback({
   useEffect(() => {
     const fetchVoices = async () => {
       try {
-        const response = await fetch('/api/voices?collections_only=true');
-        const data = await response.json();
-        const allVoices: Voice[] = Array.isArray(data?.voices) ? data.voices : [];
+        // Dieselbe Liste wie in Schritt 3 (inkl. Rückfall auf alle Stimmen) –
+        // meist schon geladen, also kein zweiter Aufruf bei ElevenLabs.
+        const allVoices = (await prefetchVoices()) as unknown as Voice[];
 
         // Strenger Filter: nur exaktes Geschlecht gemäß Pronomen
         const genderSpecificVoices = allVoices.filter((voice: Voice) => {
@@ -896,22 +921,6 @@ export default function AudioPlayback({
         console.log(`Loaded ${genderSpecificVoices.length} ${figureGender} voices for ${selectedFigure.name}`);
       } catch (error) {
         console.error('Error fetching voices:', error);
-        // Fallback zu allen Stimmen
-        try {
-          const response = await fetch('/api/voices');
-          const data = await response.json();
-          const allVoices: Voice[] = Array.isArray(data?.voices) ? data.voices : [];
-
-          // Strenger Fallback-Filter
-          const genderSpecificVoices = allVoices.filter((voice: Voice) => {
-            const vg = (voice.gender || '').toLowerCase();
-            return figureGender === 'female' ? vg === 'female' : vg === 'male';
-          });
-
-          setAvailableVoices(genderSpecificVoices);
-        } catch (fallbackError) {
-          console.error('Error fetching fallback voices:', fallbackError);
-        }
       }
     };
     
@@ -1028,6 +1037,12 @@ export default function AudioPlayback({
 
       const result = await response.json();
       storyTimeline.audioDone(text.length, sparModus);
+      const startedAt = storyTimeline.get().textStartedAt;
+      track('story_generated', {
+        flow: 'regular',
+        ...figureProps(selectedFigure),
+        ...(startedAt ? { duration_seconds: Math.round((Date.now() - startedAt) / 1000) } : {}),
+      });
 
       console.log('poopoo [AudioPlayback] Audio generation response:', JSON.stringify({
         audioUrl: result.audioUrl,
@@ -1356,6 +1371,7 @@ export default function AudioPlayback({
     };
     const handleEnded = () => {
       console.log('[AudioPlayback] Voice audio ended');
+      storyPlayCompleted(playContext());
 
       // Zeige CTA SOFORT wenn Voice endet (unabhängig von Musik)
       setHasPlayedOnce(true);
@@ -1604,6 +1620,7 @@ export default function AudioPlayback({
     console.log('[AudioPlayback] FIRST PLAY - starting voice audio...');
     setIsPlaying(true);
     setHasStartedPlayback(true);
+    storyPlayStarted(playContext());
 
     // Starte Voice Audio SOFORT - keine Verzögerung!
     voiceAudio.currentTime = 0;
@@ -2421,7 +2438,7 @@ export default function AudioPlayback({
         />
       )}
 
-      <SubscriptionOffer variant={showSubscriptionOffer ? 'after-first-story' : null} onClose={closeSubscriptionOffer} />
+      <SubscriptionOffer variant={showSubscriptionOffer ? 'after-first-story' : null} onClose={closeSubscriptionOffer} location="create_story" />
 
     </div>
   );

@@ -17,6 +17,7 @@ import { Check, Loader2 } from "lucide-react";
 import AngelIconFinal from "@/components/AngelIconFinal";
 import { useAuth } from "@/components/providers/auth-provider";
 import { createCheckoutSession } from "@/lib/access";
+import { track } from "@/lib/product-analytics/client";
 import "./subscription-offer.css";
 
 export type SubscriptionOfferVariant = "after-first-story" | "locked";
@@ -37,13 +38,20 @@ const COPY: Record<SubscriptionOfferVariant, { title: string; text: string; seco
 interface SubscriptionOfferProps {
   variant: SubscriptionOfferVariant | null;
   onClose: () => void;
+  /** Für die Funnel-Analyse: wo das Angebot erscheint. */
+  location?: "dashboard" | "create_story";
 }
 
-export default function SubscriptionOffer({ variant, onClose }: SubscriptionOfferProps) {
+export default function SubscriptionOffer({ variant, onClose, location = "dashboard" }: SubscriptionOfferProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const primaryRef = useRef<HTMLButtonElement>(null);
+
+  // Funnel: einmal pro Öffnen.
+  useEffect(() => {
+    if (variant) track("soft_paywall_viewed", { variant, location });
+  }, [variant, location]);
 
   useEffect(() => {
     if (!variant) return;
@@ -62,6 +70,7 @@ export default function SubscriptionOffer({ variant, onClose }: SubscriptionOffe
 
   const startCheckout = async () => {
     if (!user?.id || loading) return;
+    track("subscription_cta_clicked", { variant, location }, { beacon: true });
     setLoading(true);
     setError(null);
     const session = await createCheckoutSession(user.id, "subscription");
