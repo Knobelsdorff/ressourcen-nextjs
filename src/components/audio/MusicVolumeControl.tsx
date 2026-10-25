@@ -30,11 +30,13 @@ const PERSIST_DELAY_MS = 600;
 interface MusicVolumeControlProps {
   compact?: boolean;
   className?: string;
+  label?: string;
 }
 
 export default function MusicVolumeControl({
   compact = false,
   className = "",
+  label = "Musik",
 }: MusicVolumeControlProps) {
   const { user } = useAuth();
   const [factor, setFactor] = useState<number>(() => getMusicVolumeFactor());
@@ -91,7 +93,7 @@ export default function MusicVolumeControl({
         ) : (
           <Volume2 className="h-4 w-4" aria-hidden="true" />
         )}
-        <span className={compact ? "sr-only" : "text-xs"}>Musik</span>
+        <span className={compact ? "sr-only" : "text-xs"}>{label}</span>
       </label>
 
       <input

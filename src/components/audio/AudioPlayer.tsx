@@ -217,7 +217,7 @@ export default function AudioPlayer({
             ist keine Musik zugeordnet – ein toter Regler würde verwirren. */}
         {hasBackgroundMusic && (
           <div className="flex justify-center pt-1">
-            <MusicVolumeControl compact={isCompact} />
+            <MusicVolumeControl compact={isCompact} label="Hintergrundmusik" />
           </div>
         )}
 
