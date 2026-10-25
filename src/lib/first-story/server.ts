@@ -284,16 +284,18 @@ export async function claimFirstStoryDraft(draftId: string): Promise<string | nu
   return (data as string | null) ?? null;
 }
 
-/** Bestehende Erststory eines Accounts (es kann höchstens eine geben). */
-export async function findFirstStoryForUser(admin: AdminClient, userId: string): Promise<string | null> {
-  const { data } = await (admin as any)
-    .from('saved_stories')
-    .select('id')
-    .eq('user_id', userId)
-    .not('first_story_draft_id', 'is', null)
-    .limit(1)
-    .maybeSingle();
-  return data?.id ?? null;
+/**
+ * Ob der Account den Flow schon einmal durchlaufen hat bzw. schon Storys hat:
+ * irgendeine gespeicherte Story (auch Klienten-Audios) oder ein Erststory-
+ * Entwurf, der ihm bereits gehört. Solche Accounts bekommen keine zweite
+ * Engel-Story, sondern einen normalen Anmeldelink.
+ */
+export async function accountHasStories(admin: AdminClient, userId: string): Promise<boolean> {
+  const [{ count: stories }, { count: drafts }] = await Promise.all([
+    (admin as any).from('saved_stories').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+    (admin as any).from('first_story_drafts').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+  ]);
+  return (stories ?? 0) > 0 || (drafts ?? 0) > 0;
 }
 
 export async function findUserIdByEmail(admin: AdminClient, email: string): Promise<string | null> {

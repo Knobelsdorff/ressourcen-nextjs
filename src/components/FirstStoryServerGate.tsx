@@ -103,7 +103,8 @@ export default function FirstStoryServerGate({ questionAnswers, linkError = fals
         if (!response.ok) throw new Error(result.error);
         writeStoredDraft(null);
         onComplete?.();
-        router.replace("/dashboard?welcome=1");
+        // Account mit vorhandenen Storys: normales Dashboard, kein zweites Willkommen.
+        router.replace(result.existingAccount ? "/dashboard" : "/dashboard?welcome=1");
       } catch (startError) {
         // Kein automatischer Neuversuch – nur über den Button.
         setError(startError instanceof Error && startError.message ? startError.message : "Deine Story konnte nicht gestartet werden. Bitte versuche es erneut.");
@@ -187,6 +188,18 @@ export default function FirstStoryServerGate({ questionAnswers, linkError = fals
       }
       if (!response.ok) throw new Error(result.error);
 
+      // Bestehender Account: Der Server hat einen normalen Anmeldelink geschickt
+      // und keinen Entwurf angelegt – nichts merken, nichts abfragen.
+      if (!result.draftId) {
+        writeStoredDraft(null);
+        setDraft(null);
+        setPhase(null);
+        setEmail(normalizedEmail);
+        setSent(true);
+        setSecondsUntilResend(RESEND_WAIT_SECONDS);
+        return;
+      }
+
       const nextDraft: StoredDraft = existing
         ? { ...existing, email: normalizedEmail }
         : { draftId: result.draftId, key: result.key, email: normalizedEmail, savedAt: Date.now() };
@@ -267,7 +280,7 @@ export default function FirstStoryServerGate({ questionAnswers, linkError = fals
               <>
                 <h2>Schau in dein Postfach.</h2>
                 <p>Wir haben einen Link an <strong>{email}</strong> geschickt.</p>
-                <p className="story-first-email-hint">Ein Klick darauf bringt dich direkt zu deiner Power Story – in jedem Browser und auf jedem Gerät. Dieses Fenster kannst du danach schließen. Prüfe auch deinen Spam-Ordner.</p>
+                <p className="story-first-email-hint">Ein Klick darauf bringt dich direkt in deinen Bereich – in jedem Browser und auf jedem Gerät. Dieses Fenster kannst du danach schließen. Prüfe auch deinen Spam-Ordner.</p>
                 <div className="story-first-email-sent-actions">
                   <button type="button" onClick={() => { setSent(false); setError(""); setSecondsUntilResend(0); }}>Andere E-Mail verwenden</button>
                   <button type="button" onClick={() => void sendLink()} disabled={sending || secondsUntilResend > 0}>

@@ -346,8 +346,32 @@ interface SendFirstStoryLinkEmailParams {
   expiresAt: Date;
 }
 
+interface LinkEmailCopy {
+  title: string;
+  preheader: string;
+  heading: string;
+  intro: string;
+  button: string;
+}
+
+const FIRST_STORY_LINK_COPY: LinkEmailCopy = {
+  title: 'Deine erste Power Story',
+  preheader: 'Ein Klick – und du hörst deine persönliche Engel-Geschichte.',
+  heading: 'Dein Engel wartet auf dich',
+  intro: 'deine persönliche Power Story wird gerade aus deinen Antworten erstellt. Mit einem Klick auf den Button bist du direkt in deinem Bereich &ndash; dort kannst du sie sofort anhören.',
+  button: 'Meine Power Story anhören',
+};
+
+const SIGN_IN_LINK_COPY: LinkEmailCopy = {
+  title: 'Dein Anmeldelink',
+  preheader: 'Ein Klick – und du bist wieder bei deinen Power Storys.',
+  heading: 'Schön, dass du wieder da bist',
+  intro: 'zu dieser E-Mail-Adresse gibt es bereits einen Account. Deine Power Storys warten dort auf dich &ndash; mit einem Klick auf den Button bist du angemeldet.',
+  button: 'Zu meinen Power Storys',
+};
+
 /** E-Mail für den Erststory-Flow: ein Klick führt direkt ins Dashboard. */
-const getFirstStoryLinkEmailHTML = (link: string, expiresAt: Date) => {
+const getFirstStoryLinkEmailHTML = (link: string, expiresAt: Date, copy: LinkEmailCopy = FIRST_STORY_LINK_COPY) => {
   const appBaseUrl = getAppBaseUrl();
   const font = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
 
@@ -357,12 +381,12 @@ const getFirstStoryLinkEmailHTML = (link: string, expiresAt: Date) => {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light">
-  <title>Deine erste Power Story</title>
+  <title>${copy.title}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #fffbf5; -webkit-font-smoothing: antialiased;">
 
   <div style="display: none; max-height: 0; overflow: hidden; opacity: 0; color: transparent;">
-    Ein Klick – und du hörst deine persönliche Engel-Geschichte.
+    ${copy.preheader}
   </div>
 
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #fffbf5; padding: 32px 16px;">
@@ -374,7 +398,7 @@ const getFirstStoryLinkEmailHTML = (link: string, expiresAt: Date) => {
             <td style="background: linear-gradient(135deg, #fb923c 0%, #f59e0b 100%); background-color: #f59e0b; padding: 44px 40px 40px; border-radius: 20px 20px 0 0; text-align: center;">
               <div style="font-size: 34px; line-height: 34px; margin-bottom: 14px;">&#10024;</div>
               <h1 style="margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: 27px; line-height: 34px; font-weight: 400; color: #ffffff;">
-                Dein Engel wartet auf dich
+                ${copy.heading}
               </h1>
             </td>
           </tr>
@@ -385,7 +409,7 @@ const getFirstStoryLinkEmailHTML = (link: string, expiresAt: Date) => {
                 Hallo,
               </p>
               <p style="margin: 0 0 30px; font-family: ${font}; font-size: 17px; line-height: 27px; color: #92400e;">
-                deine persönliche Power Story wird gerade aus deinen Antworten erstellt. Mit einem Klick auf den Button bist du direkt in deinem Bereich &ndash; dort kannst du sie sofort anhören.
+                ${copy.intro}
               </p>
 
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
@@ -393,7 +417,7 @@ const getFirstStoryLinkEmailHTML = (link: string, expiresAt: Date) => {
                   <td align="center" style="padding-bottom: 26px;">
                     <a href="${link}"
                        style="display: inline-block; background-color: #d97706; color: #ffffff; font-family: ${font}; font-size: 17px; font-weight: 600; line-height: 20px; text-decoration: none; padding: 17px 44px; border-radius: 999px;">
-                      Meine Power Story anhören
+                      ${copy.button}
                     </a>
                   </td>
                 </tr>
@@ -689,3 +713,69 @@ export async function sendAdminConfirmationEmail({
   }
 }
 
+const getSignInLinkEmailText = (link: string, expiresAt: Date): string => {
+  const appBaseUrl = getAppBaseUrl();
+  return `Hallo,
+
+zu dieser E-Mail-Adresse gibt es bereits einen Account. Deine Power Storys warten dort auf dich.
+Mit diesem Link bist du direkt angemeldet:
+
+${link}
+
+Du brauchst kein Passwort. Der Link funktioniert auf jedem Gerät und bleibt bis zum ${formatGermanDate(expiresAt)} gültig.
+Falls du keinen Link angefordert hast, kannst du diese E-Mail einfach ignorieren.
+
+Herzliche Grüße
+Andreas
+
+--
+Power Storys - Andreas von Knobelsdorff
+${appBaseUrl.replace(/^https?:\/\//, '')}
+`;
+};
+
+/**
+ * Anmeldelink für bestehende Accounts, die den Engel-Flow erneut durchlaufen.
+ * Führt über /zugang/<token> ins Dashboard – ohne zweite Erststory.
+ */
+export async function sendSignInLinkEmail({
+  to,
+  link,
+  expiresAt,
+}: SendFirstStoryLinkEmailParams): Promise<{ success: boolean; error?: string }> {
+  const resendApiKey = process.env.RESEND_API_KEY;
+
+  if (!resendApiKey) {
+    console.warn('[Email] ⚠️ RESEND_API_KEY fehlt – Anmeldelink wird nur geloggt.');
+    console.log(`\n📧 ANMELDELINK für ${to}:\n${link}\n`);
+    return process.env.NODE_ENV === 'production'
+      ? { success: false, error: 'E-Mail-Versand nicht konfiguriert' }
+      : { success: true };
+  }
+
+  try {
+    const resend = new Resend(resendApiKey);
+    const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'andreas@power-storys.de';
+    const emailOptions: any = {
+      from: `Andreas <${resendFromEmail}>`,
+      to: [to],
+      subject: 'Dein Anmeldelink – deine Power Storys warten auf dich',
+      html: getFirstStoryLinkEmailHTML(link, expiresAt, SIGN_IN_LINK_COPY),
+      text: getSignInLinkEmailText(link, expiresAt),
+    };
+    if (process.env.RESEND_REPLY_TO) {
+      emailOptions.replyTo = process.env.RESEND_REPLY_TO;
+    }
+
+    const { data, error } = await resend.emails.send(emailOptions);
+    if (error) {
+      console.error('[Email] ❌ Anmeldelink konnte nicht versendet werden:', error);
+      return { success: false, error: error.message || 'Resend error' };
+    }
+    console.log('[Email] ✅ Anmeldelink versendet:', { id: data?.id });
+    return { success: true };
+  } catch (error: any) {
+    console.error('[Email] ❌ Anmeldelink konnte nicht versendet werden:', error?.message);
+    return { success: false, error: error?.message || 'Resend error' };
+  }
+}
