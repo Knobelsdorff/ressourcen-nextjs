@@ -6,11 +6,11 @@ import FirstStoryWelcome, { FirstStoryWelcomeState } from "@/components/dashboar
 import type { FirstStoryPhase } from "@/lib/first-story/config";
 import SubscriptionOffer, { SubscriptionOfferVariant } from "@/components/dashboard/SubscriptionOffer";
 import { markFreeStoryOfferShown, shouldShowFreeStoryOffer } from "@/lib/first-story/offer-client";
-import SpotlightTour from "@/components/onboarding/SpotlightTour";
+import FirstStoryReadyDialog from "@/components/dashboard/FirstStoryReadyDialog";
 import SettingsDialog from "@/components/dashboard/SettingsDialog";
-import ArrivalSample, { ArrivalSampleData } from "@/components/dashboard/ArrivalSample";
 import { OPEN_SETTINGS_EVENT } from "@/components/dashboard/settings-events";
-import { FIRST_STORY_TOUR_STEPS, NEW_ACCOUNT_TOUR_STEPS, TOUR_ANCHORS } from "@/components/onboarding/firstStoryTour";
+import { requestStoryPlay } from "@/components/audio/play-events";
+import { TOUR_ANCHORS } from "@/components/onboarding/firstStoryTour";
 import { scrollToTourAnchor } from "@/components/onboarding/tour-dom";
 import type { StoryAccess, StoryLockReason } from "@/lib/story-access/shared";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -130,11 +130,8 @@ export default function Dashboard() {
     }
   }, []);
   const [stories, setStories] = useState<SavedStory[]>([]);
-  const [arrivalSample, setArrivalSample] = useState<ArrivalSampleData | null>(null);
   const [personalStories, setPersonalStories] = useState<SavedStory[]>([]);
   const [loading, setLoading] = useState(false);
-  // Erst nach dem ersten erfolgreichen Laden ist "keine Story" verlässlich.
-  const [storiesLoaded, setStoriesLoaded] = useState(false);
   const [error, setError] = useState('');
   const [generatingAudioFor, setGeneratingAudioFor] = useState<string | null>(null);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
@@ -180,9 +177,6 @@ export default function Dashboard() {
   const [loadingCustomerPortal, setLoadingCustomerPortal] = useState(false);
   const [resourceAccessStatus, setResourceAccessStatus] = useState<Record<string, { canAccess: boolean; isFirst: boolean; trialExpired: boolean; daysRemaining?: number }>>({});
   const [hasSeenDashboardIntro, setHasSeenDashboardIntro] = useState<boolean | null>(null); // null = noch nicht geladen
-  // Wert beim ersten Laden: Das Flag wird kurz danach auf true gesetzt, die
-  // Einführung für neue Accounts braucht aber den ursprünglichen Wert.
-  const [isFirstDashboardVisit, setIsFirstDashboardVisit] = useState<boolean | null>(null);
   
   // Beispiel-Ressourcenfigur Konfiguration (nur für Admins)
 
@@ -590,23 +584,7 @@ export default function Dashboard() {
     }
   }, [user]);
 
-  // "Zum Ankommen": dieselbe Kostprobe wie im Startseiten-Hero (/admin/kostprobe).
-  const loadArrivalSample = useCallback(async () => {
-    try {
-      const response = await fetch('/api/homepage-sample');
-      const data = await response.json();
-      setArrivalSample(
-        response.ok && data.success && data.sample?.audio_url
-          ? { title: data.sample.title || 'Wohlwollende Präsenz', audioUrl: data.sample.audio_url }
-          : null
-      );
-    } catch (err) {
-      console.error('[Dashboard] Kostprobe konnte nicht geladen werden:', err);
-      setArrivalSample(null);
-    }
-  }, []);
-
-  // Gemeinsamer Handler für „Neue Power Story“ und CTA unter Wohlwollende Präsenz (Paywall oder /create-story)
+  // Handler für „Neue Power Story“ (Paywall oder /create-story)
   const handleCreateStoryClick = useCallback(async () => {
     if (user) {
       try {
@@ -799,8 +777,7 @@ export default function Dashboard() {
 
 
         calculateUserStats(uniqueStories);
-        setStoriesLoaded(true);
-        
+
         // Track Dashboard-Visit (nur wenn User eingeloggt ist UND eine gültige Session hat)
         if (user && session) {
           trackEvent({
@@ -1131,7 +1108,6 @@ export default function Dashboard() {
         }
       } else {
         setHasSeenDashboardIntro((data as any)?.has_seen_dashboard_intro ?? false);
-        setIsFirstDashboardVisit((visit) => visit ?? (data as any)?.has_seen_dashboard_intro !== true);
       }
     } catch (err) {
       console.error('Error loading dashboard intro flag:', err);
@@ -1210,8 +1186,6 @@ export default function Dashboard() {
       loadUserAccess();
       // Lade den vollständigen Namen
       loadFullName();
-      // "Zum Ankommen" (Kostprobe)
-      loadArrivalSample();
       // Lade Dashboard Intro Flag
       loadDashboardIntroFlag();
     }
@@ -3295,11 +3269,9 @@ ${story.content}
     Date.now() - new Date(story.created_at).getTime() < FIRST_STORY_WELCOME_DAYS * 24 * 60 * 60 * 1000
   );
   const firstStoryPreparing = !welcomeStory && !!firstStoryPhase && firstStoryPhase !== 'claimed' && firstStoryPhase !== 'none';
-  const welcomeState: FirstStoryWelcomeState | null = welcomeStory
-    ? 'ready'
-    : firstStoryPreparing
-      ? firstStoryPhase === 'failed' ? 'failed' : firstStoryPhase === 'audio' ? 'preparing-audio' : 'preparing-text'
-      : null;
+  const preparingState: FirstStoryWelcomeState | null = firstStoryPreparing
+    ? firstStoryPhase === 'failed' ? 'failed' : firstStoryPhase === 'audio' ? 'preparing-audio' : 'preparing-text'
+    : null;
 
   // Wie nach dem Speichern im Browser-Flow: Ereignis einmal erfassen.
   useEffect(() => {
@@ -3330,30 +3302,24 @@ ${story.content}
   }, []);
 
   // ---------------------------------------------------------------------------
-  // Einführung (Spotlight-Tour) für die Erststory. Startet einmal automatisch,
-  // sobald die Story bereitsteht; "Jetzt anhören" im Hinweis startet sie auch.
-  // Ende oder Überspringen markiert den Willkommens-Hinweis als gesehen
-  // (welcome_seen_at) – danach erscheint beides nicht mehr.
+  // Willkommens-Hinweis für die Erststory (ersetzt die frühere Einführungstour).
+  // Erscheint einmal, sobald die Story bereitsteht. "Jetzt anhören" startet sie
+  // sofort; Anhören wie Schließen markieren ihn als gesehen (welcome_seen_at).
   // ---------------------------------------------------------------------------
-  const [tourOpen, setTourOpen] = useState(false);
-  const tourAutoStartedRef = useRef(false);
-  // Anker der Tour hängen an der Erststory des Accounts (höchstens eine) –
-  // unabhängig davon, ob der Willkommens-Hinweis schon gesehen wurde.
+  // Anker an der Erststory des Accounts (höchstens eine) – zum Hinscrollen.
   const firstStoryId = personalStories.find((story) => story.first_story_draft_id)?.id ?? null;
 
-  useEffect(() => {
-    if (!welcomeStory || loading || offerVariant || tourAutoStartedRef.current) return;
-    // Kurz warten, bis Liste und Karte stehen. Erst beim Öffnen als gestartet
-    // merken – lädt die Liste zwischendurch neu, wird es erneut versucht.
-    const timer = setTimeout(() => {
-      tourAutoStartedRef.current = true;
-      setTourOpen(true);
-    }, 700);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [welcomeStory?.id, loading, offerVariant]);
+  const handleWelcomeListen = useCallback(() => {
+    if (!welcomeStory) return;
+    // Zuerst abspielen – noch innerhalb der Klick-Geste (sonst blockiert iOS).
+    requestStoryPlay(welcomeStory.id);
+    void markWelcomeSeen(welcomeStory.id);
+    setTimeout(() => scrollToTourAnchor(TOUR_ANCHORS.firstStory), 80);
+  }, [welcomeStory, markWelcomeSeen]);
 
-  const startTour = useCallback(() => setTourOpen(true), []);
+  const handleWelcomeDismiss = useCallback(() => {
+    if (welcomeStory) void markWelcomeSeen(welcomeStory.id);
+  }, [welcomeStory, markWelcomeSeen]);
 
   // ---------------------------------------------------------------------------
   // Einstellungen als Dialog. Öffnet auch über /dashboard?settings=1 und über
@@ -3374,57 +3340,6 @@ ${story.content}
     return () => window.removeEventListener(OPEN_SETTINGS_EVENT, openSettings);
   }, [openSettings]);
 
-  const handleTourEnd = useCallback(() => {
-    setTourOpen(false);
-    setSettingsOpen(false);
-    if (welcomeStory) void markWelcomeSeen(welcomeStory.id);
-    // Der Hinweis über der Liste verschwindet dabei und die Karte rückt nach
-    // oben – erst danach zur Story scrollen, damit direkt Play möglich ist.
-    setTimeout(() => scrollToTourAnchor(TOUR_ANCHORS.firstStory), 80);
-  }, [welcomeStory, markWelcomeSeen]);
-
-  // ---------------------------------------------------------------------------
-  // Einführung für neue Accounts ohne Engel-Funnel (normale Registrierung):
-  // einmal beim allerersten Dashboard-Besuch, solange noch keine Story da ist.
-  // "Einmal" hängt an profiles.has_seen_dashboard_intro (wird beim ersten
-  // Besuch gesetzt). Engel-Accounts bekommen stattdessen die Erststory-Tour.
-  // ---------------------------------------------------------------------------
-  const [newAccountTourOpen, setNewAccountTourOpen] = useState(false);
-  const newAccountTourStartedRef = useRef(false);
-  const cameFromWelcomeLinkRef = useRef<boolean | null>(null);
-  if (cameFromWelcomeLinkRef.current === null && typeof window !== 'undefined') {
-    cameFromWelcomeLinkRef.current = new URLSearchParams(window.location.search).get('welcome') === '1';
-  }
-  const isAngelAccount = user?.user_metadata?.signup_method === 'first_story' || cameFromWelcomeLinkRef.current === true;
-
-  useEffect(() => {
-    if (
-      newAccountTourStartedRef.current ||
-      isFirstDashboardVisit !== true ||
-      isAngelAccount ||
-      !storiesLoaded ||
-      loading ||
-      stories.length > 0 ||
-      pendingStory ||
-      firstStoryPhase ||
-      offerVariant ||
-      tourOpen ||
-      settingsOpen
-    ) return;
-    // Kurz warten, bis Leerzustand und Kostprobe stehen.
-    const timer = setTimeout(() => {
-      newAccountTourStartedRef.current = true;
-      setNewAccountTourOpen(true);
-    }, 900);
-    return () => clearTimeout(timer);
-  }, [isFirstDashboardVisit, isAngelAccount, storiesLoaded, loading, stories.length, pendingStory, firstStoryPhase, offerVariant, tourOpen, settingsOpen]);
-
-  const handleNewAccountTourEnd = useCallback(() => {
-    setNewAccountTourOpen(false);
-    setSettingsOpen(false);
-    setTimeout(() => scrollToTourAnchor(TOUR_ANCHORS.startFirstStory), 80);
-  }, []);
-
   if (authLoading || !user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary-50 via-primary-50 to-primary-50 flex items-center justify-center">
@@ -3444,20 +3359,19 @@ ${story.content}
         {/* A consistent welcome, with introductory copy on the first visit. */}
         <DashboardWelcome firstVisit={hasSeenDashboardIntro === false} />
 
-        {welcomeState && (
+        {preparingState && (
           <FirstStoryWelcome
-            state={welcomeState}
+            state={preparingState}
             isFirstStory={personalStories.filter((story) => !story.is_audio_only).length <= 1}
-            onListen={startTour}
-            onDismiss={welcomeStory ? () => void markWelcomeSeen(welcomeStory.id) : undefined}
             onRetry={retryFirstStory}
           />
         )}
 
+        {welcomeStory && !loading && !offerVariant && (
+          <FirstStoryReadyDialog onListen={handleWelcomeListen} onDismiss={handleWelcomeDismiss} />
+        )}
         <SubscriptionOffer variant={offerVariant} onClose={closeOffer} />
         <SettingsDialog open={settingsOpen} onClose={closeSettings} onNameSaved={() => void loadFullName()} />
-        <SpotlightTour steps={FIRST_STORY_TOUR_STEPS} open={tourOpen} onEnd={handleTourEnd} />
-        <SpotlightTour steps={NEW_ACCOUNT_TOUR_STEPS} open={newAccountTourOpen} onEnd={handleNewAccountTourEnd} />
 
         {/* Content */}
         <motion.div
@@ -3508,10 +3422,6 @@ ${story.content}
                     </div>
                   </div>
                 </div>
-                {/* Auch ohne eigene Story: die Kostprobe zum Reinhören */}
-                {arrivalSample && (
-                  <ArrivalSample sample={arrivalSample} hasOwnStories={false} onCreateStory={handleCreateStoryClick} tourAnchor={TOUR_ANCHORS.arrivalSample} />
-                )}
                 </>
                 )
               ) : (
@@ -3682,15 +3592,6 @@ ${story.content}
                       </div>
                     )}
                   </div>
-
-                  {/* Section 2: Zum Ankommen – Kostprobe, immer kostenlos */}
-                  {arrivalSample && (
-                    <ArrivalSample
-                      sample={arrivalSample}
-                      hasOwnStories={stories.some((s: SavedStory) => !s.is_audio_only)}
-                      onCreateStory={handleCreateStoryClick}
-                    />
-                  )}
                 </>
               )}
             </div>

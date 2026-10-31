@@ -12,6 +12,7 @@
 import { motion } from "framer-motion";
 import { Lock, Volume2 } from "lucide-react";
 import AudioPlayer from "@/components/audio/AudioPlayer";
+import ButterflyHugExercise from "@/components/audio/ButterflyHugExercise";
 import EditableTitle from "@/components/EditableTitle";
 import EditableSubtitle from "@/components/EditableSubtitle";
 import StoryActionsMenu from "@/components/StoryActionsMenu";
@@ -189,8 +190,9 @@ export default function StoryCard({
           </div>
         </div>
       ) : story.audio_url ? (
-        // Wrapper immer rendern: Würde er nur für die Tour erscheinen, würde
-        // der Player beim Ende der Tour neu gemountet und laufendes Audio stoppen.
+        <>
+        {/* Wrapper immer rendern: Würde er nur für die Tour erscheinen, würde
+            der Player beim Ende der Tour neu gemountet und laufendes Audio stoppen. */}
         <div data-tour={tour?.player}>
           <AudioPlayer
             audioUrl={story.audio_url}
@@ -210,6 +212,8 @@ export default function StoryCard({
             }}
           />
         </div>
+        <ButterflyHugExercise className="mt-6" />
+        </>
       ) : (
         <div className="rounded-xl bg-secondary-50 px-4 py-6 text-center">
           <p className="mb-4 text-sm text-secondary-600">

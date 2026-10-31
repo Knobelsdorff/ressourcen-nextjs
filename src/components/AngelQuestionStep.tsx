@@ -4,8 +4,9 @@
  * Eine Frage im Story-Flow – zuerst für die Engel-Erststory
  * (/create-story?first=true) gebaut, inzwischen für jede Figur.
  *
- * Aufbau: Frage + Fortschritt (links bzw. oben), Antworten (rechts bzw. unten)
- * und eine feste Leiste mit "Zurück" / "Weiter". Die Leiste liegt außerhalb des
+ * Aufbau: Figur ("Dein Engel") + Frage (links bzw. oben), Antworten mit dem
+ * Fortschritt darunter (rechts bzw. unten) und eine feste Leiste mit
+ * "Zurück" / "Weiter". Die Leiste liegt außerhalb des
  * scrollbaren Bereichs und ist immer sichtbar. Die Antwortzeilen passen sich der
  * Fensterhöhe an, sodass auf üblichen Bildschirmen nichts scrollt. Nur auf sehr
  * kleinen Bildschirmen scrollt der Antwortbereich (ohne Scrollbalken, mit
@@ -98,23 +99,18 @@ export default function AngelQuestionStep({
     showCustomField();
   };
 
+  // "Dein Engel" wie im Entwurf. Für andere Figuren nur der Name – ein
+  // allgemeines "Dein/Deine" passt nicht zu jedem Namen (z.B. "Bester Freund / Beste Freundin").
+  const characterTitle = figure.id === "angel" ? "Dein Engel" : figure.name;
+
   return (
-    <section className="story-first-stage" aria-label={`${figure.name} – Frage ${index + 1} von ${total}`}>
+    <section className="story-first-stage story-question" aria-label={`${figure.name} – Frage ${index + 1} von ${total}`}>
       <div className="story-first-intro">
         <div className="story-first-character">
           <span className="story-first-avatar" aria-hidden="true">
             <FigureIcon figure={figure} size={52} className="story-first-avatar-image" />
           </span>
-          <span>{figure.name}</span>
-        </div>
-
-        <div className="story-first-progress">
-          <p className="story-first-step-count">Frage {index + 1} von {total}</p>
-          <ol className="story-first-segments" aria-hidden="true">
-            {Array.from({ length: total }).map((_, i) => (
-              <li key={i} data-state={i < index ? "done" : i === index ? "current" : "todo"} />
-            ))}
-          </ol>
+          <span className="story-first-character-name">{characterTitle}</span>
         </div>
 
         <motion.div
@@ -129,11 +125,6 @@ export default function AngelQuestionStep({
       </div>
 
       <div className="story-first-response">
-        <div className="story-first-response-heading">
-          <span>Wähle 1 bis {maxSelections} Antworten</span>
-          <span aria-live="polite">{selectedCount} / {maxSelections}</span>
-        </div>
-
         <motion.div
           key={question.id}
           ref={scrollRef}
@@ -189,6 +180,19 @@ export default function AngelQuestionStep({
             </details>
           </div>
         </motion.div>
+
+        <div className="story-first-progress">
+          <p className="story-first-step-count">Frage {index + 1} von {total}</p>
+          <ol className="story-first-segments" aria-hidden="true">
+            {Array.from({ length: total }).map((_, i) => (
+              <li key={i} data-state={i < index ? "done" : i === index ? "current" : "todo"} />
+            ))}
+          </ol>
+          {/* Sichtbar nur noch über das Ausgrauen weiterer Antworten; Screenreader hören den Stand. */}
+          <p className="sr-only" aria-live="polite">
+            {selectedCount} von {maxSelections} Antworten gewählt
+          </p>
+        </div>
 
         <div className="story-first-actions">
           <button type="button" className="story-first-previous" onClick={index === 0 ? onExit : onPrevious} disabled={index === 0 && !onExit}>

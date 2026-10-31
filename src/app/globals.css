@@ -583,3 +583,16 @@
 .music-volume-slider::-moz-range-track {
   background: transparent;
 }
+
+/* Breiter Regler in der Story-Karte: größerer Thumb, mit dem Finger gut zu greifen. */
+.music-volume-slider--wide::-webkit-slider-thumb {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-width: 3px;
+}
+
+.music-volume-slider--wide::-moz-range-thumb {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-width: 3px;
+}

@@ -1,19 +1,20 @@
-import { Headphones, Loader2, X } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import AngelIconFinal from '@/components/AngelIconFinal';
 
-export type FirstStoryWelcomeState = 'preparing-text' | 'preparing-audio' | 'failed' | 'ready';
+export type FirstStoryWelcomeState = 'preparing-text' | 'preparing-audio' | 'failed';
 
 interface FirstStoryWelcomeProps {
   state: FirstStoryWelcomeState;
   /** Erste persönliche Story des Accounts (sonst: "neue" Story). */
   isFirstStory: boolean;
-  onListen?: () => void;
-  onDismiss?: () => void;
   onRetry?: () => void;
 }
 
-/** Hinweis im Dashboard nach dem Erststory-Flow: "Das ist deine erste Power Story". */
-export default function FirstStoryWelcome({ state, isFirstStory, onListen, onDismiss, onRetry }: FirstStoryWelcomeProps) {
+/**
+ * Hinweis im Dashboard, solange die Erststory nach dem E-Mail-Link noch entsteht.
+ * Ist sie fertig, übernimmt FirstStoryReadyDialog.
+ */
+export default function FirstStoryWelcome({ state, isFirstStory, onRetry }: FirstStoryWelcomeProps) {
   const preparing = state === 'preparing-text' || state === 'preparing-audio';
 
   return (
@@ -54,31 +55,7 @@ export default function FirstStoryWelcome({ state, isFirstStory, onListen, onDis
             </div>
           </>
         )}
-
-        {state === 'ready' && (
-          <>
-            <h2 id="dashboard-first-story-title">
-              {isFirstStory ? 'Willkommen! Das ist deine erste Power Story.' : 'Deine neue Power Story ist da.'}
-            </h2>
-            <p>
-              Dein Engel hat eine persönliche Geschichte für dich – gesprochen von Kerstin.
-              Nimm dir ein paar ruhige Minuten, setz am besten Kopfhörer auf und hör einfach zu.
-            </p>
-            <div className="dashboard-first-story-actions">
-              <button type="button" className="dashboard-primary-button" onClick={onListen}>
-                <Headphones className="w-5 h-5" aria-hidden="true" />
-                Jetzt anhören
-              </button>
-            </div>
-          </>
-        )}
       </div>
-
-      {state === 'ready' && onDismiss && (
-        <button type="button" className="dashboard-first-story-close" onClick={onDismiss} aria-label="Hinweis schließen">
-          <X size={18} aria-hidden="true" />
-        </button>
-      )}
     </section>
   );
 }

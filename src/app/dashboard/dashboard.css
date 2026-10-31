@@ -91,7 +91,6 @@
 .dashboard-theme .dashboard-story-card h3 { font-weight: 700; }
 .dashboard-theme .dashboard-badge-guided { padding: 5px 10px; background: #e6edd8; color: #405028; }
 .dashboard-theme .dashboard-badge-personal { padding: 5px 10px; background: #eee6fc; color: #62418c; }
-.dashboard-arrival { border: 1px solid #d6dfc1; background: #e9eedf; border-radius: 28px; }
 .dashboard-theme [role='slider'] { background: #e5dfd8; }
 .dashboard-theme [role='slider'] > .bg-primary-600 { background: #d96a0b; }
 .dashboard-theme [role='slider'] > .border-primary-600 { border-color: #d96a0b; }
@@ -115,8 +114,18 @@
 .dashboard-first-story p { max-width: 580px; color: #69594c; font-size: 15px; line-height: 1.6; }
 .dashboard-first-story-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
 .dashboard-first-story-status { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; color: #70513b; font-size: 13px; font-weight: 600; }
-.dashboard-first-story-close { position: absolute; top: 14px; right: 14px; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; color: #69594c; }
-.dashboard-first-story-close:hover { background: #f1e8dc; }
+
+/* "Deine Power Story ist bereit!" – einziger Hinweis nach dem Erststory-Flow. Gleiche Optik wie das Abo-Angebot. */
+div.story-ready-backdrop { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(48, 32, 20, 0.28); animation: subscription-offer-fade 0.25s ease-out; }
+.story-ready { position: relative; width: min(100%, 440px); max-height: calc(100dvh - 32px); overflow-y: auto; padding: 36px 30px 28px; border: 1px solid #ecdfcd; border-radius: 28px; background: #fffaf2; box-shadow: 0 24px 60px rgba(73, 48, 30, 0.18); color: #49301e; text-align: center; animation: subscription-offer-rise 0.3s ease-out; }
+.story-ready-icon { display: grid; place-items: center; width: 76px; height: 76px; margin: 0 auto 20px; border-radius: 50%; background: #eee3d7; box-shadow: 0 0 0 9px #eee3d75c; }
+.story-ready h2 { font-size: clamp(22px, 2.6vw, 26px); font-weight: 700; line-height: 1.25; }
+.story-ready p { margin-top: 10px; color: #69594c; font-size: 15px; line-height: 1.6; }
+.story-ready-primary { display: inline-flex; align-items: center; justify-content: center; gap: 9px; width: 100%; min-height: 52px; margin-top: 24px; padding: 12px 24px; border-radius: 999px; background: var(--wellness-chocolate); color: white; box-shadow: 0 3px 0 #38261912; font-size: 15px; font-weight: 600; transition: background-color 180ms ease; }
+.story-ready-primary:hover { background: #63452e; }
+.story-ready-close { position: absolute; top: 12px; right: 12px; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; color: #69594c; }
+.story-ready-close:hover { background: #f1e8dc; }
+.story-ready button:focus-visible { outline: 3px solid #7952b8; outline-offset: 3px; }
 
 /* Testphase / gesperrte Story */
 .dashboard-badge-trial { background: #fdeccd; color: #7a4b12; }
@@ -172,15 +181,25 @@ div.settings-backdrop { position: fixed; inset: 0; z-index: 60; display: flex; a
 @media (max-width: 640px) {
   .dashboard-first-story { flex-direction: column; align-items: flex-start; gap: 14px; margin: -12px 0 28px; padding: 22px 20px; border-radius: 22px; }
   .dashboard-first-story-icon { width: 58px; height: 58px; box-shadow: 0 0 0 6px #eee3d75c; }
-  .dashboard-first-story h2 { padding-right: 32px; }
+  div.story-ready-backdrop { align-items: flex-end; padding: 0; }
+  .story-ready { width: 100%; max-height: 92dvh; padding: 32px 22px max(24px, env(safe-area-inset-bottom)); border-radius: 26px 26px 0 0; }
 }
 
+/* Mobil kompakt: Die eigene Story und der Player sollen ohne Scrollen sichtbar
+   sein. Die Illustration rückt klein neben die Überschrift, Text und Chips
+   laufen darunter über die volle Breite. */
 @media (max-width: 640px) {
-  .dashboard-welcome { grid-template-columns: minmax(0, 1fr); padding: 26px 22px 22px; gap: 12px; border-radius: 26px; margin-bottom: 28px; }
-  .dashboard-welcome h1 { max-width: 300px; }
-  .dashboard-garden { width: 280px; height: 200px; justify-self: center; transform: scale(0.85); margin: -12px 0 -14px; }
-  .dashboard-intentions { gap: 6px; margin-top: 18px; }
-  .dashboard-intentions > span { padding: 7px 9px; font-size: 10px; }
+  .dashboard-welcome { grid-template-columns: minmax(0, 1fr) 96px; align-items: start; min-height: 0; padding: 16px 18px 16px; gap: 0 12px; border-radius: 22px; margin-bottom: 18px; }
+  .dashboard-welcome-copy { display: contents; }
+  .dashboard-welcome .dashboard-eyebrow { grid-column: 1; grid-row: 1; align-self: start; margin-top: 4px; font-size: 9px; }
+  .dashboard-welcome h1 { grid-column: 1; grid-row: 2; max-width: none; margin: 8px 0 0; font-size: 23px; line-height: 1.15; }
+  .dashboard-welcome-copy > p { grid-column: 1 / -1; grid-row: 3; max-width: none; margin-top: 8px; font-size: 13.5px; line-height: 1.5; }
+  .dashboard-intentions { grid-column: 1 / -1; grid-row: 4; gap: 5px; margin-top: 12px; }
+  .dashboard-intentions > span { gap: 4px; padding: 6px 8px; font-size: 10px; }
+  .dashboard-intentions > span > svg { width: 13px; height: 13px; }
+  /* 280×230 auf ~35 % – die negativen Ränder geben den Platz im Layout wieder frei. */
+  .dashboard-garden { grid-column: 2; grid-row: 1 / span 2; justify-self: end; transform: scale(0.35); transform-origin: top right; margin: 0 0 -150px -182px; }
+  .garden-caption { display: none; }
   .dashboard-theme .dashboard-story-card { padding: 20px 18px; border-radius: 22px; }
 }
 

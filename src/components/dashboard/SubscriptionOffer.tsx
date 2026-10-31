@@ -22,15 +22,17 @@ import "./subscription-offer.css";
 
 export type SubscriptionOfferVariant = "after-first-story" | "locked";
 
-const COPY: Record<SubscriptionOfferVariant, { title: string; text: string; secondary: string }> = {
+const TITLE = "Mehr Ruhe. Mehr Sicherheit. Jeden Tag.";
+const TEXT = "Erstelle persönliche Power Storys, die dich dabei unterstützen, innere Ruhe, Halt und neue Kraft zu finden.";
+const BENEFIT = "Unbegrenzt neue Geschichten erstellen und dauerhaft anhören.";
+
+// Gesperrte Storys: Weiterhören ist dort nicht mehr möglich, daher nur "Später".
+const COPY: Record<SubscriptionOfferVariant, { secondary: string; footnote?: string }> = {
   "after-first-story": {
-    title: "Möchtest du weitere Power Storys für dich erstellen?",
-    text: "Mit Power Storys kannst du unbegrenzt weitere persönliche Power Storys erstellen und unterschiedliche Ressourcen für verschiedene Themen und Situationen entdecken.",
-    secondary: "Erst einmal kostenlos weiter nutzen",
+    secondary: "Meine Power Story kostenlos weiter anhören",
+    footnote: "Deine erste Power Story bleibt 7 Tage kostenlos – so oft du möchtest.",
   },
   locked: {
-    title: "Höre deine Power Storys wieder an.",
-    text: "Mit Power Storys hörst du alle deine Geschichten, so oft du magst – und erstellst unbegrenzt neue, mit Ressourcen für verschiedene Themen und Situationen.",
     secondary: "Später",
   },
 };
@@ -93,10 +95,10 @@ export default function SubscriptionOffer({ variant, onClose, location = "dashbo
         onClick={(event) => event.stopPropagation()}
       >
         <div className="subscription-offer-icon" aria-hidden="true">
-          <AngelIconFinal size={48} />
+          <AngelIconFinal size={60} />
         </div>
-        <h2 id="subscription-offer-title">{copy.title}</h2>
-        <p id="subscription-offer-text">{copy.text}</p>
+        <h2 id="subscription-offer-title">{TITLE}</h2>
+        <p id="subscription-offer-text">{TEXT}</p>
 
         <div className="subscription-offer-price">
           <span className="subscription-offer-amount">15 €</span>
@@ -105,16 +107,18 @@ export default function SubscriptionOffer({ variant, onClose, location = "dashbo
         <p className="subscription-offer-note">
           <Check size={15} aria-hidden="true" /> Jederzeit kündbar.
         </p>
+        <p className="subscription-offer-benefit">{BENEFIT}</p>
 
         {error && <p className="subscription-offer-error" role="alert">{error}</p>}
 
         <div className="subscription-offer-actions">
           <button ref={primaryRef} type="button" className="subscription-offer-primary" onClick={() => void startCheckout()} disabled={loading}>
-            {loading ? <><Loader2 size={18} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> Einen Moment …</> : "Power Storys freischalten"}
+            {loading ? <><Loader2 size={18} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> Einen Moment …</> : "Meine Power Storys freischalten"}
           </button>
           <button type="button" className="subscription-offer-secondary" onClick={onClose}>
             {copy.secondary}
           </button>
+          {copy.footnote && <p className="subscription-offer-footnote">{copy.footnote}</p>}
         </div>
       </section>
     </div>

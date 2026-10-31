@@ -256,3 +256,23 @@ body:has(.story-flow-first-loading) > main { flex: 0 0 100dvh; height: 100dvh; m
   .story-first-email-note { margin-top: 14px; }
   .story-first-email-form-area { padding: 20px; }
 }
+
+/* ---------- Fragen (AngelQuestionStep) ----------
+   "Dein Engel" als Überschrift über der Frage, kein Zähler über den Antworten,
+   Fortschritt unter den Antworten direkt über "Weiter". */
+.story-question .story-first-character { margin-bottom: clamp(14px, 2.6dvh, 28px); }
+.story-question .story-first-character-name { font-size: clamp(26px, 2.6vw, 34px); font-weight: 700; letter-spacing: -.04em; line-height: 1.15; }
+.story-question .story-first-response { grid-template-rows: minmax(0, 1fr) auto auto; }
+.story-question .story-first-progress { flex-direction: row; align-items: center; gap: 12px; margin: 4px 0 0; }
+.story-question .story-first-segments { flex: 1; max-width: none; }
+
+@media (max-width: 700px) {
+  /* Antworten fast über die volle Breite. */
+  .story-first-stage.story-question { padding-inline: 12px; }
+  .story-question .story-first-character { gap: 12px; margin: 4px 0 10px; }
+  .story-question .story-first-avatar { flex-basis: 46px; width: 46px; height: 46px; }
+  .story-question .story-first-avatar-image { width: 40px; height: 40px; }
+  .story-question .story-first-character-name { font-size: clamp(26px, 7.4vw, 32px); }
+  .story-question .story-first-response { gap: 10px; }
+  .story-question .story-first-progress { margin: 2px 2px 0; }
+}

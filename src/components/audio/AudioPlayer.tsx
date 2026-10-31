@@ -20,6 +20,7 @@ import { useAudioPlayer, formatTime } from "@/hooks/useAudioPlayer";
 import AudioProgressBar from "./AudioProgressBar";
 import { type StoryPlayContext, storyPlayCompleted, storyPlayStarted } from "@/lib/product-analytics/story-plays";
 import MusicVolumeControl from "./MusicVolumeControl";
+import { PLAY_STORY_EVENT } from "./play-events";
 
 export type AudioPlayerVariant = "standard" | "bls" | "compact";
 
@@ -112,12 +113,31 @@ export default function AudioPlayer({
     togglePlayPause();
   };
 
+  // Start von außen (requestStoryPlay). Über eine Ref, damit der Listener
+  // nicht bei jedem Zeit-Update neu registriert wird.
+  const externalPlayRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    externalPlayRef.current = () => {
+      if (!isPlaying && !isPreparingAudio) handleTogglePlay();
+    };
+  });
+  useEffect(() => {
+    if (!storyId) return;
+    const onPlayRequest = (event: Event) => {
+      if ((event as CustomEvent<{ storyId: string }>).detail?.storyId === storyId) externalPlayRef.current();
+    };
+    window.addEventListener(PLAY_STORY_EVENT, onPlayRequest);
+    return () => window.removeEventListener(PLAY_STORY_EVENT, onPlayRequest);
+  }, [storyId]);
+
   return (
     <div className={className}>
       {header}
 
       {showBLS && blsExpanded && (
-        <div className="mb-5 overflow-hidden rounded-xl bg-secondary-900">
+        // Originalformat des Videos (1280×852), damit nichts abgeschnitten wird;
+        // die Breite ist begrenzt, damit es auf breiten Karten nicht riesig wird.
+        <div className="mx-auto mb-5 aspect-[1280/852] w-full max-w-md overflow-hidden rounded-xl bg-secondary-900">
           <video
             ref={videoRef}
             src={BLS_VIDEO_URL}
@@ -125,7 +145,7 @@ export default function AudioPlayer({
             muted
             playsInline
             aria-hidden="true"
-            className="h-32 w-full object-cover md:h-40"
+            className="h-full w-full object-contain"
           />
         </div>
       )}
@@ -215,11 +235,15 @@ export default function AudioPlayer({
 
         {/* Nur zeigen, wenn es auch etwas zu regeln gibt: Zu vielen Ressourcen
             ist keine Musik zugeordnet – ein toter Regler würde verwirren. */}
-        {hasBackgroundMusic && (
-          <div className="flex justify-center pt-1">
-            <MusicVolumeControl compact={isCompact} label="Hintergrundmusik" />
-          </div>
-        )}
+        {hasBackgroundMusic &&
+          (isCompact ? (
+            <div className="flex justify-center pt-1">
+              <MusicVolumeControl compact label="Hintergrundmusik" />
+            </div>
+          ) : (
+            // Volle Breite wie der Fortschrittsbalken – mit dem Finger leichter zu treffen.
+            <MusicVolumeControl wide label="Hintergrundmusik" className="pt-1" />
+          ))}
 
         {/* Zustandsänderungen für Screenreader hörbar machen. */}
         <p id={statusId} className="sr-only" aria-live="polite">
