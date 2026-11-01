@@ -383,18 +383,24 @@ export function useAudioPlayer({
       }
 
       // Stimme ist zu Ende, Musik läuft weiter – Zeit weiter mitschreiben.
+      // Ohne loop = false liefe die Musik endlos weiter und die Zeit spränge
+      // auf 0:00, statt dass die Story endet. handlePlay schaltet es wieder ein.
+      music.loop = false;
       clearMusicTimer();
       musicTimerRef.current = setInterval(() => {
         const m = musicRef.current;
         if (!m) return clearMusicTimer();
-        if (isUserPausingRef.current || m.paused) return clearMusicTimer();
+        // Zuerst "ended": Eine zu Ende gespielte Musik ist auch "paused".
         if (m.ended) return finish();
+        if (isUserPausingRef.current || m.paused) return clearMusicTimer();
         setCurrentTime(m.currentTime);
       }, 250);
     };
 
     const handlePlay = () => {
       setIsPlaying(true);
+      // Solange die Stimme läuft, füllt die Musik in Schleife die ganze Länge.
+      if (musicRef.current) musicRef.current.loop = true;
       // Neuer Durchlauf von vorn: das Ende darf wieder gemeldet werden.
       if (isFinite(audio.duration) && audio.currentTime < audio.duration - COMPLETION_REARM_SECONDS) {
         completionFiredRef.current = false;
