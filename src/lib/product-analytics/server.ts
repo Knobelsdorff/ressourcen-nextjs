@@ -72,11 +72,14 @@ async function stableUuid(seed: string): Promise<string> {
 
 async function send(body: Record<string, unknown>) {
   if (!KEY) return;
+  // Ohne das ortet PostHog die Vercel-IP (USA) und setzt sie als Standort der
+  // Person – bei der Engel-Story sogar als ersten Standort.
+  const properties = { ...(body.properties as Record<string, unknown>), $geoip_disable: true };
   try {
     const response = await fetch(`${HOST}/i/v0/e/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ api_key: KEY, ...body }),
+      body: JSON.stringify({ api_key: KEY, ...body, properties }),
       signal: AbortSignal.timeout(4000),
     });
     if (!response.ok) console.warn('[ProductAnalytics] PostHog antwortete', response.status);

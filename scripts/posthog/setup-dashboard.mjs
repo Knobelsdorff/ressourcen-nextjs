@@ -192,8 +192,11 @@ const INSIGHTS = [
         ev('creation_cta_clicked', 'CTA geklickt'),
         ev('story_creation_started', 'Erstellung gestartet'),
         ev('personalization_completed', 'Fragen beantwortet'),
+        // Nicht story_generated: Beim Engel-Weg entsteht die Story parallel zum
+        // Klick auf den E-Mail-Link – mal davor, mal danach. Der Start der
+        // Erstellung liegt immer vor dem Account (er läuft schon beim Absenden der E-Mail).
+        ev('story_generation_started', 'Story wird erstellt'),
         ev('signup_completed', 'Account erstellt'),
-        ev('story_generated', 'Story erstellt'),
         ev('story_play_started', 'Wiedergabe gestartet'),
         ev('story_play_completed', 'Zu Ende gehört'),
         ev('soft_paywall_viewed', 'Abo-Angebot gesehen'),
@@ -211,8 +214,11 @@ const INSIGHTS = [
         ev('story_creation_started', 'Erstellung gestartet'),
         ev('personalization_completed', 'Fragen beantwortet'),
         ev('signup_viewed', 'Konto-Schritt gesehen'),
+        // Nicht story_generated: Beim Engel-Weg entsteht die Story parallel zum
+        // Klick auf den E-Mail-Link – mal davor, mal danach. Der Start der
+        // Erstellung liegt immer vor dem Account (er läuft schon beim Absenden der E-Mail).
+        ev('story_generation_started', 'Story wird erstellt'),
         ev('signup_completed', 'Account erstellt'),
-        ev('story_generated', 'Story erstellt'),
         ev('story_play_started', 'Wiedergabe gestartet'),
         ev('story_play_completed', 'Zu Ende gehört'),
       ],
