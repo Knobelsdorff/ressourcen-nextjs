@@ -33,9 +33,8 @@ import ContactModal from "@/components/ContactModal";
 import FeedbackModal from "@/components/FeedbackModal";
 import BugModal from "@/components/BugModal";
 import AudioPlayer from "@/components/audio/AudioPlayer";
-import StoryCardConnected from "@/components/dashboard/StoryCardConnected";
+import StoryCard from "@/components/dashboard/StoryCard";
 import SubscriptionManagement from "@/components/SubscriptionManagement";
-import { BLSProvider } from "@/components/providers/bls-provider";
 import EditableSubtitle from "@/components/EditableSubtitle";
 import StoryActionsMenu from "@/components/StoryActionsMenu";
 import EditableTitle from "@/components/EditableTitle";
@@ -3352,7 +3351,6 @@ ${story.content}
   }
 
         return (
-    <BLSProvider>
       <MotionConfig reducedMotion="user">
       <div className="dashboard-page min-h-screen pb-10 sm:pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:py-8 py-4">
@@ -3563,11 +3561,10 @@ ${story.content}
                   )}
                   
                   {personalStories.map((story) => (
-                    <StoryCardConnected
+                    <StoryCard
                       key={story.id}
                       story={story}
                       subtitle={getDisplaySubtitle(story)}
-                      withBLS={subscriptionStatus.isPro}
                       isRenaming={renamingStoryId === story.id}
                       onStartRename={() => setRenamingStoryId(story.id)}
                       onSaveTitle={async (newTitle) => {
@@ -3640,6 +3637,5 @@ ${story.content}
 
       </div>
       </MotionConfig>
-    </BLSProvider>
   );
 }

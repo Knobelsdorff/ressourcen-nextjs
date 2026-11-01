@@ -6,12 +6,17 @@
  * Eingeklappt nur Titel und ein Satz. Aufgeklappt läuft das kurze Video
  * stumm in Schleife, ohne Bedienelemente und inline (auch auf iOS). Beim
  * Zuklappen wird das Video entfernt – damit stoppt es zuverlässig.
+ *
+ * Gilt für alle, auch für Pro: Das frühere Pro-Video „Bilaterale
+ * Stimulation" im Player ist auf Wunsch von Andreas entfallen.
  */
 
 import { useEffect, useId, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 
 const BUTTERFLY_HUG_VIDEO_URL = "/videos/butterfly-hug.mp4";
+// Standbild aus dem Video – statt einer leeren Fläche, bis das Video geladen ist.
+const BUTTERFLY_HUG_POSTER_URL = "/videos/butterfly-hug-poster.jpg";
 
 export default function ButterflyHugExercise({ className = "" }: { className?: string }) {
   const [open, setOpen] = useState(false);
@@ -58,6 +63,7 @@ export default function ButterflyHugExercise({ className = "" }: { className?: s
             <video
               ref={videoRef}
               src={BUTTERFLY_HUG_VIDEO_URL}
+              poster={BUTTERFLY_HUG_POSTER_URL}
               autoPlay
               muted
               loop

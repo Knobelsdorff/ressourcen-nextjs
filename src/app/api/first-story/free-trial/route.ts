@@ -9,7 +9,10 @@
  * 'trial' bekommt eine Story nur, wenn ALLES zutrifft:
  *   - gehört dem Account, ist keine Engel-Erststory, kein Audio-only,
  *   - hat Antworten (question_answers nicht leer),
- *   - der Account hat keine andere Story (Therapie-Klient:innen bleiben 'always'),
+ *   - der Account hat keine andere KI-Story. Audio-only-Ressourcen aus der
+ *     Therapie zählen nicht mit: Sie bleiben selbst immer 'always', aber die
+ *     eine Gratis-Story einer Klient:in läuft wie bei allen nach 7 Tagen ab
+ *     (Migration 20261101120000),
  *   - kein aktiver Zugang.
  *
  * trial_ends_at wird auf created_at + FIRST_STORY_TRIAL_MINUTES gesetzt – dieselbe
@@ -48,12 +51,13 @@ export async function POST(request: NextRequest) {
         story.is_audio_only !== true && Array.isArray(story.question_answers) && story.question_answers.length > 0;
       if (!looksLikeFirstAiStory) return NextResponse.json({ policy: story.access_policy, trialEndsAt: null });
 
-      const { count: otherStories, error: countError } = await (admin as any)
+      const { count: otherAiStories, error: countError } = await (admin as any)
         .from('saved_stories')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .neq('id', story.id);
-      if (countError || (otherStories ?? 0) > 0) return NextResponse.json({ policy: story.access_policy, trialEndsAt: null });
+        .neq('id', story.id)
+        .not('is_audio_only', 'is', true);
+      if (countError || (otherAiStories ?? 0) > 0) return NextResponse.json({ policy: story.access_policy, trialEndsAt: null });
 
       const access = await loadUserAccessState(admin, user.id, user.email);
       if (access.hasActiveAccess) return NextResponse.json({ policy: story.access_policy, trialEndsAt: null });

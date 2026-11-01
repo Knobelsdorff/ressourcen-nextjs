@@ -56,10 +56,6 @@ const LOCKED_COPY: Record<StoryLockReason, { title: string; text: string; cta: s
 interface StoryCardProps {
   story: StoryCardStory;
   subtitle: string | null;
-  /** Pro-Nutzer bekommen zusätzlich die bilaterale Stimulation. */
-  withBLS?: boolean;
-  blsExpanded?: boolean;
-  onToggleBLS?: () => void;
   isRenaming: boolean;
   onStartRename: () => void;
   onSaveTitle: (title: string) => Promise<void>;
@@ -80,9 +76,6 @@ interface StoryCardProps {
 export default function StoryCard({
   story,
   subtitle,
-  withBLS = false,
-  blsExpanded = false,
-  onToggleBLS,
   isRenaming,
   onStartRename,
   onSaveTitle,
@@ -199,9 +192,6 @@ export default function StoryCard({
             title={story.title}
             storyId={story.id}
             resourceFigure={story.resource_figure}
-            variant={withBLS ? "bls" : "standard"}
-            blsExpanded={blsExpanded}
-            onToggleBLS={onToggleBLS}
             onCompleted={onCompleted}
             playAnalytics={{
               storyId: story.id,

@@ -4,25 +4,26 @@
  * Ein Player für alle Fälle.
  *
  * Ersetzt DashboardAudioPlayer (906 Zeilen) und StoryPlayerWithBLS (911
- * Zeilen), die zu großen Teilen Kopien voneinander waren. Der Unterschied
- * zwischen beiden war im Kern nur die BLS-Videoebene – hier eine Variante,
- * kein eigenes Bauteil.
+ * Zeilen), die zu großen Teilen Kopien voneinander waren.
  *
  * Varianten:
  *   "standard" – normale Wiedergabe
- *   "bls"      – zusätzlich bilaterale Stimulation (Pro)
  *   "compact"  – schlanke Zeile, z.B. für „Ankommen"
+ *
+ * Die frühere Pro-Variante "bls" (Video „Bilaterale Stimulation") ist
+ * entfallen: Auf Wunsch von Andreas sehen alle nur noch die Klopfübung
+ * unter dem Player (ButterflyHugExercise).
  */
 
 import { useRef, useEffect, useId } from "react";
-import { Play, Pause, RotateCcw, RotateCw, Eye, EyeOff } from "lucide-react";
+import { Play, Pause, RotateCcw, RotateCw } from "lucide-react";
 import { useAudioPlayer, formatTime } from "@/hooks/useAudioPlayer";
 import AudioProgressBar from "./AudioProgressBar";
 import { type StoryPlayContext, storyPlayCompleted, storyPlayStarted } from "@/lib/product-analytics/story-plays";
 import MusicVolumeControl from "./MusicVolumeControl";
 import { PLAY_STORY_EVENT } from "./play-events";
 
-export type AudioPlayerVariant = "standard" | "bls" | "compact";
+export type AudioPlayerVariant = "standard" | "compact";
 
 interface AudioPlayerProps {
   audioUrl: string;
@@ -37,15 +38,10 @@ interface AudioPlayerProps {
   /** Nur für eigene Power Storys: Funnel-Events (Start, Ende, erneutes Hören). Hörproben ohne. */
   playAnalytics?: StoryPlayContext;
   variant?: AudioPlayerVariant;
-  /** BLS-Ebene ein-/ausklappen (nur variant="bls"). */
-  blsExpanded?: boolean;
-  onToggleBLS?: () => void;
   /** Eigene Kopfzeile – Titel, Untertitel, Menü kommen von außen. */
   header?: React.ReactNode;
   className?: string;
 }
-
-const BLS_VIDEO_URL = "/videos/Bilaterale%20Stimulation.mp4";
 
 export default function AudioPlayer({
   audioUrl,
@@ -57,8 +53,6 @@ export default function AudioPlayer({
   onPlay,
   playAnalytics,
   variant = "standard",
-  blsExpanded = false,
-  onToggleBLS,
   header,
   className = "",
 }: AudioPlayerProps) {
@@ -92,18 +86,8 @@ export default function AudioPlayer({
     if (isPlaying && playAnalyticsRef.current) storyPlayStarted(playAnalyticsRef.current);
   }, [isPlaying]);
 
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const statusId = useId();
   const isCompact = variant === "compact";
-  const showBLS = variant === "bls";
-
-  // BLS-Video an die Wiedergabe koppeln.
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !showBLS || !blsExpanded) return;
-    if (isPlaying) video.play().catch(() => {});
-    else video.pause();
-  }, [isPlaying, showBLS, blsExpanded]);
 
   const busy = isLoading || isPreparingAudio;
   const playLabel = isPlaying ? "Pause" : "Abspielen";
@@ -133,22 +117,6 @@ export default function AudioPlayer({
   return (
     <div className={className}>
       {header}
-
-      {showBLS && blsExpanded && (
-        // Originalformat des Videos (1280×852), damit nichts abgeschnitten wird;
-        // die Breite ist begrenzt, damit es auf breiten Karten nicht riesig wird.
-        <div className="mx-auto mb-5 aspect-[1280/852] w-full max-w-md overflow-hidden rounded-xl bg-secondary-900">
-          <video
-            ref={videoRef}
-            src={BLS_VIDEO_URL}
-            loop
-            muted
-            playsInline
-            aria-hidden="true"
-            className="h-full w-full object-contain"
-          />
-        </div>
-      )}
 
       <div className={isCompact ? "space-y-3" : "space-y-4"}>
         <AudioProgressBar
@@ -213,24 +181,6 @@ export default function AudioPlayer({
           >
             <RotateCw className="h-5 w-5" aria-hidden="true" />
           </button>
-
-          {showBLS && onToggleBLS && (
-            <button
-              type="button"
-              onClick={onToggleBLS}
-              aria-pressed={blsExpanded}
-              aria-label={
-                blsExpanded ? "Augenbewegung ausblenden" : "Augenbewegung einblenden"
-              }
-              className="ml-2 rounded-full p-2.5 text-secondary-600 transition-colors hover:bg-primary-50 hover:text-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2"
-            >
-              {blsExpanded ? (
-                <EyeOff className="h-5 w-5" aria-hidden="true" />
-              ) : (
-                <Eye className="h-5 w-5" aria-hidden="true" />
-              )}
-            </button>
-          )}
         </div>
 
         {/* Nur zeigen, wenn es auch etwas zu regeln gibt: Zu vielen Ressourcen
