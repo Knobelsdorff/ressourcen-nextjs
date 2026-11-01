@@ -40,13 +40,27 @@ export default function ButterflyHugExercise({ className = "" }: { className?: s
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-controls={panelId}
-        className="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left transition-colors hover:bg-secondary-100/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2"
+        className="flex w-full items-center gap-3 rounded-2xl p-3 text-left transition-colors hover:bg-secondary-100/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 sm:gap-4 sm:p-3.5"
       >
+        {/* Vorschaubild nur eingeklappt – aufgeklappt läuft darunter das Video. */}
+        {!open && (
+          <>
+            <img
+              src={BUTTERFLY_HUG_POSTER_URL}
+              alt=""
+              width={84}
+              height={84}
+              loading="lazy"
+              className="h-16 w-16 shrink-0 rounded-xl object-cover object-top sm:h-[84px] sm:w-[84px]"
+            />
+            <span className="h-12 w-px shrink-0 bg-secondary-200" aria-hidden="true" />
+          </>
+        )}
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold text-secondary-900">
+          <span className="block text-sm font-semibold leading-snug text-secondary-900 sm:text-base">
             Durch sanftes Klopfen Effekt verstärken
           </span>
-          <span className="mt-0.5 block text-xs leading-snug text-secondary-600">
+          <span className="mt-1 block text-xs leading-snug text-secondary-600 sm:text-sm">
             Wenn du möchtest, kannst du deine Power Story mit einer einfachen Klopfübung begleiten.
           </span>
         </span>

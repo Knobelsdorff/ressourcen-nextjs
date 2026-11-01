@@ -8,12 +8,17 @@ interface StoryActionsMenuProps {
   onRename: () => void;
   onDelete: () => void;
   canDelete: boolean;
+  /** Beschreibung hinzufügen/bearbeiten – im Kartenkopf steht sie nur, wenn es eine gibt. */
+  onEditSubtitle?: () => void;
+  hasSubtitle?: boolean;
 }
 
 export default function StoryActionsMenu({
   onRename,
   onDelete,
-  canDelete
+  canDelete,
+  onEditSubtitle,
+  hasSubtitle = false,
 }: StoryActionsMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -67,6 +72,17 @@ export default function StoryActionsMenu({
             >
               Umbenennen
             </button>
+            {onEditSubtitle && (
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  onEditSubtitle();
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-primary-900 hover:bg-primary-50 transition-colors"
+              >
+                {hasSubtitle ? "Beschreibung bearbeiten" : "Beschreibung hinzufügen"}
+              </button>
+            )}
             {canDelete && (
               <button
                 onClick={handleDelete}

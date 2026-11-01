@@ -43,6 +43,17 @@ interface AudioPlayerProps {
   className?: string;
 }
 
+/** Kreispfeil mit "15" darin – zeigt, wie weit gesprungen wird. */
+function SkipIcon({ direction, compact }: { direction: "back" | "forward"; compact: boolean }) {
+  const Icon = direction === "back" ? RotateCcw : RotateCw;
+  return (
+    <span className={`relative flex items-center justify-center ${compact ? "h-7 w-7" : "h-10 w-10"}`} aria-hidden="true">
+      <Icon className="h-full w-full" strokeWidth={1.6} />
+      <span className={`absolute pt-px font-semibold tabular-nums leading-none ${compact ? "text-[8px]" : "text-[11px]"}`}>15</span>
+    </span>
+  );
+}
+
 export default function AudioPlayer({
   audioUrl,
   title,
@@ -90,6 +101,8 @@ export default function AudioPlayer({
   const isCompact = variant === "compact";
 
   const busy = isLoading || isPreparingAudio;
+  const skipButtonClass =
+    "rounded-full p-1.5 text-secondary-700 transition-colors hover:bg-primary-50 hover:text-primary-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 disabled:opacity-40";
   const playLabel = isPlaying ? "Pause" : "Abspielen";
 
   const handleTogglePlay = () => {
@@ -134,15 +147,15 @@ export default function AudioPlayer({
           <span>{duration > 0 ? formatTime(duration) : "–:––"}</span>
         </div>
 
-        <div className="flex items-center justify-center gap-2">
+        <div className={`flex items-center justify-center ${isCompact ? "gap-2" : "gap-5 sm:gap-7"}`}>
           <button
             type="button"
             onClick={() => skipBy(-15)}
             disabled={busy}
             aria-label="15 Sekunden zurück"
-            className="rounded-full p-2.5 text-secondary-600 transition-colors hover:bg-primary-50 hover:text-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 disabled:opacity-40"
+            className={skipButtonClass}
           >
-            <RotateCcw className="h-5 w-5" aria-hidden="true" />
+            <SkipIcon direction="back" compact={isCompact} />
           </button>
 
           <button
@@ -156,7 +169,7 @@ export default function AudioPlayer({
               transition-colors hover:bg-primary-800
               focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2
               disabled:cursor-not-allowed disabled:opacity-60
-              ${isCompact ? "h-12 w-12" : "h-16 w-16"}
+              ${isCompact ? "h-12 w-12" : "h-[72px] w-[72px] shadow-[0_12px_26px_-10px_rgba(73,48,30,0.55)]"}
             `}
           >
             {busy ? (
@@ -165,10 +178,10 @@ export default function AudioPlayer({
                 aria-hidden="true"
               />
             ) : isPlaying ? (
-              <Pause className={isCompact ? "h-5 w-5" : "h-7 w-7"} aria-hidden="true" />
+              <Pause className={isCompact ? "h-5 w-5" : "h-8 w-8"} aria-hidden="true" />
             ) : (
               // Optische Mitte: das Play-Dreieck wirkt sonst nach links versetzt.
-              <Play className={`${isCompact ? "h-5 w-5" : "h-7 w-7"} ml-0.5`} aria-hidden="true" />
+              <Play className={`${isCompact ? "h-5 w-5" : "h-8 w-8"} ml-1`} aria-hidden="true" />
             )}
           </button>
 
@@ -177,9 +190,9 @@ export default function AudioPlayer({
             onClick={() => skipBy(15)}
             disabled={busy}
             aria-label="15 Sekunden vor"
-            className="rounded-full p-2.5 text-secondary-600 transition-colors hover:bg-primary-50 hover:text-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 disabled:opacity-40"
+            className={skipButtonClass}
           >
-            <RotateCw className="h-5 w-5" aria-hidden="true" />
+            <SkipIcon direction="forward" compact={isCompact} />
           </button>
         </div>
 

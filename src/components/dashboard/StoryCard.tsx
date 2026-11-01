@@ -9,6 +9,7 @@
  * Klient:innen an eine Liste stellen: „Welche ist die von letzter Woche?"
  */
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Lock, Volume2 } from "lucide-react";
 import AudioPlayer from "@/components/audio/AudioPlayer";
@@ -16,6 +17,7 @@ import ButterflyHugExercise from "@/components/audio/ButterflyHugExercise";
 import EditableTitle from "@/components/EditableTitle";
 import EditableSubtitle from "@/components/EditableSubtitle";
 import StoryActionsMenu from "@/components/StoryActionsMenu";
+import StoryScene from "./StoryScene";
 import { formatDateWithTitle } from "@/lib/format-date";
 import { StoryAccess, StoryLockReason, trialDaysLeft } from "@/lib/story-access/shared";
 
@@ -90,6 +92,8 @@ export default function StoryCard({
   tour,
 }: StoryCardProps) {
   const created = formatDateWithTitle(story.created_at);
+  // Ohne Beschreibung keine Platzhalterzeile – hinzufügen geht übers Menü.
+  const [editingSubtitle, setEditingSubtitle] = useState(false);
   const lockReason = story.access && !story.access.playable ? story.access.lockReason ?? "trial_ended" : null;
   const freeDaysLeft = story.access?.trialActive ? trialDaysLeft(story.access.trialEndsAt) : 0;
 
@@ -121,15 +125,19 @@ export default function StoryCard({
             </h3>
           )}
 
-          <div className="mt-1">
-            <EditableSubtitle
-              value={subtitle}
-              autoSubtitle={story.auto_subtitle ?? null}
-              customSubtitle={story.custom_subtitle ?? null}
-              onSave={onSaveSubtitle}
-              className="text-sm"
-            />
-          </div>
+          {(subtitle || editingSubtitle) && (
+            <div className="mt-1">
+              <EditableSubtitle
+                value={subtitle}
+                autoSubtitle={story.auto_subtitle ?? null}
+                customSubtitle={story.custom_subtitle ?? null}
+                onSave={onSaveSubtitle}
+                autoEdit={editingSubtitle}
+                onDone={() => setEditingSubtitle(false)}
+                className="text-sm"
+              />
+            </div>
+          )}
 
           <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
             <time
@@ -162,8 +170,12 @@ export default function StoryCard({
           onRename={onStartRename}
           onDelete={onDelete}
           canDelete={canDelete}
+          onEditSubtitle={() => setEditingSubtitle(true)}
+          hasSubtitle={!!subtitle}
         />
       </header>
+
+      <StoryScene />
 
       {lockReason ? (
         <div className="dashboard-story-locked" role="group" aria-labelledby={`locked-${story.id}`}>

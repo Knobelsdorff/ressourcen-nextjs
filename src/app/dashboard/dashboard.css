@@ -207,3 +207,65 @@ div.settings-backdrop { position: fixed; inset: 0; z-index: 60; display: flex; a
   .dashboard-theme *, .dashboard-theme *::before, .dashboard-theme *::after { animation: none !important; transition: none !important; }
   .dashboard-theme button:not(:disabled):active { transform: none; }
 }
+
+/* Bibliothek: Kopf mit Lotus, Zähler, Kartenraster (ab Desktop zweispaltig). */
+.dashboard-library-head { display: flex; align-items: center; justify-content: space-between; gap: 16px 24px; margin-bottom: 22px; }
+.dashboard-library-title { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.dashboard-library-mark { flex: 0 0 auto; width: 48px; height: 30px; color: #6d803f; }
+.dashboard-library-title h2 { color: var(--wellness-chocolate); font-size: 28px; font-weight: 700; line-height: 1.15; }
+.dashboard-library-title p { margin-top: 3px; color: #69594c; font-size: 14px; }
+.dashboard-library-actions { display: flex; gap: 12px; }
+.dashboard-library-count { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 4px 2px 14px; }
+.dashboard-library-count h3 { color: #5a4636; font-size: 17px; font-weight: 700; }
+.dashboard-library-count span { color: #8b7868; font-size: 13px; }
+.dashboard-story-list { display: grid; gap: 20px; }
+.dashboard-story-list > :not(.dashboard-story-card) { grid-column: 1 / -1; }
+@media (min-width: 1024px) {
+  .dashboard-story-list { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 24px; }
+  /* Nur eine Story: volle Breite statt einer halben Spalte links. */
+  .dashboard-story-list > .dashboard-story-card:only-of-type { grid-column: 1 / -1; }
+}
+
+/* Admin-Werkzeuge: ein Knopf mit Menü (AdminMenu) statt eigener Leiste. */
+.dashboard-admin { position: relative; flex: 0 0 auto; }
+.dashboard-admin-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 12px 18px; border: 1px solid #ddd2c7; border-radius: 999px; background: #fffcf8; color: var(--wellness-chocolate); font-size: 14px; font-weight: 600; transition: background-color 180ms ease, border-color 180ms ease; }
+.dashboard-admin-button:hover, .dashboard-admin-button[aria-expanded='true'] { border-color: #b9a592; background: #f4eee7; }
+.dashboard-admin-chevron { transition: transform 180ms ease; }
+.dashboard-admin-menu { position: absolute; top: calc(100% + 8px); right: 0; z-index: 40; display: flex; flex-direction: column; min-width: 320px; padding: 6px; border: 1px solid #e4ded6; border-radius: 16px; background: #fffcf8; box-shadow: 0 14px 34px -12px #49301e40; }
+.dashboard-admin-menu > :is(a, button) { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 12px; border-radius: 10px; color: var(--wellness-chocolate); font-size: 14px; font-weight: 500; text-align: left; }
+.dashboard-admin-menu > :is(a, button):hover, .dashboard-admin-menu > :is(a, button):focus-visible { background: #f1ebe3; outline: none; }
+.dashboard-admin-menu svg { width: 18px; height: 18px; flex: 0 0 auto; color: #7a6250; }
+
+/* Hügelband mit Lotus in jeder Karte (StoryScene), getönt nach Akzentfarbe. */
+.story-scene { --scene-back: #e3ead2; --scene-front: #cbd8ac; --scene-glow: #fbe8b9; position: relative; height: 84px; margin: -6px -28px 18px; overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent); mask-image: linear-gradient(to bottom, #000 55%, transparent); }
+.dashboard-story-card:nth-of-type(3n + 2) .story-scene { --scene-back: #ece6fb; --scene-front: #d9cff6; }
+.dashboard-story-card:nth-of-type(3n + 3) .story-scene { --scene-back: #fdebd9; --scene-front: #f8d6b2; }
+.story-scene-hills { position: absolute; inset: 0; width: 100%; height: 100%; }
+.story-scene-back { fill: var(--scene-back); }
+.story-scene-front { fill: var(--scene-front); }
+.story-scene-lotus { position: absolute; right: 14%; bottom: 18px; width: 64px; height: 40px; }
+.story-scene-lotus svg { position: relative; width: 100%; height: 100%; fill: #fffaf0; stroke: #e6d3a8; stroke-width: 1; stroke-linejoin: round; }
+.story-scene-glow { position: absolute; left: 50%; top: 55%; width: 128px; height: 84px; border-radius: 50%; background: radial-gradient(closest-side, var(--scene-glow), transparent); transform: translate(-50%, -50%); }
+
+@media (max-width: 640px) {
+  .dashboard-library-head { flex-direction: column; align-items: stretch; margin-bottom: 18px; }
+  .dashboard-library-mark { width: 40px; height: 26px; }
+  .dashboard-library-title { gap: 12px; }
+  .dashboard-library-title h2 { font-size: 24px; }
+  .dashboard-library-title p { font-size: 13px; }
+  /* Knöpfe nebeneinander statt untereinander – spart eine ganze Zeile. */
+  .dashboard-library-actions { gap: 10px; }
+  .dashboard-library-actions > button { flex: 1 1 0; min-width: 0; gap: 7px; padding-inline: 12px; font-size: 13.5px; }
+  .dashboard-library-actions > .dashboard-primary-button { flex-grow: 1.25; }
+  .dashboard-library-actions > button > svg { flex-shrink: 0; }
+  /* Admin: rundes Icon oben rechts neben der Überschrift, nicht in der Knopfreihe. */
+  .dashboard-library-head { position: relative; }
+  .dashboard-library-head:has(.dashboard-admin) .dashboard-library-title { padding-right: 56px; }
+  .dashboard-admin { position: absolute; top: 0; right: 0; }
+  .dashboard-admin-button { width: 46px; min-height: 46px; padding: 0; }
+  .dashboard-admin-label, .dashboard-admin-chevron { display: none; }
+  .dashboard-admin-menu { min-width: min(320px, calc(100vw - 32px)); }
+  .story-scene { height: 70px; margin: -8px -18px 14px; }
+  .story-scene-lotus { right: 10%; bottom: 14px; width: 52px; height: 33px; }
+  .story-scene-glow { width: 104px; height: 68px; }
+}

@@ -10,6 +10,10 @@ interface EditableSubtitleProps {
   onSave: (value: string) => Promise<void>;
   placeholder?: string;
   className?: string;
+  /** Direkt im Bearbeiten-Modus starten (z.B. aus dem Story-Menü). */
+  autoEdit?: boolean;
+  /** Bearbeiten beendet (gespeichert oder abgebrochen). */
+  onDone?: () => void;
 }
 
 export default function EditableSubtitle({
@@ -18,9 +22,15 @@ export default function EditableSubtitle({
   customSubtitle,
   onSave,
   placeholder = "Wofür ist diese Power Story für dich?",
-  className = ""
+  className = "",
+  autoEdit = false,
+  onDone,
 }: EditableSubtitleProps) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(autoEdit);
+
+  useEffect(() => {
+    if (autoEdit) setIsEditing(true);
+  }, [autoEdit]);
   const [editValue, setEditValue] = useState(value || "");
   const [isSaving, setIsSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -55,6 +65,7 @@ export default function EditableSubtitle({
     try {
       await onSave(valueToSave || "");
       setIsEditing(false);
+      onDone?.();
     } catch (error: any) {
       console.error("[EditableSubtitle] Error saving subtitle:", {
         message: error?.message,
@@ -79,6 +90,7 @@ export default function EditableSubtitle({
     } else if (e.key === "Escape") {
       setIsEditing(false);
       setEditValue(value || "");
+      onDone?.();
     }
   };
 

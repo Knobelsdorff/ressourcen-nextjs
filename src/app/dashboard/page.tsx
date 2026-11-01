@@ -14,7 +14,7 @@ import { TOUR_ANCHORS } from "@/components/onboarding/firstStoryTour";
 import { scrollToTourAnchor } from "@/components/onboarding/tour-dom";
 import type { StoryAccess, StoryLockReason } from "@/lib/story-access/shared";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, Volume2, User, Mail, Calendar, Clock, Star, Trophy, Target, Shield, HelpCircle, MessageCircle, Bug, Key, Trash, Crown, Zap, TrendingUp, Play, Pause, BarChart3, Lock, Music, RefreshCw, Plus, RotateCcw, CreditCard, Sparkles, Headphones } from "lucide-react";
+import { BookOpen, Settings, CheckCircle, AlertTriangle, Trash2, Download, User, Mail, Calendar, Clock, Star, Trophy, Target, Shield, HelpCircle, MessageCircle, Bug, Key, Trash, Crown, Zap, TrendingUp, Play, Pause, Lock, Music, RefreshCw, Plus, RotateCcw, CreditCard, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -34,6 +34,8 @@ import FeedbackModal from "@/components/FeedbackModal";
 import BugModal from "@/components/BugModal";
 import AudioPlayer from "@/components/audio/AudioPlayer";
 import StoryCard from "@/components/dashboard/StoryCard";
+import { LotusMark } from "@/components/dashboard/StoryScene";
+import AdminMenu from "@/components/dashboard/AdminMenu";
 import SubscriptionManagement from "@/components/SubscriptionManagement";
 import EditableSubtitle from "@/components/EditableSubtitle";
 import StoryActionsMenu from "@/components/StoryActionsMenu";
@@ -3426,12 +3428,20 @@ ${story.content}
                 <>
                   {/* Section 1: Personal Stories - PRIMARY */}
                   <div className="dashboard-library">
-                    <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <h2 className="text-2xl font-bold text-primary-900">Meine Power Storys</h2>
-                        <p className="mt-1 text-sm text-secondary-600">Deine Geschichten. In deinem Tempo.</p>
+                    <div className="dashboard-library-head">
+                      <div className="dashboard-library-title">
+                        <LotusMark className="dashboard-library-mark" />
+                        <div>
+                          <h2>Meine Power Storys</h2>
+                          <p>Deine Geschichten. In deinem Tempo.</p>
+                        </div>
                       </div>
-                      <div className="flex flex-wrap items-center gap-3">
+                      <div className="dashboard-library-actions">
+                        <AdminMenu
+                          isAdmin={isAdmin}
+                          isMusicAdmin={isMusicAdmin}
+                          onCreateClientResource={() => setShowClientResourceModal(true)}
+                        />
                         <button
                           type="button"
                           onClick={openSettings}
@@ -3452,49 +3462,6 @@ ${story.content}
                       </div>
                     </div>
 
-                    {/* Admin-Bereich: Musikverwaltung, Analytics, Manuelle Ressource (nur für Admins sichtbar) */}
-                    {(isAdmin || isMusicAdmin) && (
-                      <div className="mb-6 flex flex-wrap items-center gap-3 p-4 bg-primary-50/80 border border-primary-200 rounded-xl">
-                        {isMusicAdmin && (
-                          <Link
-                            href="/admin/music"
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors"
-                          >
-                            <Music className="w-4 h-4" />
-                            Musik verwalten
-                          </Link>
-                        )}
-                        {isAdmin && (
-                          <Link
-                            href="/admin/kostprobe"
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors"
-                          >
-                            <Headphones className="w-4 h-4" />
-                            Kostprobe
-                          </Link>
-                        )}
-                        {isAdmin && (
-                          <Link
-                            href="/admin/analytics"
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
-                          >
-                            <BarChart3 className="w-4 h-4" />
-                            Admin Analytics
-                          </Link>
-                        )}
-                        {isAdmin && (
-                          <button
-                            type="button"
-                            onClick={() => setShowClientResourceModal(true)}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
-                          >
-                            <Volume2 className="w-4 h-4" />
-                            Manuelle Ressource erstellen (Audio)
-                          </button>
-                        )}
-                      </div>
-                    )}
-
                     {personalStories.length === 0 ? (
                       <div className="text-center py-8">
                         <BookOpen className="w-12 h-12 text-secondary-400 mx-auto mb-4" />
@@ -3504,7 +3471,12 @@ ${story.content}
                         </p>
                       </div>
                     ) : (
-                      <div className="dashboard-story-list space-y-5">
+                      <>
+                      <div className="dashboard-library-count">
+                        <h3>Deine Geschichten</h3>
+                        <span>{personalStories.length === 1 ? "1 Story" : `${personalStories.length} Storys`}</span>
+                      </div>
+                      <div className="dashboard-story-list">
                   {/* Temporäre Ressource anzeigen - nur wenn Benutzer nicht eingeloggt ist */}
                   {pendingStory && !user && (
                     <motion.div
@@ -3587,6 +3559,7 @@ ${story.content}
                     />
                   ))}
                       </div>
+                      </>
                     )}
                   </div>
                 </>
