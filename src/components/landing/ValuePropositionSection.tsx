@@ -2,11 +2,11 @@
 
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useStartFirstStory } from "@/hooks/useStartFirstStory";
 import { Sparkles, AudioLines, Infinity, Heart } from "lucide-react";
 
 export default function ValuePropositionSection() {
-  const router = useRouter();
+  const startFirstStory = useStartFirstStory();
   
   const features = [
     {
@@ -89,7 +89,7 @@ export default function ValuePropositionSection() {
               className="text-center mb-8"
             >
               <Button
-                data-analytics-cta="value-proposition" onClick={() => router.push("/create-story?first=true")}
+                data-analytics-cta="value-proposition" onClick={startFirstStory}
                 size="lg"
                 className="landing-primary-button"
               >

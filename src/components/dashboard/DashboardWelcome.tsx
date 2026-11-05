@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { Headphones, Leaf, Sparkles } from 'lucide-react';
 
 export default function DashboardWelcome({ firstVisit }: { firstVisit: boolean }) {
@@ -14,11 +15,19 @@ export default function DashboardWelcome({ firstVisit }: { firstVisit: boolean }
         </div>
       </div>
       <div className="dashboard-garden" aria-hidden="true">
+        <div className="garden-backdrop" />
         <div className="garden-sun" />
-        <div className="garden-arch"><div className="garden-face"><i /><i /><b /></div></div>
-        <div className="garden-leaf" />
         <div className="garden-pebble" />
-        <Sparkles className="garden-sparkle" size={30} strokeWidth={1.5} />
+        <div className="garden-photo">
+          <Image
+            src="/images/Innere Ruhe aktivieren_Herosection.webp"
+            alt=""
+            fill
+            sizes="240px"
+            className="object-cover"
+            priority
+          />
+        </div>
         <span className="garden-caption">Schön, dass du da bist.</span>
       </div>
     </section>

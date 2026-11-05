@@ -2,11 +2,11 @@
 
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useStartFirstStory } from "@/hooks/useStartFirstStory";
 import { Quote } from "lucide-react";
 
 export default function EmpathySection() {
-  const router = useRouter();
+  const startFirstStory = useStartFirstStory();
   
   return (
     <section className="landing-section-plain py-20 px-4">
@@ -89,7 +89,7 @@ export default function EmpathySection() {
               className="text-center"
             >
               <Button
-                data-analytics-cta="empathy" onClick={() => router.push("/create-story?first=true")}
+                data-analytics-cta="empathy" onClick={startFirstStory}
                 size="lg"
                 className="landing-primary-button"
               >

@@ -2,11 +2,11 @@
 
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useStartFirstStory } from "@/hooks/useStartFirstStory";
 import Image from "next/image";
 
 export default function StakesSection() {
-  const router = useRouter();
+  const startFirstStory = useStartFirstStory();
   
   const stakes = [
     "Innere Unruhe klingt nicht immer von selbst ab",
@@ -87,7 +87,7 @@ export default function StakesSection() {
               className="pt-4"
             >
               <Button
-                data-analytics-cta="stakes" onClick={() => router.push("/create-story?first=true")}
+                data-analytics-cta="stakes" onClick={startFirstStory}
                 size="lg"
                 className="landing-primary-button"
               >
@@ -141,7 +141,7 @@ export default function StakesSection() {
           className="lg:hidden text-center"
         >
           <Button
-            data-analytics-cta="stakes-closing" onClick={() => router.push("/create-story?first=true")}
+            data-analytics-cta="stakes-closing" onClick={startFirstStory}
             size="lg"
             className="landing-primary-button"
           >

@@ -2,8 +2,8 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
+import { useStartFirstStory } from "@/hooks/useStartFirstStory";
 import LandingStoryPreview from './LandingStoryPreview';
 
 /*
@@ -17,12 +17,8 @@ import LandingStoryPreview from './LandingStoryPreview';
  * Wireframes: wer noch nicht starten will, kann sofort reinhören.
  */
 export default function HeroSection() {
-  const router = useRouter();
+  const startFirstStory = useStartFirstStory();
   const reduceMotion = useReducedMotion();
-
-  const handleCTAClick = () => {
-    router.push("/create-story?first=true");
-  };
 
   // Die Hauskurve aus globals.css (Mobile-Drawer) – ruhig, ohne Nachschwingen.
   const ease = [0.22, 1, 0.36, 1] as const;
@@ -60,7 +56,7 @@ export default function HeroSection() {
 
           <motion.div variants={item} className="landing-hero-actions">
             <Button
-              data-analytics-cta="hero" onClick={handleCTAClick}
+              data-analytics-cta="hero" onClick={startFirstStory}
               size="lg"
               className="landing-primary-button"
             >

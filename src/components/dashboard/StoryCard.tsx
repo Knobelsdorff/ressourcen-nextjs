@@ -27,8 +27,6 @@ export interface StoryCardStory {
   audio_url?: string | null;
   resource_figure: any;
   created_at: string;
-  is_audio_only?: boolean;
-  client_email?: string | null;
   auto_subtitle?: string | null;
   custom_subtitle?: string | null;
   /** Vom Server berechnet (/api/resources/mine). Fehlt = wie bisher abspielbar. */
@@ -97,10 +95,6 @@ export default function StoryCard({
   const lockReason = story.access && !story.access.playable ? story.access.lockReason ?? "trial_ended" : null;
   const freeDaysLeft = story.access?.trialActive ? trialDaysLeft(story.access.trialEndsAt) : 0;
 
-  // Mit Andreas aufgenommen vs. selbst erstellt – nur anzeigen, wenn eindeutig.
-  const createdWithAndreas = story.is_audio_only === true || story.client_email !== null;
-  const selfCreated = story.is_audio_only !== true && story.client_email === null;
-
   return (
     <motion.article
       data-tour={tour?.card}
@@ -148,16 +142,6 @@ export default function StoryCard({
               {created.label}
             </time>
 
-            {createdWithAndreas && (
-              <span className="dashboard-badge-guided rounded-full bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-800">
-                Mit Andreas erstellt
-              </span>
-            )}
-            {selfCreated && (
-              <span className="dashboard-badge-personal rounded-full bg-secondary-100 px-2 py-0.5 text-xs font-medium text-secondary-700">
-                Selbst erstellt
-              </span>
-            )}
             {freeDaysLeft > 0 && (
               <span data-tour={tour?.trial} className="dashboard-badge-trial rounded-full px-2 py-0.5 text-xs font-medium">
                 {freeDaysLeft === 1 ? "Noch heute kostenlos" : `Noch ${freeDaysLeft} Tage kostenlos`}

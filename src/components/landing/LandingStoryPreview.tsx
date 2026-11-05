@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { Headphones } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useStartFirstStory } from '@/hooks/useStartFirstStory';
 import AudioPlayer from '@/components/audio/AudioPlayer';
 
 export default function LandingStoryPreview() {
+  const startFirstStory = useStartFirstStory();
   const [story, setStory] = useState<{ title: string; audioUrl: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -64,7 +66,7 @@ export default function LandingStoryPreview() {
         ) : (
           <div className="preview-status">
             <p>Die Hörprobe ist gerade nicht verfügbar.</p>
-            <Link href="/create-story?first=true" data-analytics-cta="story-preview" className="landing-secondary-button">Meine Power Story erstellen</Link>
+            <Link href="/create-story?first=true" onClick={startFirstStory} data-analytics-cta="story-preview" className="landing-secondary-button">Meine Power Story erstellen</Link>
           </div>
         )}
       </div>

@@ -2,11 +2,11 @@
 
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useStartFirstStory } from "@/hooks/useStartFirstStory";
 import { Headphones, Sparkles, Leaf } from 'lucide-react';
 
 export default function PlanSection() {
-  const router = useRouter();
+  const startFirstStory = useStartFirstStory();
   const steps = [
     {
       number: 1,
@@ -92,7 +92,7 @@ export default function PlanSection() {
               className="text-center"
             >
               <Button
-                data-analytics-cta="plan" onClick={() => router.push("/create-story?first=true")}
+                data-analytics-cta="plan" onClick={startFirstStory}
                 size="lg"
                 className="landing-primary-button"
               >

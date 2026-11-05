@@ -43,17 +43,14 @@
 .dashboard-intentions > span:nth-child(2) { background: #ffe4c9; }
 .dashboard-intentions > span:nth-child(3) { background: #e7ddfa; }
 
-/* Simple, code-native artwork echoes the reference's expressive organic shapes. */
+/* Dasselbe Motiv wie im Landing-Hero (landing.css, .landing-scene-photo). */
 .dashboard-garden { position: relative; width: 280px; height: 230px; }
-.garden-sun { position: absolute; width: 80px; height: 80px; border-radius: 50%; background: var(--wellness-yellow); top: 4px; right: 10px; }
-.garden-arch { position: absolute; width: 148px; height: 186px; left: 63px; bottom: 24px; border-radius: 90px 90px 28px 28px; background: var(--wellness-sage); transform: rotate(-8deg); }
-.garden-face { position: absolute; left: 42px; top: 56px; width: 68px; height: 66px; }
-.garden-face i { position: absolute; width: 6px; height: 13px; border-radius: 8px; background: var(--wellness-chocolate); top: 0; left: 15px; }
-.garden-face i:nth-child(2) { left: 43px; }
-.garden-face b { position: absolute; width: 44px; height: 25px; border: 5px solid var(--wellness-chocolate); border-top: 0; border-radius: 0 0 40px 40px; left: 10px; top: 27px; }
-.garden-leaf { position: absolute; width: 86px; height: 112px; border-radius: 80px 4px 80px 4px; background: var(--wellness-orange); bottom: 23px; left: 9px; transform: rotate(-24deg); }
-.garden-pebble { position: absolute; width: 92px; height: 57px; border-radius: 60% 55% 45% 40%; background: var(--wellness-lavender); bottom: 23px; right: 0; transform: rotate(8deg); }
-.garden-sparkle { position: absolute; top: 13px; left: 18px; color: var(--wellness-chocolate); }
+.garden-backdrop, .garden-photo { position: absolute; inset: 0 20px 24px; border-radius: 104px 104px 18px 18px; }
+.garden-backdrop { background: var(--wellness-sage); transform: rotate(-6deg); transform-origin: 50% 85%; }
+.garden-sun { position: absolute; width: 64px; height: 64px; border-radius: 50%; background: var(--wellness-yellow); top: -6px; right: 0; }
+.garden-pebble { position: absolute; width: 56px; height: 40px; border-radius: 70% 65% 40% 45%; background: var(--wellness-lavender); top: 112px; right: 0; transform: rotate(9deg); }
+.garden-photo { overflow: hidden; background: #e9e6da; box-shadow: 0 10px 28px #49301e14; }
+.garden-photo img { object-position: 50% 28%; }
 .garden-caption { position: absolute; width: 100%; bottom: -4px; text-align: center; font-size: 11px; color: #69594c; }
 
 .dashboard-primary-button,
@@ -89,8 +86,6 @@
 .dashboard-theme .dashboard-story-card:nth-of-type(3n + 3) { border-top-color: var(--wellness-orange); }
 .dashboard-theme .dashboard-story-card:hover { box-shadow: 0 8px 26px #49301e0c; }
 .dashboard-theme .dashboard-story-card h3 { font-weight: 700; }
-.dashboard-theme .dashboard-badge-guided { padding: 5px 10px; background: #e6edd8; color: #405028; }
-.dashboard-theme .dashboard-badge-personal { padding: 5px 10px; background: #eee6fc; color: #62418c; }
 .dashboard-theme [role='slider'] { background: #e5dfd8; }
 .dashboard-theme [role='slider'] > .bg-primary-600 { background: #d96a0b; }
 .dashboard-theme [role='slider'] > .border-primary-600 { border-color: #d96a0b; }

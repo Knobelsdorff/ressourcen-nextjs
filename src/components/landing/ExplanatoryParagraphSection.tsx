@@ -2,10 +2,10 @@
 
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useStartFirstStory } from "@/hooks/useStartFirstStory";
 
 export default function ExplanatoryParagraphSection() {
-  const router = useRouter();
+  const startFirstStory = useStartFirstStory();
   return (
     <section 
       id="was-ist-eine-power-story" 
@@ -97,7 +97,7 @@ export default function ExplanatoryParagraphSection() {
               className="text-center"
             >
               <Button
-                data-analytics-cta="explanatory" onClick={() => router.push("/create-story?first=true")}
+                data-analytics-cta="explanatory" onClick={startFirstStory}
                 size="lg"
                 className="landing-primary-button"
               >
