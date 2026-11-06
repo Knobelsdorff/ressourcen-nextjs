@@ -2,6 +2,7 @@ import { ResourceFigure } from '@/lib/types/story';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { AnswerEntry, generateStoryText } from '@/lib/story-text';
+import { STORY_TEXT_MODEL } from '@/lib/ai-models';
 
 interface GenerateStoryRequest {
   selectedFigure: ResourceFigure;
@@ -122,13 +123,12 @@ Bitte bearbeite die Geschichte entsprechend der Anweisung. Behalte den ursprüng
 Bearbeitete Geschichte:`;
 
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: STORY_TEXT_MODEL,
         messages: [
           { role: 'system', content: 'You are a therapist specializing in somatic and narrative therapy.' },
           { role: 'user', content: editPrompt }
         ],
-        max_tokens: 800,
-        temperature: 0.7,
+        max_completion_tokens: 1000,
       });
 
       const story = completion.choices[0]?.message?.content;

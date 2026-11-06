@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Buffer } from 'node:buffer';
+import { SPEECH_MODEL } from '@/lib/ai-models';
 export const runtime = 'nodejs';
 
 interface VoiceConfig {
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     const payload: TextToSpeechRequest = {
       text: demoText,
-      model_id: 'eleven_multilingual_v2',
+      model_id: SPEECH_MODEL,
       voice_settings: voiceSettings,
       output_format: 'mp3_44100_128'
     };

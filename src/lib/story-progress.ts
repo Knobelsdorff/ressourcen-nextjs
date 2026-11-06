@@ -34,15 +34,15 @@ export interface StoryTiming {
   audioMsPerChar: number;
 }
 
-// Gemessen im Oktober 2026 (lokal, eleven_flash_v2): ein einzelner Satz ~7 s
-// (Grundzeit aus Aufruf und Upload), eine volle Story ~8 ms pro Zeichen dazu.
+// Gemessen im November 2026 (lokal, gpt-6.1-terra und eleven_v4_turbo): Der Text
+// braucht 13–16 s, die ersten Zeichen kommen nach 3–10 s. Die Stimme ~12 ms pro
+// Zeichen, dazu die Grundzeit aus Aufruf und Upload (~7 s, Oktober-Messung).
 // Etwas vorsichtiger angesetzt, bis das Gerät seinen eigenen Wert kennt.
-// Im Browser kamen die ersten Zeichen später als per curl (~2,5 s statt ~1,5 s).
 const DEFAULT_TIMING: StoryTiming = {
-  textCharsPerSec: 550,
-  textLatencyMs: 2500,
+  textCharsPerSec: 150,
+  textLatencyMs: 5000,
   audioBaseMs: 6000,
-  audioMsPerChar: 10,
+  audioMsPerChar: 12,
 };
 
 const TIMING_KEY = 'ps_story_timing_v1';

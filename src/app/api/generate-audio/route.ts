@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { Database } from '@/lib/types/database.types';
 import { createServerAdminClient } from '@/lib/supabase/serverAdminClient';
+import { SPEECH_MODEL } from '@/lib/ai-models';
 
 interface VoiceConfig {
   stability: number;
@@ -384,7 +385,7 @@ export async function POST(request: NextRequest) {
     // Request payload
     const requestPayload: TextToSpeechRequest = {
       text: effectiveText,
-      model_id: 'eleven_flash_v2',
+      model_id: SPEECH_MODEL,
       voice_settings: voiceSettings,
       output_format: 'mp3_44100_128'
     };

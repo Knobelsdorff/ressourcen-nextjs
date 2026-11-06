@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { ResourceFigure } from '@/lib/types/story';
 import { generateStoryPrompt } from '@/data/story-generation';
+import { STORY_TEXT_MODEL } from '@/lib/ai-models';
 
 /**
  * Story-Text-Erzeugung. Wird von /api/generate-story und serverseitig vom
@@ -179,7 +180,9 @@ export async function generateStoryText({
     ? 'You are a therapist specializing in somatic and narrative therapy. Generate ONLY the first sentence of a healing story. Make it warm, safe, and emotionally supportive.'
     : 'You are a therapist specializing in somatic and narrative therapy.';
 
-  const maxTokens = sparModus ? 100 : 800; // Viel weniger Tokens im Sparmodus
+  // Das Limit zählt auch das Nachdenken des Modells (bei gpt-6.* rund 80–100 Tokens)
+  // mit – bei zu knappem Wert kommt der Text abgeschnitten oder leer zurück.
+  const maxTokens = sparModus ? 400 : 1000; // Viel weniger Tokens im Sparmodus
 
   console.log('OpenAI settings:', {
     systemPrompt: systemPrompt.substring(0, 100) + '...',
@@ -215,13 +218,12 @@ export async function generateStoryText({
     }
 
     const request = {
-      model: 'gpt-4o',
+      model: STORY_TEXT_MODEL,
       messages: [
         { role: 'system' as const, content: systemPrompt },
         { role: 'user' as const, content: storyPrompt }
       ],
-      max_tokens: maxTokens,
-      temperature: 0.7,
+      max_completion_tokens: maxTokens,
     };
 
     let rawStory = '';

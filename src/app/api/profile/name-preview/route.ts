@@ -3,10 +3,9 @@
  * den Namen mit derselben Regel für den Aussprache-Hinweis wie Storys
  * (spokenStoryName). Stimme: die im Flow gewählte (voiceId), sonst Kerstin.
  *
- * Modell: eleven_multilingual_v2 wie die Stimmproben (/api/voice-preview).
- * Bewusst nicht eleven_flash_v2 wie Story-Audio: Das kann laut ElevenLabs nur
- * Englisch. In langen Texten fällt das kaum auf, aber dieser kurze Satz klang
- * nach Fremdsprache und wurde falsch verstanden (`„schon das du der Beste“`).
+ * Modell: dasselbe wie für Storys und Stimmproben (SPEECH_MODEL). Nie wieder
+ * eleven_flash_v2: Das kann laut ElevenLabs nur Englisch, dieser kurze Satz klang
+ * damit nach Fremdsprache und wurde falsch verstanden („schon das du der Beste“).
  *
  * Nur für eingeloggte Accounts. Versuche werden nicht gezählt; die Bremse
  * unten verhindert nur automatisierten Missbrauch (jeder Aufruf kostet).
@@ -14,6 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/first-story/server';
+import { SPEECH_MODEL } from '@/lib/ai-models';
 import { FIRST_STORY_VOICE_ID } from '@/lib/first-story/config';
 import { spokenStoryName } from '@/lib/spoken-name';
 import { createServerAdminClient } from '@/lib/supabase/serverAdminClient';
@@ -69,7 +69,7 @@ async function viaElevenLabs(text: string, voiceId: string): Promise<Buffer | nu
     headers: { Accept: 'audio/mpeg', 'Content-Type': 'application/json', 'xi-api-key': apiKey },
     body: JSON.stringify({
       text,
-      model_id: 'eleven_multilingual_v2',
+      model_id: SPEECH_MODEL,
       voice_settings: { stability: 0.5, similarity_boost: 0.8, style: 0, use_speaker_boost: true },
       output_format: 'mp3_44100_128',
     }),

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { generateStoryEditingPrompt } from '@/data/edit-story';
+import { STORY_TEXT_MODEL } from '@/lib/ai-models';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
     });
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: STORY_TEXT_MODEL,
       messages: [
         {
           role: "system",
@@ -34,8 +35,7 @@ export async function POST(request: NextRequest) {
           content: prompt
         }
       ],
-      max_tokens: 800,
-      temperature: 0.7,
+      max_completion_tokens: 1000,
     });
 
     const editedStory = completion.choices[0]?.message?.content;
