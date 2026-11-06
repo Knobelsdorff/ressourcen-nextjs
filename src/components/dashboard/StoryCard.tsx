@@ -13,7 +13,6 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Lock, Volume2 } from "lucide-react";
 import AudioPlayer from "@/components/audio/AudioPlayer";
-import ButterflyHugExercise from "@/components/audio/ButterflyHugExercise";
 import EditableTitle from "@/components/EditableTitle";
 import EditableSubtitle from "@/components/EditableSubtitle";
 import StoryActionsMenu from "@/components/StoryActionsMenu";
@@ -69,6 +68,8 @@ interface StoryCardProps {
   onUnlock?: (reason: StoryLockReason) => void;
   /** Story hat ihr Ende erreicht (siehe useAudioPlayer). */
   onCompleted?: () => void;
+  /** Klopfübung vor dem allerersten Abspielen (useButterflyHugGate). */
+  playGate?: (proceed: () => void) => boolean;
   /** data-tour-Anker für Einführungen (src/components/onboarding). */
   tour?: { card?: string; player?: string; trial?: string };
 }
@@ -87,6 +88,7 @@ export default function StoryCard({
   onGenerateAudio,
   onUnlock,
   onCompleted,
+  playGate,
   tour,
 }: StoryCardProps) {
   const created = formatDateWithTitle(story.created_at);
@@ -189,6 +191,7 @@ export default function StoryCard({
             storyId={story.id}
             resourceFigure={story.resource_figure}
             onCompleted={onCompleted}
+            playGate={playGate}
             playAnalytics={{
               storyId: story.id,
               access: story.access?.policy ?? "always",
@@ -198,7 +201,6 @@ export default function StoryCard({
             }}
           />
         </div>
-        <ButterflyHugExercise className="mt-6" />
         </>
       ) : (
         <div className="rounded-xl bg-secondary-50 px-4 py-6 text-center">

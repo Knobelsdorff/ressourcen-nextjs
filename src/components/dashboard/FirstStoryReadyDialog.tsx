@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useRef } from "react";
-import { Headphones, X } from "lucide-react";
+import { Play, X } from "lucide-react";
 import AngelIconFinal from "@/components/AngelIconFinal";
 
 interface FirstStoryReadyDialogProps {
@@ -49,7 +49,7 @@ export default function FirstStoryReadyDialog({ onListen, onDismiss }: FirstStor
           Mach es dir bequem, schließe deine Augen, wenn du magst, und höre dir deine persönliche Geschichte an.
         </p>
         <button ref={primaryRef} type="button" className="story-ready-primary" onClick={onListen}>
-          <Headphones className="h-5 w-5" aria-hidden="true" />
+          <Play className="h-5 w-5" fill="currentColor" aria-hidden="true" />
           Jetzt anhören
         </button>
       </section>

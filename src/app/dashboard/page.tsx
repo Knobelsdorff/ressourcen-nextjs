@@ -5,6 +5,8 @@ import DashboardWelcome from "@/components/dashboard/DashboardWelcome";
 import FirstStoryWelcome, { FirstStoryWelcomeState } from "@/components/dashboard/FirstStoryWelcome";
 import type { FirstStoryPhase } from "@/lib/first-story/config";
 import SubscriptionOffer, { SubscriptionOfferVariant } from "@/components/dashboard/SubscriptionOffer";
+import ButterflyHugDrawer from "@/components/dashboard/ButterflyHugDrawer";
+import { useButterflyHugGate } from "@/hooks/useButterflyHugGate";
 import { markFreeStoryOfferShown, shouldShowFreeStoryOffer } from "@/lib/first-story/offer-client";
 import FirstStoryReadyDialog from "@/components/dashboard/FirstStoryReadyDialog";
 import SettingsDialog from "@/components/dashboard/SettingsDialog";
@@ -3230,6 +3232,7 @@ ${story.content}
   // (der Server entscheidet, ob es gezeigt wird) und bei gesperrten Storys.
   // ---------------------------------------------------------------------------
   const [offerVariant, setOfferVariant] = useState<SubscriptionOfferVariant | null>(null);
+  const hugGate = useButterflyHugGate(user?.id);
   const closeOffer = useCallback(() => setOfferVariant(null), []);
 
   const handleStoryCompleted = useCallback(async (storyId: string) => {
@@ -3551,6 +3554,7 @@ ${story.content}
                       onGenerateAudio={() => generateAudio(story.id)}
                       onUnlock={handleUnlockStory}
                       onCompleted={story.access?.policy === 'trial' ? () => void handleStoryCompleted(story.id) : undefined}
+                      playGate={hugGate.gate}
                       tour={story.id === firstStoryId ? {
                         card: TOUR_ANCHORS.firstStory,
                         player: TOUR_ANCHORS.firstStoryPlayer,
@@ -3567,6 +3571,11 @@ ${story.content}
             </div>
         </motion.div>
       </div>
+
+      {/* Außerhalb des animierten Inhalts: dessen transform würde position: fixed brechen. */}
+      {(hugGate.pending || (!loading && personalStories.some((story) => story.audio_url && story.access?.playable !== false))) && (
+        <ButterflyHugDrawer forced={hugGate.pending} onConfirm={hugGate.confirm} />
+      )}
 
       {/* Paywall Modal */}
       {showPaywall && (

@@ -12,7 +12,7 @@
  *
  * Die frühere Pro-Variante "bls" (Video „Bilaterale Stimulation") ist
  * entfallen: Auf Wunsch von Andreas sehen alle nur noch die Klopfübung
- * unter dem Player (ButterflyHugExercise).
+ * am Rand des Dashboards (ButterflyHugDrawer).
  */
 
 import { useRef, useEffect, useId } from "react";
@@ -35,6 +35,8 @@ interface AudioPlayerProps {
   onCompleted?: () => void;
   /** Wird beim Start der Wiedergabe aufgerufen – z.B. für Analytics. */
   onPlay?: () => void;
+  /** Darf den Start abfangen: true = gestartet wird später über `proceed` (innerhalb einer Nutzergeste). */
+  playGate?: (proceed: () => void) => boolean;
   /** Nur für eigene Power Storys: Funnel-Events (Start, Ende, erneutes Hören). Hörproben ohne. */
   playAnalytics?: StoryPlayContext;
   variant?: AudioPlayerVariant;
@@ -62,6 +64,7 @@ export default function AudioPlayer({
   onEnded,
   onCompleted,
   onPlay,
+  playGate,
   playAnalytics,
   variant = "standard",
   header,
@@ -106,7 +109,10 @@ export default function AudioPlayer({
   const playLabel = isPlaying ? "Pause" : "Abspielen";
 
   const handleTogglePlay = () => {
-    if (!isPlaying) onPlay?.();
+    if (!isPlaying) {
+      if (playGate?.(() => externalPlayRef.current())) return;
+      onPlay?.();
+    }
     togglePlayPause();
   };
 
