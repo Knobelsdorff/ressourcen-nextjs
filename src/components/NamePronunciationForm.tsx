@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
-import { ArrowRight, ChevronLeft, Loader2, Volume2 } from "lucide-react";
+import { ArrowRight, ChevronLeft } from "lucide-react";
 import { ResourceFigure } from "@/lib/types/story";
 import { supabase } from "@/lib/supabase";
 import { usablePronunciationHint } from "@/lib/spoken-name";
-import { useNamePreview } from "@/hooks/useNamePreview";
+import NamePreviewPlayer from "./NamePreviewPlayer";
 import FigureIcon from './story-flow/FigureIcon';
 
 interface NamePronunciationFormProps {
@@ -36,15 +36,8 @@ export default function NamePronunciationForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  // "Anhören" wie in den Einstellungen (nur angemeldet – die Vorschau kostet).
-  const { playPreview, previewing, spokenAs } = useNamePreview();
+  const pronunciationRef = useRef<HTMLInputElement>(null);
   const hintIgnored = pronunciationHint.trim().length > 0 && !usablePronunciationHint(pronunciationHint);
-
-  const handlePreview = async () => {
-    setError('');
-    const previewError = await playPreview(fullName, pronunciationHint, voiceId);
-    if (previewError) setError(previewError);
-  };
 
   // Load existing data on mount (only for logged-in users)
   useEffect(() => {
@@ -159,6 +152,7 @@ export default function NamePronunciationForm({
           <label className="story-field">
             <span>So soll er klingen</span>
             <input
+              ref={pronunciationRef}
               type="text"
               id="pronunciationHint"
               value={pronunciationHint}
@@ -174,22 +168,17 @@ export default function NamePronunciationForm({
             </small>
           </label>
 
+          {/* Nur angemeldet – jede neue Hörprobe kostet. */}
           {user && (
-            <div className="story-name-preview-row">
-              <button
-                type="button"
-                className="story-name-preview"
-                onClick={() => void handlePreview()}
-                disabled={!fullName.trim() || previewing}
-              >
-                {previewing ? <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Volume2 className="w-4 h-4" aria-hidden="true" />}
-                {/* Text im eigenen Element: Browser-Übersetzer ersetzen nackte Textknoten. */}
-                <span>{previewing ? 'Wird erstellt …' : 'Anhören'}</span>
-              </button>
-              <p aria-live="polite">
-                {spokenAs ? <>Gesprochen als „{spokenAs}“.</> : 'Hör dir an, wie dein Name in deiner Power Story klingt.'}
-              </p>
-            </div>
+            <NamePreviewPlayer
+              name={fullName}
+              pronunciation={pronunciationHint}
+              voiceId={voiceId}
+              onAdjust={() => {
+                pronunciationRef.current?.focus();
+                pronunciationRef.current?.select();
+              }}
+            />
           )}
 
           {error && <p className="story-form-message" data-tone="error" role="alert">{error}</p>}

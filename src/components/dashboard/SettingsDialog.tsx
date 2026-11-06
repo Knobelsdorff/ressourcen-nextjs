@@ -11,11 +11,11 @@
  */
 
 import { FormEvent, ReactNode, useEffect, useRef, useState } from "react";
-import { ExternalLink, Loader2, Volume2, X } from "lucide-react";
+import { ExternalLink, X } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { supabase } from "@/lib/supabase";
 import { usablePronunciationHint } from "@/lib/spoken-name";
-import { useNamePreview } from "@/hooks/useNamePreview";
+import NamePreviewPlayer from "@/components/NamePreviewPlayer";
 import { TOUR_ANCHORS } from "@/components/onboarding/firstStoryTour";
 import MusicVolumeControl from "@/components/audio/MusicVolumeControl";
 
@@ -56,7 +56,7 @@ export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsD
   const [pronunciation, setPronunciation] = useState("");
   const [nameStatus, setNameStatus] = useState<Status>(null);
   const [savingName, setSavingName] = useState(false);
-  const { playPreview: playNamePreview, previewing, spokenAs, resetPreview } = useNamePreview();
+  const pronunciationRef = useRef<HTMLInputElement>(null);
 
   // E-Mail
   const [editingEmail, setEditingEmail] = useState(false);
@@ -91,7 +91,6 @@ export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsD
     setEmailStatus(null);
     setPasswordStatus(null);
     setFeedbackStatus(null);
-    resetPreview();
     closeRef.current?.focus({ preventScroll: true });
 
     void (async () => {
@@ -117,7 +116,7 @@ export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsD
         setSubscription(null);
       }
     })();
-  }, [open, userId, resetPreview]);
+  }, [open, userId]);
 
   // Esc schließt – außer eine Einführung läuft gerade (die behandelt Esc selbst).
   useEffect(() => {
@@ -130,12 +129,6 @@ export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsD
   }, [open, onClose]);
 
   const hintIgnored = pronunciation.trim().length > 0 && !usablePronunciationHint(pronunciation);
-
-  const playPreview = async () => {
-    setNameStatus(null);
-    const previewError = await playNamePreview(fullName, pronunciation);
-    if (previewError) setNameStatus({ kind: "error", text: previewError });
-  };
 
   const saveName = async (event: FormEvent) => {
     event.preventDefault();
@@ -274,6 +267,7 @@ export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsD
                 So soll er klingen <span className="settings-optional">(optional)</span>
               </label>
               <input
+                ref={pronunciationRef}
                 id="settings-pronunciation"
                 value={pronunciation}
                 onChange={(e) => setPronunciation(e.target.value)}
@@ -287,16 +281,20 @@ export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsD
                   : "Schreib deinen Namen so, wie er klingen soll – als ein Wort, gern mit Bindestrichen."}
               </p>
 
+              <NamePreviewPlayer
+                name={fullName}
+                pronunciation={pronunciation}
+                onAdjust={() => {
+                  pronunciationRef.current?.focus();
+                  pronunciationRef.current?.select();
+                }}
+              />
+
               <div className="settings-actions">
-                <button type="button" className="dashboard-secondary-button" onClick={() => void playPreview()} disabled={!fullName.trim() || previewing}>
-                  {previewing ? <Loader2 size={18} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Volume2 size={18} aria-hidden="true" />}
-                  {previewing ? "Wird erstellt …" : "Anhören"}
-                </button>
                 <button type="submit" className="dashboard-primary-button" disabled={savingName}>
                   {savingName ? "Speichern …" : "Name speichern"}
                 </button>
               </div>
-              {spokenAs && <p className="settings-help" aria-live="polite">Gesprochen als „{spokenAs}“.</p>}
               <StatusLine status={nameStatus} />
             </form>
           </Section>

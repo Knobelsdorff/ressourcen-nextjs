@@ -1,9 +1,12 @@
 /**
  * Namensvorschau (Einstellungen und Namens-Schritt in /create-story): spricht
- * den Namen so, wie er in Storys klingt – gleiches Modell und gleiche
- * Einstellungen wie supabase/functions/generate-audio, und dieselbe Regel für
- * den Aussprache-Hinweis (spokenStoryName). Stimme: die im Flow gewählte
- * (voiceId), sonst Kerstin.
+ * den Namen mit derselben Regel für den Aussprache-Hinweis wie Storys
+ * (spokenStoryName). Stimme: die im Flow gewählte (voiceId), sonst Kerstin.
+ *
+ * Modell: eleven_multilingual_v2 wie die Stimmproben (/api/voice-preview).
+ * Bewusst nicht eleven_flash_v2 wie Story-Audio: Das kann laut ElevenLabs nur
+ * Englisch. In langen Texten fällt das kaum auf, aber dieser kurze Satz klang
+ * nach Fremdsprache und wurde falsch verstanden (`„schon das du der Beste“`).
  *
  * Nur für eingeloggte Accounts. Versuche werden nicht gezählt; die Bremse
  * unten verhindert nur automatisierten Missbrauch (jeder Aufruf kostet).
@@ -50,7 +53,7 @@ export async function POST(request: NextRequest) {
   const text = `${spoken}. Schön, dass du da bist, ${spoken}.`;
   try {
     const audio = (await viaElevenLabs(text, voiceId)) ?? (await viaStoryAudioFunction(text, voiceId));
-    return NextResponse.json({ audio: `data:audio/mpeg;base64,${audio.toString('base64')}`, spoken });
+    return NextResponse.json({ audio: `data:audio/mpeg;base64,${audio.toString('base64')}`, spoken, text });
   } catch (e) {
     console.error('[NamePreview] Fehler:', e instanceof Error ? e.message : e);
     return NextResponse.json({ error: 'Die Vorschau konnte nicht erstellt werden.' }, { status: 502 });
@@ -66,7 +69,7 @@ async function viaElevenLabs(text: string, voiceId: string): Promise<Buffer | nu
     headers: { Accept: 'audio/mpeg', 'Content-Type': 'application/json', 'xi-api-key': apiKey },
     body: JSON.stringify({
       text,
-      model_id: 'eleven_flash_v2',
+      model_id: 'eleven_multilingual_v2',
       voice_settings: { stability: 0.5, similarity_boost: 0.8, style: 0, use_speaker_boost: true },
       output_format: 'mp3_44100_128',
     }),

@@ -160,8 +160,6 @@ body:has(.story-flow-boot) > main { flex: 0 0 100dvh; height: 100dvh; min-height
 .story-field > span { color: #49301e; font-size: 13px; font-weight: 600; }
 .story-field small { color: #806f60; font-size: 12.5px; line-height: 1.45; }
 .story-field small[data-tone='warn'] { color: #9a5a1c; }
-.story-name-form .story-name-preview-row p { margin: 0; color: #806f60; font-size: 12.5px; line-height: 1.45; }
-.story-flow .story-first-stage .story-name-preview { border-radius: 10px; }
 .story-form-message { margin: 0; padding: 10px 12px; border-radius: 10px; background: #edf1e4; color: #4f5f2c; font-size: 13px; line-height: 1.45; }
 .story-form-message[data-tone='error'] { background: #fbeee9; color: #a53724; }
 .story-flow .story-form-message button { padding: 0; border: 0; background: transparent; color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; box-shadow: none; }

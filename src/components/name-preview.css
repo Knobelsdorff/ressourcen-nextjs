@@ -1,0 +1,61 @@
+/* Hörprobe für den Namen. Eigene Datei, weil sie im Namens-Schritt und im
+   Einstellungs-Dialog läuft. div./button.-Selektoren: Sie müssen die
+   Button-Regeln von story-flow.css schlagen. */
+.name-preview { display: grid; gap: 8px; }
+.name-preview-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid #e4d9cc;
+  border-radius: 16px;
+  background: #f7f1e9;
+}
+.name-preview[data-status='playing'] .name-preview-card { border-color: #cdbba7; background: #f4ebdf; }
+
+div.name-preview button.name-preview-play {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--wellness-chocolate);
+  color: white;
+  box-shadow: none;
+}
+div.name-preview button.name-preview-play:not(:disabled):hover { background: #63452e; }
+div.name-preview button.name-preview-play:disabled { background: #cbbfb2; cursor: not-allowed; }
+.name-preview-play-icon { margin-left: 2px; }
+
+.name-preview-body { flex: 1; min-width: 0; }
+.name-preview .name-preview-heading { margin: 0; color: #49301e; font-size: 14px; font-weight: 700; line-height: 1.3; }
+.name-preview .name-preview-detail { margin: 2px 0 0; color: #69594c; font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
+
+.name-preview-track { height: 3px; margin-top: 9px; overflow: hidden; border-radius: 999px; background: #e4d9cc; }
+.name-preview-track > span { display: block; height: 100%; border-radius: inherit; background: var(--wellness-chocolate); transition: width 0.25s linear; }
+.name-preview[data-status='idle'] .name-preview-track > span { transition: none; }
+
+.name-preview .name-preview-follow { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; margin: 0; padding-left: 2px; color: #69594c; font-size: 13px; line-height: 1.4; }
+div.name-preview .name-preview-follow button {
+  min-height: 0;
+  padding: 2px 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #49301e;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  box-shadow: none;
+}
+.name-preview .name-preview-error { margin: 0; color: #a13a2c; font-size: 13px; line-height: 1.4; }
+.name-preview button:focus-visible { outline: 3px solid #7952b8; outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .name-preview-track > span { transition: none; }
+}

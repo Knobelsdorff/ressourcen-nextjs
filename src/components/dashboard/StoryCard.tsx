@@ -9,7 +9,7 @@
  * Klient:innen an eine Liste stellen: „Welche ist die von letzter Woche?"
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Lock, Volume2 } from "lucide-react";
 import AudioPlayer from "@/components/audio/AudioPlayer";
@@ -51,6 +51,34 @@ const LOCKED_COPY: Record<StoryLockReason, { title: string; text: string; cta: s
     cta: "Zahlungsmethode aktualisieren",
   },
 };
+
+/**
+ * Restzeit der kostenlosen Testphase, immer aus trial_ends_at gerechnet.
+ * Tickt selbst, statt die Karte neu zu zeichnen: Ein offener Tab oder das Handy
+ * über Nacht zeigt sonst den Stand von gestern. Nach dem Ablauf verschwindet er.
+ */
+function TrialBadge({ endsAt, tourId }: { endsAt: string | null; tourId?: string }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const tick = () => setNow(Date.now());
+    const interval = window.setInterval(tick, 60_000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, []);
+
+  const daysLeft = trialDaysLeft(endsAt, now);
+  if (daysLeft <= 0) return null;
+
+  return (
+    <span data-tour={tourId} className="dashboard-badge-trial rounded-full px-2 py-0.5 text-xs font-medium">
+      {daysLeft === 1 ? "Noch 1 Tag kostenlos" : `Noch ${daysLeft} Tage kostenlos`}
+    </span>
+  );
+}
 
 interface StoryCardProps {
   story: StoryCardStory;
@@ -95,7 +123,6 @@ export default function StoryCard({
   // Ohne Beschreibung keine Platzhalterzeile – hinzufügen geht übers Menü.
   const [editingSubtitle, setEditingSubtitle] = useState(false);
   const lockReason = story.access && !story.access.playable ? story.access.lockReason ?? "trial_ended" : null;
-  const freeDaysLeft = story.access?.trialActive ? trialDaysLeft(story.access.trialEndsAt) : 0;
 
   return (
     <motion.article
@@ -144,11 +171,7 @@ export default function StoryCard({
               {created.label}
             </time>
 
-            {freeDaysLeft > 0 && (
-              <span data-tour={tour?.trial} className="dashboard-badge-trial rounded-full px-2 py-0.5 text-xs font-medium">
-                {freeDaysLeft === 1 ? "Noch heute kostenlos" : `Noch ${freeDaysLeft} Tage kostenlos`}
-              </span>
-            )}
+            {story.access?.trialActive && <TrialBadge endsAt={story.access.trialEndsAt} tourId={tour?.trial} />}
           </div>
         </div>
 
