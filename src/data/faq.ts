@@ -57,7 +57,7 @@ export const faqData: FAQItem[] = [
   {
     id: "9",
     question: "Do I need headphones?",
-    answer: "While not required, headphones or earbuds can help you focus better on the audio and create a more immersive experience. Many users find it helpful to minimize distractions.",
+    answer: "No, you don't need headphones. Power Stories work just as well through your phone or computer speakers. All you need is a quiet moment for yourself.",
     category: "Usage"
   },
   {

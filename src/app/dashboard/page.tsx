@@ -1378,7 +1378,7 @@ export default function Dashboard() {
             // Erfolgsmeldung nur einmal anzeigen
             if (!alertShown) {
               alertShown = true;
-              setPaymentSuccessMessage('Dein Zugang wurde aktiviert! Du kannst jetzt unbegrenzt Ressourcen erstellen.');
+              setPaymentSuccessMessage('Dein Zugang wurde aktiviert! Du kannst jetzt unbegrenzt Power Storys erstellen.');
               setShowPaymentSuccess(true);
             }
             // Stoppe Retry-Loop, da Zugang aktiv ist

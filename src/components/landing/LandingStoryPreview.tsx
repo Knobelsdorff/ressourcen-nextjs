@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { Headphones } from 'lucide-react';
+import { Volume2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useStartFirstStory } from '@/hooks/useStartFirstStory';
@@ -53,7 +53,7 @@ export default function LandingStoryPreview() {
         </div>
       </div>
       <div className="landing-audio-preview">
-        <div className="preview-kicker"><span><Headphones size={15} /> EINFACH MAL REINHÖREN</span><span>Kostenlos</span></div>
+        <div className="preview-kicker"><span><Volume2 size={15} /> EINFACH MAL REINHÖREN</span><span>Kostenlos</span></div>
         <h2>{story?.title || 'Ein Moment zum Ankommen'}</h2>
         <p>Augen schließen. Zuhören. Durchatmen.</p>
         <div className="preview-wave" aria-hidden="true">

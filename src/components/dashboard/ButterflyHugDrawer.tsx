@@ -4,7 +4,8 @@
  * Optionale Klopfübung (Butterfly Hug) als Lasche am rechten Bildschirmrand.
  *
  * Ersetzt den aufklappbaren Block unter jedem Player: Auf Wunsch von Andreas
- * gibt es den Hinweis nur noch einmal pro Dashboard statt auf jeder Story.
+ * gibt es den Hinweis nur noch einmal pro Seite statt auf jeder Story – im
+ * Dashboard und im Player am Ende von /create-story.
  *
  * Normal nicht modal: Das Dashboard bleibt bedienbar, damit eine Story neben der
  * offenen Übung weiterlaufen kann. Beim Schließen wird das Video entfernt – damit
@@ -19,6 +20,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { HandHeart, X } from "lucide-react";
+import "./butterfly-drawer.css";
 
 const BUTTERFLY_HUG_VIDEO_URL = "/videos/butterfly-hug.mp4";
 // Standbild aus dem Video – statt einer leeren Fläche, bis das Video geladen ist.
@@ -143,7 +145,7 @@ export default function ButterflyHugDrawer({ forced = false, onConfirm }: Butter
         </p>
 
         {forced && (
-          <button ref={confirmRef} type="button" className="dashboard-primary-button butterfly-drawer-confirm" onClick={onConfirm}>
+          <button ref={confirmRef} type="button" className="butterfly-drawer-confirm" onClick={onConfirm}>
             OK, Story starten
           </button>
         )}

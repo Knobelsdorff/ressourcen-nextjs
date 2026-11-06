@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
+// Ohne Account (Erstellung vor der Registrierung) zählt nur dieser Browser.
+const ANONYMOUS = "anonymous";
 const seenKey = (userId: string) => `ps_butterfly_hug_seen_${userId}`;
 
 /**
@@ -21,11 +23,10 @@ export function useButterflyHugGate(userId?: string) {
 
   useEffect(() => {
     seenRef.current = false;
-    if (!userId) return;
-
     try {
-      if (localStorage.getItem(seenKey(userId)) === "1") seenRef.current = true;
+      seenRef.current = [ANONYMOUS, userId].some((id) => id && localStorage.getItem(seenKey(id)) === "1");
     } catch { /* Ohne Storage zählt nur das Profil. */ }
+    if (!userId) return;
 
     let cancelled = false;
     (async () => {
@@ -61,10 +62,10 @@ export function useButterflyHugGate(userId?: string) {
     proceedRef.current?.();
     proceedRef.current = null;
 
-    if (!userId) return;
     try {
-      localStorage.setItem(seenKey(userId), "1");
+      localStorage.setItem(seenKey(userId ?? ANONYMOUS), "1");
     } catch { /* Das Profil reicht. */ }
+    if (!userId) return;
     (supabase as any)
       .from("profiles")
       .update({ butterfly_hug_seen_at: new Date().toISOString() })

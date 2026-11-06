@@ -74,7 +74,7 @@
 .story-flow :is(button.text-white, .story-next-button) { min-height: 46px; background: var(--wellness-chocolate); background-image: none; border-color: var(--wellness-chocolate); color: white; box-shadow: 0 3px 10px #49301e0c; }
 .story-flow :is(button.text-white, .story-next-button):not(:disabled):hover { background: #63452e; }
 .story-flow button:disabled { cursor: not-allowed; }
-.story-flow :is(input:not([type='checkbox']):not([type='radio']), textarea, select) { min-height: 46px; border: 1px solid #d9cfc5; border-radius: 16px; background: #fdfbf8; color: var(--wellness-chocolate); box-shadow: none; }
+.story-flow :is(input:not([type='checkbox']):not([type='radio']):not([type='range']), textarea, select) { min-height: 46px; border: 1px solid #d9cfc5; border-radius: 16px; background: #fdfbf8; color: var(--wellness-chocolate); box-shadow: none; }
 .story-flow :is(input, textarea)::placeholder { color: #89786a; }
 .story-flow input[type='checkbox'] { accent-color: #526735; }
 .story-flow .story-mobile-actions { background: #f8f5f2f5; border-color: #e4ded6; padding-bottom: max(12px, env(safe-area-inset-bottom)); }

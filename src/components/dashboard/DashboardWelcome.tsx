@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { Headphones, Leaf, Sparkles } from 'lucide-react';
+import { Heart, Leaf, Sparkles } from 'lucide-react';
 
 export default function DashboardWelcome({ firstVisit }: { firstVisit: boolean }) {
   return (
@@ -11,7 +11,7 @@ export default function DashboardWelcome({ firstVisit }: { firstVisit: boolean }
         <div className="dashboard-intentions" aria-label="Raum für dein Wohlbefinden">
           <span><Leaf size={15} aria-hidden="true" /> Zur Ruhe kommen</span>
           <span><Sparkles size={15} aria-hidden="true" /> Kraft schöpfen</span>
-          <span><Headphones size={15} aria-hidden="true" /> Bei dir sein</span>
+          <span><Heart size={15} aria-hidden="true" /> Bei dir sein</span>
         </div>
       </div>
       <div className="dashboard-garden" aria-hidden="true">

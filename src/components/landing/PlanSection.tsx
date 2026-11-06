@@ -3,14 +3,14 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useStartFirstStory } from "@/hooks/useStartFirstStory";
-import { Headphones, Sparkles, Leaf } from 'lucide-react';
+import { Volume2, Sparkles, Leaf } from 'lucide-react';
 
 export default function PlanSection() {
   const startFirstStory = useStartFirstStory();
   const steps = [
     {
       number: 1,
-      icon: Headphones,
+      icon: Volume2,
       title: "Ankommen",
       description: "Du hörst dir eine erste Power Story an – ruhig gesprochen, ohne etwas tun zu müssen.",
     },

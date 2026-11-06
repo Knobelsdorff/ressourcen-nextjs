@@ -234,6 +234,7 @@ body:has(.story-flow-boot) > main { flex: 0 0 100dvh; height: 100dvh; min-height
 .story-player-fill { background: #49301e; }
 .story-player-track > .story-player-thumb { top: 50%; bottom: auto; width: 14px; height: 14px; border-radius: 50%; background: #49301e; box-shadow: 0 0 0 4px #49301e1f; transform: translate(-50%, -50%); }
 .story-player-times { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; color: #806f60; font-size: 12.5px; font-variant-numeric: tabular-nums; font-weight: 600; }
+.story-player-volume { justify-content: center; width: 100%; margin-top: clamp(12px, 2.4dvh, 20px); }
 .story-player-hint { margin-top: clamp(18px, 3.4dvh, 30px); }
 .story-flow .story-stage-center .story-player-cta { margin-top: clamp(18px, 3.4dvh, 28px); white-space: normal; }
 .story-player-alert { width: 100%; margin-bottom: 18px; padding: 12px 14px; border: 1px solid #ecd9b8; border-radius: 12px; background: #fbf3e6; color: #6b4a1f; font-size: 13.5px; line-height: 1.45; text-align: left; }
@@ -289,6 +290,8 @@ body:has(.story-flow-boot) > main { flex: 0 0 100dvh; height: 100dvh; min-height
   .story-loader-lead { font-size: 14px; }
   .story-player-controls { gap: 38px; }
   .story-flow .story-player .story-player-hint { display: inline-flex; }
+  /* Lasche unter die Bedienung: In der Bildschirmmitte läge sie über dem Ende der Zeitleiste. */
+  .story-flow div.butterfly-drawer:not(.is-open) > button.butterfly-drawer-tab { transform: translateY(170px); }
   .story-player-copy p { font-size: 14px; }
 }
 @media (max-width: 340px) {

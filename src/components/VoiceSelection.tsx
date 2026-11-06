@@ -11,7 +11,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { ArrowRight, Check, ChevronDown, ChevronLeft, ChevronUp, Headphones, Pause, Play, RotateCcw } from 'lucide-react';
+import { ArrowRight, Check, ChevronDown, ChevronLeft, ChevronUp, Leaf, Pause, Play, RotateCcw } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ResourceFigure } from '@/lib/types/story';
 import FigureIcon from './story-flow/FigureIcon';
@@ -722,7 +722,7 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
           Eine Stimme für deine Geschichte
         </h1>
         <p className="story-first-guidance">{getFigureSubline(resourceFigure)}</p>
-        <p className="story-stage-hint"><Headphones size={15} aria-hidden="true" /> Am schönsten mit Kopfhörern</p>
+        <p className="story-stage-hint"><Leaf size={15} aria-hidden="true" /> Am schönsten in einem ruhigen Moment</p>
       </div>
 
       <div className="story-first-response">

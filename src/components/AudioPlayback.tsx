@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, RotateCcw, Loader2, Headphones } from "lucide-react";
+import { Play, Pause, RotateCcw, Loader2, Leaf } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ResourceFigure, AudioState } from "@/lib/types/story";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -14,7 +14,10 @@ import SubscriptionOffer from "./dashboard/SubscriptionOffer";
 import { markFreeStoryOfferShown, shouldShowFreeStoryOffer } from "@/lib/first-story/offer-client";
 import { isEnabled } from "@/lib/featureFlags";
 import { getBackgroundMusicUrl, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
-import { applyMusicVolumeFactor } from "@/lib/musicVolumePreference";
+import { applyMusicVolumeFactor, subscribeToMusicVolumeFactor } from "@/lib/musicVolumePreference";
+import MusicVolumeControl from "./audio/MusicVolumeControl";
+import ButterflyHugDrawer from "./dashboard/ButterflyHugDrawer";
+import { useButterflyHugGate } from "@/hooks/useButterflyHugGate";
 import { getOrCreateBrowserFingerprint } from "@/lib/browser-fingerprint";
 import FigureIcon from "./story-flow/FigureIcon";
 import StoryGenerationLoader from "./story-flow/StoryGenerationLoader";
@@ -1314,6 +1317,21 @@ export default function AudioPlayback({
     }
   }, []);
 
+  // Regler im Player: Die laufende Musik folgt sofort. Solange Web Audio noch
+  // nicht verbunden ist, reicht _targetVolume – das Element selbst bleibt auf 1,
+  // sonst würde die Lautstärke danach doppelt angewendet.
+  useEffect(() => {
+    return subscribeToMusicVolumeFactor((factor) => {
+      const musicAudio: HTMLAudioElement | null = (window as any)._pendingBackgroundMusic || backgroundMusicElement;
+      if (!musicAudio) return;
+      const adminVolume = (musicAudio as any)._adminVolume ?? DEFAULT_MUSIC_VOLUME;
+      const effective = applyMusicVolumeFactor(adminVolume, factor);
+      (musicAudio as any)._targetVolume = effective;
+      (musicAudio as any)._originalVolume = effective;
+      if (!(musicAudio as any)._webAudioPending) setMusicVolume(musicAudio, effective);
+    });
+  }, [backgroundMusicElement, setMusicVolume]);
+
   // Hilfsfunktion zum Abrufen der aktuellen Lautstärke
   const getMusicVolume = useCallback((musicAudio: HTMLAudioElement): number => {
     if ((musicAudio as any)._useWebAudio && (musicAudio as any)._gainNode) {
@@ -1655,6 +1673,7 @@ export default function AudioPlayback({
 
     let musicUrl: string | null = null;
     let musicVolume: number = DEFAULT_MUSIC_VOLUME;
+    let adminMusicVolume: number = DEFAULT_MUSIC_VOLUME;
     if (figureIdOrName && musicEnabled) {
       try {
         const { getBackgroundMusicTrack } = await import('@/data/backgroundMusic');
@@ -1662,7 +1681,8 @@ export default function AudioPlayback({
         musicUrl = track?.track_url || null;
         // Admin-Lautstärke mal Nutzer-Faktor: ab hier ist musicVolume der
         // effektive Wert, den _targetVolume und _originalVolume übernehmen.
-        musicVolume = applyMusicVolumeFactor(track?.volume || DEFAULT_MUSIC_VOLUME);
+        adminMusicVolume = track?.volume || DEFAULT_MUSIC_VOLUME;
+        musicVolume = applyMusicVolumeFactor(adminMusicVolume);
         console.log('[AudioPlayback] Background music loaded:', { url: musicUrl, volume: musicVolume });
       } catch (error) {
         console.error('[AudioPlayback] Error loading background music:', error);
@@ -1686,6 +1706,7 @@ export default function AudioPlayback({
 
         // Speichere die track-spezifische Lautstärke
         (musicAudio as any)._targetVolume = musicVolume;
+        (musicAudio as any)._adminVolume = adminMusicVolume;
 
         // Geräte-Erkennung für optimale Kompatibilität
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -1741,6 +1762,7 @@ export default function AudioPlayback({
 
         // ALLE GERÄTE: Setup Web Audio API für konsistente Lautstärkekontrolle + Dynamic Range Compression
         if (typeof AudioContext !== 'undefined' || typeof (window as any).webkitAudioContext !== 'undefined') {
+          (musicAudio as any)._webAudioPending = true;
           musicAudio.addEventListener('canplay', () => {
             if ((musicAudio as any)._useWebAudio) {
               console.log('[AudioPlayback] Web Audio API already connected, skipping');
@@ -1763,7 +1785,7 @@ export default function AudioPlayback({
 
               // Erstelle GainNode für Lautstärkekontrolle
               const gainNode = audioContext.createGain();
-              const targetVolume = (musicAudio as any)._targetVolume || DEFAULT_MUSIC_VOLUME;
+              const targetVolume = (musicAudio as any)._targetVolume ?? DEFAULT_MUSIC_VOLUME;
               gainNode.gain.value = targetVolume;
 
               // Audio Chain: Source -> Compressor -> Gain -> Destination
@@ -1775,13 +1797,15 @@ export default function AudioPlayback({
               (musicAudio as any)._compressor = compressor;
               (musicAudio as any)._gainNode = gainNode;
               (musicAudio as any)._useWebAudio = true;
+              (musicAudio as any)._webAudioPending = false;
 
               console.log('[AudioPlayback] Web Audio API connected with compressor for consistent volume (Device: ' + (isIOS ? 'iOS' : 'Desktop/Android') + ', Volume: ' + targetVolume + ')');
             } catch (error: any) {
               console.warn('[AudioPlayback] Failed to setup Web Audio API, using HTMLAudioElement:', error);
               (musicAudio as any)._useWebAudio = false;
+              (musicAudio as any)._webAudioPending = false;
               // Fallback: setze normale volume (track-spezifisch)
-              const fallbackVolume = (musicAudio as any)._targetVolume || DEFAULT_MUSIC_VOLUME;
+              const fallbackVolume = (musicAudio as any)._targetVolume ?? DEFAULT_MUSIC_VOLUME;
               musicAudio.volume = fallbackVolume;
             }
           }, { once: true });
@@ -2017,6 +2041,18 @@ export default function AudioPlayback({
   
   const loadingProgress = getLoadingProgress();
 
+  // Allererstes Abspielen: erst die Klopfübung bestätigen (useButterflyHugGate).
+  // Start über eine Ref, damit der OK-Klick den aktuellen Stand abspielt.
+  const hugGate = useButterflyHugGate(user?.id);
+  const togglePlayRef = useRef(togglePlayPause);
+  useEffect(() => {
+    togglePlayRef.current = togglePlayPause;
+  });
+  const handlePlayClick = () => {
+    if (!isPlaying && hugGate.gate(() => void togglePlayRef.current())) return;
+    void togglePlayPause();
+  };
+
   // Drei Ansichten im selben Baum: Warten (Loader), Fehler, Player. Das
   // <audio>-Element bleibt dabei immer eingehängt – so kann es schon laden,
   // während der Ring sich schließt.
@@ -2170,7 +2206,7 @@ export default function AudioPlayback({
                   type="button"
                   className="story-player-play"
                   data-playing={isPlaying || undefined}
-                  onClick={togglePlayPause}
+                  onClick={handlePlayClick}
                   disabled={audioBusy}
                   aria-label={audioBusy ? 'Audio lädt' : isPlaying ? 'Pausieren' : 'Power Story anhören'}
                 >
@@ -2210,6 +2246,10 @@ export default function AudioPlayback({
                 </div>
               </div>
 
+              {musicEnabled && !showPostAudioPanel && (
+                <MusicVolumeControl label="Hintergrundmusik" className="story-player-volume" />
+              )}
+
               <AnimatePresence mode="wait" initial={false}>
                 {showPostAudioPanel && showPostAudioCTA ? (
                   <motion.div key="cta" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
@@ -2235,7 +2275,7 @@ export default function AudioPlayback({
                   </motion.div>
                 ) : (
                   <motion.p key="hint" className="story-stage-hint story-player-hint" exit={{ opacity: 0 }}>
-                    <Headphones size={15} aria-hidden="true" /> Am schönsten mit Kopfhörern
+                    <Leaf size={15} aria-hidden="true" /> Am schönsten in einem ruhigen Moment
                   </motion.p>
                 )}
               </AnimatePresence>
@@ -2243,6 +2283,8 @@ export default function AudioPlayback({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {view === 'player' && <ButterflyHugDrawer forced={hugGate.pending} onConfirm={hugGate.confirm} />}
 
       <audio
         ref={audioRef}
