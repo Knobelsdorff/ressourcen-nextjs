@@ -47,11 +47,11 @@ export default function HeroSection() {
           className="landing-hero-copy"
         >
           <motion.h1 variants={item} className="font-bold">
-            Finde in nur wenigen Minuten mehr innere Ruhe
+            Finde innere Ruhe und fühl dich sicher und geborgen
           </motion.h1>
 
           <motion.p variants={item} className="landing-hero-lead">
-            Wenn sich viel anstaut, findest du hier wieder <span className="whitespace-nowrap">mehr Halt</span>
+            Erstelle in 2&nbsp;Minuten deine persönliche Audio-Geschichte und erlebe Momente voller Wärme, Halt und Unterstützung.
           </motion.p>
 
           <motion.div variants={item} className="landing-hero-actions">
