@@ -53,9 +53,10 @@ export default function LandingStoryPreview() {
         </div>
       </div>
       <div className="landing-audio-preview">
-        <div className="preview-kicker"><span><Volume2 size={15} /> EINFACH MAL REINHÖREN</span><span>Kostenlos</span></div>
-        <h2>{story?.title || 'Ein Moment zum Ankommen'}</h2>
-        <p>Augen schließen. Zuhören. Durchatmen.</p>
+        {/* Text aus dem Usability-Test (2026-11): klar als kostenlose Hörgeschichte erkennbar, nicht als Podcast. */}
+        <div className="preview-kicker"><span><Volume2 size={15} /> KOSTENLOSE HÖRGESCHICHTE</span><span>Ohne Anmeldung</span></div>
+        <h2>Spüre, wie es ist, gehalten und geborgen zu sein.</h2>
+        <p>Höre „Wohlwollende Präsenz“ und erlebe Momente voller Wärme, Liebe und Sicherheit.</p>
         <div className="preview-wave" aria-hidden="true">
           {[12, 22, 16, 30, 42, 24, 36, 52, 32, 44, 58, 38, 26, 46, 34, 54, 40, 24, 34, 20, 28, 14, 22, 12].map((height, index) => (
             <span key={index} style={{ height, animationDelay: `${index * 45}ms` }} />

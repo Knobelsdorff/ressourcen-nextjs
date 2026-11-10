@@ -21,6 +21,14 @@ export const MUSIC_VOLUME_FACTOR_DEFAULT = 1;
 export const MUSIC_VOLUME_FACTOR_MIN = 0;
 export const MUSIC_VOLUME_FACTOR_MAX = 3;
 
+/**
+ * Globale Absenkung auf alle Tracks (≈ −6 dB). Im Usability-Test (2026-11)
+ * war die Musik zu laut, die Stimme stellenweise unverständlich. Ein globaler
+ * Faktor statt neuer Admin-Werte: Die Abstimmung der Tracks untereinander
+ * bleibt erhalten, und 100 % im Regler bedeuten weiterhin "Standard".
+ */
+export const MUSIC_MASTER_GAIN = 0.5;
+
 const STORAGE_KEY = "ressourcen.musicVolumeFactor";
 const EVENT_NAME = "ressourcen:music-volume-factor-changed";
 
@@ -40,7 +48,7 @@ export function clampMusicVolumeFactor(value: unknown): number {
 export function applyMusicVolumeFactor(adminVolume: number, factor?: number): number {
   const base = isFinite(adminVolume) ? adminVolume : 0;
   const f = factor === undefined ? getMusicVolumeFactor() : clampMusicVolumeFactor(factor);
-  return Math.min(1, Math.max(0, base * f));
+  return Math.min(1, Math.max(0, base * f * MUSIC_MASTER_GAIN));
 }
 
 /** Synchron – für Player, die die Lautstärke vor dem ersten play() brauchen. */

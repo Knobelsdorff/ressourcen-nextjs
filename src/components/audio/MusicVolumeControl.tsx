@@ -15,6 +15,7 @@ import { useState, useEffect, useRef, useId } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import {
+  MUSIC_VOLUME_FACTOR_DEFAULT,
   MUSIC_VOLUME_FACTOR_MIN,
   MUSIC_VOLUME_FACTOR_MAX,
   getMusicVolumeFactor,
@@ -47,6 +48,11 @@ export default function MusicVolumeControl({
   const { user } = useAuth();
   const [factor, setFactor] = useState<number>(() => getMusicVolumeFactor());
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Wohin "Musik an" zurückkehrt – der letzte hörbare Wert, nicht pauschal 100 %. */
+  const lastAudibleRef = useRef<number>(factor > 0 ? factor : MUSIC_VOLUME_FACTOR_DEFAULT);
+  useEffect(() => {
+    if (factor > 0) lastAudibleRef.current = factor;
+  }, [factor]);
   const sliderId = useId();
 
   // Gespeicherten Wert vom Profil holen (Gerätewechsel).
@@ -88,18 +94,30 @@ export default function MusicVolumeControl({
   // Als Prozent der Admin-Vorgabe: 100 % = so, wie es eingestellt wurde.
   const percent = Math.round(factor * 100);
 
+  // Ein Tipp auf das Lautsprecher-Symbol schaltet die Musik ganz aus – auf dem
+  // Handy schneller als den Regler genau auf 0 zu ziehen.
+  const toggleMute = () => handleChange(isMuted ? lastAudibleRef.current : 0);
+
   const labelEl = (
-    <label
-      htmlFor={sliderId}
-      className={`flex shrink-0 items-center gap-1.5 text-secondary-600 ${wide ? "sm:order-1" : ""}`}
-    >
-      {isMuted ? (
-        <VolumeX className="h-4 w-4" aria-hidden="true" />
-      ) : (
-        <Volume2 className="h-4 w-4" aria-hidden="true" />
-      )}
-      <span className={compact ? "sr-only" : wide ? "text-sm" : "text-xs"}>{label}</span>
-    </label>
+    <div className={`flex shrink-0 items-center gap-1.5 text-secondary-600 ${wide ? "sm:order-1" : ""}`}>
+      <button
+        type="button"
+        onClick={toggleMute}
+        aria-label={isMuted ? "Hintergrundmusik einschalten" : "Hintergrundmusik ausschalten"}
+        title={isMuted ? "Musik einschalten" : "Musik ausschalten"}
+        // 36px Tippfläche, per negativem Margin ohne Einfluss aufs Layout.
+        className="-m-2.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:bg-secondary-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
+      >
+        {isMuted ? (
+          <VolumeX className="h-4 w-4" aria-hidden="true" />
+        ) : (
+          <Volume2 className="h-4 w-4" aria-hidden="true" />
+        )}
+      </button>
+      <label htmlFor={sliderId} className={compact ? "sr-only" : wide ? "text-sm" : "text-xs"}>
+        {label}
+      </label>
+    </div>
   );
 
   const valueEl = (

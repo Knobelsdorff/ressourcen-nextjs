@@ -20,6 +20,12 @@ import {
   applyMusicVolumeFactor,
   subscribeToMusicVolumeFactor,
 } from "@/lib/musicVolumePreference";
+import {
+  attachMusicElement,
+  detachMusicElement,
+  setMusicElementVolume,
+  unlockMusicAudio,
+} from "@/lib/audio/musicOutput";
 
 /** Wer so nah ans Ende spult, hat die Geschichte "zu Ende gehört". */
 const COMPLETION_NEAR_END_SECONDS = 3;
@@ -226,7 +232,8 @@ export function useAudioPlayer({
     return subscribeToMusicVolumeFactor((factor) => {
       const music = musicRef.current;
       if (!music) return;
-      music.volume = applyMusicVolumeFactor(adminMusicVolumeRef.current, factor);
+      // Über musicOutput, nicht music.volume – auf iOS wirkt .volume nicht.
+      setMusicElementVolume(music, applyMusicVolumeFactor(adminMusicVolumeRef.current, factor));
     });
   }, []);
 
@@ -273,6 +280,9 @@ export function useAudioPlayer({
     audio.preload = "metadata";
     audioRef.current = audio;
     completionFiredRef.current = false;
+    // Lädt die Musik erst nach dem Aufräumen fertig (schneller URL-Wechsel),
+    // darf sie nicht mehr an diesen Player gehängt werden.
+    let cancelled = false;
 
     setIsLoading(true);
     setCurrentTime(0);
@@ -295,11 +305,16 @@ export function useAudioPlayer({
         const track = await getBackgroundMusicTrack(figureId);
         if (!track?.track_url) return;
 
-        const music = new Audio(track.track_url);
-        music.loop = true;
+        if (cancelled) return;
+
+        // Erst attachMusicElement, dann src: Auf iOS muss crossOrigin vor dem
+        // Laden feststehen, damit der GainNode die Lautstärke regeln kann.
+        const music = new Audio();
         adminMusicVolumeRef.current = track.volume ?? DEFAULT_MUSIC_VOLUME;
-        music.volume = applyMusicVolumeFactor(adminMusicVolumeRef.current);
+        attachMusicElement(music, applyMusicVolumeFactor(adminMusicVolumeRef.current));
+        music.loop = true;
         music.preload = "auto";
+        music.src = track.track_url;
         music.addEventListener("loadedmetadata", () => setMusicDuration(music.duration));
         music.load();
         musicRef.current = music;
@@ -433,6 +448,7 @@ export function useAudioPlayer({
     audio.addEventListener("error", handleError);
 
     return () => {
+      cancelled = true;
       clearMusicTimer();
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("durationchange", handleDurationChange);
@@ -445,6 +461,7 @@ export function useAudioPlayer({
       audio.src = "";
       if (musicRef.current) {
         musicRef.current.pause();
+        detachMusicElement(musicRef.current);
         musicRef.current.src = "";
         musicRef.current = null;
       }
@@ -527,6 +544,9 @@ export function useAudioPlayer({
     }
 
     isUserPausingRef.current = false;
+    // Synchron in der Klick-Geste – sonst bleibt der AudioContext auf iOS
+    // gesperrt und die Musik stumm.
+    unlockMusicAudio();
 
     // Am Ende (z.B. ans Ende gespult): Abspielen beginnt von vorn, statt einen
     // laufenden Player ohne Ton anzuzeigen.

@@ -16,6 +16,12 @@ import { isEnabled } from "@/lib/featureFlags";
 import { getBackgroundMusicUrl, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
 import { applyMusicVolumeFactor, subscribeToMusicVolumeFactor } from "@/lib/musicVolumePreference";
 import MusicVolumeControl from "./audio/MusicVolumeControl";
+import {
+  attachMusicElement,
+  detachMusicElement,
+  setMusicElementVolume,
+  unlockMusicAudio,
+} from "@/lib/audio/musicOutput";
 import ButterflyHugDrawer from "./dashboard/ButterflyHugDrawer";
 import { useButterflyHugGate } from "@/hooks/useButterflyHugGate";
 import { getOrCreateBrowserFingerprint } from "@/lib/browser-fingerprint";
@@ -1282,6 +1288,7 @@ export default function AudioPlayback({
         }
         musicElement.pause();
         musicElement.currentTime = 0;
+        detachMusicElement(musicElement);
       }
 
       // Clear window reference
@@ -1289,37 +1296,12 @@ export default function AudioPlayback({
     };
   }, [backgroundMusicElement]);
 
-  // Hilfsfunktion zum Setzen der Lautstärke (unterstützt Web Audio API für alle Geräte)
+  // Lautstärke über lib/audio/musicOutput – wirkt auch auf iOS, wo .volume ignoriert wird.
   const setMusicVolume = useCallback((musicAudio: HTMLAudioElement, volume: number) => {
-    if ((musicAudio as any)._useWebAudio && (musicAudio as any)._gainNode) {
-      // Alle Geräte: Verwende Web Audio API GainNode für konsistente Lautstärke
-      try {
-        const gainNode = (musicAudio as any)._gainNode;
-        const audioContext = (musicAudio as any)._audioContext;
-
-        // Stelle sicher, dass AudioContext aktiv ist
-        if (audioContext && audioContext.state === 'suspended') {
-          audioContext.resume().catch((err: any) => {
-            console.warn('[AudioPlayback] Failed to resume AudioContext:', err);
-          });
-        }
-
-        gainNode.gain.value = volume;
-        console.log('[AudioPlayback] Volume set via GainNode:', volume);
-      } catch (error) {
-        console.warn('[AudioPlayback] Failed to set volume via GainNode, falling back to HTMLAudioElement:', error);
-        musicAudio.volume = volume;
-      }
-    } else {
-      // Fallback: Verwende normale volume Property (nur wenn Web Audio API nicht verfügbar)
-      musicAudio.volume = volume;
-      console.log('[AudioPlayback] Volume set via HTMLAudioElement.volume:', volume);
-    }
+    setMusicElementVolume(musicAudio, volume);
   }, []);
 
-  // Regler im Player: Die laufende Musik folgt sofort. Solange Web Audio noch
-  // nicht verbunden ist, reicht _targetVolume – das Element selbst bleibt auf 1,
-  // sonst würde die Lautstärke danach doppelt angewendet.
+  // Regler im Player: Die laufende Musik folgt sofort.
   useEffect(() => {
     return subscribeToMusicVolumeFactor((factor) => {
       const musicAudio: HTMLAudioElement | null = (window as any)._pendingBackgroundMusic || backgroundMusicElement;
@@ -1328,20 +1310,9 @@ export default function AudioPlayback({
       const effective = applyMusicVolumeFactor(adminVolume, factor);
       (musicAudio as any)._targetVolume = effective;
       (musicAudio as any)._originalVolume = effective;
-      if (!(musicAudio as any)._webAudioPending) setMusicVolume(musicAudio, effective);
+      setMusicVolume(musicAudio, effective);
     });
   }, [backgroundMusicElement, setMusicVolume]);
-
-  // Hilfsfunktion zum Abrufen der aktuellen Lautstärke
-  const getMusicVolume = useCallback((musicAudio: HTMLAudioElement): number => {
-    if ((musicAudio as any)._useWebAudio && (musicAudio as any)._gainNode) {
-      // Alle Geräte: Verwende Web Audio API GainNode
-      return (musicAudio as any)._gainNode.gain.value;
-    } else {
-      // Fallback: Verwende normale volume Property
-      return musicAudio.volume;
-    }
-  }, []);
 
   // Audio event handlers
   useEffect(() => {
@@ -1498,6 +1469,8 @@ export default function AudioPlayback({
   const togglePlayPause = async () => {
     const audio = audioRef.current;
     if (!audio || !audioState?.audioUrl) return;
+    // Synchron, vor jedem await: iOS entsperrt Web Audio nur in der Klick-Geste.
+    if (!isPlaying) unlockMusicAudio();
 
     if (isPlaying) {
       audio.pause();
@@ -1696,12 +1669,15 @@ export default function AudioPlayback({
         if (backgroundMusicElement) {
           backgroundMusicElement.pause();
           backgroundMusicElement.currentTime = 0;
+          detachMusicElement(backgroundMusicElement);
         }
 
         // Erstelle neues Musik-Element - lade als Blob für bessere Kompatibilität
         const musicAudio = new Audio();
+        // Vor dem Setzen von src: Auf iOS wirkt .volume nicht, die Lautstärke
+        // läuft dort über einen GainNode (siehe lib/audio/musicOutput).
+        attachMusicElement(musicAudio, musicVolume);
         musicAudio.loop = false; // Kein Loop - Musik spielt einmal durch
-        musicAudio.volume = 1.0; // Set to max, will control via Web Audio API GainNode
         musicAudio.preload = 'auto';
 
         // Speichere die track-spezifische Lautstärke
@@ -1732,17 +1708,14 @@ export default function AudioPlayback({
           const blob = await response.blob();
           const blobUrl = URL.createObjectURL(blob);
           console.log('[AudioPlayback] Created blob URL for background music (iOS-compatible):', blobUrl);
-          musicAudio.src = blobUrl;
-          musicAudio.crossOrigin = null; // Blob-URLs brauchen kein CORS
+          musicAudio.src = blobUrl; // Blob-URLs sind same-origin – Web Audio funktioniert
         } catch (fetchError) {
           console.warn('[AudioPlayback] Failed to load as blob, using direct URL:', fetchError);
-          musicAudio.src = musicUrl;
           musicAudio.crossOrigin = 'anonymous';
+          musicAudio.src = musicUrl;
         }
-        
-        // Speichere Geräte-Flags für späteres Web Audio API Setup
+
         (musicAudio as any)._isIOS = isIOS;
-        (musicAudio as any)._useWebAudio = false;
         (musicAudio as any)._originalVolume = musicVolume;
 
         setBackgroundMusicElement(musicAudio);
@@ -1760,113 +1733,66 @@ export default function AudioPlayback({
           }
         }
 
-        // ALLE GERÄTE: Setup Web Audio API für konsistente Lautstärkekontrolle + Dynamic Range Compression
-        if (typeof AudioContext !== 'undefined' || typeof (window as any).webkitAudioContext !== 'undefined') {
-          (musicAudio as any)._webAudioPending = true;
-          musicAudio.addEventListener('canplay', () => {
-            if ((musicAudio as any)._useWebAudio) {
-              console.log('[AudioPlayback] Web Audio API already connected, skipping');
+        // Lautstärke: attachMusicElement oben. Früher stand hier ein eigener
+        // AudioContext mit Kompressor – dessen automatische Pegelanhebung
+        // (Makeup-Gain) machte die Musik deutlich lauter als im Admin eingestellt.
+
+        // iOS: Verhindere, dass Musik pausiert wird, wenn der Bildschirm ausgeht
+        if (isIOS) {
+          // Event-Listener für pause Events - starte Musik automatisch wieder, wenn sie unerwartet pausiert wird
+          const handlePause = () => {
+            // Prüfe ob Musik gestoppt werden soll (z.B. wenn Audio endet)
+            if ((musicAudio as any)._shouldStop) {
+              console.log('[AudioPlayback] Background music pause ignored - music should stop');
               return;
             }
-
-            try {
-              // Verwende AudioContext oder webkitAudioContext (Safari)
-              const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
-              const audioContext = new AudioContextClass();
-              const source = audioContext.createMediaElementSource(musicAudio);
-
-              // Erstelle Dynamic Range Compressor für konsistente Lautstärke über alle Geräte
-              const compressor = audioContext.createDynamicsCompressor();
-              compressor.threshold.setValueAtTime(-24, audioContext.currentTime);
-              compressor.knee.setValueAtTime(30, audioContext.currentTime);
-              compressor.ratio.setValueAtTime(12, audioContext.currentTime);
-              compressor.attack.setValueAtTime(0.003, audioContext.currentTime);
-              compressor.release.setValueAtTime(0.25, audioContext.currentTime);
-
-              // Erstelle GainNode für Lautstärkekontrolle
-              const gainNode = audioContext.createGain();
-              const targetVolume = (musicAudio as any)._targetVolume ?? DEFAULT_MUSIC_VOLUME;
-              gainNode.gain.value = targetVolume;
-
-              // Audio Chain: Source -> Compressor -> Gain -> Destination
-              source.connect(compressor);
-              compressor.connect(gainNode);
-              gainNode.connect(audioContext.destination);
-
-              (musicAudio as any)._audioContext = audioContext;
-              (musicAudio as any)._compressor = compressor;
-              (musicAudio as any)._gainNode = gainNode;
-              (musicAudio as any)._useWebAudio = true;
-              (musicAudio as any)._webAudioPending = false;
-
-              console.log('[AudioPlayback] Web Audio API connected with compressor for consistent volume (Device: ' + (isIOS ? 'iOS' : 'Desktop/Android') + ', Volume: ' + targetVolume + ')');
-            } catch (error: any) {
-              console.warn('[AudioPlayback] Failed to setup Web Audio API, using HTMLAudioElement:', error);
-              (musicAudio as any)._useWebAudio = false;
-              (musicAudio as any)._webAudioPending = false;
-              // Fallback: setze normale volume (track-spezifisch)
-              const fallbackVolume = (musicAudio as any)._targetVolume ?? DEFAULT_MUSIC_VOLUME;
-              musicAudio.volume = fallbackVolume;
-            }
-          }, { once: true });
-          
-          // iOS: Verhindere, dass Musik pausiert wird, wenn der Bildschirm ausgeht
-          if (isIOS) {
-            // Event-Listener für pause Events - starte Musik automatisch wieder, wenn sie unerwartet pausiert wird
-            const handlePause = () => {
-              // Prüfe ob Musik gestoppt werden soll (z.B. wenn Audio endet)
-              if ((musicAudio as any)._shouldStop) {
-                console.log('[AudioPlayback] Background music pause ignored - music should stop');
-                return;
-              }
-              
-              // Prüfe ob die Stimme noch läuft (dann sollte Musik auch laufen)
-              const audio = audioRef.current;
-              if (audio && !audio.paused && !audio.ended) {
-                console.log('[AudioPlayback] Background music was paused unexpectedly on iOS, restarting...');
-                // Verwende setTimeout, um sicherzustellen, dass der Play-Befehl nach dem Pause-Event ausgeführt wird
-                setTimeout(() => {
-                  // Prüfe nochmal, ob Musik gestoppt werden soll
-                  if (!(musicAudio as any)._shouldStop) {
-                    musicAudio.play().catch((err: any) => {
-                      console.warn('[AudioPlayback] Failed to restart background music after pause:', err);
-                    });
-                  }
-                }, 100);
-              }
-            };
             
-            // Mehrere Event-Listener für verschiedene Szenarien
-            musicAudio.addEventListener('pause', handlePause);
-            musicAudio.addEventListener('suspend', handlePause); // iOS suspend Event
-            
-            // Timeupdate-Listener: Prüfe regelmäßig, ob Musik pausiert wurde, während Stimme läuft
-            const checkMusicPlaying = () => {
-              // Prüfe ob Musik gestoppt werden soll (z.B. wenn Audio endet)
-              if ((musicAudio as any)._shouldStop) {
-                return;
-              }
-              
-              const audio = audioRef.current;
-              if (audio && !audio.paused && !audio.ended) {
-                // Stimme läuft noch
-                if (musicAudio.paused && !musicAudio.ended) {
-                  // Musik wurde pausiert, obwohl Stimme läuft - starte wieder
-                  console.log('[AudioPlayback] Background music paused while voice is playing, restarting...');
+            // Prüfe ob die Stimme noch läuft (dann sollte Musik auch laufen)
+            const audio = audioRef.current;
+            if (audio && !audio.paused && !audio.ended) {
+              console.log('[AudioPlayback] Background music was paused unexpectedly on iOS, restarting...');
+              // Verwende setTimeout, um sicherzustellen, dass der Play-Befehl nach dem Pause-Event ausgeführt wird
+              setTimeout(() => {
+                // Prüfe nochmal, ob Musik gestoppt werden soll
+                if (!(musicAudio as any)._shouldStop) {
                   musicAudio.play().catch((err: any) => {
-                    console.warn('[AudioPlayback] Failed to restart background music in timeupdate:', err);
+                    console.warn('[AudioPlayback] Failed to restart background music after pause:', err);
                   });
                 }
+              }, 100);
+            }
+          };
+          
+          // Mehrere Event-Listener für verschiedene Szenarien
+          musicAudio.addEventListener('pause', handlePause);
+          musicAudio.addEventListener('suspend', handlePause); // iOS suspend Event
+          
+          // Timeupdate-Listener: Prüfe regelmäßig, ob Musik pausiert wurde, während Stimme läuft
+          const checkMusicPlaying = () => {
+            // Prüfe ob Musik gestoppt werden soll (z.B. wenn Audio endet)
+            if ((musicAudio as any)._shouldStop) {
+              return;
+            }
+            
+            const audio = audioRef.current;
+            if (audio && !audio.paused && !audio.ended) {
+              // Stimme läuft noch
+              if (musicAudio.paused && !musicAudio.ended) {
+                // Musik wurde pausiert, obwohl Stimme läuft - starte wieder
+                console.log('[AudioPlayback] Background music paused while voice is playing, restarting...');
+                musicAudio.play().catch((err: any) => {
+                  console.warn('[AudioPlayback] Failed to restart background music in timeupdate:', err);
+                });
               }
-            };
-            
-            musicAudio.addEventListener('timeupdate', checkMusicPlaying);
-            
-            // Cleanup beim Entfernen des Audio-Elements
-            (musicAudio as any)._pauseHandler = handlePause;
-            (musicAudio as any)._timeupdateHandler = checkMusicPlaying;
-            (musicAudio as any)._shouldStop = false; // Initialisiere Flag
-          }
+            }
+          };
+          
+          musicAudio.addEventListener('timeupdate', checkMusicPlaying);
+          
+          // Cleanup beim Entfernen des Audio-Elements
+          (musicAudio as any)._pauseHandler = handlePause;
+          (musicAudio as any)._timeupdateHandler = checkMusicPlaying;
+          (musicAudio as any)._shouldStop = false; // Initialisiere Flag
         }
         
         // Warte auf Musik-Metadaten für Duration
@@ -1924,6 +1850,7 @@ export default function AudioPlayback({
   const restart = async () => {
     const audio = audioRef.current;
     if (!audio) return;
+    unlockMusicAudio();
 
     // Prüfe Zugang auch beim Restart (gleiche Logik wie togglePlayPause)
     // Nur wenn Paywall-Feature aktiviert ist
