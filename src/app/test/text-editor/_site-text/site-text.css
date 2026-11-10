@@ -1,0 +1,177 @@
+/* Inline-Texteditor (Prototyp). Bewusst neutral/dunkel, damit Admin-UI
+   klar von der Seite selbst zu unterscheiden ist. */
+
+:root {
+  --st-ink: #1c1917;
+  --st-accent: #2563eb;
+  --st-accent-soft: rgba(37, 99, 235, 0.1);
+  --st-dirty: rgba(250, 204, 21, 0.35);
+  --st-panel-bg: #ffffff;
+  --st-panel-border: #e7e5e4;
+  --st-muted: #78716c;
+}
+
+html.st-edit-mode body { padding-top: var(--st-bar-height, 56px); }
+html.st-edit-mode header[data-tour-offset] { top: var(--st-bar-height, 56px) !important; }
+
+/* ── Text-Markierungen auf der Seite ───────────────────────── */
+.st-text { border-radius: 4px; transition: background-color 0.15s, box-shadow 0.15s; }
+.st-editable {
+  cursor: text;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.18);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.st-editable.st-hover { box-shadow: 0 0 0 2px var(--st-accent); background: var(--st-accent-soft); }
+.st-dirty { background: var(--st-dirty); box-shadow: 0 0 0 1px rgba(202, 138, 4, 0.6); }
+.st-overridden { box-shadow: 0 0 0 1px rgba(22, 163, 74, 0.45); }
+.st-editing {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--st-accent), 0 0 0 6px rgba(37, 99, 235, 0.15);
+  background: rgba(255, 255, 255, 0.92);
+  color: inherit;
+  cursor: text;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* ── Stift ─────────────────────────────────────────────────── */
+.st-pencil {
+  position: fixed;
+  z-index: 10001;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--st-accent);
+  color: white;
+  border: 2px solid white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  animation: st-pop 0.12s ease-out;
+}
+.st-pencil:hover { transform: scale(1.08); }
+@keyframes st-pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* ── Werkzeugleiste beim Bearbeiten ────────────────────────── */
+.st-toolbar {
+  position: fixed;
+  z-index: 10002;
+  background: var(--st-ink);
+  color: #fafaf9;
+  border-radius: 12px;
+  padding: 8px 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  max-width: min(560px, calc(100vw - 16px));
+  font: 13px/1.4 ui-sans-serif, system-ui, sans-serif;
+}
+.st-toolbar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.st-toolbar .st-key { color: #a8a29e; margin-right: 4px; }
+.st-hint { color: #a8a29e; font-size: 11.5px; margin-top: 6px; }
+.st-error { margin-top: 6px; color: #fecaca; background: rgba(220, 38, 38, 0.25); padding: 4px 8px; border-radius: 6px; }
+
+.st-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  font: 500 12.5px/1 ui-sans-serif, system-ui, sans-serif;
+  padding: 6px 9px; border-radius: 8px;
+  border: 1px solid rgba(120, 113, 108, 0.45);
+  background: transparent; color: inherit; cursor: pointer;
+}
+.st-btn:hover { background: rgba(120, 113, 108, 0.18); }
+.st-btn-primary { background: var(--st-accent); border-color: var(--st-accent); color: white; }
+.st-btn-primary:hover { background: #1d4ed8; }
+
+.st-key { font: 11.5px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--st-muted); word-break: break-all; }
+
+/* ── Obere Leiste ──────────────────────────────────────────── */
+.st-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 10000;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 0 16px;
+  background: var(--st-ink); color: #fafaf9;
+  font: 14px/1 ui-sans-serif, system-ui, sans-serif;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+.st-bar-left { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.st-bar-badge { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; white-space: nowrap; }
+.st-bar-help { color: #a8a29e; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-bar-right { display: flex; align-items: center; gap: 6px; }
+.st-bar-btn {
+  display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px;
+  border-radius: 9px; border: 1px solid rgba(168, 162, 158, 0.3);
+  background: transparent; color: inherit; cursor: pointer; white-space: nowrap;
+  font: 500 13.5px/1 ui-sans-serif, system-ui, sans-serif;
+}
+.st-bar-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.08); }
+.st-bar-btn:disabled { opacity: 0.5; cursor: default; }
+.st-bar-save { background: #16a34a; border-color: #16a34a; color: white; font-weight: 600; }
+.st-bar-save:hover:not(:disabled) { background: #15803d !important; }
+.st-bar-save:disabled { background: transparent; border-color: rgba(168, 162, 158, 0.3); }
+.st-count {
+  min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
+  background: #facc15; color: var(--st-ink); font-size: 12px; font-weight: 700;
+  display: inline-grid; place-items: center;
+}
+.st-count-muted { background: rgba(255, 255, 255, 0.15); color: inherit; }
+.st-muted { color: var(--st-muted); }
+.st-bar .st-muted { color: #a8a29e; }
+.st-spin { animation: st-spin 0.8s linear infinite; }
+@keyframes st-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 900px) { .st-bar-help { display: none; } }
+@media (max-width: 640px) {
+  .st-hide-sm { display: none; }
+  .st-bar { padding: 0 8px; gap: 6px; }
+  .st-bar-badge span, .st-bar-badge { font-size: 0; }
+  .st-bar-badge svg { width: 18px; height: 18px; }
+  .st-bar-btn { padding: 0 9px; }
+}
+
+/* ── Launcher (Bearbeitungsmodus aus) ──────────────────────── */
+.st-launcher {
+  position: fixed; left: 16px; bottom: 16px; z-index: 10000;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 16px; border-radius: 999px; border: none;
+  background: var(--st-ink); color: white; cursor: pointer;
+  font: 600 14px/1 ui-sans-serif, system-ui, sans-serif;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+.st-launcher:hover { background: #292524; }
+
+/* ── Seitenpanel ───────────────────────────────────────────── */
+.st-panel {
+  position: fixed; z-index: 10000;
+  top: calc(var(--st-bar-height, 56px) + 8px); right: 8px;
+  width: min(420px, calc(100vw - 16px));
+  max-height: calc(100vh - var(--st-bar-height, 56px) - 24px);
+  overflow: auto;
+  background: var(--st-panel-bg); color: var(--st-ink);
+  border: 1px solid var(--st-panel-border); border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+  font: 14px/1.45 ui-sans-serif, system-ui, sans-serif;
+}
+.st-panel-head {
+  position: sticky; top: 0; background: var(--st-panel-bg);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; border-bottom: 1px solid var(--st-panel-border);
+}
+.st-panel-note { margin: 0 0 4px; font-size: 13px; }
+.st-icon-btn { border: none; background: transparent; cursor: pointer; color: var(--st-muted); padding: 4px; border-radius: 6px; }
+.st-icon-btn:hover { background: #f5f5f4; }
+.st-list { list-style: none; margin: 0; padding: 10px 14px 14px; display: grid; gap: 10px; }
+.st-change { display: grid; gap: 4px; padding: 10px; border: 1px solid var(--st-panel-border); border-radius: 10px; }
+.st-change .st-btn { justify-self: start; color: var(--st-ink); margin-top: 4px; }
+.st-diff-old { color: #b91c1c; text-decoration: line-through; text-decoration-color: rgba(185, 28, 28, 0.4); font-size: 13px; }
+.st-diff-new { color: #15803d; font-size: 13px; }
+.st-time { font-size: 12px; }
+.st-field { display: grid; gap: 4px; }
+.st-field-label { font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+.st-field textarea {
+  width: 100%; resize: vertical; padding: 8px 10px; border-radius: 8px;
+  border: 1px solid var(--st-panel-border); font: inherit; color: var(--st-ink); background: #fafaf9;
+}
+.st-field textarea:focus { outline: 2px solid var(--st-accent); outline-offset: -1px; background: white; }
+.st-field-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.st-link { border: none; background: none; color: var(--st-accent); cursor: pointer; font-size: 12px; display: inline-flex; gap: 4px; align-items: center; }
+.st-dot { width: 7px; height: 7px; border-radius: 999px; background: #eab308; display: inline-block; }
