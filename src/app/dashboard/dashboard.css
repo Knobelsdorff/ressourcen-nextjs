@@ -122,6 +122,15 @@ div.story-ready-backdrop { position: fixed; inset: 0; z-index: 80; display: flex
 .story-ready-close:hover { background: #f1e8dc; }
 .story-ready button:focus-visible { outline: 3px solid #7952b8; outline-offset: 3px; }
 
+/* "Anhören"-Zeile in der Story-Karte – öffnet den Vollbild-Player (StoryCardPlayer). */
+.story-listen-row { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 6px 4px 10px; border-radius: 14px; color: #49301e; text-align: left; transition: background-color .18s ease; }
+@media (hover: hover) { .story-listen-row:hover { background: #f6f0e8; } }
+.story-listen-play { display: grid; place-items: center; flex: none; width: 46px; height: 46px; border-radius: 50%; background: var(--wellness-chocolate, #49301e); color: #fffcf8; box-shadow: 0 8px 18px -10px #49301e99; }
+.story-listen-play-icon { margin-left: 3px; }
+.story-listen-label { font-size: 15px; font-weight: 700; }
+.story-listen-time { margin-left: auto; padding-right: 4px; color: #8b7868; font-size: 13px; font-variant-numeric: tabular-nums; }
+.story-listen-progress { position: absolute; left: 4px; bottom: 2px; height: 3px; max-width: calc(100% - 8px); border-radius: 999px; background: #6d5848; }
+
 /* Testphase / gesperrte Story */
 .dashboard-badge-trial { background: #fdeccd; color: #7a4b12; }
 .dashboard-story-locked { display: flex; align-items: flex-start; gap: 14px; padding: 18px; border: 1px solid #ebe0d2; border-radius: 16px; background: #f7f1e9; color: #49301e; }

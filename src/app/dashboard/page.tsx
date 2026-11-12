@@ -5,8 +5,6 @@ import DashboardWelcome from "@/components/dashboard/DashboardWelcome";
 import FirstStoryWelcome, { FirstStoryWelcomeState } from "@/components/dashboard/FirstStoryWelcome";
 import type { FirstStoryPhase } from "@/lib/first-story/config";
 import SubscriptionOffer, { SubscriptionOfferVariant } from "@/components/dashboard/SubscriptionOffer";
-import ButterflyHugDrawer from "@/components/dashboard/ButterflyHugDrawer";
-import { useButterflyHugGate } from "@/hooks/useButterflyHugGate";
 import { markFreeStoryOfferShown, shouldShowFreeStoryOffer } from "@/lib/first-story/offer-client";
 import FirstStoryReadyDialog from "@/components/dashboard/FirstStoryReadyDialog";
 import SettingsDialog from "@/components/dashboard/SettingsDialog";
@@ -101,37 +99,6 @@ export default function Dashboard() {
   const [showClientResourceModal, setShowClientResourceModal] = useState(false);
   const [userAccess, setUserAccess] = useState<any>(null);
 
-  // Reagiere auf Header-CTA, der ein Custom Event sendet, um die Paywall zu öffnen,
-  // ohne die URL auf dem Dashboard zu verändern.
-  useEffect(() => {
-    const handler = () => setShowPaywall(true);
-
-    if (typeof window !== "undefined") {
-      window.addEventListener("dashboard-open-paywall", handler);
-    }
-
-    return () => {
-      if (typeof window !== "undefined") {
-        window.removeEventListener("dashboard-open-paywall", handler);
-      }
-    };
-  }, []);
-
-  // Optionaler Query-Parameter ?paywall=1:
-  // Ermöglicht, von anderen Seiten aus auf das Dashboard zu springen
-  // und dort die Paywall direkt als Overlay anzuzeigen.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const url = new URL(window.location.href);
-    if (url.searchParams.get("paywall") === "1") {
-      setShowPaywall(true);
-
-      // Query-Parameter aus der URL entfernen, damit die Adresse sauber bleibt.
-      url.searchParams.delete("paywall");
-      window.history.replaceState(null, "", url.pathname + url.search);
-    }
-  }, []);
   const [stories, setStories] = useState<SavedStory[]>([]);
   const [personalStories, setPersonalStories] = useState<SavedStory[]>([]);
   const [loading, setLoading] = useState(false);
@@ -3214,8 +3181,24 @@ ${story.content}
   // (der Server entscheidet, ob es gezeigt wird) und bei gesperrten Storys.
   // ---------------------------------------------------------------------------
   const [offerVariant, setOfferVariant] = useState<SubscriptionOfferVariant | null>(null);
-  const hugGate = useButterflyHugGate(user?.id);
   const closeOffer = useCallback(() => setOfferVariant(null), []);
+
+  // "Weitere Power Storys freischalten" im Header öffnet dasselbe Abo-Angebot
+  // wie der Knopf unter den Storys (Usability-Test Punkt 6): auf dem Dashboard
+  // per Event, von anderen Seiten über /dashboard?paywall=1.
+  useEffect(() => {
+    const openOffer = () => setOfferVariant('more-stories');
+    window.addEventListener('dashboard-open-paywall', openOffer);
+
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('paywall') === '1') {
+      openOffer();
+      // Parameter entfernen – Next-Zustand im Verlauf behalten (null brach die Zurück-Navigation).
+      url.searchParams.delete('paywall');
+      window.history.replaceState({ ...(window.history.state ?? {}) }, '', url.pathname + url.search);
+    }
+    return () => window.removeEventListener('dashboard-open-paywall', openOffer);
+  }, []);
 
   const handleStoryCompleted = useCallback(async (storyId: string) => {
     if (!(await shouldShowFreeStoryOffer(storyId))) return;
@@ -3566,7 +3549,10 @@ ${story.content}
                       onGenerateAudio={() => generateAudio(story.id)}
                       onUnlock={handleUnlockStory}
                       onCompleted={story.access?.policy === 'trial' ? () => void handleStoryCompleted(story.id) : undefined}
-                      playGate={hugGate.gate}
+                      endAction={canCreateStory === null ? undefined : {
+                        label: canCreateStory ? 'Neue Power Story erstellen' : 'Weitere Power Storys freischalten',
+                        onClick: () => void handleCreateStoryClick(),
+                      }}
                       tour={story.id === firstStoryId ? {
                         card: TOUR_ANCHORS.firstStory,
                         player: TOUR_ANCHORS.firstStoryPlayer,
@@ -3599,11 +3585,6 @@ ${story.content}
             </div>
         </motion.div>
       </div>
-
-      {/* Außerhalb des animierten Inhalts: dessen transform würde position: fixed brechen. */}
-      {(hugGate.pending || (!loading && personalStories.some((story) => story.audio_url && story.access?.playable !== false))) && (
-        <ButterflyHugDrawer forced={hugGate.pending} onConfirm={hugGate.confirm} />
-      )}
 
       {/* Paywall Modal */}
       {showPaywall && (

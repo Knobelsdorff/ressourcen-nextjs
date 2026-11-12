@@ -167,6 +167,8 @@ body:has(.story-flow-boot) > main { flex: 0 0 100dvh; height: 100dvh; min-height
 /* ---------- Schritt 5 · Warten (Atem-Halo mit Fortschrittsring) ---------- */
 .story-audio-stage, .story-audio-stage > div { height: 100%; min-height: 0; }
 .story-audio-stage > audio { display: none; }
+/* Player am Ende: gemeinsamer Story-Player (components/story-player), füllt die Bühne. */
+.story-player-shell { height: 100%; min-height: 0; }
 .story-stage-center { display: flex; align-items: center; justify-content: center; height: 100%; min-height: 0; padding: clamp(12px, 3dvh, 40px) 20px max(16px, env(safe-area-inset-bottom)); overflow: hidden; }
 
 .story-loader { --story-cycle: 10s; --story-ease: cubic-bezier(.37, 0, .63, 1); display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 460px; color: #49301e; text-align: center; }
@@ -288,8 +290,6 @@ body:has(.story-flow-boot) > main { flex: 0 0 100dvh; height: 100dvh; min-height
   .story-loader-lead { font-size: 14px; }
   .story-player-controls { gap: 38px; }
   .story-flow .story-player .story-player-hint { display: inline-flex; }
-  /* Lasche unter die Bedienung: In der Bildschirmmitte läge sie über dem Ende der Zeitleiste. */
-  .story-flow div.butterfly-drawer:not(.is-open) > button.butterfly-drawer-tab { transform: translateY(170px); }
   .story-player-copy p { font-size: 14px; }
 }
 @media (max-width: 340px) {

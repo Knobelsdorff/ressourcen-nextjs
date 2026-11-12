@@ -136,49 +136,53 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
     router.push("/zugang");
   };
 
-  // Handler für "Neue Power Story erstellen"
-  // Gleiche Logik wie der Button im Dashboard (canCreateResource):
-  // - Erste eigene Story ist immer frei, danach braucht es ein aktives Abo → /create-story
-  // - Sonst: Paywall auf dem Dashboard (URL bleibt /dashboard)
+  // "Neue Power Story erstellen" / "Weitere Power Storys freischalten" –
+  // dieselbe Regel wie der Knopf unter den Storys im Dashboard (Usability-Test
+  // Punkt 6): Wer eine Story erstellen darf (aktives Abo, Paket, erste Story
+  // noch frei) → /create-story. Sonst → das Abo-Angebot (SubscriptionOffer).
+  const [canCreateStory, setCanCreateStory] = useState<boolean | null>(null);
+  const userId = user?.id;
+  useEffect(() => {
+    if (!userId) {
+      setCanCreateStory(null);
+      return;
+    }
+    let cancelled = false;
+    import("@/lib/access")
+      .then(({ canCreateResource }) => canCreateResource(userId))
+      .then((allowed) => { if (!cancelled) setCanCreateStory(allowed); })
+      .catch(() => { if (!cancelled) setCanCreateStory(false); });
+    return () => { cancelled = true; };
+    // Bei jedem Seitenwechsel neu prüfen: Story erstellt, Abo abgeschlossen …
+  }, [userId, pathname]);
+
+  const createLabel = canCreateStory === false ? "Weitere Power Storys freischalten" : "Neue Power Story erstellen";
+
   const handleCreateStory = async () => {
     setIsMobileMenuOpen(false);
+    setIsProfileMenuOpen(false);
 
     // Nur eingeloggte Nutzer haben ein Abo-Konzept. Anonyme Nutzer folgen dem bestehenden Flow.
     if (user) {
+      // Beim Klick frisch prüfen – der angezeigte Stand kann veraltet sein.
+      let allowed = false;
       try {
         const { canCreateResource } = await import("@/lib/access");
-        const canCreate = await canCreateResource(user.id);
-
-        if (!canCreate) {
-          // Freie Story verbraucht und kein aktives Abo:
-          // - Wenn wir bereits auf dem Dashboard sind: nur Paywall öffnen, keine Navigation
-          if (pathname === "/dashboard") {
-            if (typeof window !== "undefined") {
-              window.dispatchEvent(new CustomEvent("dashboard-open-paywall"));
-            }
-            return;
-          }
-
-          // - Von anderen Seiten: erst sanft zum Dashboard navigieren,
-          //   dort wird die Paywall anhand des Query-Parameters geöffnet.
-          router.push("/dashboard?paywall=1");
-          return;
-        }
+        allowed = await canCreateResource(user.id);
       } catch (error) {
-        console.warn("[Header] Error checking active access for create-story CTA:", error);
-        // Im Zweifel kein Sprung nach /create-story ohne klaren Zugang
-        if (pathname === "/dashboard") {
-          if (typeof window !== "undefined") {
-            window.dispatchEvent(new CustomEvent("dashboard-open-paywall"));
-          }
-          return;
-        }
-        router.push("/dashboard?paywall=1");
+        // Im Zweifel das Angebot zeigen, nicht /create-story ohne klaren Zugang.
+        console.warn("[Header] Zugang für neue Story nicht prüfbar:", error);
+      }
+      setCanCreateStory(allowed);
+
+      if (!allowed) {
+        // Auf dem Dashboard: Angebot direkt öffnen. Sonst dorthin, es öffnet sich dort.
+        if (pathname === "/dashboard") window.dispatchEvent(new CustomEvent("dashboard-open-paywall"));
+        else router.push("/dashboard?paywall=1");
         return;
       }
     }
 
-    // Mit aktivem Zugang (oder anonymer Flow): regulär in den Create-Story-Prozess gehen
     router.push("/create-story");
   };
 
@@ -288,14 +292,17 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
                 >
                   Mein Raum
                 </Link>
-                {/* Handlung: CTA klar vom Text getrennt */}
-                <button
-                  onClick={handleCreateStory}
-                  data-dashboard-action="create"
-                  className="bg-amber-600/90 hover:bg-amber-600 text-white text-sm font-medium px-4 py-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400/20 focus:ring-offset-2 ml-2 self-center mt-0.5"
-                >
-                  + Neue Power Story
-                </button>
+                {/* Handlung: CTA klar vom Text getrennt. Erst nach der Zugangsprüfung,
+                    sonst stünde kurz die falsche Beschriftung da. */}
+                {canCreateStory !== null && (
+                  <button
+                    onClick={handleCreateStory}
+                    data-dashboard-action="create"
+                    className="bg-amber-600/90 hover:bg-amber-600 text-white text-sm font-medium px-4 py-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400/20 focus:ring-offset-2 ml-2 self-center mt-0.5"
+                  >
+                    {canCreateStory ? "+ Neue Power Story erstellen" : createLabel}
+                  </button>
+                )}
                 <div ref={profileMenuRef} className="relative ml-2">
                   <button
                     type="button"
@@ -321,7 +328,7 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
                       <div className="py-2">
                         <Link role="menuitem" href="/dashboard" onClick={() => setIsProfileMenuOpen(false)} className="block rounded-xl px-3 py-2.5 text-sm text-amber-900 hover:bg-amber-50">Mein Raum</Link>
                         <button role="menuitem" type="button" onClick={handleOpenSettings} className="block w-full rounded-xl px-3 py-2.5 text-left text-sm text-amber-900 hover:bg-amber-50">Einstellungen</button>
-                        <button role="menuitem" type="button" onClick={handleCreateStory} className="block w-full rounded-xl px-3 py-2.5 text-left text-sm text-amber-900 hover:bg-amber-50">Neue Power Story</button>
+                        <button role="menuitem" type="button" onClick={handleCreateStory} className="block w-full rounded-xl px-3 py-2.5 text-left text-sm text-amber-900 hover:bg-amber-50">{createLabel}</button>
                       </div>
                       <div className="border-t border-amber-100 pt-2">
                         <button role="menuitem" type="button" onClick={handleLogout} className="block w-full rounded-xl px-3 py-2.5 text-left text-sm text-amber-800/60 hover:bg-amber-50 hover:text-amber-900">Abmelden</button>

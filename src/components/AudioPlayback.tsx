@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, RotateCcw, Loader2, Leaf } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ResourceFigure, AudioState } from "@/lib/types/story";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -15,15 +15,15 @@ import { markFreeStoryOfferShown, shouldShowFreeStoryOffer } from "@/lib/first-s
 import { isEnabled } from "@/lib/featureFlags";
 import { getBackgroundMusicUrl, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMusic";
 import { applyMusicVolumeFactor, subscribeToMusicVolumeFactor } from "@/lib/musicVolumePreference";
-import MusicVolumeControl from "./audio/MusicVolumeControl";
 import {
   attachMusicElement,
   detachMusicElement,
   setMusicElementVolume,
   unlockMusicAudio,
 } from "@/lib/audio/musicOutput";
-import ButterflyHugDrawer from "./dashboard/ButterflyHugDrawer";
-import { useButterflyHugGate } from "@/hooks/useButterflyHugGate";
+import StoryPlayerLayout from "./story-player/StoryPlayerLayout";
+import { useTappingIntro } from "./story-player/useTappingIntro";
+import { useMediaSession } from "./story-player/useMediaSession";
 import { getOrCreateBrowserFingerprint } from "@/lib/browser-fingerprint";
 import FigureIcon from "./story-flow/FigureIcon";
 import StoryGenerationLoader from "./story-flow/StoryGenerationLoader";
@@ -181,7 +181,12 @@ export default function AudioPlayback({
   const freeTrialOfferBusyRef = useRef(false);
   const freeTrialOfferScheduledRef = useRef(false);
   const [showSubscriptionOffer, setShowSubscriptionOffer] = useState(false);
-  const closeSubscriptionOffer = useCallback(() => setShowSubscriptionOffer(false), []);
+  // Über den Knopf nach dem Hören ("Weitere Power Storys freischalten", Usability-Test Punkt 6).
+  const [showMoreStoriesOffer, setShowMoreStoriesOffer] = useState(false);
+  const closeSubscriptionOffer = useCallback(() => {
+    setShowSubscriptionOffer(false);
+    setShowMoreStoriesOffer(false);
+  }, []);
 
   const rememberFreeTrialStory = (row: { id?: string; first_story_draft_id?: string | null; is_audio_only?: boolean } | undefined) => {
     if (!row?.id || row.first_story_draft_id || row.is_audio_only) return;
@@ -1968,16 +1973,53 @@ export default function AudioPlayback({
   
   const loadingProgress = getLoadingProgress();
 
-  // Allererstes Abspielen: erst die Klopfübung bestätigen (useButterflyHugGate).
-  // Start über eine Ref, damit der OK-Klick den aktuellen Stand abspielt.
-  const hugGate = useButterflyHugGate(user?.id);
-  const togglePlayRef = useRef(togglePlayPause);
+  // Klopfen: Erklärung beim ersten Mal offen, danach eingeklappt (kein
+  // Pflicht-Hinweis mehr vor dem Abspielen – Usability-Test 2026-11).
+  const tapping = useTappingIntro(user?.id);
   useEffect(() => {
-    togglePlayRef.current = togglePlayPause;
-  });
+    if (isPlaying) tapping.markPlayed();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlaying]);
   const handlePlayClick = () => {
-    if (!isPlaying && hugGate.gate(() => void togglePlayRef.current())) return;
     void togglePlayPause();
+  };
+
+  // Knopf nach dem Hören (eingeloggt) – dieselbe Regel wie im Dashboard
+  // (Usability-Test Punkt 6): Wer eine weitere Story erstellen darf →
+  // "Neue Power Story erstellen" → /create-story. Sonst → "Weitere Power Storys
+  // freischalten" → Abo-Angebot (statt auf /create-story vor der Paywall zu landen).
+  const [canCreateMore, setCanCreateMore] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!showPostAudioPanel || !user?.id) return;
+    let cancelled = false;
+    canCreateResource(user.id)
+      .then((allowed) => { if (!cancelled) setCanCreateMore(allowed); })
+      .catch(() => { if (!cancelled) setCanCreateMore(false); });
+    return () => { cancelled = true; };
+  }, [showPostAudioPanel, user?.id]);
+
+  const handleMoreStoriesClick = async () => {
+    if (!user) {
+      // Ohne Login zur Speichern-Seite
+      router.push('/geschichte-speichern');
+      return;
+    }
+    // Beim Klick frisch prüfen – im Zweifel das Angebot, nicht die Paywall-Seite.
+    let allowed = false;
+    try {
+      allowed = await canCreateResource(user.id);
+    } catch { /* Angebot zeigen */ }
+    setCanCreateMore(allowed);
+    if (allowed) {
+      // Voller Neuladen für einen sauberen Flow-Zustand
+      window.location.href = '/create-story';
+      return;
+    }
+    setShowMoreStoriesOffer(true);
+  };
+  const skipBySeconds = (seconds: number) => {
+    if (!effectiveDuration) return;
+    seekToTime(Math.min(Math.max(0, currentTime + seconds), Math.max(0, effectiveDuration - 0.25)));
   };
 
   // Drei Ansichten im selben Baum: Warten (Loader), Fehler, Player. Das
@@ -2017,6 +2059,20 @@ export default function AudioPlayback({
     transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as const },
   };
 
+  // Sperrbildschirm / Benachrichtigung: Titel, Play/Pause, ±15 s.
+  useMediaSession({
+    active: view === 'player',
+    title: selectedFigure.name,
+    subtitle: 'Deine Power Story',
+    playing: isPlaying,
+    time: currentTime,
+    duration: effectiveDuration,
+    onPlay: () => { if (!isPlaying) handlePlayClick(); },
+    onPause: () => { if (isPlaying) handlePlayClick(); },
+    onSkip: skipBySeconds,
+    onSeek: (seconds) => seekToTime(seconds),
+  });
+
   return (
     <div className="story-audio-stage">
       <AnimatePresence mode="wait" initial={false}>
@@ -2055,163 +2111,97 @@ export default function AudioPlayback({
         )}
 
         {view === 'player' && (
-          <motion.div key="player" className="story-stage-center" {...viewMotion}>
-            <section className="story-player" aria-label="Deine Power Story">
-              {saveError && (
-                <div className="story-player-alert" role="alert">
-                  <p>{error}</p>
-                  <button type="button" onClick={() => {
-                    if (firstStorySaveStarted.current) return;
-                    firstStorySaveStarted.current = true;
-                    setError(null);
-                    void saveStoryToDatabase().then(() => {
-                      if (!firstStorySaveFinished.current) {
-                        firstStorySaveStarted.current = false;
-                        setError('Deine Story ist fertig, konnte aber noch nicht gespeichert werden. Bitte versuche es erneut.');
-                      }
-                    });
-                  }}>Speichern erneut versuchen</button>
-                </div>
-              )}
+          <motion.div key="player" className="story-player-shell" {...viewMotion}>
+            {/* Gleicher Aufbau wie der Vollbild-Player im Dashboard (StoryPlayerLayout):
+                Klopf-Video zentriert, Leiste unten mit Steuerung und Hintergrundmusik.
+                Wiedergabe-Logik unverändert (togglePlayPause, seekToTime, restart). */}
+            <div className="sp-inline sp-root">
+              <StoryPlayerLayout
+                title={selectedFigure.name}
+                subtitle="Deine Power Story"
+                playing={isPlaying}
+                busy={audioBusy}
+                playDisabled={audioBusy}
+                time={currentTime}
+                duration={effectiveDuration}
+                onToggle={handlePlayClick}
+                onSeek={(seconds) => seekToTime(seconds)}
+                onSkip={skipBySeconds}
+                hasMusic={musicEnabled}
+                explainOpen={tapping.explainOpen}
+                onToggleExplain={tapping.toggleExplain}
+                hideTapping={showPostAudioPanel}
+                lead={!hasStartedPlayback && !showPostAudioPanel
+                  ? (isFirstStoryPlayback === false
+                    ? 'Deine Power Story ist da. Du kannst dich jetzt einfach begleiten lassen – in deinem eigenen Rhythmus.'
+                    : <>Deine Power Story ist da. Du musst nichts tun. {getFigurePresenceText(selectedFigure)} Du kannst einfach zuhören – oder jederzeit pausieren.</>)
+                  : undefined}
+                extra={
+                  <>
+                    {saveError && (
+                      <>
+                        <p className="sp-message sp-message--error" role="alert">{error}</p>
+                        <button type="button" className="sp-link sp-link--strong" onClick={() => {
+                          if (firstStorySaveStarted.current) return;
+                          firstStorySaveStarted.current = true;
+                          setError(null);
+                          void saveStoryToDatabase().then(() => {
+                            if (!firstStorySaveFinished.current) {
+                              firstStorySaveStarted.current = false;
+                              setError('Deine Story ist fertig, konnte aber noch nicht gespeichert werden. Bitte versuche es erneut.');
+                            }
+                          });
+                        }}>Speichern erneut versuchen</button>
+                      </>
+                    )}
 
-              <div className="story-first-character story-player-figure">
-                <span className="story-first-avatar" aria-hidden="true">
-                  <FigureIcon figure={selectedFigure} size={52} className="story-first-avatar-image" />
-                </span>
-                <span>{selectedFigure.name}</span>
-              </div>
+                    {error && !saveError && (
+                      <>
+                        <p className="sp-message sp-message--error" role="alert">{error}</p>
+                        <button type="button" className="sp-link sp-link--strong" onClick={() => selectedVoice && generateAudio(generatedStory, selectedVoice.id)}>Erneut versuchen</button>
+                      </>
+                    )}
 
-              <AnimatePresence mode="wait" initial={false}>
-                {showPostAudioPanel ? (
-                  <motion.div key="after" className="story-player-copy" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.5 }}>
-                    <h1>
-                      {isFirstStoryPlayback === false
-                        ? 'Vielleicht magst du dem Gehörten noch einen Moment Raum geben.'
-                        : 'Lass das Gehörte einen Moment nachwirken.'}
-                    </h1>
-                    <p>
-                      {isFirstStoryPlayback === false
-                        ? 'Oder du gehst einfach weiter, wenn es sich stimmig anfühlt.'
-                        : 'Du musst nichts festhalten oder verstehen. Manchmal reicht es, etwas wirken zu lassen.'}
-                    </p>
-                  </motion.div>
-                ) : (
-                  <motion.div key="before" className="story-player-copy" exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
-                    <h1>Deine Power Story ist da</h1>
-                    <p>
-                      {isFirstStoryPlayback === false
-                        ? 'Du kannst dich jetzt einfach begleiten lassen – in deinem eigenen Rhythmus.'
-                        : <>Du musst nichts tun. {getFigurePresenceText(selectedFigure)} Du kannst einfach zuhören – oder jederzeit pausieren.</>}
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {error && !saveError && (
-                <p className="story-form-message" data-tone="error" role="alert">
-                  {error}{' '}
-                  <button type="button" onClick={() => selectedVoice && generateAudio(generatedStory, selectedVoice.id)}>Erneut versuchen</button>
-                </p>
-              )}
-
-              <div className="story-player-controls">
-                <span className="story-player-side">
-                  {hasStartedPlayback && (
-                    <motion.button
-                      type="button"
-                      className="story-player-restart"
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      onClick={restart}
-                      aria-label="Von vorn anhören"
-                    >
-                      <RotateCcw size={18} aria-hidden="true" />
-                    </motion.button>
-                  )}
-                </span>
-                <button
-                  type="button"
-                  className="story-player-play"
-                  data-playing={isPlaying || undefined}
-                  onClick={handlePlayClick}
-                  disabled={audioBusy}
-                  aria-label={audioBusy ? 'Audio lädt' : isPlaying ? 'Pausieren' : 'Power Story anhören'}
-                >
-                  {audioBusy ? (
-                    <Loader2 size={28} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
-                  ) : isPlaying ? (
-                    <Pause size={28} fill="currentColor" aria-hidden="true" />
-                  ) : (
-                    <Play size={28} fill="currentColor" className="story-player-play-icon" aria-hidden="true" />
-                  )}
-                </button>
-                <span className="story-player-side" />
-              </div>
-
-              <div className="story-player-progress">
-                <div
-                  ref={progressBarRef}
-                  onMouseDown={handleProgressBarMouseDown}
-                  className="story-player-track"
-                  data-dragging={isDragging || undefined}
-                  role="slider"
-                  aria-label="Position in der Power Story"
-                  aria-valuemin={0}
-                  aria-valuemax={Math.round(effectiveDuration || 0)}
-                  aria-valuenow={Math.round(currentTime)}
-                  aria-valuetext={`${formatTime(currentTime)} von ${formatTime(effectiveDuration)}`}
-                >
-                  {(isLoading || isLoadingAudio) && <span className="story-player-loaded" style={{ width: `${loadingProgress}%` }} />}
-                  <span className="story-player-buffer" style={{ width: `${bufferedPercentage}%` }} />
-                  <span className="story-player-fill" style={{ width: `${progressPercentage}%` }} />
-                  <span className="story-player-thumb" style={{ left: `${progressPercentage}%` }} />
-                </div>
-                <div className="story-player-times">
-                  <span>{formatTime(currentTime)}</span>
-                  {audioBusy && <span>Lädt …</span>}
-                  <span>{formatTime(effectiveDuration)}</span>
-                </div>
-              </div>
-
-              {musicEnabled && !showPostAudioPanel && (
-                <MusicVolumeControl label="Hintergrundmusik" className="story-player-volume" />
-              )}
-
-              <AnimatePresence mode="wait" initial={false}>
-                {showPostAudioPanel && showPostAudioCTA ? (
-                  <motion.div key="cta" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-                    <button
-                      type="button"
-                      className="story-first-next story-player-cta"
-                      onClick={() => {
-                        // Moment 3: Route to access page if not authenticated
-                        if (!user) {
-                          router.push('/geschichte-speichern');
-                        } else {
-                          // Full reload for a clean flow state
-                          window.location.href = '/create-story';
-                        }
-                      }}
-                    >
-                      {user
-                        ? isFirstStoryPlayback === false
-                          ? 'Neue Power Story erstellen'
-                          : 'Eine weitere persönliche Geschichte erstellen'
-                        : 'Diese Geschichte für mich behalten'}
-                    </button>
-                  </motion.div>
-                ) : (
-                  <motion.p key="hint" className="story-stage-hint story-player-hint" exit={{ opacity: 0 }}>
-                    <Leaf size={15} aria-hidden="true" /> Am schönsten in einem ruhigen Moment
-                  </motion.p>
-                )}
-              </AnimatePresence>
-            </section>
+                    {showPostAudioPanel && (
+                      <>
+                        <p className="sp-message">
+                          {isFirstStoryPlayback === false
+                            ? 'Vielleicht magst du dem Gehörten noch einen Moment Raum geben.'
+                            : 'Lass das Gehörte einen Moment nachwirken.'}
+                        </p>
+                        <p className="sp-message sp-message--soft">
+                          {isFirstStoryPlayback === false
+                            ? 'Oder du gehst einfach weiter, wenn es sich stimmig anfühlt.'
+                            : 'Du musst nichts festhalten oder verstehen. Manchmal reicht es, etwas wirken zu lassen.'}
+                        </p>
+                        <button type="button" className="sp-link" onClick={() => void restart()}>Nochmal hören</button>
+                        {/* Eingeloggt erst nach der Zugangsprüfung zeigen – sonst stünde kurz die falsche Beschriftung da. */}
+                        {showPostAudioCTA && (!user || canCreateMore !== null) && (
+                          <motion.button
+                            type="button"
+                            className="sp-pill"
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4 }}
+                            onClick={() => void handleMoreStoriesClick()}
+                          >
+                            {!user
+                              ? 'Diese Geschichte für mich behalten'
+                              : canCreateMore
+                                ? 'Neue Power Story erstellen'
+                                : 'Weitere Power Storys freischalten'}
+                          </motion.button>
+                        )}
+                      </>
+                    )}
+                  </>
+                }
+              />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {view === 'player' && <ButterflyHugDrawer forced={hugGate.pending} onConfirm={hugGate.confirm} />}
 
       <audio
         ref={audioRef}
@@ -2407,7 +2397,7 @@ export default function AudioPlayback({
         />
       )}
 
-      <SubscriptionOffer variant={showSubscriptionOffer ? 'after-first-story' : null} onClose={closeSubscriptionOffer} location="create_story" />
+      <SubscriptionOffer variant={showSubscriptionOffer ? 'after-first-story' : showMoreStoriesOffer ? 'more-stories' : null} onClose={closeSubscriptionOffer} location="create_story" />
 
     </div>
   );

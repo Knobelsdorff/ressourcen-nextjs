@@ -9,10 +9,10 @@
  * Klient:innen an eine Liste stellen: „Welche ist die von letzter Woche?"
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Lock, Volume2 } from "lucide-react";
-import AudioPlayer from "@/components/audio/AudioPlayer";
+import StoryCardPlayer, { type StoryEndAction } from "./StoryCardPlayer";
 import EditableTitle from "@/components/EditableTitle";
 import EditableSubtitle from "@/components/EditableSubtitle";
 import StoryActionsMenu from "@/components/StoryActionsMenu";
@@ -96,8 +96,10 @@ interface StoryCardProps {
   onUnlock?: (reason: StoryLockReason) => void;
   /** Story hat ihr Ende erreicht (siehe useAudioPlayer). */
   onCompleted?: () => void;
-  /** Klopfübung vor dem allerersten Abspielen (useButterflyHugGate). */
-  playGate?: (proceed: () => void) => boolean;
+  /** Im Player nach dem Hören (Abo-Angebot bzw. neue Story). */
+  endAction?: StoryEndAction;
+  /** Funnel-Events senden (Standard). Aus nur für Testseiten. */
+  analytics?: boolean;
   /** data-tour-Anker für Einführungen (src/components/onboarding). */
   tour?: { card?: string; player?: string; trial?: string };
 }
@@ -116,16 +118,20 @@ export default function StoryCard({
   onGenerateAudio,
   onUnlock,
   onCompleted,
-  playGate,
+  endAction,
+  analytics = true,
   tour,
 }: StoryCardProps) {
   const created = formatDateWithTitle(story.created_at);
+  /** Aus dieser Karte wächst der Vollbild-Player. */
+  const cardRef = useRef<HTMLElement | null>(null);
   // Ohne Beschreibung keine Platzhalterzeile – hinzufügen geht übers Menü.
   const [editingSubtitle, setEditingSubtitle] = useState(false);
   const lockReason = story.access && !story.access.playable ? story.access.lockReason ?? "trial_ended" : null;
 
   return (
     <motion.article
+      ref={cardRef}
       data-tour={tour?.card}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
@@ -204,27 +210,24 @@ export default function StoryCard({
           </div>
         </div>
       ) : story.audio_url ? (
-        <>
-        {/* Wrapper immer rendern: Würde er nur für die Tour erscheinen, würde
-            der Player beim Ende der Tour neu gemountet und laufendes Audio stoppen. */}
-        <div data-tour={tour?.player}>
-          <AudioPlayer
-            audioUrl={story.audio_url}
-            title={story.title}
-            storyId={story.id}
-            resourceFigure={story.resource_figure}
-            onCompleted={onCompleted}
-            playGate={playGate}
-            playAnalytics={{
-              storyId: story.id,
-              access: story.access?.policy ?? "always",
-              location: "dashboard",
-              createdAt: story.created_at,
-              firstCompletedAt: story.first_completed_at ?? null,
-            }}
-          />
-        </div>
-        </>
+        <StoryCardPlayer
+          storyId={story.id}
+          title={story.title}
+          subtitle={subtitle}
+          audioUrl={story.audio_url}
+          resourceFigure={story.resource_figure}
+          onCompleted={onCompleted}
+          endAction={endAction}
+          originRef={cardRef}
+          tourAnchor={tour?.player}
+          playAnalytics={analytics ? {
+            storyId: story.id,
+            access: story.access?.policy ?? "always",
+            location: "dashboard",
+            createdAt: story.created_at,
+            firstCompletedAt: story.first_completed_at ?? null,
+          } : undefined}
+        />
       ) : (
         <div className="rounded-xl bg-secondary-50 px-4 py-6 text-center">
           <p className="mb-4 text-sm text-secondary-600">

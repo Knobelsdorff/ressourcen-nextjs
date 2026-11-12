@@ -1,0 +1,262 @@
+/* Story-Player (Dashboard-Vollbild + Player am Ende von /create-story).
+   Alles unter .sp-*, eigene Farbvariablen – unabhängig vom Seiten-Theme, weil
+   der Vollbild-Player per Portal direkt im <body> hängt.
+
+   Aufbau: Bühne (Klopf-Video zentriert, Erklärung daneben bzw. darunter) und
+   eine Leiste unten: Titel links · Steuerung + Fortschritt Mitte ·
+   Hintergrundmusik ganz rechts. Handy hochkant: Leiste gestapelt, Musik als
+   Knopf rechts mit kleinem Feld. Auf Handys hat die Leiste die Farbe des
+   Hintergrunds, auf Desktop/Tablet eine eigene Fläche mit Linie.
+
+   Geräte-Regeln:
+   - Vollbild über position: fixed + inset: 0 (kein 100vh – auf iOS mit
+     ein-/ausfahrender Adressleiste falsch). Höhenmaße in dvh mit vh-Fallback.
+   - Hoch-, Querformat und Desktop nur per CSS: Drehen baut nichts neu auf,
+     das Audio läuft weiter.
+   - env(safe-area-inset-*) überall – wirkt, sobald viewport-fit=cover gesetzt ist.
+   - Keine teuren Effekte (filter: blur) – günstige Android-Handys bleiben flüssig.
+
+   Stapel (z-index): Header 50 · Mini-Leiste 55 · Einstellungen 60 ·
+   Vollbild-Player 75 · Abo-Angebot / Willkommen 80 · Cookie-Hinweis 90. */
+
+.sp-root {
+  --sp-bg: #f8f5f2;
+  --sp-paper: #fffcf8;
+  --sp-ink: #49301e;
+  --sp-ink-2: #8b7868;
+  --sp-ink-3: #b9ab9d;
+  --sp-track: #e7dfd5;
+  --sp-line: #ebe4db;
+  color: var(--sp-ink);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+/* Nur Schriftart erben – nicht `font: inherit`, das würde die Schriftgrößen der Knöpfe überschreiben. */
+.sp-root button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; color: inherit; background: transparent; border: 0; padding: 0; font-family: inherit; cursor: pointer; }
+.sp-root button:disabled { cursor: default; }
+.sp-root :is(button, [role='slider']):focus-visible { outline: 2px solid var(--sp-ink); outline-offset: 3px; }
+.sp-root :is(h1, h2, p) { margin: 0; }
+
+/* ---------- Vollbild (Portal) ---------- */
+.sp-overlay { position: fixed; inset: 0; z-index: 75; background: var(--sp-bg); will-change: clip-path; }
+.sp-overlay-content { position: absolute; inset: 0; display: flex; flex-direction: column; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+
+/* ---------- Im Seitenfluss (/create-story) ---------- */
+.sp-inline { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow-x: hidden; overflow-y: auto; }
+
+/* Griff-Zone: nach unten wischen schließt. Maus: ⌄ oben links; Touch: Griff-Strich. */
+.sp-handle-zone { position: relative; z-index: 1; flex: none; height: calc(52px + env(safe-area-inset-top)); touch-action: none; }
+.sp-close { position: absolute; top: calc(env(safe-area-inset-top) + 6px); left: max(14px, env(safe-area-inset-left)); display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; color: var(--sp-ink); }
+.sp-close:hover { background: #49301e0d; }
+@media (pointer: coarse) {
+  .sp-close { left: 50%; width: 72px; height: 30px; border-radius: 999px; transform: translateX(-50%); }
+  .sp-close svg { display: none; }
+  .sp-close::before { content: ''; width: 38px; height: 5px; border-radius: 3px; background: #49301e38; }
+  .sp-close:hover { background: transparent; }
+}
+
+/* ---------- Bühne ---------- */
+.sp-stage { position: relative; display: flex; flex: 1; align-items: center; justify-content: center; min-height: 0; padding: 0 max(24px, env(safe-area-inset-right)) 18px max(24px, env(safe-area-inset-left)); }
+.sp-inline .sp-stage { padding-top: 16px; }
+.sp-stage-inner { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%; }
+.sp-artwork { width: min(100%, calc(34vh * 748 / 556), 760px); width: min(100%, calc(34dvh * 748 / 556), 760px); transform-origin: 50% 50%; }
+.sp-artwork .sp-media { border-radius: 14px; box-shadow: 0 22px 44px -26px #49301e73, 0 2px 6px #49301e14; }
+
+.sp-hint { max-width: 340px; text-align: center; }
+.sp-lead { margin-bottom: 10px !important; color: var(--sp-ink-2); font-size: 13.5px; line-height: 1.5; }
+.sp-hint h2 { font-size: 14.5px; font-weight: 600; line-height: 1.35; letter-spacing: -.01em; }
+.sp-hint-text { margin-top: 4px !important; color: var(--sp-ink-2); font-size: 13px; line-height: 1.5; }
+.sp-hint-toggle { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; margin-top: 2px; color: var(--sp-ink-2); font-size: 12.5px; font-weight: 500; }
+.sp-extra { display: flex; flex-direction: column; align-items: inherit; gap: 4px; margin-top: 10px; }
+.sp-extra:empty { display: none; }
+.sp-message { color: var(--sp-ink); font-size: 14px; font-weight: 500; line-height: 1.45; }
+.sp-message--error { color: #8a3b2a; font-weight: 500; }
+.sp-message--soft { color: var(--sp-ink-2); font-size: 13px; font-weight: 400; }
+.sp-link { min-height: 34px; color: var(--sp-ink-2); font-size: 13.5px; font-weight: 500; text-align: inherit; }
+.sp-link--strong { color: var(--sp-ink); font-weight: 650; text-decoration: underline; text-decoration-color: #49301e40; text-underline-offset: 4px; }
+.sp-pill { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; margin-top: 4px; padding: 0 20px !important; border-radius: 999px; background: var(--sp-ink) !important; color: var(--sp-paper) !important; font-size: 14px; font-weight: 600; }
+.sp-pill:active { transform: scale(.97); }
+
+/* Breit (Desktop, Tablet quer) und Handy quer: Video genau in der Mitte,
+   Erklärung rechts daneben (linke Spalte bleibt leer, damit das Video mittig sitzt). */
+@media (min-width: 900px), (orientation: landscape) and (max-height: 560px) {
+  .sp-stage-inner { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; column-gap: 40px; }
+  .sp-artwork { grid-column: 2; width: min(56vw, calc(54vh * 748 / 556), 760px); width: min(56vw, calc(54dvh * 748 / 556), 760px); }
+  .sp-hint { grid-column: 3; justify-self: start; max-width: 260px; text-align: left; }
+  .sp-extra { align-items: flex-start; }
+}
+
+/* ---------- Regler: dünner Strich, beim Ziehen etwas dicker ---------- */
+.sp-slider { position: relative; display: flex; align-items: center; width: 100%; height: 24px; background: transparent !important; cursor: pointer; outline: none; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.sp-slider[aria-disabled] { cursor: default; opacity: .4; }
+.sp-slider-track { display: block; width: 100%; height: 4px; overflow: hidden; border-radius: 999px; background: var(--sp-track); transition: height .18s ease; }
+.sp-slider-fill { display: block; width: var(--fill); height: 100%; border-radius: inherit; background: #6d5848; transition: background-color .18s; }
+.sp-slider[data-dragging] .sp-slider-track { height: 7px; }
+.sp-slider[data-dragging] .sp-slider-fill { background: var(--sp-ink); }
+.sp-slider-thumb { position: absolute; top: 50%; left: var(--fill); width: 12px; height: 12px; border-radius: 50%; background: var(--sp-ink); opacity: 0; transform: translate(-50%, -50%) scale(.5); transition: opacity .15s, transform .15s; }
+@media (hover: hover) { .sp-slider:not([aria-disabled]):hover .sp-slider-thumb { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+.sp-slider:focus-visible { outline: none; }
+.sp-slider:focus-visible .sp-slider-thumb { opacity: 1; transform: translate(-50%, -50%) scale(1); outline: 2px solid var(--sp-ink); outline-offset: 3px; }
+
+/* ---------- Leiste unten ---------- */
+.sp-bar {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 560px) minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  padding: 12px max(24px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  border-top: 1px solid var(--sp-line);
+  background: var(--sp-paper);
+}
+.sp-bar-info { min-width: 0; }
+.sp-bar-title { overflow: hidden; font-size: 15px; font-weight: 650; letter-spacing: -.01em; text-overflow: ellipsis; white-space: nowrap; }
+.sp-bar-sub { overflow: hidden; margin-top: 1px !important; color: var(--sp-ink-2); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+
+.sp-bar-center { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+.sp-transport { display: flex; align-items: center; justify-content: center; gap: 22px; }
+.sp-glyph { position: relative; display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50% !important; color: var(--sp-ink); transition: background-color .15s, transform .12s; }
+.sp-glyph:active { background: #49301e12 !important; transform: scale(.92); }
+@media (hover: hover) { .sp-glyph:hover { background: #49301e0a !important; } }
+.sp-glyph:disabled { opacity: .35; }
+.sp-skip-icon { position: relative; display: grid; place-items: center; width: 26px; height: 26px; }
+.sp-skip-icon svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.sp-skip-icon span { padding-top: 1px; font-size: 8.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sp-root .sp-play { position: relative; display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--sp-ink); color: var(--sp-paper); transition: transform .12s, background-color .15s; }
+.sp-root .sp-play:active { transform: scale(.94); }
+@media (hover: hover) { .sp-root .sp-play:not(:disabled):hover { background: #63452e; transform: scale(1.04); } }
+.sp-root .sp-play:disabled { opacity: .55; }
+.sp-play-icon { margin-left: 3px; }
+.sp-play[data-busy]::after { content: ''; position: absolute; inset: -5px; border: 2px solid #49301e1f; border-top-color: var(--sp-ink); border-radius: 50%; animation: sp-spin 1s linear infinite; }
+@keyframes sp-spin { to { transform: rotate(360deg); } }
+
+.sp-progress { display: grid; grid-template-columns: 42px minmax(0, 1fr) 42px; align-items: center; gap: 10px; width: 100%; }
+.sp-time { color: var(--sp-ink-3); font-size: 11.5px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.sp-time--now { text-align: right; }
+
+/* Ganz rechts: Hintergrundmusik */
+.sp-bar-music { justify-self: end; width: min(100%, 220px); }
+.sp-bar-music:empty { display: none; }
+.sp-music-label { display: flex; justify-content: space-between; gap: 8px; color: var(--sp-ink-2); font-size: 11.5px; font-weight: 600; }
+.sp-music-label span { color: var(--sp-ink-3); font-weight: 500; font-variant-numeric: tabular-nums; }
+.sp-music-row { display: flex; align-items: center; gap: 6px; }
+.sp-music-mute { display: grid; place-items: center; flex: none; width: 32px; height: 32px; margin-left: -6px; border-radius: 50% !important; color: var(--sp-ink); }
+@media (hover: hover) { .sp-music-mute:hover { background: #49301e0a !important; } }
+.sp-music[data-off] .sp-slider-fill { background: var(--sp-ink-3); }
+.sp-music-compact { display: none; }
+
+/* Mittelbreit / Handy quer: dieselbe Leiste, kompakter. */
+@media (max-width: 899px), (max-height: 560px) {
+  .sp-bar { grid-template-columns: minmax(0, 1fr) minmax(220px, 1.3fr) minmax(150px, 1fr); gap: 16px; padding-top: 8px; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+  .sp-bar-music { width: min(100%, 180px); }
+  .sp-bar-music .sp-music-inline .sp-music-label span { display: none; }
+  .sp-transport { gap: 16px; }
+}
+@media (orientation: landscape) and (max-height: 560px) {
+  .sp-handle-zone { position: absolute; top: 0; left: 0; right: 0; height: 40px; }
+  .sp-close { top: max(4px, env(safe-area-inset-top)); left: max(10px, env(safe-area-inset-left)); transform: none; }
+  .sp-stage { padding-top: max(14px, env(safe-area-inset-top)); padding-bottom: 10px; }
+  .sp-artwork { width: calc(46vh * 748 / 556); width: calc(46dvh * 748 / 556); }
+  .sp-hint { max-width: 220px; }
+  .sp-hint h2 { font-size: 13.5px; }
+  .sp-hint-text, .sp-lead { font-size: 12px; }
+}
+
+/* Handy hochkant: Leiste gestapelt – oben Titel + Musik-Knopf (rechts),
+   darunter Fortschritt, darunter die Steuerung. */
+@media (max-width: 640px) and (orientation: portrait) {
+  .sp-bar { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "info music" "center center"; row-gap: 8px; column-gap: 12px; padding: 14px max(20px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); }
+  .sp-bar-info { grid-area: info; }
+  .sp-bar-title { font-size: 17px; }
+  .sp-bar-sub { font-size: 14px; }
+  .sp-bar-music { grid-area: music; width: auto; }
+  .sp-bar-center { grid-area: center; gap: 2px; }
+  .sp-progress { order: -1; grid-template-columns: 1fr 1fr; grid-template-areas: "bar bar" "now total"; row-gap: 0; }
+  .sp-progress-slider { grid-area: bar; }
+  .sp-time--now { grid-area: now; text-align: left; }
+  .sp-time--total { grid-area: total; text-align: right; }
+  .sp-transport { gap: 34px; }
+  .sp-glyph { width: 50px; height: 50px; }
+  .sp-skip-icon { width: 30px; height: 30px; }
+  .sp-skip-icon span { font-size: 9.5px; }
+  .sp-root .sp-play { width: 60px; height: 60px; }
+  .sp-play svg { width: 26px; height: 26px; }
+  .sp-music-inline { display: none; }
+  .sp-music-compact { position: relative; display: block; }
+  .sp-music-toggle { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-width: 52px; min-height: 48px; border-radius: 12px !important; color: var(--sp-ink); font-size: 10.5px; font-weight: 600; }
+  .sp-music-toggle[data-off] { color: var(--sp-ink-2); }
+  .sp-music-toggle[aria-expanded='true'] { background: #49301e0d !important; }
+  .sp-music-panel { position: absolute; right: -6px; bottom: calc(100% + 10px); z-index: 3; display: flex; flex-direction: column; gap: 6px; width: min(290px, calc(100vw - 32px)); padding: 14px 14px 12px; border: 1px solid var(--sp-line); border-radius: 16px; background: var(--sp-paper); box-shadow: 0 18px 40px -18px #49301e59; text-align: left; }
+  .sp-music-panel p { color: var(--sp-ink-3); font-size: 11.5px; }
+  .sp-stage { padding-bottom: 14px; }
+  .sp-stage-inner { gap: 12px; }
+}
+
+/* Handy (hoch und quer): Leiste in der Farbe des Hintergrunds, ohne Linie. */
+@media (max-width: 640px) and (orientation: portrait), (orientation: landscape) and (max-height: 560px) {
+  .sp-bar { border-top: 0; background: transparent; }
+}
+
+/* Tablet hochkant: viel Höhe – Video darf größer werden. */
+@media (min-width: 641px) and (orientation: portrait) and (min-height: 801px) {
+  .sp-artwork { width: min(100%, calc(42vh * 748 / 556), 640px); width: min(100%, calc(42dvh * 748 / 556), 640px); }
+  .sp-hint { max-width: 420px; }
+}
+/* Wenig Höhe hochkant (Safari-Leisten, iPhone SE): Video kleiner. */
+@media (orientation: portrait) and (max-height: 700px) {
+  .sp-artwork { width: min(100%, calc(30vh * 748 / 556)); width: min(100%, calc(30dvh * 748 / 556)); }
+  .sp-hint-text, .sp-lead { font-size: 12.5px; }
+}
+@media (orientation: portrait) and (max-height: 600px) {
+  .sp-handle-zone { height: calc(40px + env(safe-area-inset-top)); }
+  .sp-artwork { width: min(100%, calc(26vh * 748 / 556)); width: min(100%, calc(26dvh * 748 / 556)); }
+  .sp-bar { padding-top: 10px; }
+  .sp-root .sp-play { width: 54px; height: 54px; }
+}
+
+/* ---------- Klopf-Video / Fallback-Animation ---------- */
+.sp-media { position: relative; width: 100%; overflow: hidden; aspect-ratio: 748 / 556; border-radius: 14px; background: #eeeade; }
+@supports not (aspect-ratio: 1) { .sp-media { height: 0; padding-top: 74.3%; } }
+.sp-media > video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.sp-root .sp-media-play { position: absolute; top: 10px; right: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 999px; background: #fffcf8eb; color: var(--sp-ink); font-size: 12px; font-weight: 600; }
+.sp-tap { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: #f1ebe3; }
+.sp-tap svg { width: 72%; max-height: 78%; }
+.sp-tap[data-compact] svg { width: 92%; max-height: 92%; }
+.sp-tap-head { fill: #e3d5c6; }
+.sp-tap-body { fill: #d6c4b1; }
+.sp-tap-arm { fill: #c6ad94; }
+.sp-tap-arm--front { fill: #bba085; }
+.sp-tap-hand { fill: #8b6f58; transform-box: fill-box; transform-origin: center; animation: sp-tap-hand 2s ease-in-out infinite; }
+.sp-tap-ripple { fill: none; stroke: #8b6f58; stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; animation: sp-tap-ripple 2s ease-out infinite; }
+.sp-tap-hand--r, .sp-tap-ripple--r { animation-delay: 1s; }
+.sp-tap-beat { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--sp-ink-2); font-size: 11.5px; font-weight: 500; }
+.sp-tap-dot { width: 6px; height: 6px; border-radius: 50%; background: #d6c9bb; animation: sp-tap-dot 2s ease-in-out infinite; }
+.sp-tap-dot--r { animation-delay: 1s; }
+.sp-tap-sep { color: var(--sp-ink-3); }
+@keyframes sp-tap-hand { 0%, 30%, 100% { transform: scale(1); } 8% { transform: scale(.8); } }
+@keyframes sp-tap-ripple { 0% { opacity: .7; transform: scale(.7); } 40% { opacity: 0; transform: scale(2.1); } 100% { opacity: 0; } }
+@keyframes sp-tap-dot { 0%, 40%, 100% { background: #d6c9bb; } 6%, 24% { background: var(--sp-ink); } }
+
+/* ---------- Mini-Leiste (Dashboard, Story läuft bei geschlossenem Player) ---------- */
+.sp-mini { position: fixed; left: max(10px, env(safe-area-inset-left)); right: max(10px, env(safe-area-inset-right)); bottom: max(10px, env(safe-area-inset-bottom)); z-index: 55; display: flex; align-items: center; gap: 4px; max-width: 520px; margin: 0 auto; padding: 8px 4px 8px 8px; overflow: hidden; border: 1px solid var(--sp-line); border-radius: 16px; background: #fbf8f5f7; box-shadow: 0 10px 28px -14px #49301e47; }
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .sp-mini { background: #fbf8f5d9; -webkit-backdrop-filter: saturate(1.4) blur(14px); backdrop-filter: saturate(1.4) blur(14px); }
+}
+.sp-mini-open { display: flex !important; flex: 1; align-items: center; gap: 12px; min-width: 0; text-align: left; }
+.sp-mini-open img { flex: none; width: 44px; height: 44px; border-radius: 9px; object-fit: cover; }
+.sp-mini-open > span { display: flex; flex-direction: column; min-width: 0; }
+.sp-mini-open strong { overflow: hidden; font-size: 14.5px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.sp-mini-open > span > span { overflow: hidden; color: var(--sp-ink-2); font-size: 12.5px; text-overflow: ellipsis; white-space: nowrap; }
+.sp-mini-btn { display: grid !important; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 50% !important; color: var(--sp-ink); }
+.sp-mini-btn:active { background: #49301e0f !important; }
+.sp-mini-btn--close { width: 36px; color: var(--sp-ink-2); }
+.sp-mini-progress { position: absolute; left: 0; top: 0; height: 2px; background: var(--sp-ink); transition: width .25s linear; }
+html[data-sp-mini] .dashboard-page { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sp-tap-hand, .sp-tap-ripple, .sp-tap-dot { animation: none; }
+  .sp-play[data-busy]::after { animation-duration: 2.5s; }
+  .sp-slider-track, .sp-slider-thumb, .sp-glyph, .sp-mini-progress { transition: none; }
+}

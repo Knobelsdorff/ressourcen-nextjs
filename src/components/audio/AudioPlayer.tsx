@@ -11,8 +11,8 @@
  *   "compact"  – schlanke Zeile, z.B. für „Ankommen"
  *
  * Die frühere Pro-Variante "bls" (Video „Bilaterale Stimulation") ist
- * entfallen: Auf Wunsch von Andreas sehen alle nur noch die Klopfübung
- * am Rand des Dashboards (ButterflyHugDrawer).
+ * entfallen. Das Klopf-Video zeigt jetzt der Story-Player selbst
+ * (components/story-player).
  */
 
 import { useRef, useEffect, useId } from "react";
