@@ -6,7 +6,14 @@ import Image from "next/image";
 import { useAuth } from "@/components/providers/auth-provider";
 import { scrollToAnchor } from "@/lib/navigation-helpers";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Menu, X, UserCircle, ChevronDown } from "lucide-react";
+import {
+  Menu, X, UserCircle, ChevronDown, ChevronRight, Home, Settings,
+  Sparkles, KeyRound, LogOut, Plus, ArrowRight,
+} from "lucide-react";
+import type { CSSProperties } from "react";
+
+// Gestaffeltes Hereingleiten der Drawer-Einträge (siehe .drawer-anim).
+const staggerDelay = (index: number) => ({ "--i": index } as CSSProperties);
 import { TOUR_ANCHORS } from "@/components/onboarding/firstStoryTour";
 import { openSettings } from "@/components/dashboard/settings-events";
 
@@ -105,6 +112,11 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
       }, 100);
     }
   }, [isMobileMenuOpen]);
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+    hamburgerButtonRef.current?.focus();
+  };
 
   // Handler für "Was ist eine Power Story?" - Smooth-Scroll oder Navigation
   const handleWhatIsPowerStory = () => {
@@ -370,146 +382,162 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
               ref={hamburgerButtonRef}
               data-tour={TOUR_ANCHORS.account}
               onClick={() => setIsMobileMenuOpen(true)}
-              className="p-2 rounded-lg text-amber-900 hover:bg-amber-50 transition-colors"
+              className="header-menu-button"
               aria-label="Menü öffnen"
+              aria-expanded={isMobileMenuOpen}
+              aria-haspopup="dialog"
             >
-              <Menu className="w-6 h-6" />
+              <Menu className="w-5 h-5" strokeWidth={2} />
             </button>
           </div>
         </div>
       </header>
 
-      {/* Mobile Menu Drawer - Custom Implementation */}
+      {/* Mobile Menu Drawer – Wellness-Palette, Stile in globals.css */}
       <div
         className={`mobile-drawer-wrapper ${isMobileMenuOpen ? 'is-open' : ''}`}
+        // Geschlossen: nicht fokussierbar und für Screenreader unsichtbar.
+        inert={!isMobileMenuOpen}
       >
         {/* Backdrop - Klick schließt Menü */}
-        <div 
+        <div
           className="mobile-drawer-backdrop"
-          onClick={() => {
-            setIsMobileMenuOpen(false);
-            hamburgerButtonRef.current?.focus();
-          }}
+          onClick={closeMobileMenu}
         />
 
-        {/* Drawer Panel */}
-        <div 
+        <div
           className="mobile-drawer-panel"
-          onClick={(e) => {
-            // Verhindere, dass Klicks innerhalb des Panels das Menü schließen
-            e.stopPropagation();
-          }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menü"
         >
           {/* Kopfbereich mit Logo und Close-Button */}
-          <div className="flex items-center justify-between px-6 py-5 border-b border-amber-100/50">
+          <div className="drawer-head">
             <Image
               src="/images/power-storys_logo.webp"
               alt="Power Storys Logo"
-              width={140}
-              height={42}
-              className="h-8 w-auto object-contain opacity-90"
+              width={160}
+              height={48}
+              className="h-10 w-auto object-contain"
             />
             <button
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                hamburgerButtonRef.current?.focus();
-              }}
-              className="min-h-[48px] min-w-[48px] p-2.5 rounded-lg text-amber-900/60 hover:text-amber-900/80 hover:bg-amber-50/40 transition-colors flex items-center justify-center"
+              type="button"
+              onClick={closeMobileMenu}
+              className="drawer-close"
               aria-label="Menü schließen"
             >
-              <X className="w-[18px] h-[18px]" />
+              <X className="w-5 h-5" strokeWidth={2} />
             </button>
           </div>
 
-          {/* Menü-Inhalte */}
-          <div className="flex-1 px-6 py-8 flex flex-col overflow-y-auto">
-            {user ? (
-              <>
-                {/* Hauptnavigation */}
-                <div className="space-y-1">
-                  {/* Primärer Menüpunkt: Mein Raum */}
+          {user ? (
+            <>
+              <div className="drawer-body">
+                {/* Konto */}
+                <div className="drawer-profile drawer-anim" style={staggerDelay(0)}>
+                  <span className="drawer-avatar">
+                    {profileInitials || <UserCircle className="h-5 w-5" aria-hidden="true" />}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="drawer-profile-name truncate">{profileName}</p>
+                    <p className="drawer-profile-email truncate">{user.email}</p>
+                  </div>
+                </div>
+
+                <nav aria-label="Hauptnavigation" className="drawer-list">
                   <Link
                     ref={firstMenuItemRef as React.Ref<HTMLAnchorElement>}
                     href="/dashboard"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block w-full text-left text-amber-900 text-lg font-medium hover:text-amber-800 transition-colors min-h-[48px] py-4 px-4 rounded-lg hover:bg-amber-50/30 flex items-center"
+                    aria-current={pathname === '/dashboard' ? 'page' : undefined}
+                    className="drawer-link drawer-anim"
+                    style={staggerDelay(1)}
                   >
-                    Mein Raum
+                    <span className="drawer-icon drawer-icon--sage"><Home aria-hidden="true" /></span>
+                    <span className="drawer-link-label">Mein Raum</span>
+                    <ChevronRight className="drawer-chevron" aria-hidden="true" />
                   </Link>
-                  
-                  {/* Sekundärer Menüpunkt: Einstellungen (Dialog im Dashboard) */}
                   <button
                     type="button"
                     onClick={handleOpenSettings}
-                    className="block w-full text-left text-amber-900/80 text-base font-normal hover:text-amber-900 transition-colors min-h-[48px] py-4 px-4 rounded-lg hover:bg-amber-50/30 flex items-center"
+                    className="drawer-link drawer-anim"
+                    style={staggerDelay(2)}
                   >
-                    Einstellungen
+                    <span className="drawer-icon drawer-icon--lavender"><Settings aria-hidden="true" /></span>
+                    <span className="drawer-link-label">Einstellungen</span>
+                    <ChevronRight className="drawer-chevron" aria-hidden="true" />
                   </button>
-                </div>
+                </nav>
+              </div>
 
-                {/* Trennlinie */}
-                <div className="py-6">
-                  <div className="border-t border-amber-200/40"></div>
-                </div>
-
-                {/* Konto-Info */}
-                <div className="pb-6">
-                  <div className="mx-4 flex items-center gap-3 rounded-2xl bg-amber-50/60 px-4 py-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-sm font-semibold text-amber-800">
-                      {profileInitials || <UserCircle className="h-5 w-5" aria-hidden="true" />}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-amber-950">{profileName}</p>
-                      <p className="truncate text-xs text-gray-500">{user?.email}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Trennlinie */}
-                <div className="py-4">
-                  <div className="border-t border-amber-200/30"></div>
-                </div>
-
-                {/* Abmelden */}
-                <div className="pt-2">
+              <div className="drawer-footer">
+                {/* Wie am Desktop: erst nach der Zugangsprüfung zeigen. */}
+                {canCreateStory !== null && (
                   <button
-                    onClick={() => {
-                      handleLogout();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full text-left text-amber-900/60 text-sm font-normal hover:text-amber-900/75 transition-colors min-h-[48px] py-4 px-4 rounded-lg hover:bg-amber-50/30 flex items-center"
+                    type="button"
+                    onClick={handleCreateStory}
+                    className="drawer-cta drawer-anim"
+                    style={staggerDelay(3)}
                   >
-                    Abmelden
+                    {canCreateStory ? <Plus aria-hidden="true" /> : <Sparkles aria-hidden="true" />}
+                    {createLabel}
                   </button>
-                </div>
-              </>
-            ) : (
-              <>
-                {/* Nicht eingeloggte User */}
-                <div className="space-y-3">
+                )}
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="drawer-logout drawer-anim"
+                  style={staggerDelay(4)}
+                >
+                  <LogOut aria-hidden="true" />
+                  Abmelden
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Nicht eingeloggte User */}
+              <nav aria-label="Hauptnavigation" className="drawer-body">
+                <div className="drawer-list">
                   <button
-                    ref={firstMenuItemRef as React.Ref<HTMLButtonElement>}
-                    data-analytics-cta="header-mobile" onClick={handleDiscoverPowerStory}
-                    className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-4 px-6 rounded-xl transition-colors text-center"
-                  >
-                    Eine Power Story entdecken
-                  </button>
-                  <button
+                    type="button"
                     onClick={handleWhatIsPowerStory}
-                    className="w-full text-left text-amber-900 font-medium hover:text-amber-700 transition-colors py-3 px-4 rounded-lg hover:bg-amber-50/50"
+                    className="drawer-link drawer-anim"
+                    style={staggerDelay(0)}
                   >
-                    Was ist eine Power Story?
+                    <span className="drawer-icon drawer-icon--sage"><Sparkles aria-hidden="true" /></span>
+                    <span className="drawer-link-label">Was ist eine Power Story?</span>
+                    <ChevronRight className="drawer-chevron" aria-hidden="true" />
                   </button>
                   <button
+                    type="button"
                     onClick={handleAccessClick}
-                    className="w-full text-left text-amber-900/80 font-normal hover:text-amber-700 transition-colors py-3 px-4 rounded-lg hover:bg-amber-50/50"
+                    className="drawer-link drawer-anim"
+                    style={staggerDelay(1)}
                   >
-                    Mein Zugang
+                    <span className="drawer-icon drawer-icon--peach"><KeyRound aria-hidden="true" /></span>
+                    <span className="drawer-link-label">Mein Zugang</span>
+                    <ChevronRight className="drawer-chevron" aria-hidden="true" />
                   </button>
                 </div>
-              </>
-            )}
-          </div>
+              </nav>
+
+              {/* Haupt-CTA unten – im Daumenbereich */}
+              <div className="drawer-footer">
+                <button
+                  ref={firstMenuItemRef as React.Ref<HTMLButtonElement>}
+                  type="button"
+                  data-analytics-cta="header-mobile"
+                  onClick={handleDiscoverPowerStory}
+                  className="drawer-cta drawer-anim"
+                  style={staggerDelay(2)}
+                >
+                  Eine Power Story entdecken
+                  <ArrowRight aria-hidden="true" />
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

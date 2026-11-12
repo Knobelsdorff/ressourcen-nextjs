@@ -412,9 +412,28 @@
 }
 
 /* ============================================
-   MOBILE DRAWER - Custom Implementation
-   Ruhiges, stabiles Side-Drawer für Mobile Menu
+   MOBILE DRAWER
+   Seitliches Menü in der Wellness-Palette (Elfenbein, Schokobraun, Salbei),
+   passend zu Landingpage und Dashboard. Farben stehen hier fest, weil der
+   Header im Root-Layout hängt und nicht sicher unter .wellness-theme liegt.
    ============================================ */
+
+/* Hamburger-Knopf im Header */
+.header-menu-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid #e4ded6;
+  background: #fffdfb;
+  color: #49301e;
+  box-shadow: 0 2px 0 #38261908;
+  transition: background-color 180ms ease, border-color 180ms ease, transform 120ms ease;
+}
+.header-menu-button:hover { background: #ffffff; border-color: #d9c8b5; }
+.header-menu-button:active { transform: scale(0.95); }
 
 .mobile-drawer-wrapper {
   position: fixed;
@@ -422,86 +441,233 @@
   z-index: 50;
   pointer-events: none;
 }
-
-.mobile-drawer-wrapper.is-open {
-  pointer-events: auto;
-}
+.mobile-drawer-wrapper.is-open { pointer-events: auto; }
 
 /* Backdrop */
 .mobile-drawer-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(90, 70, 45, 0.18);
-  backdrop-filter: blur(2px);
+  background: rgba(56, 38, 25, 0.32);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   opacity: 0;
   transition: opacity 300ms ease-out;
-  will-change: opacity;
 }
+.mobile-drawer-wrapper.is-open .mobile-drawer-backdrop { opacity: 1; }
 
-.mobile-drawer-wrapper.is-open .mobile-drawer-backdrop {
-  opacity: 1;
-  transition: opacity 300ms ease-out;
-}
-
-/* Reduced Motion: Backdrop */
-@media (prefers-reduced-motion: reduce) {
-  .mobile-drawer-backdrop {
-    transition: opacity 120ms linear;
-  }
-  
-  .mobile-drawer-wrapper.is-open .mobile-drawer-backdrop {
-    transition: opacity 120ms linear;
-  }
-}
-
-/* Drawer Panel */
+/* Panel */
 .mobile-drawer-panel {
   position: absolute;
   top: 0;
   right: 0;
   height: 100%;
-  width: 75%;
-  max-width: 360px;
-  background: white;
-  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.08);
+  height: 100dvh;
+  width: min(86vw, 380px);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  background: #f8f5f2;
+  color: #49301e;
+  border-radius: 28px 0 0 28px;
+  box-shadow: -16px 0 48px rgba(73, 48, 30, 0.16);
+  padding-top: env(safe-area-inset-top);
   transform: translateX(100%);
-  opacity: 0;
-  transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1),
-              opacity 360ms cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform, opacity;
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
 }
-
-.mobile-drawer-wrapper.is-open .mobile-drawer-panel {
-  transform: translateX(0);
-  opacity: 1;
-  transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1),
-              opacity 360ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-/* Closing Animation */
+.mobile-drawer-wrapper.is-open .mobile-drawer-panel { transform: translateX(0); }
 .mobile-drawer-wrapper:not(.is-open) .mobile-drawer-panel {
-  transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 280ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Reduced Motion: Drawer */
+/* Dekoration: Salbei-Bogen wie auf der Landingpage */
+.mobile-drawer-panel::before {
+  content: "";
+  position: absolute;
+  right: -70px;
+  bottom: 150px;
+  width: 190px;
+  height: 230px;
+  border-radius: 110px 110px 28px 28px;
+  background: #e9eedf;
+  transform: rotate(-12deg);
+  pointer-events: none;
+}
+.mobile-drawer-panel > * { position: relative; }
+
+.drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 18px 14px 22px;
+}
+.drawer-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid #e4ded6;
+  background: #fffdfb;
+  color: #49301e;
+  transition: background-color 180ms ease, transform 120ms ease;
+}
+.drawer-close:hover { background: #ffffff; }
+.drawer-close:active { transform: scale(0.95); }
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.drawer-eyebrow {
+  margin: 4px 4px -8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9c8c7f;
+}
+
+.drawer-list { display: flex; flex-direction: column; gap: 10px; }
+
+.drawer-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 14px 10px 10px;
+  border-radius: 20px;
+  border: 1px solid #ece5dd;
+  background: #fffdfb;
+  color: #49301e;
+  font-size: 15.5px;
+  font-weight: 600;
+  text-align: left;
+  transition: background-color 180ms ease, border-color 180ms ease, transform 120ms ease;
+}
+.drawer-link:hover { background: #ffffff; border-color: #d9c8b5; }
+.drawer-link:active { transform: scale(0.985); }
+.drawer-link[aria-current="page"] { background: #e9eedf; border-color: #d5dfc0; }
+.drawer-link-label { flex: 1; min-width: 0; }
+.drawer-chevron { width: 18px; height: 18px; color: #c3aa90; flex-shrink: 0; }
+
+.drawer-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  flex-shrink: 0;
+}
+.drawer-icon svg { width: 20px; height: 20px; }
+.drawer-icon--sage { background: #e5ebd8; color: #405028; }
+.drawer-icon--peach { background: #ffe4c9; color: #9a4a10; }
+.drawer-icon--lavender { background: #ebe5fd; color: #5b45a8; }
+
+.drawer-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 22px;
+  background: #49301e;
+  color: #ffffff;
+}
+.drawer-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  background: #9db36a;
+  color: #253015;
+  font-size: 15px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.drawer-profile-name { font-size: 15px; font-weight: 600; }
+.drawer-profile-email { font-size: 12.5px; color: #e9dfd4; opacity: 0.85; }
+
+.drawer-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px calc(18px + env(safe-area-inset-bottom));
+  border-top: 1px solid #e4ded6;
+  background: #f8f5f2;
+}
+.drawer-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 56px;
+  padding: 14px 22px;
+  border-radius: 999px;
+  background: #49301e;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: 0 8px 20px rgba(73, 48, 30, 0.18);
+  transition: background-color 180ms ease, transform 120ms ease;
+}
+.drawer-cta:hover { background: #63452e; }
+.drawer-cta:active { transform: scale(0.98); }
+.drawer-cta svg { width: 18px; height: 18px; }
+.drawer-logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  border-radius: 999px;
+  color: #78695e;
+  font-size: 14.5px;
+  font-weight: 500;
+  transition: color 180ms ease, background-color 180ms ease;
+}
+.drawer-logout:hover { color: #49301e; background: #eee9e4; }
+.drawer-logout svg { width: 17px; height: 17px; }
+
+/* Einträge gleiten beim Öffnen gestaffelt herein */
+.drawer-anim {
+  opacity: 0;
+  transform: translateX(18px);
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+.mobile-drawer-wrapper.is-open .drawer-anim {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 360ms ease, transform 460ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: calc(var(--i, 0) * 50ms + 90ms);
+}
+
+.mobile-drawer-panel :is(button, a):focus-visible,
+.header-menu-button:focus-visible {
+  outline: 3px solid #7952b8;
+  outline-offset: 3px;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .mobile-drawer-panel {
-    transition: transform 120ms linear,
-                opacity 120ms linear;
+  .mobile-drawer-backdrop,
+  .mobile-drawer-panel,
+  .mobile-drawer-wrapper:not(.is-open) .mobile-drawer-panel,
+  .drawer-anim,
+  .mobile-drawer-wrapper.is-open .drawer-anim {
+    transition: opacity 120ms linear !important;
+    transition-delay: 0ms !important;
   }
-  
-  .mobile-drawer-wrapper.is-open .mobile-drawer-panel {
-    transition: transform 120ms linear,
-                opacity 120ms linear;
-  }
-  
-  .mobile-drawer-wrapper:not(.is-open) .mobile-drawer-panel {
-    transition: transform 120ms linear,
-                opacity 120ms linear;
-  }
+  .drawer-anim { transform: none; }
 }
 
 /*

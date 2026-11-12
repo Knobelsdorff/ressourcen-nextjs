@@ -17,6 +17,7 @@ import { getBackgroundMusicUrl, DEFAULT_MUSIC_VOLUME } from "@/data/backgroundMu
 import { applyMusicVolumeFactor, subscribeToMusicVolumeFactor } from "@/lib/musicVolumePreference";
 import {
   attachMusicElement,
+  createMusicAudio,
   detachMusicElement,
   setMusicElementVolume,
   unlockMusicAudio,
@@ -1471,6 +1472,10 @@ export default function AudioPlayback({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioState, onAudioStateChange, user, session, selectedFigure, selectedVoiceId]);
 
+  // Musik wird gerade geladen (erster Start) – solange KEIN zweites Musik-Element
+  // anlegen. Sonst liefen zwei Kopien gleichzeitig (iPhone-Test 2026-11).
+  const musicPreparingRef = useRef(false);
+
   const togglePlayPause = async () => {
     const audio = audioRef.current;
     if (!audio || !audioState?.audioUrl) return;
@@ -1586,7 +1591,7 @@ export default function AudioPlayback({
 
     // Prüfe ob wir RESUME (nach Pause) oder ERSTEN START machen
     const musicElement = (window as any)._pendingBackgroundMusic || backgroundMusicElement;
-    const isResume = hasStartedPlayback && musicElement;
+    const isResume = hasStartedPlayback && (musicElement || musicPreparingRef.current);
 
     if (isResume) {
       // RESUME: Einfach weiterspielen von aktueller Position
@@ -1669,16 +1674,31 @@ export default function AudioPlayback({
 
     // Starte Hintergrundmusik ZUERST (bei Sekunde 0), wenn verfügbar
     if (musicUrl && musicEnabled) {
+      musicPreparingRef.current = true;
       try {
-        // Stoppe vorherige Musik
-        if (backgroundMusicElement) {
-          backgroundMusicElement.pause();
-          backgroundMusicElement.currentTime = 0;
-          detachMusicElement(backgroundMusicElement);
+        // Vorherige Musik endgültig stoppen: ZUERST die iOS-Neustart-Wächter
+        // abschalten, dann pausieren. Andersherum startete der pause-Wächter
+        // die alte Musik 100 ms später neu – getrennt vom Lautstärke-Regler,
+        // also in voller Lautstärke unter der neuen (iPhone-Test 2026-11).
+        const previousMusic: HTMLAudioElement | null = (window as any)._pendingBackgroundMusic || backgroundMusicElement;
+        if (previousMusic) {
+          (previousMusic as any)._shouldStop = true;
+          if ((previousMusic as any)._pauseHandler) {
+            previousMusic.removeEventListener('pause', (previousMusic as any)._pauseHandler);
+            previousMusic.removeEventListener('suspend', (previousMusic as any)._pauseHandler);
+          }
+          if ((previousMusic as any)._timeupdateHandler) {
+            previousMusic.removeEventListener('timeupdate', (previousMusic as any)._timeupdateHandler);
+          }
+          previousMusic.pause();
+          previousMusic.currentTime = 0;
+          detachMusicElement(previousMusic);
+          (window as any)._pendingBackgroundMusic = null;
         }
 
-        // Erstelle neues Musik-Element - lade als Blob für bessere Kompatibilität
-        const musicAudio = new Audio();
+        // Neues Musik-Element. Auf iOS eine Web-Audio-Puffer-Musik, deren
+        // Lautstärke dort wirklich wirkt (siehe lib/audio/musicOutput).
+        const musicAudio = createMusicAudio();
         // Vor dem Setzen von src: Auf iOS wirkt .volume nicht, die Lautstärke
         // läuft dort über einen GainNode (siehe lib/audio/musicOutput).
         attachMusicElement(musicAudio, musicVolume);
@@ -1828,6 +1848,13 @@ export default function AudioPlayback({
 
         musicAudio.currentTime = currentVoiceTime;
 
+        // Wurde während des Ladens pausiert: Musik nicht allein starten –
+        // sie läuft beim nächsten Fortsetzen mit (Resume-Zweig).
+        if (!wasVoicePlaying) {
+          console.log('[AudioPlayback] Voice paused while music loaded – music waits for resume');
+          return;
+        }
+
         console.log('[AudioPlayback] Starting background music at position:', currentVoiceTime);
         console.log('[AudioPlayback] Voice was playing before music start:', wasVoicePlaying);
 
@@ -1848,6 +1875,8 @@ export default function AudioPlayback({
       } catch (musicError: any) {
         console.error('[AudioPlayback] Failed to prepare background music:', musicError);
         // Musik-Fehler nicht blockieren - Voice spielt bereits
+      } finally {
+        musicPreparingRef.current = false;
       }
     }
   };

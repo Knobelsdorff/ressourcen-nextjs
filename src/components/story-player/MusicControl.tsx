@@ -45,12 +45,14 @@ export default function MusicControl() {
       >
         {muted ? <VolumeX size={iconSize} aria-hidden="true" /> : <Music2 size={iconSize} aria-hidden="true" />}
       </button>
+      {/* Gehör-gerecht: Regler-Position im Quadrat → viel Weg im leisen Bereich,
+          wo die Musik unter der Stimme liegen soll. Gespeichert wird weiter der Faktor. */}
       <Slider
-        value={factor / max}
-        onChange={(value) => change(Math.round(value * max * 20) / 20)}
+        value={Math.sqrt(Math.max(0, factor) / max)}
+        onChange={(value) => change(Math.round(value * value * max * 100) / 100)}
         label="Lautstärke der Hintergrundmusik"
         valueText={muted ? "Musik aus" : `${Math.round(factor * 100)} Prozent`}
-        step={0.05 / max * 2}
+        step={0.04}
       />
     </div>
   );

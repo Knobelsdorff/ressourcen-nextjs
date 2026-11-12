@@ -22,6 +22,8 @@ import {
 } from "@/lib/musicVolumePreference";
 import {
   attachMusicElement,
+  createMusicAudio,
+  isBufferMusic,
   detachMusicElement,
   setMusicElementVolume,
   unlockMusicAudio,
@@ -307,16 +309,20 @@ export function useAudioPlayer({
 
         if (cancelled) return;
 
-        // Erst attachMusicElement, dann src: Auf iOS muss crossOrigin vor dem
-        // Laden feststehen, damit der GainNode die Lautstärke regeln kann.
-        const music = new Audio();
+        // Auf iOS eine Web-Audio-Puffer-Musik (dort wirkt nur so die
+        // Lautstärke, siehe lib/audio/musicOutput), sonst ein normales <audio>.
+        // Erst attachMusicElement (Startlautstärke), dann src.
+        const music = createMusicAudio();
         adminMusicVolumeRef.current = track.volume ?? DEFAULT_MUSIC_VOLUME;
         attachMusicElement(music, applyMusicVolumeFactor(adminMusicVolumeRef.current));
         music.loop = true;
-        music.preload = "auto";
+        // Puffer-Musik erst beim Abspielen laden: Jede Story-Karte hat einen
+        // eigenen Player – sonst lägen alle Tracks dekodiert im Speicher.
+        const lazy = isBufferMusic(music);
+        music.preload = lazy ? "none" : "auto";
         music.src = track.track_url;
         music.addEventListener("loadedmetadata", () => setMusicDuration(music.duration));
-        music.load();
+        if (!lazy) music.load();
         musicRef.current = music;
         setHasBackgroundMusic(true);
       } catch (err) {
