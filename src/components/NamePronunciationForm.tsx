@@ -64,52 +64,66 @@ export default function NamePronunciationForm({
     loadData();
   }, [user]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  /**
+   * Übernimmt die Eingabe in den Flow und – eingeloggt – ins Profil.
+   * Ohne Login landet der Name erst beim Link-Klick im Profil (Server, siehe
+   * copyDraftNameToProfile). Gibt false zurück, wenn das Speichern scheiterte.
+   */
+  const persist = async (): Promise<boolean> => {
+    const name = fullName.trim();
+    const hint = pronunciationHint.trim() || null;
 
-    // Allow skipping if both fields are empty
-    if (!fullName.trim() && !pronunciationHint.trim()) {
-      onNext();
-      return;
+    // Leer = diese Story ohne Namen. Auch einen früher eingegebenen Namen
+    // verwerfen, sonst spräche die Story ihn trotzdem. Das Profil bleibt.
+    if (!name && !hint) {
+      onUserDataUpdate('', null);
+      return true;
     }
 
-    // For anonymous users: just pass the data to parent and proceed
     if (!user) {
-      onUserDataUpdate(fullName.trim(), pronunciationHint.trim() || null);
-      onNext();
-      return;
+      onUserDataUpdate(name, hint);
+      return true;
     }
 
-    // For logged-in users: save to database
     setLoading(true);
     setError('');
     setSuccess('');
-
     try {
       const { error: updateError } = await (supabase as any)
         .from('profiles')
-        .update({
-          full_name: fullName.trim() || null,
-          pronunciation_hint: pronunciationHint.trim() || null
-        })
+        .update({ full_name: name || null, pronunciation_hint: hint })
         .eq('id', user.id);
-
       if (updateError) {
         setError(updateError.message);
-      } else {
-        setSuccess('Gespeichert.');
-        // Update parent state
-        onUserDataUpdate(fullName.trim(), pronunciationHint.trim() || null);
-        // Auto-proceed after short delay
-        setTimeout(() => {
-          onNext();
-        }, 500);
+        return false;
       }
-    } catch (err) {
+      onUserDataUpdate(name, hint);
+      return true;
+    } catch {
       setError('Fehler beim Speichern');
+      return false;
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const empty = !fullName.trim() && !pronunciationHint.trim();
+    if (!(await persist())) return;
+    if (user && !empty) {
+      setSuccess('Gespeichert.');
+      setTimeout(onNext, 500);
+      return;
+    }
+    onNext();
+  };
+
+  // Auch beim Zurückgehen übernehmen – sonst ist die Eingabe nach
+  // "Zurück → Weiter" weg und muss neu getippt werden.
+  const handleBack = async () => {
+    await persist();
+    onBack();
   };
 
   const empty = !fullName.trim() && !pronunciationHint.trim();
@@ -168,25 +182,24 @@ export default function NamePronunciationForm({
             </small>
           </label>
 
-          {/* Nur angemeldet – jede neue Hörprobe kostet. */}
-          {user && (
-            <NamePreviewPlayer
-              name={fullName}
-              pronunciation={pronunciationHint}
-              voiceId={voiceId}
-              onAdjust={() => {
-                pronunciationRef.current?.focus();
-                pronunciationRef.current?.select();
-              }}
-            />
-          )}
+          {/* Auch ohne Login (Erststory): Der Server bremst pro IP und spricht dann nur mit Kerstin. */}
+          <NamePreviewPlayer
+            name={fullName}
+            pronunciation={pronunciationHint}
+            voiceId={voiceId}
+            onAdjust={() => {
+              pronunciationRef.current?.focus();
+              pronunciationRef.current?.select();
+            }}
+          />
+
 
           {error && <p className="story-form-message" data-tone="error" role="alert">{error}</p>}
           {success && <p className="story-form-message" role="status">{success}</p>}
         </div>
 
         <div className="story-first-actions">
-          <button type="button" className="story-first-previous" onClick={onBack}>
+          <button type="button" className="story-first-previous" onClick={handleBack} disabled={loading}>
             <ChevronLeft size={17} aria-hidden="true" /> <span>Zurück</span>
           </button>
           <button type="submit" className="story-first-next" disabled={loading}>

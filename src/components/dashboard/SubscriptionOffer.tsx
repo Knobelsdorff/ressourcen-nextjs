@@ -8,6 +8,8 @@
  *                        Mal vollständig angehört wurde – im Dashboard oder
  *                        direkt auf /create-story.
  *   "locked":            nach Tippen auf eine gesperrte Story.
+ *   "more-stories":      über den Knopf "Weitere Power Storys freischalten"
+ *                        unter den Storys (ohne Abo) – unabhängig vom Hören.
  *
  * Der Abschluss läuft über den bestehenden Stripe-Checkout.
  */
@@ -20,7 +22,7 @@ import { createCheckoutSession } from "@/lib/access";
 import { track } from "@/lib/product-analytics/client";
 import "./subscription-offer.css";
 
-export type SubscriptionOfferVariant = "after-first-story" | "locked";
+export type SubscriptionOfferVariant = "after-first-story" | "locked" | "more-stories";
 
 const TITLE = "Mehr Ruhe. Mehr Sicherheit. Jeden Tag.";
 const TEXT = "Erstelle persönliche Power Storys, die dich dabei unterstützen, innere Ruhe, Halt und neue Kraft zu finden.";
@@ -33,6 +35,10 @@ const COPY: Record<SubscriptionOfferVariant, { secondary: string; footnote?: str
     footnote: "Deine erste Power Story bleibt 7 Tage kostenlos – so oft du möchtest.",
   },
   locked: {
+    secondary: "Später",
+  },
+  // Über "Weitere Power Storys freischalten" unter den Storys – jederzeit, so oft man will.
+  "more-stories": {
     secondary: "Später",
   },
 };

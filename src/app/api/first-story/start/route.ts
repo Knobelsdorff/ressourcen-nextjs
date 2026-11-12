@@ -22,6 +22,8 @@ import {
   attachDraftToUser,
   claimFirstStoryDraft,
   clientIp,
+  copyDraftNameToProfile,
+  type DraftName,
   createFirstStoryLink,
   createResumeKey,
   findUserIdByEmail,
@@ -32,8 +34,11 @@ import {
   normalizeEmail,
   processFirstStoryDraft,
   resumeKeyMatches,
+  sanitizePronunciationHint,
   sanitizeQuestionAnswers,
+  sanitizeUserName,
   saveDraftAnalyticsId,
+  saveDraftName,
 } from '@/lib/first-story/server';
 import { figureProps } from '@/lib/product-analytics/events';
 import { captureServerEvent, validAnalyticsId } from '@/lib/product-analytics/server';
@@ -193,6 +198,13 @@ export async function POST(request: NextRequest) {
     const questionAnswers = sanitizeQuestionAnswers(body.questionAnswers);
     if (!questionAnswers) return error('Deine Antworten fehlen. Bitte beantworte die Fragen erneut.', 400);
 
+    // Namens-Schritt (optional). Wird VOR processFirstStoryDraft gespeichert,
+    // damit die Story von Anfang an mit Namen entsteht.
+    const userName = sanitizeUserName(body.userName);
+    const draftName: DraftName | null = userName
+      ? { userName, pronunciationHint: sanitizePronunciationHint(body.pronunciationHint) }
+      : null;
+
     const figure = getFirstStoryFigure();
     const { key, hash } = createResumeKey();
     const ip = clientIp(request);
@@ -217,6 +229,11 @@ export async function POST(request: NextRequest) {
         .single();
       if (insertError || !draft) throw new Error(insertError?.message ?? 'Entwurf konnte nicht angelegt werden');
 
+      if (draftName) {
+        await saveDraftName(admin, draft.id, draftName);
+        // Eingeloggt: Der Entwurf gehört schon diesem Account – Name gleich ins Profil.
+        await copyDraftNameToProfile(admin, draft.id, sessionUser.id);
+      }
       trackGenerationStarted(admin, draft.id, analyticsId, sessionUser.id);
       after(() => processFirstStoryDraft(draft.id));
       return NextResponse.json({ draftId: draft.id, key, signedIn: true });
@@ -257,6 +274,11 @@ export async function POST(request: NextRequest) {
       .select('id')
       .single();
     if (insertError || !draft) throw new Error(insertError?.message ?? 'Entwurf konnte nicht angelegt werden');
+
+    // Vor dem Versand: Wer den Link sofort öffnet, findet den Namen schon vor.
+    // Ins Profil wandert er erst beim Link-Klick (attachDraftToUser) – erst
+    // dann ist bestätigt, dass die Adresse der Person gehört.
+    if (draftName) await saveDraftName(admin, draft.id, draftName);
 
     const link = createFirstStoryLink(draft.id, baseUrl);
     const sent = await sendFirstStoryLinkEmail({ to: email, link: link.url, expiresAt: link.expiresAt });

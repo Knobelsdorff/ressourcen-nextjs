@@ -7,12 +7,15 @@
  * eleven_flash_v2: Das kann laut ElevenLabs nur Englisch, dieser kurze Satz klang
  * damit nach Fremdsprache und wurde falsch verstanden („schon das du der Beste“).
  *
- * Nur für eingeloggte Accounts. Versuche werden nicht gezählt; die Bremse
- * unten verhindert nur automatisierten Missbrauch (jeder Aufruf kostet).
+ * Eingeloggt: beliebige Stimme, großzügige Bremse. Ohne Login (Namens-Schritt
+ * der Erststory, vor dem E-Mail-Schritt): nur Kerstin (FIRST_STORY_VOICE_ID –
+ * die Stimme der Erststory), engere Bremse pro IP plus Obergrenze pro Instanz.
+ * Die Bremsen verhindern nur automatisierten Missbrauch (jeder Aufruf kostet);
+ * normales Ausprobieren und Nachbessern bleibt frei.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getSessionUser } from '@/lib/first-story/server';
+import { clientIp, getSessionUser } from '@/lib/first-story/server';
 import { SPEECH_MODEL } from '@/lib/ai-models';
 import { FIRST_STORY_VOICE_ID } from '@/lib/first-story/config';
 import { spokenStoryName } from '@/lib/spoken-name';
@@ -20,33 +23,59 @@ import { createServerAdminClient } from '@/lib/supabase/serverAdminClient';
 
 export const dynamic = 'force-dynamic';
 
-const MAX_PER_WINDOW = 60;
 const WINDOW_MS = 10 * 60 * 1000;
+const MAX_PER_WINDOW_SIGNED_IN = 60;
+/** Ohne Login pro IP – reicht für Name + mehrere Aussprache-Versuche. */
+const MAX_PER_WINDOW_ANONYMOUS = 20;
+/** Ohne Login insgesamt pro Server-Instanz und Stunde – Deckel gegen Skripte mit wechselnden IPs. */
+const MAX_ANONYMOUS_PER_HOUR = 600;
 /** ElevenLabs-Stimmen-IDs: nur Buchstaben und Ziffern. */
 const VOICE_ID_RE = /^[A-Za-z0-9]{10,40}$/;
 const recentCalls = new Map<string, number[]>();
+let anonymousCalls: number[] = [];
 
-function rateLimited(userId: string): boolean {
+function rateLimited(key: string, max: number): boolean {
   const now = Date.now();
-  const calls = (recentCalls.get(userId) ?? []).filter((t) => now - t < WINDOW_MS);
+  const calls = (recentCalls.get(key) ?? []).filter((t) => now - t < WINDOW_MS);
   calls.push(now);
-  recentCalls.set(userId, calls);
-  return calls.length > MAX_PER_WINDOW;
+  recentCalls.set(key, calls);
+  // Speicher klein halten: abgelaufene Schlüssel gelegentlich wegräumen.
+  if (recentCalls.size > 5000) {
+    for (const [k, times] of recentCalls) {
+      if (!times.some((t) => now - t < WINDOW_MS)) recentCalls.delete(k);
+    }
+  }
+  return calls.length > max;
+}
+
+function anonymousCapReached(): boolean {
+  const now = Date.now();
+  anonymousCalls = anonymousCalls.filter((t) => now - t < 60 * 60 * 1000);
+  anonymousCalls.push(now);
+  return anonymousCalls.length > MAX_ANONYMOUS_PER_HOUR;
 }
 
 export async function POST(request: NextRequest) {
   const user = await getSessionUser(request);
-  if (!user) return NextResponse.json({ error: 'Bitte melde dich an.' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
   const name = typeof body.name === 'string' ? body.name.trim() : '';
   const pronunciation = typeof body.pronunciation === 'string' ? body.pronunciation : '';
-  const voiceId = typeof body.voiceId === 'string' && VOICE_ID_RE.test(body.voiceId) ? body.voiceId : FIRST_STORY_VOICE_ID;
-  if (!name || name.length > 60) {
+  if (!name || name.length > 60 || pronunciation.length > 60) {
     return NextResponse.json({ error: 'Bitte gib einen Namen ein.' }, { status: 400 });
   }
-  if (rateLimited(user.id)) {
-    return NextResponse.json({ error: 'Bitte warte einen Moment, bevor du es erneut versuchst.' }, { status: 429 });
+
+  let voiceId = FIRST_STORY_VOICE_ID;
+  if (user) {
+    if (typeof body.voiceId === 'string' && VOICE_ID_RE.test(body.voiceId)) voiceId = body.voiceId;
+    if (rateLimited(`user:${user.id}`, MAX_PER_WINDOW_SIGNED_IN)) {
+      return NextResponse.json({ error: 'Bitte warte einen Moment, bevor du es erneut versuchst.' }, { status: 429 });
+    }
+  } else {
+    const ip = clientIp(request) ?? 'unknown';
+    if (rateLimited(`ip:${ip}`, MAX_PER_WINDOW_ANONYMOUS) || anonymousCapReached()) {
+      return NextResponse.json({ error: 'Bitte warte einen Moment, bevor du es erneut versuchst.' }, { status: 429 });
+    }
   }
 
   const spoken = spokenStoryName(name, pronunciation);

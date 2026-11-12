@@ -587,24 +587,6 @@ export default function Dashboard() {
     }
   }, [user]);
 
-  // Handler für „Neue Power Story“ (Paywall oder /create-story)
-  const handleCreateStoryClick = useCallback(async () => {
-    if (user) {
-      try {
-        const { canCreateResource } = await import('@/lib/access');
-        const canCreate = await canCreateResource(user.id);
-        if (!canCreate) {
-          setShowPaywall(true);
-          return;
-        }
-      } catch (e) {
-        setShowPaywall(true);
-        return;
-      }
-    }
-    router.push('/create-story');
-  }, [user, router]);
-
   // Lade Geschichten aus Supabase
   const loadStories = useCallback(async () => {
     if (!user) {
@@ -3265,6 +3247,44 @@ ${story.content}
     }
   }, []);
 
+  // ---------------------------------------------------------------------------
+  // Knopf unter den Storys (Usability-Test: Das Abo-Angebot war nach dem Hören
+  // nicht wiederzufinden). Wer eine neue Story erstellen darf (aktives Abo,
+  // Paket, erste Story noch frei): "Neue Power Story erstellen" → /create-story.
+  // Sonst: "Weitere Power Storys freischalten" → Abo-Angebot – jederzeit, egal
+  // ob die Story zu Ende gehört, wiederholt oder vorgespult wurde.
+  // ---------------------------------------------------------------------------
+  const [canCreateStory, setCanCreateStory] = useState<boolean | null>(null);
+  const aiStoryCount = personalStories.filter((story) => !story.is_audio_only).length;
+  const userId = user?.id;
+
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    import('@/lib/access')
+      .then(({ canCreateResource }) => canCreateResource(userId))
+      .then((allowed) => { if (!cancelled) setCanCreateStory(allowed); })
+      .catch(() => { if (!cancelled) setCanCreateStory(false); });
+    return () => { cancelled = true; };
+    // Neu prüfen, wenn eine Story dazukommt oder sich der Abo-Status ändert.
+  }, [userId, aiStoryCount, subscriptionStatus.isPro]);
+
+  const handleCreateStoryClick = useCallback(async () => {
+    if (!userId) return;
+    // Beim Klick frisch prüfen – der angezeigte Stand kann veraltet sein.
+    let allowed = false;
+    try {
+      const { canCreateResource } = await import('@/lib/access');
+      allowed = await canCreateResource(userId);
+    } catch { /* Im Zweifel das Angebot zeigen, nicht /create-story. */ }
+    setCanCreateStory(allowed);
+    if (allowed) {
+      router.push('/create-story');
+      return;
+    }
+    setOfferVariant('more-stories');
+  }, [userId, router]);
+
   const welcomeStory = personalStories.find((story) =>
     story.first_story_draft_id &&
     !story.welcome_seen_at &&
@@ -3454,14 +3474,6 @@ ${story.content}
                           <Settings className="w-5 h-5" aria-hidden="true" />
                           Einstellungen
                         </button>
-                        <button
-                          onClick={handleCreateStoryClick}
-                          data-tour={TOUR_ANCHORS.newStory}
-                          className="dashboard-primary-button"
-                        >
-                          <Plus className="w-5 h-5" />
-                          Neue Power Story
-                        </button>
                       </div>
                     </div>
 
@@ -3564,6 +3576,22 @@ ${story.content}
                   ))}
                       </div>
                       </>
+                    )}
+
+                    {/* Unter den Storys, wo man nach dem Hören ohnehin ist – nicht oben. */}
+                    {canCreateStory !== null && (
+                      <div className="dashboard-library-cta">
+                        <button
+                          type="button"
+                          onClick={() => void handleCreateStoryClick()}
+                          data-tour={TOUR_ANCHORS.newStory}
+                          className="dashboard-primary-button"
+                        >
+                          {canCreateStory
+                            ? <><Plus className="w-5 h-5" aria-hidden="true" /> Neue Power Story erstellen</>
+                            : <><Sparkles className="w-5 h-5" aria-hidden="true" /> Weitere Power Storys freischalten</>}
+                        </button>
+                      </div>
                     )}
                   </div>
                 </>

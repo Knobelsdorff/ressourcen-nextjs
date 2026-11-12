@@ -245,14 +245,22 @@ async function updateDraft(admin: AdminClient, draftId: string, values: Record<s
   if (error) throw new Error(`Entwurf konnte nicht aktualisiert werden: ${error.message}`);
 }
 
-/** Ordnet den Entwurf einem Account zu – nur, wenn er noch niemandem gehört. */
+/**
+ * Ordnet den Entwurf einem Account zu – nur, wenn er noch niemandem gehört.
+ * Übernimmt dabei Name und Aussprache ins Profil (nur bei erfolgreicher Zuordnung).
+ */
 export async function attachDraftToUser(admin: AdminClient, draftId: string, userId: string): Promise<void> {
-  const { error } = await (admin as any)
+  const { data, error } = await (admin as any)
     .from('first_story_drafts')
     .update({ user_id: userId })
     .eq('id', draftId)
-    .is('user_id', null);
-  if (error) console.error('[FirstStory] Zuordnung fehlgeschlagen:', error.message);
+    .is('user_id', null)
+    .select('id');
+  if (error) {
+    console.error('[FirstStory] Zuordnung fehlgeschlagen:', error.message);
+    return;
+  }
+  if (Array.isArray(data) && data.length > 0) await copyDraftNameToProfile(admin, draftId, userId);
 }
 
 const DEFAULT_TRIAL_SECONDS = 7 * 24 * 60 * 60;
@@ -330,6 +338,75 @@ export async function loadDraftAnalyticsId(admin: AdminClient, draftId: string):
 export async function saveDraftAnalyticsId(admin: AdminClient, draftId: string, analyticsId: string): Promise<void> {
   const { error } = await (admin as any).from('first_story_drafts').update({ analytics_id: analyticsId }).eq('id', draftId);
   if (error) console.warn('[FirstStory] analytics_id nicht gespeichert (Migration 20261025120000 eingespielt?):', error.message);
+}
+
+// ---------------------------------------------------------------------------
+// Vorname + Aussprache (Namens-Schritt, Migration 20261111120000)
+// ---------------------------------------------------------------------------
+// Wie analytics_id bewusst getrennt von DRAFT_COLUMNS: Fehlen die Spalten,
+// entsteht die Erststory wie bisher ohne Namen.
+
+export interface DraftName {
+  userName: string;
+  pronunciationHint: string | null;
+}
+
+/**
+ * Nur Buchstaben, Leerzeichen, Bindestrich und Apostroph. Der Name landet im
+ * KI-Prompt und in einer RegExp der Nachbearbeitung (story-text.ts) – Sonder-
+ * zeichen hätten dort nichts verloren.
+ */
+export function sanitizeUserName(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const name = value.normalize('NFC').replace(/\s+/g, ' ').trim().slice(0, 60);
+  return name && /^[\p{L}\p{M}' -]+$/u.test(name) ? name : null;
+}
+
+export function sanitizePronunciationHint(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const hint = value.normalize('NFC').replace(/\s+/g, ' ').trim().slice(0, 60);
+  return hint && /^[\p{L}\p{M}' -]+$/u.test(hint) ? hint : null;
+}
+
+export async function saveDraftName(admin: AdminClient, draftId: string, name: DraftName): Promise<void> {
+  const { error } = await (admin as any)
+    .from('first_story_drafts')
+    .update({ user_name: name.userName, pronunciation_hint: name.pronunciationHint })
+    .eq('id', draftId);
+  if (error) console.warn('[FirstStory] Name nicht gespeichert (Migration 20261111120000 eingespielt?):', error.message);
+}
+
+export async function loadDraftName(admin: AdminClient, draftId: string): Promise<DraftName | null> {
+  const { data, error } = await (admin as any)
+    .from('first_story_drafts')
+    .select('user_name, pronunciation_hint')
+    .eq('id', draftId)
+    .maybeSingle();
+  if (error || !data?.user_name) return null;
+  return { userName: data.user_name, pronunciationHint: data.pronunciation_hint ?? null };
+}
+
+/**
+ * Übernimmt Name und Aussprache des Entwurfs ins Profil des Accounts, dem der
+ * Entwurf gehört – damit spätere Storys nicht noch einmal danach fragen
+ * (create-story überspringt den Namens-Schritt, wenn full_name gesetzt ist).
+ *
+ * Nur für den zugeordneten Account (er hat den Link aus seinem Postfach
+ * geöffnet). Der frisch eingegebene Name gewinnt über einen älteren – er ist
+ * auch der, mit dem die Erststory spricht. Fehler sind nicht kritisch.
+ */
+export async function copyDraftNameToProfile(admin: AdminClient, draftId: string, userId: string): Promise<void> {
+  try {
+    const name = await loadDraftName(admin, draftId);
+    if (!name) return;
+    const { error } = await (admin as any)
+      .from('profiles')
+      .update({ full_name: name.userName, pronunciation_hint: name.pronunciationHint })
+      .eq('id', userId);
+    if (error) console.warn('[FirstStory] Name nicht ins Profil übernommen:', error.message);
+  } catch (e) {
+    console.warn('[FirstStory] Name nicht ins Profil übernommen:', e instanceof Error ? e.message : e);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -422,10 +499,14 @@ export async function processFirstStoryDraft(draftId: string, maxAttempts = AUTO
     let story = draft.story_text;
     if (!story) {
       console.log('[FirstStory] Erzeuge Text für', draftId, '– Versuch', draft.attempts);
+      // Name aus dem Namens-Schritt – dieselbe Aussprache-Regel wie die Hörprobe.
+      const name = await loadDraftName(admin, draftId);
       story = (
         await generateStoryText({
           selectedFigure: getFirstStoryFigure(),
           questionAnswers: draft.question_answers,
+          userName: name?.userName,
+          userPronunciationHint: name?.pronunciationHint ?? undefined,
           sparModus: false,
         })
       ).trim();

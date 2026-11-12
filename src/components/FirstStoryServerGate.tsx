@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Loader2, Mail } from "lucide-react";
 import AngelIconFinal from "@/components/AngelIconFinal";
@@ -47,6 +47,9 @@ const phaseCopy: Record<FirstStoryPhase, string> = {
 
 interface FirstStoryServerGateProps {
   questionAnswers: unknown[];
+  /** Aus dem Namens-Schritt (optional). Der Server erzeugt die Story damit und übernimmt ihn ins Profil. */
+  userName?: string | null;
+  pronunciationHint?: string | null;
   linkError?: boolean;
   /** Wird aufgerufen, sobald die Story einem Account gehört (Entwurf im Browser aufräumen). */
   onComplete?: () => void;
@@ -57,7 +60,13 @@ interface FirstStoryServerGateProps {
  * Der Link in der E-Mail führt direkt ins Dashboard – egal in welchem Tab
  * oder auf welchem Gerät er geöffnet wird.
  */
-export default function FirstStoryServerGate({ questionAnswers, linkError = false, onComplete }: FirstStoryServerGateProps) {
+export default function FirstStoryServerGate({ questionAnswers, userName, pronunciationHint, linkError = false, onComplete }: FirstStoryServerGateProps) {
+  // Gehört zu jedem NEUEN Entwurf. Bestehende Entwürfe (Link erneut senden,
+  // Übernahme nach Login) tragen den Namen schon vom ersten Absenden.
+  const nameFields = useMemo(
+    () => (userName ? { userName, pronunciationHint: pronunciationHint || undefined } : {}),
+    [userName, pronunciationHint]
+  );
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [draft, setDraft] = useState<StoredDraft | null>(null);
@@ -104,7 +113,7 @@ export default function FirstStoryServerGate({ questionAnswers, linkError = fals
         const response = await fetch("/api/first-story/start", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(stored ? { draftId: stored.draftId, key: stored.key, adopt: true } : { questionAnswers, analyticsId: getAnalyticsId() }),
+          body: JSON.stringify(stored ? { draftId: stored.draftId, key: stored.key, adopt: true } : { questionAnswers, analyticsId: getAnalyticsId(), ...nameFields }),
         });
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error);
@@ -117,7 +126,7 @@ export default function FirstStoryServerGate({ questionAnswers, linkError = fals
         setError(startError instanceof Error && startError.message ? startError.message : "Deine Story konnte nicht gestartet werden. Bitte versuche es erneut.");
       }
     })();
-  }, [authLoading, user, questionAnswers, onComplete, router, signedInAttempt]);
+  }, [authLoading, user, questionAnswers, nameFields, onComplete, router, signedInAttempt]);
 
   // Fortschritt anzeigen. Jede Abfrage schiebt die Erzeugung bei Bedarf wieder an.
   useEffect(() => {
@@ -180,7 +189,7 @@ export default function FirstStoryServerGate({ questionAnswers, linkError = fals
         body: JSON.stringify(
           existing
             ? { draftId: existing.draftId, key: existing.key, email: normalizedEmail }
-            : { email: normalizedEmail, questionAnswers, analyticsId: getAnalyticsId() }
+            : { email: normalizedEmail, questionAnswers, analyticsId: getAnalyticsId(), ...nameFields }
         ),
       });
       const result = await response.json().catch(() => ({}));
@@ -220,7 +229,7 @@ export default function FirstStoryServerGate({ questionAnswers, linkError = fals
     } finally {
       setSending(false);
     }
-  }, [sending, secondsUntilResend, email, draft, questionAnswers]);
+  }, [sending, secondsUntilResend, email, draft, questionAnswers, nameFields]);
 
   const retry = useCallback(async () => {
     if (!draft) return;

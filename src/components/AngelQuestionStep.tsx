@@ -125,61 +125,78 @@ export default function AngelQuestionStep({
       </div>
 
       <div className="story-first-response">
-        <motion.div
-          key={question.id}
-          ref={scrollRef}
-          className="story-first-scroll"
-          data-more-below={moreBelow || undefined}
-          initial={{ opacity: 0.35, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.22, ease: "easeOut" }}
-        >
-          <div className="story-first-options" data-dense={dense || undefined} role="group" aria-label="Antwortmöglichkeiten">
-            {options.map((block, i) => {
-              const selected = selectedBlocks.includes(block);
-              return (
-                <button
-                  key={`${block}-${i}`}
-                  type="button"
-                  className="story-first-option"
-                  aria-pressed={selected}
-                  disabled={selectedCount >= maxSelections && !selected}
-                  onClick={() => onToggle(block)}
-                >
-                  <span className="story-first-option-mark" aria-hidden="true">{selected && <Check size={15} strokeWidth={2.5} />}</span>
-                  <span>{block}</span>
-                </button>
-              );
-            })}
-
-            <details ref={customRef} className="story-first-custom" onToggle={showCustomField}>
-              <summary>
-                <span className="story-first-option-mark" aria-hidden="true"><Plus size={14} strokeWidth={2.5} /></span>
-                <span>Eigene Worte hinzufügen</span>
-              </summary>
-              <div className="story-first-custom-fields">
-                <input
-                  type="text"
-                  aria-label="Eigene Worte"
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      submitCustom();
-                    }
-                  }}
-                  disabled={customLimitReached}
-                  placeholder="Deine Formulierung"
-                  maxLength={120}
-                />
-                <button type="button" onClick={submitCustom} disabled={customLimitReached || !draft.trim()}>
-                  Hinzufügen
-                </button>
-              </div>
-            </details>
-          </div>
-        </motion.div>
+        {/* Antworten + Zähler: Der Zähler klebt direkt unter den Antworten und
+            bleibt sichtbar – scrollen muss nur die Liste darüber. */}
+        <div className="story-first-answers">
+          <motion.div
+            key={question.id}
+            ref={scrollRef}
+            className="story-first-scroll"
+            data-more-below={moreBelow || undefined}
+            initial={{ opacity: 0.35, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+          >
+            <div className="story-first-options" data-dense={dense || undefined} role="group" aria-label="Antwortmöglichkeiten">
+              {options.map((block, i) => {
+                const selected = selectedBlocks.includes(block);
+                return (
+                  <button
+                    key={`${block}-${i}`}
+                    type="button"
+                    className="story-first-option"
+                    aria-pressed={selected}
+                    disabled={selectedCount >= maxSelections && !selected}
+                    onClick={() => onToggle(block)}
+                  >
+                    <span className="story-first-option-mark" aria-hidden="true">{selected && <Check size={15} strokeWidth={2.5} />}</span>
+                    <span>{block}</span>
+                  </button>
+                );
+              })}
+  
+              <details ref={customRef} className="story-first-custom" onToggle={showCustomField}>
+                <summary>
+                  <span className="story-first-option-mark" aria-hidden="true"><Plus size={14} strokeWidth={2.5} /></span>
+                  <span>Eigene Worte hinzufügen</span>
+                </summary>
+                <div className="story-first-custom-fields">
+                  <input
+                    type="text"
+                    aria-label="Eigene Worte"
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        submitCustom();
+                      }
+                    }}
+                    disabled={customLimitReached}
+                    placeholder="Deine Formulierung"
+                    maxLength={120}
+                  />
+                  <button type="button" onClick={submitCustom} disabled={customLimitReached || !draft.trim()}>
+                    Hinzufügen
+                  </button>
+                </div>
+              </details>
+            </div>
+          </motion.div>
+  
+          {/* Usability-Test: Mehrfachauswahl wurde nicht erkannt. */}
+          {maxSelections > 1 && (
+            <p
+              className="story-first-selection-count"
+              data-full={selectedCount >= maxSelections || undefined}
+              aria-live="polite"
+            >
+              {selectedCount === 0
+                ? `Bis zu ${maxSelections} Antworten möglich`
+                : <>{selectedCount} von {maxSelections} Antworten<span className="sr-only"> gewählt</span></>}
+            </p>
+          )}
+        </div>
 
         <div className="story-first-progress">
           <p className="story-first-step-count">Frage {index + 1} von {total}</p>
@@ -188,10 +205,6 @@ export default function AngelQuestionStep({
               <li key={i} data-state={i < index ? "done" : i === index ? "current" : "todo"} />
             ))}
           </ol>
-          {/* Sichtbar nur noch über das Ausgrauen weiterer Antworten; Screenreader hören den Stand. */}
-          <p className="sr-only" aria-live="polite">
-            {selectedCount} von {maxSelections} Antworten gewählt
-          </p>
         </div>
 
         <div className="story-first-actions">

@@ -214,6 +214,8 @@ div.settings-backdrop { position: fixed; inset: 0; z-index: 60; display: flex; a
 .dashboard-library-count h3 { color: #5a4636; font-size: 17px; font-weight: 700; }
 .dashboard-library-count span { color: #8b7868; font-size: 13px; }
 .dashboard-story-list { display: grid; gap: 20px; }
+/* "Neue Power Story erstellen" / "Weitere Power Storys freischalten" unter den Storys. */
+.dashboard-library-cta { display: flex; justify-content: center; margin-top: 28px; }
 .dashboard-story-list > :not(.dashboard-story-card) { grid-column: 1 / -1; }
 @media (min-width: 1024px) {
   .dashboard-story-list { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 24px; }
@@ -253,6 +255,10 @@ div.settings-backdrop { position: fixed; inset: 0; z-index: 60; display: flex; a
   .dashboard-library-actions > button { flex: 1 1 0; min-width: 0; gap: 7px; padding-inline: 12px; font-size: 13.5px; }
   .dashboard-library-actions > .dashboard-primary-button { flex-grow: 1.25; }
   .dashboard-library-actions > button > svg { flex-shrink: 0; }
+  /* Nur noch "Einstellungen" oben: normale Breite statt über die ganze Zeile. */
+  .dashboard-library-actions > button:only-of-type { flex: 0 0 auto; padding-inline: 18px; }
+  .dashboard-library-cta { margin-top: 22px; }
+  .dashboard-library-cta > .dashboard-primary-button { width: 100%; max-width: 420px; }
   /* Admin: rundes Icon oben rechts neben der Überschrift, nicht in der Knopfreihe. */
   .dashboard-library-head { position: relative; }
   .dashboard-library-head:has(.dashboard-admin) .dashboard-library-title { padding-right: 56px; }

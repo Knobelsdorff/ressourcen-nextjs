@@ -258,6 +258,11 @@ body:has(.story-flow-first-loading) > main { flex: 0 0 100dvh; height: 100dvh; m
 .story-question .story-first-character { margin-bottom: clamp(14px, 2.6dvh, 28px); }
 .story-question .story-first-character-name { font-size: clamp(26px, 2.6vw, 34px); font-weight: 700; letter-spacing: -.04em; line-height: 1.15; }
 .story-question .story-first-response { grid-template-rows: minmax(0, 1fr) auto auto; }
+/* Antworten + Auswahlzähler: Liste so hoch wie nötig (scrollt nur bei Platzmangel), Zähler direkt darunter. */
+.story-first-answers { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.story-first-answers > .story-first-scroll { flex: 0 1 auto; }
+.story-first-selection-count { flex: none; margin: 0 2px; color: #8b7868; font-size: 13px; font-weight: 500; line-height: 1.3; transition: color .2s ease; }
+.story-first-selection-count[data-full] { color: #49301e; font-weight: 600; }
 .story-question .story-first-progress { flex-direction: row; align-items: center; gap: 12px; margin: 4px 0 0; }
 .story-question .story-first-segments { flex: 1; max-width: none; }
 
@@ -270,4 +275,6 @@ body:has(.story-flow-first-loading) > main { flex: 0 0 100dvh; height: 100dvh; m
   .story-question .story-first-character-name { font-size: clamp(26px, 7.4vw, 32px); }
   .story-question .story-first-response { gap: 10px; }
   .story-question .story-first-progress { margin: 2px 2px 0; }
+  .story-first-answers { gap: 6px; }
+  .story-first-selection-count { font-size: 12px; }
 }

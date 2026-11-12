@@ -36,7 +36,12 @@ const FIRST_FLOW_DONE_KEY = "first-power-story-complete";
 const FIRST_FLOW_SNAPSHOT_TTL = 60 * 60 * 1000;
 const FIRST_FLOW_OWNER_TTL = 2 * 60 * 1000;
 
-type FirstFlowSnapshot = Partial<AppState> & { pendingEmail?: string };
+type FirstFlowSnapshot = Partial<AppState> & {
+  pendingEmail?: string;
+  /** Namens-Schritt (ohne Login) – sonst wäre der Name nach einem Neuladen weg. */
+  userName?: string | null;
+  pronunciationHint?: string | null;
+};
 
 function readFirstFlowSnapshot(): FirstFlowSnapshot | null {
   // localStorage is shared by the original tab and the email-link tab. A copied
@@ -129,8 +134,14 @@ function CreateStoryInner() {
     try {
       const restored = readFirstFlowSnapshot();
       if (restored) {
-        const restoredStep = (restored.currentStep ?? 0) >= 3 ? 3 : 2;
+        const restoredStep = serverFirstFlow && restored.currentStep === 4
+          ? 4 // Namens-Schritt
+          : (restored.currentStep ?? 0) >= 3 ? 3 : 2;
         setPendingEmail(restored.pendingEmail ?? null);
+        if (restored.userName) {
+          setAnonymousUserName(restored.userName);
+          setAnonymousUserPronunciationHint(restored.pronunciationHint ?? null);
+        }
         setAppState({
           ...initialAppState,
           ...restored,
@@ -152,7 +163,7 @@ function CreateStoryInner() {
       selectedVoice: FIRST_FLOW_VOICE_ID,
     }));
     setFirstFlowReady(true);
-  }, [firstFlow, mounted]);
+  }, [firstFlow, serverFirstFlow, mounted]);
 
   useEffect(() => {
     if (!firstFlow || !firstFlowReady || authLoading || !user) return;
@@ -175,13 +186,15 @@ function CreateStoryInner() {
         generatedStory: appState.generatedStory,
         audioState: appState.audioState,
         pendingEmail: pendingEmail ?? undefined,
+        userName: anonymousUserName,
+        pronunciationHint: anonymousUserPronunciationHint,
       };
       window.sessionStorage.setItem(FIRST_FLOW_STORAGE_KEY, JSON.stringify(snapshot));
       window.localStorage.setItem(FIRST_FLOW_STORAGE_KEY, JSON.stringify({ savedAt: Date.now(), state: snapshot }));
     } catch {
       // Session storage is only a resume aid; the in-memory flow still works.
     }
-  }, [firstFlow, serverFirstFlow, mounted, firstFlowReady, firstFlowOwner, firstFlowComplete, appState.currentStep, appState.questionAnswers, appState.generatedStory, appState.audioState, pendingEmail]);
+  }, [firstFlow, serverFirstFlow, mounted, firstFlowReady, firstFlowOwner, firstFlowComplete, appState.currentStep, appState.questionAnswers, appState.generatedStory, appState.audioState, pendingEmail, anonymousUserName, anonymousUserPronunciationHint]);
 
   // The email link normally opens a second tab. Only the tab that owns this
   // flow may generate audio or save it; the other tab waits for the owner.
@@ -674,9 +687,11 @@ function CreateStoryInner() {
       if (allQuestionsAnswered) {
         setAppState(prev => ({
           ...prev,
-          // Erststory: 3 = Account-Gate. Sonst: 3 = Stimme wählen – ohne Stimme
-          // rendert Schritt 5 nichts und der Flow bleibt hängen.
-          currentStep: 3,
+          // Erststory (Server-Flow): erst 4 = Vorname mit Hörprobe, dann 3 =
+          // Account-Gate. Der Server erzeugt die Story beim Gate – der Name muss
+          // vorher feststehen. Sonst: 3 = Stimme wählen – ohne Stimme rendert
+          // Schritt 5 nichts und der Flow bleibt hängen.
+          currentStep: serverFirstFlow ? 4 : 3,
           currentQuestionIndex: 0,
           selectedVoice: firstFlow ? FIRST_FLOW_VOICE_ID : prev.selectedVoice,
         }));
@@ -699,20 +714,26 @@ function CreateStoryInner() {
       return;
     }
 
-    // Step 4 (Name) -> Step 5 (Audio)
+    // Step 4 (Name) -> Step 5 (Audio); Erststory: -> Step 3 (Account-Gate)
     if (isStep4Complete) {
-      setAppState(prev => ({ ...prev, currentStep: 5 }));
+      setAppState(prev => ({ ...prev, currentStep: serverFirstFlow ? 3 : 5 }));
       return;
     }
 
     if (isStep5Complete || isStep6Complete) {
       setAppState(prev => ({ ...prev, currentStep: prev.currentStep + 1 }));
     }
-  }, [appState.currentStep, appState.currentQuestionIndex, appState.resourceFigure, appState.questionAnswers, appState.generatedStory, appState.selectedVoice, user, userFullName, firstFlow]);
+  }, [appState.currentStep, appState.currentQuestionIndex, appState.resourceFigure, appState.questionAnswers, appState.generatedStory, appState.selectedVoice, user, userFullName, firstFlow, serverFirstFlow]);
 
   // New step order: 1=Figure, 2=Questions, 3=Voice, 4=Name, 5+=Audio
   const handlePreviousStep = useCallback(() => {
     setAppState(prev => {
+      // Erststory: Vom Namens-Schritt zurück zur letzten Frage, nicht zur ersten.
+      if (serverFirstFlow && prev.currentStep === 4) {
+        const questionCount = prev.resourceFigure?.category === 'place' ? 5 : 6;
+        return { ...prev, currentStep: 2, currentQuestionIndex: questionCount - 1 };
+      }
+
       let newStep = Math.max(1, prev.currentStep - 1);
 
       // Step 2 (Questions) -> Step 1 (Figure)
@@ -745,7 +766,7 @@ function CreateStoryInner() {
         currentQuestionIndex: newStep === 2 ? 0 : prev.currentQuestionIndex
       };
     });
-  }, [user, userFullName]);
+  }, [user, userFullName, serverFirstFlow]);
 
   const retryStoryGeneration = useCallback(() => {
     setStoryGenerationError(null);
@@ -892,7 +913,7 @@ function CreateStoryInner() {
         <StoryFlowProgress currentStep={appState.currentStep} showNameStep={showNameStep} onExit={handleExit} exitLabel={exitLabel} />
       )}
 
-      <div className={`relative ${!firstFlow || appState.currentStep === 2 || appState.currentStep === 3 ? 'story-first-flow-content' : ''}`}>
+      <div className={`relative ${!firstFlow || appState.currentStep === 2 || appState.currentStep === 3 || (serverFirstFlow && appState.currentStep === 4) ? 'story-first-flow-content' : ''}`}>
         <div className="flex-1">
           <AnimatePresence mode="wait">
             <motion.div
@@ -941,6 +962,8 @@ function CreateStoryInner() {
               {appState.currentStep === 3 && serverFirstFlow && (
                 <FirstStoryServerGate
                   questionAnswers={appState.questionAnswers}
+                  userName={user ? userFullName : anonymousUserName}
+                  pronunciationHint={user ? userPronunciationHint : anonymousUserPronunciationHint}
                   linkError={searchParams.get('linkError') === '1'}
                   onComplete={handleServerFirstStoryComplete}
                 />
