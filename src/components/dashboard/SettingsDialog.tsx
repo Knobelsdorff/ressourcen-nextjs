@@ -75,6 +75,7 @@ export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsD
   // Abo
   const [subscription, setSubscription] = useState<{ amount: string } | null>(null);
   const [openingPortal, setOpeningPortal] = useState(false);
+  const [portalStatus, setPortalStatus] = useState<Status>(null);
 
   // Feedback
   const [feedback, setFeedback] = useState("");
@@ -198,8 +199,22 @@ export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsD
     }
   };
 
+  // Kommt der Nutzer per Zurück-Geste aus dem Stripe-Portal (Safari bfcache),
+  // darf der Button nicht in „Wird geöffnet …“ hängen bleiben.
+  useEffect(() => {
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) setOpeningPortal(false);
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
+  // Gleicher Tab statt window.open: Nach dem await ist die Nutzer-Geste
+  // verbraucht, iOS Safari/Chrome blockieren dann neue Tabs kommentarlos.
+  // Stripe schickt über return_url zurück auf /dashboard?tab=profile.
   const openPortal = async () => {
     setOpeningPortal(true);
+    setPortalStatus(null);
     try {
       const response = await fetch("/api/stripe/customer-portal", {
         method: "POST",
@@ -207,10 +222,12 @@ export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsD
         credentials: "include",
         body: "{}",
       });
-      const { url } = await response.json();
-      if (url) window.open(url, "_blank", "noopener");
-    } finally {
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.url) throw new Error();
+      window.location.assign(data.url);
+    } catch {
       setOpeningPortal(false);
+      setPortalStatus({ kind: "error", text: "Die Abo-Verwaltung konnte nicht geöffnet werden. Bitte versuche es erneut." });
     }
   };
 
@@ -352,6 +369,7 @@ export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsD
               <button type="button" className="settings-link" onClick={() => void openPortal()} disabled={openingPortal}>
                 {openingPortal ? "Wird geöffnet …" : "Abo verwalten"} <ExternalLink size={14} aria-hidden="true" />
               </button>
+              <StatusLine status={portalStatus} />
             </Section>
           )}
 

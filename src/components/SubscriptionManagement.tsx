@@ -113,9 +113,9 @@ export default function SubscriptionManagement({ userId, onRefresh }: Subscripti
       }
 
       const { url } = await response.json()
-      if (url) {
-        window.open(url, '_blank')
-      }
+      if (!url) throw new Error('No portal URL')
+      // Gleicher Tab: window.open nach await wird auf iOS blockiert.
+      window.location.assign(url)
     } catch (err: any) {
       console.error('Error opening portal:', err)
       setError('Fehler beim Öffnen des Verwaltungsportals')

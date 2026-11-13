@@ -78,8 +78,15 @@
 .sp-pill:active { transform: scale(.97); }
 
 /* Breit (Desktop, Tablet quer) und Handy quer: Video genau in der Mitte,
-   Erklärung rechts daneben (linke Spalte bleibt leer, damit das Video mittig sitzt). */
-@media (min-width: 900px), (orientation: landscape) and (max-height: 560px) {
+   Erklärung rechts daneben (linke Spalte bleibt leer, damit das Video mittig sitzt).
+   NUR im Querformat: Ein iPad hochkant ist oft ≥ 900px breit (iPad Pro 12,9″
+   = 1024px, kleinere iPads mit "Desktop-Website" = 980px). Dort griff früher
+   dieses Raster UND die Tablet-hochkant-Regel unten mit `width: min(100%, …)` –
+   Prozent in einer `auto`-Rasterspalte lösen sich gegen 0 auf (das Video ist
+   absolut positioniert, hat also keine Eigenbreite) → Video 0×0, unsichtbar.
+   Hochkant gilt daher immer die gestapelte Ansicht (Video oben, Text darunter).
+   Breiten hier nie in % angeben – nur vw/vh/px. */
+@media (min-width: 900px) and (orientation: landscape), (orientation: landscape) and (max-height: 560px) {
   .sp-stage-inner { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; column-gap: 40px; }
   .sp-artwork { grid-column: 2; width: min(56vw, calc(54vh * 748 / 556), 760px); width: min(56vw, calc(54dvh * 748 / 556), 760px); }
   .sp-hint { grid-column: 3; justify-self: start; max-width: 260px; text-align: left; }

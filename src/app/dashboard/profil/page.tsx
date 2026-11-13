@@ -120,9 +120,9 @@ export default function ProfilPage() {
       }
 
       const { url } = await response.json();
-      if (url) {
-        window.open(url, '_blank');
-      }
+      if (!url) throw new Error('No portal URL');
+      // Gleicher Tab: window.open nach await wird auf iOS blockiert.
+      window.location.assign(url);
     } catch (err) {
       alert('Fehler beim Öffnen des Verwaltungsportals');
     } finally {
