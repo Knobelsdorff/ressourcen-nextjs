@@ -67,8 +67,10 @@ src/app/admin/texte/             Übersicht
   (Service Role) liest und schreibt.
 - **Lesen kostet nichts**: Das Root-Layout holt die veröffentlichten Texte über
   `unstable_cache` (Tag `site-texts`). Besucher lösen keine DB-Abfrage aus;
-  gelesen wird erst nach dem nächsten Veröffentlichen wieder
-  (`revalidateTag`). Seiten bleiben statisch (stündliche Auffrischung als Netz).
+  gelesen wird sofort nach dem nächsten Veröffentlichen (`revalidateTag`),
+  sonst höchstens alle 5 Minuten. Seiten bleiben statisch (stündliche
+  Auffrischung als Netz). Tabellen direkt in Supabase geändert/geleert →
+  spätestens nach ~5 Minuten für Besucher sichtbar.
 - **Schreiben**: eine API-Route pro Aktion, Admin-Prüfung über die
   Supabase-Session (Cookie), Prüfung gegen den Katalog (Schlüssel existiert,
   Variablen, Länge, Link-Ziele), Veröffentlichen in **einer** Transaktion

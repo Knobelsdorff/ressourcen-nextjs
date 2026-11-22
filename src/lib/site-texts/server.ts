@@ -1,10 +1,11 @@
 /*
  * Nur auf dem Server verwenden (Layouts, generateMetadata, API-Routen).
  *
- * Lesen kostet praktisch nichts: Die veröffentlichten Texte werden einmal aus
- * Supabase geholt und im Next.js-Data-Cache (Tag "site-texts") gehalten. Erst
- * das Veröffentlichen im Editor ruft revalidateTag auf – dann wird genau
- * einmal neu gelesen. Besucher lösen nie eine Datenbank-Abfrage aus.
+ * Lesen kostet praktisch nichts: Die veröffentlichten Texte werden aus Supabase
+ * geholt und im Next.js-Data-Cache (Tag "site-texts") gehalten. Das
+ * Veröffentlichen im Editor ruft revalidateTag auf – dann wird sofort neu
+ * gelesen. Zusätzlich höchstens alle 5 Minuten eine kleine Abfrage, damit
+ * Änderungen direkt in der Datenbank (z. B. TRUNCATE) nicht ewig im Cache hängen.
  */
 
 import { unstable_cache } from "next/cache";
@@ -14,6 +15,8 @@ import { interpolate, stripInline, type TextVars } from "./format";
 
 export const SITE_TEXTS_TAG = "site-texts";
 export const SITE_TEXTS_LOCALE = "de";
+/** Sicherheitsnetz für Änderungen außerhalb des Editors (direkt in Supabase). */
+const SITE_TEXTS_REVALIDATE_SECONDS = 300;
 
 export type PublishedTexts = Record<string, string>;
 
@@ -38,8 +41,8 @@ const loadPublished = unstable_cache(
     for (const row of (data ?? []) as { key: string; value: string }[]) out[row.key] = row.value;
     return out;
   },
-  ["site-texts-published-v1"],
-  { tags: [SITE_TEXTS_TAG] }
+  ["site-texts-published-v2"],
+  { tags: [SITE_TEXTS_TAG], revalidate: SITE_TEXTS_REVALIDATE_SECONDS }
 );
 
 let warnedMissing = false;

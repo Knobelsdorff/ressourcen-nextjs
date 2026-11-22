@@ -65,6 +65,9 @@ export async function POST(request: NextRequest) {
       );
     }
     if (keys.length === 0) {
+      // Nichts zu veröffentlichen – trotzdem den Cache leeren, falls die
+      // Tabellen direkt in Supabase geändert wurden.
+      revalidateTag(SITE_TEXTS_TAG);
       return NextResponse.json<ApiError>({ error: "Keine Entwürfe zum Veröffentlichen." }, { status: 400 });
     }
 

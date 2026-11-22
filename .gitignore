@@ -49,3 +49,7 @@ supabase/.temp/
 # local artifacts
 server.log
 email-anja.txt
+
+
+
+outputs
