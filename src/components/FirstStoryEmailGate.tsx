@@ -4,6 +4,9 @@ import { FormEvent, useEffect, useState } from "react";
 import { ArrowRight, Check, Loader2, Mail } from "lucide-react";
 import AngelIconFinal from "@/components/AngelIconFinal";
 import { supabase } from "@/lib/supabase";
+import { T, useTextFn } from "@/components/site-text/T";
+import type { TextDef } from "@/lib/site-texts/define";
+import { firstStory } from "@/content/texts/firstStory";
 
 const RESEND_WAIT_SECONDS = 60;
 
@@ -16,10 +19,11 @@ interface FirstStoryEmailGateProps {
 }
 
 export default function FirstStoryEmailGate({ linkError = false, onEmailSent, preparationStatus = 'idle', preparationError, onRetryPreparation }: FirstStoryEmailGateProps) {
+  const tx = useTextFn();
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
-  const [error, setError] = useState(linkError ? "Dieser Zugangslink ist nicht mehr gültig. Gib deine E-Mail-Adresse ein, dann senden wir dir einen neuen." : "");
+  const [error, setError] = useState(linkError ? tx(firstStory["email.linkInvalid"]) : "");
   const [secondsUntilResend, setSecondsUntilResend] = useState(0);
 
   useEffect(() => {
@@ -34,7 +38,7 @@ export default function FirstStoryEmailGate({ linkError = false, onEmailSent, pr
 
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      setError("Bitte gib eine gültige E-Mail-Adresse ein.");
+      setError(tx(firstStory["gate.invalidEmail"]));
       return;
     }
 
@@ -56,9 +60,7 @@ export default function FirstStoryEmailGate({ linkError = false, onEmailSent, pr
       setSecondsUntilResend(RESEND_WAIT_SECONDS);
     } catch (sendError) {
       const rateLimited = sendError instanceof Error && /rate limit|too many requests/i.test(sendError.message);
-      setError(rateLimited
-        ? "Bitte warte kurz, bevor du einen neuen Link anforderst."
-        : "Der Link konnte nicht gesendet werden. Bitte versuche es erneut.");
+      setError(tx(rateLimited ? firstStory["email.rateLimited"] : firstStory["gate.sendFailed"]));
     } finally {
       setSending(false);
     }
@@ -70,46 +72,46 @@ export default function FirstStoryEmailGate({ linkError = false, onEmailSent, pr
         <div className="story-first-email-angel" aria-hidden="true">
           <AngelIconFinal size={76} className="story-first-email-angel-image" />
         </div>
-        <p className="story-first-email-kicker">DEINE ERSTE POWER STORY</p>
-        <h1 id="story-email-heading">Dein Engel ist bereit.</h1>
-        <p>Deine Antworten warten auf dich. Melde dich mit deiner E-Mail an, damit wir deine persönliche Power Story erstellen und für dich speichern können.</p>
-        <div className="story-first-email-note"><Check size={17} aria-hidden="true" /> Kostenlos und ohne Passwort</div>
+        <p className="story-first-email-kicker"><T t={firstStory["gate.kicker"]} /></p>
+        <h1 id="story-email-heading"><T t={firstStory["gate.title"]} /></h1>
+        <p><T t={firstStory["email.intro"]} /></p>
+        <div className="story-first-email-note"><Check size={17} aria-hidden="true" /> <T t={firstStory["gate.note"]} /></div>
         <p className="story-first-preparation" role="status">
-          {preparationStatus === 'ready' ? 'Deine Power Story ist bereits fertig. Nach dem Login speichern wir sie in deinem Account.' :
-            preparationStatus === 'audio' ? 'Dein Text ist fertig. Kerstins Stimme wird gerade vorbereitet …' :
-            preparationStatus === 'text' ? 'Deine persönliche Geschichte entsteht schon, während du dich anmeldest …' :
-            preparationStatus === 'error' ? 'Die Vorbereitung wurde unterbrochen. Deine Antworten sind weiterhin gespeichert.' :
-            'Deine Geschichte wird im Hintergrund vorbereitet.'}
+          <T t={preparationStatus === 'ready' ? firstStory["email.prep.ready"] :
+            preparationStatus === 'audio' ? firstStory["email.prep.audio"] :
+            preparationStatus === 'text' ? firstStory["email.prep.text"] :
+            preparationStatus === 'error' ? firstStory["email.prep.error"] :
+            firstStory["email.prep.idle"]} />
         </p>
-        {preparationStatus === 'error' && <div className="story-first-preparation-error"><span>{preparationError}</span><button type="button" onClick={onRetryPreparation}>Erneut versuchen</button></div>}
+        {preparationStatus === 'error' && <div className="story-first-preparation-error"><span>{preparationError}</span><button type="button" onClick={onRetryPreparation}><T t={firstStory["gate.retry"]} /></button></div>}
       </div>
 
       <div className="story-first-email-form-area">
         {sent ? (
           <div className="story-first-email-sent" role="status">
             <span className="story-first-email-mail-icon"><Mail size={24} aria-hidden="true" /></span>
-            <h2>Schau in dein Postfach.</h2>
-            <p>Wir haben einen Zugangslink an <strong>{email}</strong> geschickt.</p>
-            <p className="story-first-email-hint">Öffne den Link am besten in diesem Browser, damit deine Antworten direkt weiterverwendet werden. Prüfe auch deinen Spam-Ordner.</p>
+            <h2><T t={firstStory["gate.sentTitle"]} /></h2>
+            <p><T t={firstStory["email.sentText"]} vars={{ email }} /></p>
+            <p className="story-first-email-hint"><T t={firstStory["email.sentHint"]} /></p>
             <div className="story-first-email-sent-actions">
-              <button type="button" onClick={() => { setSent(false); setError(""); setSecondsUntilResend(0); }}>Andere E-Mail verwenden</button>
+              <button type="button" onClick={() => { setSent(false); setError(""); setSecondsUntilResend(0); }}><T t={firstStory["gate.otherEmail"]} /></button>
               <button type="button" onClick={() => void sendLink()} disabled={sending || secondsUntilResend > 0}>
-                {secondsUntilResend > 0 ? `Erneut senden in ${secondsUntilResend} s` : "Link erneut senden"}
+                {secondsUntilResend > 0 ? <T t={firstStory["gate.resendIn"]} vars={{ seconds: secondsUntilResend }} /> : <T t={firstStory["gate.resend"]} />}
               </button>
             </div>
             {error && <p className="story-first-email-error" role="alert">{error}</p>}
           </div>
         ) : (
           <form onSubmit={sendLink} noValidate>
-            <h2>Mit E-Mail fortfahren</h2>
-            <p>Wir schicken dir einen Link. Deine Story wird bereits vorbereitet und nach dem Login in deinem Account gespeichert.</p>
-            <label htmlFor="first-story-email">Deine E-Mail-Adresse</label>
+            <h2><T t={firstStory["gate.formTitle"]} /></h2>
+            <p><T t={firstStory["email.formText"]} /></p>
+            <label htmlFor="first-story-email"><T t={firstStory["gate.emailLabel"]} /></label>
             <input
               id="first-story-email"
               type="email"
               inputMode="email"
               autoComplete="email"
-              placeholder="du@beispiel.de"
+              placeholder={tx(firstStory["gate.emailPlaceholder"])}
               value={email}
               onChange={(event) => { setEmail(event.target.value); if (error) setError(""); }}
               disabled={sending}
@@ -119,9 +121,9 @@ export default function FirstStoryEmailGate({ linkError = false, onEmailSent, pr
             />
             {error && <p id="first-story-email-error" className="story-first-email-error" role="alert">{error}</p>}
             <button type="submit" disabled={sending || secondsUntilResend > 0}>
-              {sending ? <><Loader2 size={18} className="animate-spin" aria-hidden="true" /> Link wird gesendet …</> : <><span>Zugangslink senden</span><ArrowRight size={18} aria-hidden="true" /></>}
+              {sending ? <><Loader2 size={18} className="animate-spin" aria-hidden="true" /> <T t={firstStory["gate.sending"]} /></> : <><span><T t={firstStory["gate.send"]} /></span><ArrowRight size={18} aria-hidden="true" /></>}
             </button>
-            <p className="story-first-email-fineprint">Für neue und bestehende Accounts.</p>
+            <p className="story-first-email-fineprint"><T t={firstStory["gate.fineprint"]} /></p>
           </form>
         )}
       </div>

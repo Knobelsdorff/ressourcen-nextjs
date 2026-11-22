@@ -9,8 +9,11 @@
  */
 
 import { Loader2, Pause, Play, RotateCcw } from "lucide-react";
-import { useNamePreview } from "@/hooks/useNamePreview";
+import { NAME_PREVIEW_FALLBACK_ERROR, useNamePreview } from "@/hooks/useNamePreview";
 import "./name-preview.css";
+import { T, useTextFn } from "@/components/site-text/T";
+import type { TextDef } from "@/lib/site-texts/define";
+import { createStory } from "@/content/texts/createStory";
 
 interface NamePreviewPlayerProps {
   name: string;
@@ -24,39 +27,42 @@ interface NamePreviewPlayerProps {
 export default function NamePreviewPlayer({ name, pronunciation, voiceId, onAdjust }: NamePreviewPlayerProps) {
   const { status, sentence, progress, error, stale, toggle } = useNamePreview(name, pronunciation, voiceId);
   const hasName = name.trim().length > 0;
+  const tx = useTextFn();
+  const p = (key: string) => (createStory as Record<string, TextDef>)[`namePreview.${key}`];
 
-  const heading = !hasName
-    ? "Hörprobe"
+  const heading = <T t={!hasName
+    ? p("heading.empty")
     : status === "loading"
-      ? "Wird erstellt …"
+      ? p("heading.loading")
       : status === "playing"
-        ? "Läuft gerade"
+        ? p("heading.playing")
         : status === "paused"
-          ? "Angehalten"
+          ? p("heading.paused")
           : status === "ended"
-            ? "Noch einmal anhören"
+            ? p("heading.ended")
             : stale
-              ? "Neu anhören"
-              : "Anhören";
+              ? p("heading.stale")
+              : p("heading.idle")} />;
 
   const detail = !hasName
-    ? "Gib zuerst deinen Vornamen ein."
+    ? <T t={p("detail.empty")} />
     : status === "idle"
       ? stale
-        ? "Du hast etwas geändert."
-        : "So spricht deine Power Story dich an."
+        ? <T t={p("detail.stale")} />
+        : <T t={p("detail.idle")} />
       : status === "loading"
-        ? "Einen kleinen Moment."
+        ? <T t={p("detail.loading")} />
         : `„${sentence}“`;
 
-  const buttonLabel =
+  const buttonLabel = tx(
     status === "loading"
-      ? "Hörprobe abbrechen"
+      ? p("button.cancel")
       : status === "playing"
-        ? "Hörprobe anhalten"
+        ? p("button.pause")
         : status === "ended"
-          ? "Hörprobe noch einmal abspielen"
-          : "Hörprobe abspielen";
+          ? p("button.replay")
+          : p("button.play"));
+  const errorText = error === NAME_PREVIEW_FALLBACK_ERROR ? tx(p("error")) : error;
 
   return (
     <div className="name-preview" data-status={status}>
@@ -86,12 +92,12 @@ export default function NamePreviewPlayer({ name, pronunciation, voiceId, onAdju
 
       {status === "ended" && onAdjust && (
         <p className="name-preview-follow">
-          <span>Klingt es noch nicht richtig?</span>
-          <button type="button" onClick={onAdjust}>Aussprache anpassen</button>
+          <span><T t={p("notRight")} /></span>
+          <button type="button" onClick={onAdjust}><T t={p("adjust")} /></button>
         </p>
       )}
 
-      {error && <p className="name-preview-error" role="alert">{error}</p>}
+      {errorText && <p className="name-preview-error" role="alert">{errorText}</p>}
     </div>
   );
 }

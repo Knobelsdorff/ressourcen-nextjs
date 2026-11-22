@@ -1,10 +1,14 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
+import { getText } from "@/lib/site-texts/server";
+import { meta } from "@/content/texts/meta";
 import WellnessSurface from '@/components/WellnessSurface';
 
-export const metadata: Metadata = {
-  title: "Mein Zugang – Power Story",
-  description: "Melde dich an, um zu deinen persönlichen Power Storys zu gelangen.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: await getText(meta["zugang.title"]),
+    description: await getText(meta["zugang.description"]),
+  };
+}
 
 export default function ZugangLayout({
   children,

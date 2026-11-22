@@ -7,7 +7,9 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
-import { BarChart3, ChevronDown, Headphones, Music, Shield, Volume2 } from "lucide-react";
+import { BarChart3, ChevronDown, FileText, Headphones, Music, Shield, Volume2 } from "lucide-react";
+import { T, useTextFn } from "@/components/site-text/T";
+import { adminMenu } from "@/content/texts/adminMenu";
 
 export default function AdminMenu({
   isAdmin,
@@ -19,6 +21,7 @@ export default function AdminMenu({
   onCreateClientResource: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const tx = useTextFn();
   const rootRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
 
@@ -50,11 +53,11 @@ export default function AdminMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
-        aria-label="Admin-Werkzeuge"
+        aria-label={tx(adminMenu["aria"])}
         onClick={() => setOpen((value) => !value)}
       >
         <Shield className="h-5 w-5" aria-hidden="true" />
-        <span className="dashboard-admin-label">Admin</span>
+        <span className="dashboard-admin-label"><T t={adminMenu["label"]} /></span>
         <ChevronDown className={`dashboard-admin-chevron h-4 w-4 ${open ? "rotate-180" : ""}`} aria-hidden="true" />
       </button>
 
@@ -62,16 +65,19 @@ export default function AdminMenu({
         <div id={menuId} role="menu" className="dashboard-admin-menu">
           {isMusicAdmin && (
             <Link href="/admin/music" role="menuitem" onClick={close}>
-              <Music aria-hidden="true" /> Musik verwalten
+              <Music aria-hidden="true" /> <T t={adminMenu["music"]} />
             </Link>
           )}
           {isAdmin && (
             <>
               <Link href="/admin/kostprobe" role="menuitem" onClick={close}>
-                <Headphones aria-hidden="true" /> Kostprobe
+                <Headphones aria-hidden="true" /> <T t={adminMenu["kostprobe"]} />
               </Link>
               <Link href="/admin/analytics" role="menuitem" onClick={close}>
-                <BarChart3 aria-hidden="true" /> Admin Analytics
+                <BarChart3 aria-hidden="true" /> <T t={adminMenu["analytics"]} />
+              </Link>
+              <Link href="/admin/texte" role="menuitem" onClick={close}>
+                <FileText aria-hidden="true" /> <T t={adminMenu["texts"]} />
               </Link>
               <button
                 type="button"
@@ -81,7 +87,7 @@ export default function AdminMenu({
                   onCreateClientResource();
                 }}
               >
-                <Volume2 aria-hidden="true" /> Manuelle Ressource erstellen (Audio)
+                <Volume2 aria-hidden="true" /> <T t={adminMenu["clientResource"]} />
               </button>
             </>
           )}

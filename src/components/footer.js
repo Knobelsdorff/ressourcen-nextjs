@@ -3,6 +3,8 @@
 import { Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { openConsentSettings } from "@/lib/product-analytics/consent";
+import { T } from "@/components/site-text/T";
+import { common } from "@/content/texts/common";
 
 // useSearchParams() im Root-Layout braucht eine Suspense-Grenze, sonst
 // scheitert `next build` beim statischen Rendern jeder Seite.
@@ -32,20 +34,20 @@ function FooterContent({ isFirstStoryFlow }) {
     <footer data-landing={pathname === '/' || undefined} className="bg-white border-t border-orange-100/70 sm:py-9 py-5">
       <div className="max-w-7xl mx-auto px-4 text-center">
         <div className="text-amber-700 mb-6 text-lg">
-          Entwickelt mit therapeutischer Erfahrung – für deinen Alltag
+          <T t={common["footer.tagline"]} />
         </div>
         <div className="text-amber-900 mb-4">
-          © Copyright - Andreas von Knobelsdorff
+          <T t={common["footer.copyright"]} />
         </div>
         <div className="flex justify-center space-x-6">
           <a href="/Impressum" className="text-amber-900 hover:text-amber-700 transition-colors underline">
-            Impressum
+            <T t={common["footer.imprint"]} />
           </a>
           <a href="/Datenschutz" className="text-amber-900 hover:text-amber-700 transition-colors underline">
-            Datenschutz
+            <T t={common["footer.privacy"]} />
           </a>
           <button type="button" onClick={openConsentSettings} className="text-amber-900 hover:text-amber-700 transition-colors underline">
-            Cookie-Einstellungen
+            <T t={common["footer.cookies"]} />
           </button>
         </div>
       </div>

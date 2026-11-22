@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Square, Play, Pause, Trash2, RotateCcw, Check } from "lucide-react";
+import { T, useTextFn } from "@/components/site-text/T";
+import { adminClient } from "@/content/texts/adminClient";
 
 interface AudioRecorderProps {
   /** Wird mit dem Blob aufgerufen, oder mit null wenn die Aufnahme verworfen wurde. */
@@ -19,6 +21,7 @@ export default function AudioRecorder({
   onError,
   maxDuration = 600 // 10 minutes default
 }: AudioRecorderProps) {
+  const tx = useTextFn();
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -112,7 +115,7 @@ export default function AudioRecorder({
       console.error("Microphone permission error:", error);
       setHasPermission(false);
       if (onError) {
-        onError("Mikrofon-Zugriff wurde verweigert. Bitte erlaube den Zugriff in den Browser-Einstellungen.");
+        onError(tx(adminClient["recorder.denied"]));
       }
     }
   };
@@ -193,7 +196,7 @@ export default function AudioRecorder({
     try {
       if (hasPermission === false) {
         if (onError) {
-          onError("Mikrofon-Zugriff wurde verweigert. Bitte erlaube den Zugriff in den Browser-Einstellungen.");
+          onError(tx(adminClient["recorder.denied"]));
         }
         return;
       }
@@ -266,7 +269,7 @@ export default function AudioRecorder({
       mediaRecorder.onerror = (event: any) => {
         console.error("MediaRecorder error:", event);
         if (onError) {
-          onError("Fehler beim Aufnehmen. Bitte versuche es erneut.");
+          onError(tx(adminClient["recorder.error"]));
         }
         stopRecording();
       };
@@ -282,7 +285,7 @@ export default function AudioRecorder({
           if (newTime >= maxDuration) {
             stopRecording();
             if (onError) {
-              onError(`Maximale Aufnahmezeit von ${Math.floor(maxDuration / 60)} Minuten erreicht.`);
+              onError(tx(adminClient["recorder.maxReached"], { minutes: Math.floor(maxDuration / 60) }));
             }
             return prev;
           }
@@ -294,7 +297,7 @@ export default function AudioRecorder({
       console.error("Error starting recording:", error);
       setHasPermission(false);
       if (onError) {
-        onError("Fehler beim Starten der Aufnahme. Bitte erlaube den Mikrofon-Zugriff.");
+        onError(tx(adminClient["recorder.startError"]));
       }
     }
   };
@@ -357,7 +360,7 @@ export default function AudioRecorder({
           if (newTime >= maxDuration) {
             stopRecording();
             if (onError) {
-              onError(`Maximale Aufnahmezeit von ${Math.floor(maxDuration / 60)} Minuten erreicht.`);
+              onError(tx(adminClient["recorder.maxReached"], { minutes: Math.floor(maxDuration / 60) }));
             }
             return prev;
           }
@@ -409,7 +412,7 @@ export default function AudioRecorder({
       audio.onerror = () => {
         setIsPlaying(false);
         if (onError) {
-          onError("Fehler beim Abspielen der Vorschau.");
+          onError(tx(adminClient["recorder.previewError"]));
         }
         audioElementRef.current = null;
       };
@@ -429,7 +432,7 @@ export default function AudioRecorder({
     return (
       <div className="w-full sm:p-5 p-4 bg-primary-50/60 border border-primary-400 rounded-lg">
         <p className="text-primary-800 max-sm:text-sm text-center">
-          Mikrofon-Zugriff wurde verweigert. Bitte erlaube den Zugriff in den Browser-Einstellungen und lade die Seite neu.
+          <T t={adminClient["recorder.deniedReload"]} />
         </p>
       </div>
     );
@@ -447,7 +450,7 @@ export default function AudioRecorder({
             htmlFor="mic-select"
             className="block text-sm text-primary-700 mb-2"
           >
-            Mikrofon
+            <T t={adminClient["recorder.mic"]} />
           </label>
           <select
             id="mic-select"
@@ -457,18 +460,18 @@ export default function AudioRecorder({
             className="w-full sm:px-4 px-3 sm:py-2.5 py-2 bg-white border border-primary-400 rounded-lg text-primary-900 focus:outline-none focus:border-primary-700 focus:ring-1 focus:ring-primary-700 transition-colors disabled:bg-primary-50 disabled:text-primary-600 max-sm:text-sm"
           >
             {devices.length === 0 ? (
-              <option value="">Mikrofone werden geladen...</option>
+              <option value="">{tx(adminClient["recorder.micLoading"])}</option>
             ) : (
               devices.map((device, index) => (
                 <option key={device.deviceId || index} value={device.deviceId}>
-                  {device.label || `Mikrofon ${index + 1}`}
+                  {device.label || tx(adminClient["recorder.micFallback"], { number: index + 1 })}
                 </option>
               ))
             )}
           </select>
           {isRecording && (
             <p className="mt-2 text-xs text-primary-600">
-              Während der Aufnahme nicht änderbar.
+              <T t={adminClient["recorder.locked"]} />
             </p>
           )}
         </div>
@@ -496,11 +499,11 @@ export default function AudioRecorder({
                     />
                   )}
                   <span className="text-sm text-primary-700">
-                    {isRecording
+                    <T t={isRecording
                       ? isPaused
-                        ? "Pausiert"
-                        : "Aufnahme läuft"
-                      : "Aufnahme fertig"}
+                        ? adminClient["recorder.paused"]
+                        : adminClient["recorder.recording"]
+                      : adminClient["recorder.done"]} />
                   </span>
                 </div>
                 <span className="text-sm text-primary-900 tabular-nums tracking-tight">
@@ -539,7 +542,7 @@ export default function AudioRecorder({
               className="flex items-center gap-2 px-4 py-2 bg-primary-700 hover:bg-primary-800 text-white rounded-md font-medium transition-colors max-sm:text-sm"
             >
               <Mic className="w-4 h-4" />
-              <span>Aufnahme starten</span>
+              <span><T t={adminClient["recorder.start"]} /></span>
             </button>
           ) : (
             <>
@@ -550,12 +553,12 @@ export default function AudioRecorder({
                 {isPaused ? (
                   <>
                     <Play className="w-4 h-4" />
-                    <span>Fortsetzen</span>
+                    <span><T t={adminClient["recorder.resume"]} /></span>
                   </>
                 ) : (
                   <>
                     <Pause className="w-4 h-4" />
-                    <span>Pausieren</span>
+                    <span><T t={adminClient["recorder.pause"]} /></span>
                   </>
                 )}
               </button>
@@ -564,7 +567,7 @@ export default function AudioRecorder({
                 className="flex items-center gap-2 px-4 py-2 bg-primary-700 hover:bg-primary-800 text-white rounded-md font-medium transition-colors max-sm:text-sm"
               >
                 <Square className="w-3.5 h-3.5" />
-                <span>Aufnahme beenden</span>
+                <span><T t={adminClient["recorder.stop"]} /></span>
               </button>
             </>
           )}
@@ -576,7 +579,7 @@ export default function AudioRecorder({
             <button
               onClick={playPreview}
               className="w-8 h-8 flex items-center justify-center border border-primary-400 text-primary-700 hover:bg-primary-50 rounded-md transition-colors flex-shrink-0"
-              title={isPlaying ? "Vorschau pausieren" : "Vorschau anhören"}
+              title={tx(isPlaying ? adminClient["recorder.previewPause"] : adminClient["recorder.previewPlay"])}
             >
               {isPlaying ? (
                 <Pause className="w-3.5 h-3.5" />
@@ -585,27 +588,27 @@ export default function AudioRecorder({
               )}
             </button>
             <span className="text-sm text-primary-800 truncate">
-              {isPlaying ? "Wird abgespielt" : "Anhören"} · {formatTime(recordingTime)}
+              <T t={isPlaying ? adminClient["recorder.playing"] : adminClient["recorder.listen"]} /> · {formatTime(recordingTime)}
             </span>
           </div>
           <button
             onClick={deleteRecording}
             className="flex items-center gap-1.5 px-2 py-1.5 text-primary-700 hover:text-primary-900 text-sm rounded-md transition-colors flex-shrink-0"
-            title="Aufnahme verwerfen und neu aufnehmen"
+            title={tx(adminClient["recorder.discardTitle"])}
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span className="max-sm:hidden">Neu aufnehmen</span>
+            <span className="max-sm:hidden"><T t={adminClient["recorder.redo"]} /></span>
           </button>
         </div>
       )}
 
       {/* Hinweis */}
       <p className="text-sm text-primary-700 text-center leading-snug">
-        {isRecording
-          ? "Sprich jetzt deine Ressourcen-Geschichte ein..."
+        <T t={isRecording
+          ? adminClient["recorder.hintRecording"]
           : audioBlob
-          ? "Höre die Aufnahme an oder nimm sie neu auf."
-          : "Wähle dein Mikrofon und starte die Aufnahme."}
+          ? adminClient["recorder.hintDone"]
+          : adminClient["recorder.hintIdle"]} />
       </p>
     </div>
   );

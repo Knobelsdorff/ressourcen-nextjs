@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { getAnalyticsData } from "./actions";
 import { AnalyticsClient } from "./AnalyticsClient";
 import Link from "next/link";
+import { T } from "@/components/site-text/T";
+import { admin } from "@/content/texts/admin";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -31,7 +33,7 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
             href="/dashboard"
             className="inline-block bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors"
           >
-            Zum Dashboard
+            <T t={admin["common.toDashboard"]} />
           </Link>
         </div>
       </div>

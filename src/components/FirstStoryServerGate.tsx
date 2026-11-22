@@ -4,6 +4,9 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "re
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Loader2, Mail } from "lucide-react";
 import AngelIconFinal from "@/components/AngelIconFinal";
+import { T, useTextFn } from "@/components/site-text/T";
+import type { TextDef } from "@/lib/site-texts/define";
+import { firstStory } from "@/content/texts/firstStory";
 import { useAuth } from "@/components/providers/auth-provider";
 import { FIRST_STORY_DRAFT_STORAGE_KEY, FirstStoryPhase } from "@/lib/first-story/config";
 import { getAnalyticsId, track } from "@/lib/product-analytics/client";
@@ -36,13 +39,13 @@ function writeStoredDraft(draft: StoredDraft | null) {
   } catch { /* Nur eine Komfortfunktion für "Link erneut senden". */ }
 }
 
-const phaseCopy: Record<FirstStoryPhase, string> = {
-  none: "Deine Antworten sind gespeichert.",
-  text: "Deine persönliche Geschichte entsteht gerade …",
-  audio: "Dein Text ist fertig. Kerstins Stimme wird gerade aufgenommen …",
-  ready: "Deine Power Story ist fertig und wartet auf dich.",
-  claimed: "Deine Power Story ist in deinem Bereich gespeichert.",
-  failed: "Beim Erstellen deiner Story ist etwas schiefgelaufen.",
+const phaseCopy: Record<FirstStoryPhase, TextDef> = {
+  none: firstStory["server.phase.none"],
+  text: firstStory["server.phase.text"],
+  audio: firstStory["server.phase.audio"],
+  ready: firstStory["server.phase.ready"],
+  claimed: firstStory["server.phase.claimed"],
+  failed: firstStory["server.phase.failed"],
 };
 
 interface FirstStoryServerGateProps {
@@ -69,12 +72,13 @@ export default function FirstStoryServerGate({ questionAnswers, userName, pronun
   );
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const tx = useTextFn();
   const [draft, setDraft] = useState<StoredDraft | null>(null);
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [phase, setPhase] = useState<FirstStoryPhase | null>(null);
-  const [error, setError] = useState(linkError ? "Dieser Link ist nicht mehr gültig. Gib deine E-Mail-Adresse ein, dann senden wir dir einen neuen." : "");
+  const [error, setError] = useState(linkError ? tx(firstStory["server.linkInvalid"]) : "");
   const [secondsUntilResend, setSecondsUntilResend] = useState(0);
   const [signedInAttempt, setSignedInAttempt] = useState(0);
   const signedInStarted = useRef(false);
@@ -123,10 +127,10 @@ export default function FirstStoryServerGate({ questionAnswers, userName, pronun
         router.replace(result.existingAccount ? "/dashboard" : "/dashboard?welcome=1");
       } catch (startError) {
         // Kein automatischer Neuversuch – nur über den Button.
-        setError(startError instanceof Error && startError.message ? startError.message : "Deine Story konnte nicht gestartet werden. Bitte versuche es erneut.");
+        setError(startError instanceof Error && startError.message ? startError.message : tx(firstStory["server.startFailed"]));
       }
     })();
-  }, [authLoading, user, questionAnswers, nameFields, onComplete, router, signedInAttempt]);
+  }, [authLoading, user, questionAnswers, nameFields, onComplete, router, signedInAttempt, tx]);
 
   // Fortschritt anzeigen. Jede Abfrage schiebt die Erzeugung bei Bedarf wieder an.
   useEffect(() => {
@@ -174,7 +178,7 @@ export default function FirstStoryServerGate({ questionAnswers, userName, pronun
 
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      setError("Bitte gib eine gültige E-Mail-Adresse ein.");
+      setError(tx(firstStory["gate.invalidEmail"]));
       return;
     }
 
@@ -225,11 +229,11 @@ export default function FirstStoryServerGate({ questionAnswers, userName, pronun
       setSent(true);
       setSecondsUntilResend(RESEND_WAIT_SECONDS);
     } catch (sendError) {
-      setError(sendError instanceof Error && sendError.message ? sendError.message : "Der Link konnte nicht gesendet werden. Bitte versuche es erneut.");
+      setError(sendError instanceof Error && sendError.message ? sendError.message : tx(firstStory["gate.sendFailed"]));
     } finally {
       setSending(false);
     }
-  }, [sending, secondsUntilResend, email, draft, questionAnswers, nameFields]);
+  }, [sending, secondsUntilResend, email, draft, questionAnswers, nameFields, tx]);
 
   const retry = useCallback(async () => {
     if (!draft) return;
@@ -252,9 +256,9 @@ export default function FirstStoryServerGate({ questionAnswers, userName, pronun
   if (user) {
     return (
       <div className="story-first-handoff" role={error ? "alert" : "status"}>
-        <h1>Deine Power Story wird vorbereitet.</h1>
-        <p>{error || "Einen Moment – wir bringen dich gleich in deinen Bereich. Dort erscheint deine Story, sobald sie fertig ist."}</p>
-        {error && <button type="button" onClick={() => { setError(""); signedInStarted.current = false; setSignedInAttempt((n) => n + 1); }}>Erneut versuchen</button>}
+        <h1><T t={firstStory["server.signedInTitle"]} /></h1>
+        <p>{error || <T t={firstStory["server.signedInText"]} />}</p>
+        {error && <button type="button" onClick={() => { setError(""); signedInStarted.current = false; setSignedInAttempt((n) => n + 1); }}><T t={firstStory["gate.retry"]} /></button>}
       </div>
     );
   }
@@ -265,17 +269,17 @@ export default function FirstStoryServerGate({ questionAnswers, userName, pronun
         <div className="story-first-email-angel" aria-hidden="true">
           <AngelIconFinal size={76} className="story-first-email-angel-image" />
         </div>
-        <p className="story-first-email-kicker">DEINE ERSTE POWER STORY</p>
-        <h1 id="story-email-heading">Dein Engel ist bereit.</h1>
-        <p>Deine Antworten sind gespeichert. Gib deine E-Mail-Adresse ein – wir erstellen deine persönliche Power Story und schicken dir einen Link direkt in deinen Bereich.</p>
-        <div className="story-first-email-note"><Check size={17} aria-hidden="true" /> Kostenlos und ohne Passwort</div>
+        <p className="story-first-email-kicker"><T t={firstStory["gate.kicker"]} /></p>
+        <h1 id="story-email-heading"><T t={firstStory["gate.title"]} /></h1>
+        <p><T t={firstStory["server.intro"]} /></p>
+        <div className="story-first-email-note"><Check size={17} aria-hidden="true" /> <T t={firstStory["gate.note"]} /></div>
         {sent && phase && (
-          <p className="story-first-preparation" role="status">{phaseCopy[phase]}</p>
+          <p className="story-first-preparation" role="status"><T t={phaseCopy[phase]} /></p>
         )}
         {sent && phase === "failed" && (
           <div className="story-first-preparation-error">
-            <span>Deine Antworten sind weiterhin gespeichert.</span>
-            <button type="button" onClick={() => void retry()}>Erneut versuchen</button>
+            <span><T t={firstStory["server.failedNote"]} /></span>
+            <button type="button" onClick={() => void retry()}><T t={firstStory["gate.retry"]} /></button>
           </div>
         )}
       </div>
@@ -286,21 +290,21 @@ export default function FirstStoryServerGate({ questionAnswers, userName, pronun
             <span className="story-first-email-mail-icon"><Mail size={24} aria-hidden="true" /></span>
             {phase === "claimed" ? (
               <>
-                <h2>Deine Story wartet auf dich.</h2>
-                <p>Du bist über den Link angemeldet. Deine Power Story ist in deinem Bereich gespeichert.</p>
+                <h2><T t={firstStory["server.claimedTitle"]} /></h2>
+                <p><T t={firstStory["server.claimedText"]} /></p>
                 <div className="story-first-email-sent-actions">
-                  <button type="button" onClick={() => router.push("/dashboard?welcome=1")}>Zu meiner Power Story</button>
+                  <button type="button" onClick={() => router.push("/dashboard?welcome=1")}><T t={firstStory["server.claimedCta"]} /></button>
                 </div>
               </>
             ) : (
               <>
-                <h2>Schau in dein Postfach.</h2>
-                <p>Wir haben einen Link an <strong>{email}</strong> geschickt.</p>
-                <p className="story-first-email-hint">Ein Klick darauf bringt dich direkt in deinen Bereich – in jedem Browser und auf jedem Gerät. Dieses Fenster kannst du danach schließen. Prüfe auch deinen Spam-Ordner.</p>
+                <h2><T t={firstStory["gate.sentTitle"]} /></h2>
+                <p><T t={firstStory["server.sentText"]} vars={{ email }} /></p>
+                <p className="story-first-email-hint"><T t={firstStory["server.sentHint"]} /></p>
                 <div className="story-first-email-sent-actions">
-                  <button type="button" onClick={() => { setSent(false); setError(""); setSecondsUntilResend(0); }}>Andere E-Mail verwenden</button>
+                  <button type="button" onClick={() => { setSent(false); setError(""); setSecondsUntilResend(0); }}><T t={firstStory["gate.otherEmail"]} /></button>
                   <button type="button" onClick={() => void sendLink()} disabled={sending || secondsUntilResend > 0}>
-                    {secondsUntilResend > 0 ? `Erneut senden in ${secondsUntilResend} s` : "Link erneut senden"}
+                    {secondsUntilResend > 0 ? <T t={firstStory["gate.resendIn"]} vars={{ seconds: secondsUntilResend }} /> : <T t={firstStory["gate.resend"]} />}
                   </button>
                 </div>
               </>
@@ -309,15 +313,15 @@ export default function FirstStoryServerGate({ questionAnswers, userName, pronun
           </div>
         ) : (
           <form onSubmit={sendLink} noValidate>
-            <h2>Mit E-Mail fortfahren</h2>
-            <p>Wir schicken dir einen Link. Ein Klick darauf – und du bist direkt in deinem Bereich, wo deine Story auf dich wartet.</p>
-            <label htmlFor="first-story-email">Deine E-Mail-Adresse</label>
+            <h2><T t={firstStory["gate.formTitle"]} /></h2>
+            <p><T t={firstStory["server.formText"]} /></p>
+            <label htmlFor="first-story-email"><T t={firstStory["gate.emailLabel"]} /></label>
             <input
               id="first-story-email"
               type="email"
               inputMode="email"
               autoComplete="email"
-              placeholder="du@beispiel.de"
+              placeholder={tx(firstStory["gate.emailPlaceholder"])}
               value={email}
               onChange={(event) => { setEmail(event.target.value); if (error) setError(""); }}
               disabled={sending}
@@ -327,9 +331,9 @@ export default function FirstStoryServerGate({ questionAnswers, userName, pronun
             />
             {error && <p id="first-story-email-error" className="story-first-email-error" role="alert">{error}</p>}
             <button type="submit" disabled={sending || secondsUntilResend > 0}>
-              {sending ? <><Loader2 size={18} className="animate-spin" aria-hidden="true" /> Link wird gesendet …</> : <><span>Zugangslink senden</span><ArrowRight size={18} aria-hidden="true" /></>}
+              {sending ? <><Loader2 size={18} className="animate-spin" aria-hidden="true" /> <T t={firstStory["gate.sending"]} /></> : <><span><T t={firstStory["gate.send"]} /></span><ArrowRight size={18} aria-hidden="true" /></>}
             </button>
-            <p className="story-first-email-fineprint">Für neue und bestehende Accounts.</p>
+            <p className="story-first-email-fineprint"><T t={firstStory["gate.fineprint"]} /></p>
           </form>
         )}
       </div>

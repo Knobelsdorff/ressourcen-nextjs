@@ -9,11 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Mail } from "lucide-react";
+import { T, useTextFn } from "@/components/site-text/T";
+import { account } from "@/content/texts/account";
 
 type ViewState = "form" | "success";
 
 export default function ZugangErhaltenPage() {
   const router = useRouter();
+  const tx = useTextFn();
   const { user } = useAuth();
   const [viewState, setViewState] = useState<ViewState>("form");
   const [email, setEmail] = useState("");
@@ -36,7 +39,7 @@ export default function ZugangErhaltenPage() {
       const normalizedEmail = email.toLowerCase().trim();
       
       if (!normalizedEmail || !normalizedEmail.includes("@")) {
-        setError("Bitte gib eine gültige E-Mail-Adresse ein.");
+        setError(tx(account["common.invalidEmail"]));
         setIsLoading(false);
         return;
       }
@@ -54,7 +57,7 @@ export default function ZugangErhaltenPage() {
       });
 
       if (magicLinkError) {
-        setError(magicLinkError.message || "Fehler beim Senden des Zugangslinks.");
+        setError(magicLinkError.message || tx(account["login.error.sendLink"]));
         setIsLoading(false);
         return;
       }
@@ -63,7 +66,7 @@ export default function ZugangErhaltenPage() {
       setViewState("success");
       setIsLoading(false);
     } catch (err: any) {
-      setError(err.message || "Ein unerwarteter Fehler ist aufgetreten.");
+      setError(err.message || tx(account["common.unexpected"]));
       setIsLoading(false);
     }
   };
@@ -91,13 +94,13 @@ export default function ZugangErhaltenPage() {
                     <Mail className="w-8 h-8 text-amber-600" />
                   </div>
                   <h2 className="text-2xl font-medium text-amber-900 mb-2">
-                    Link ist unterwegs.
+                    <T t={account["access.sentTitle"]} />
                   </h2>
                   <p className="text-base text-amber-700 mb-2">
-                    Schau kurz in dein Postfach. Manchmal landet er im Spam.
+                    <T t={account["access.sentText"]} />
                   </p>
                   <p className="text-sm text-amber-600/70 mt-4">
-                    Öffne den Link am besten auf diesem Gerät.
+                    <T t={account["common.openOnDevice"]} />
                   </p>
                 </div>
               </motion.div>
@@ -109,24 +112,22 @@ export default function ZugangErhaltenPage() {
                 exit={{ opacity: 0, y: -10 }}
               >
                 <h1 className="text-3xl md:text-4xl font-medium text-amber-900 mb-3">
-                  Dein persönlicher Raum
+                  <T t={account["access.title"]} />
                 </h1>
                 
                 <p className="text-base md:text-lg text-amber-700 mb-8 leading-relaxed">
-                  Damit deine Geschichten für dich gespeichert bleiben
-                  <br />
-                  und jederzeit abrufbar sind, brauchst du einen Zugang.
+                  <T t={account["access.text"]} />
                 </p>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div>
                     <Label htmlFor="email" className="text-amber-900 mb-2 block">
-                      E-Mail
+                      <T t={account["access.emailLabel"]} />
                     </Label>
                     <Input
                       id="email"
                       type="email"
-                      placeholder="deine@email.de"
+                      placeholder={tx(account["common.emailPlaceholder"])}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       disabled={isLoading}
@@ -144,15 +145,15 @@ export default function ZugangErhaltenPage() {
                     {isLoading ? (
                       <>
                         <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        Wird gesendet...
+                        <T t={account["common.sending"]} />
                       </>
                     ) : (
-                      "Zugang per E-Mail erhalten"
+                      <T t={account["access.submit"]} />
                     )}
                   </Button>
 
                   <p className="text-sm text-amber-600/70 text-center">
-                    Kein Newsletter. Kein Spam. Nur dein Raum.
+                    <T t={account["access.fineprint"]} />
                   </p>
                 </form>
 

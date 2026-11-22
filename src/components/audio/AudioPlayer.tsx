@@ -22,6 +22,8 @@ import AudioProgressBar from "./AudioProgressBar";
 import { type StoryPlayContext, storyPlayCompleted, storyPlayStarted } from "@/lib/product-analytics/story-plays";
 import MusicVolumeControl from "./MusicVolumeControl";
 import { PLAY_STORY_EVENT } from "./play-events";
+import { T, useTextFn } from "@/components/site-text/T";
+import { player } from "@/content/texts/player";
 
 export type AudioPlayerVariant = "standard" | "compact";
 
@@ -101,12 +103,13 @@ export default function AudioPlayer({
   }, [isPlaying]);
 
   const statusId = useId();
+  const tx = useTextFn();
   const isCompact = variant === "compact";
 
   const busy = isLoading || isPreparingAudio;
   const skipButtonClass =
     "rounded-full p-1.5 text-secondary-700 transition-colors hover:bg-primary-50 hover:text-primary-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 disabled:opacity-40";
-  const playLabel = isPlaying ? "Pause" : "Abspielen";
+  const playLabel = tx(isPlaying ? player["controls.pause"] : player["controls.play"]);
 
   const handleTogglePlay = () => {
     if (!isPlaying) {
@@ -158,7 +161,7 @@ export default function AudioPlayer({
             type="button"
             onClick={() => skipBy(-15)}
             disabled={busy}
-            aria-label="15 Sekunden zurück"
+            aria-label={tx(player["controls.back15"])}
             className={skipButtonClass}
           >
             <SkipIcon direction="back" compact={isCompact} />
@@ -195,7 +198,7 @@ export default function AudioPlayer({
             type="button"
             onClick={() => skipBy(15)}
             disabled={busy}
-            aria-label="15 Sekunden vor"
+            aria-label={tx(player["controls.forward15"])}
             className={skipButtonClass}
           >
             <SkipIcon direction="forward" compact={isCompact} />
@@ -207,27 +210,27 @@ export default function AudioPlayer({
         {hasBackgroundMusic &&
           (isCompact ? (
             <div className="flex justify-center pt-1">
-              <MusicVolumeControl compact label="Hintergrundmusik" />
+              <MusicVolumeControl compact label={tx(player["music.label"])} />
             </div>
           ) : (
             // Volle Breite wie der Fortschrittsbalken – mit dem Finger leichter zu treffen.
-            <MusicVolumeControl wide label="Hintergrundmusik" className="pt-1" />
+            <MusicVolumeControl wide label={tx(player["music.label"])} className="pt-1" />
           ))}
 
         {/* Zustandsänderungen für Screenreader hörbar machen. */}
         <p id={statusId} className="sr-only" aria-live="polite">
           {isPreparingAudio
-            ? "Audio wird vorbereitet"
+            ? tx(player["simple.preparing"])
             : isLoading
-              ? "Audio wird geladen"
+              ? tx(player["simple.loading"])
               : isPlaying
-                ? `${title ?? "Aufnahme"} wird abgespielt`
-                : "Angehalten"}
+                ? tx(player["simple.playing"], { title: title ?? tx(player["simple.recording"]) })
+                : tx(player["simple.paused"])}
         </p>
 
         {isPreparingAudio && (
           <p className="text-center text-xs text-secondary-600">
-            Audio wird für deinen Browser vorbereitet…
+            <T t={player["simple.preparingVisible"]} />
           </p>
         )}
       </div>

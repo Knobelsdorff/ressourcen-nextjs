@@ -6,6 +6,8 @@ import { Lock, Check } from 'lucide-react';
 import { createCheckoutSession } from '@/lib/access';
 import { useAuth } from '@/components/providers/auth-provider';
 import { track } from '@/lib/product-analytics/client';
+import { T, useTextFn } from "@/components/site-text/T";
+import { account } from "@/content/texts/account";
 
 interface PaywallProps {
   onClose?: () => void;
@@ -16,9 +18,10 @@ export default function Paywall({ onClose, message }: PaywallProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const tx = useTextFn();
   const handleCheckout = async () => {
     if (!user?.id) {
-      setError('Bitte melde dich zuerst an.');
+      setError(tx(account["paywall.error.signIn"]));
       return;
     }
 
@@ -33,14 +36,14 @@ export default function Paywall({ onClose, message }: PaywallProps) {
 
       if (!result) {
         console.error('[Paywall] Checkout session creation returned null');
-        setError('Fehler beim Erstellen der Checkout-Session. Bitte öffne die Browser-Konsole (F12) für Details und versuche es erneut.');
+        setError(tx(account["paywall.error.checkout"]));
         setLoading(false);
         return;
       }
 
       if (!result.url) {
         console.error('[Paywall] Checkout session has no URL:', result);
-        setError('Fehler beim Erstellen der Checkout-Session. Bitte öffne die Browser-Konsole (F12) für Details und versuche es erneut.');
+        setError(tx(account["paywall.error.checkout"]));
         setLoading(false);
         return;
       }
@@ -50,7 +53,7 @@ export default function Paywall({ onClose, message }: PaywallProps) {
       window.location.href = result.url;
     } catch (err: any) {
       console.error('[Paywall] Checkout error:', err);
-      setError(`Ein Fehler ist aufgetreten: ${err.message || 'Unbekannter Fehler'}. Bitte öffne die Browser-Konsole (F12) für Details.`);
+      setError(tx(account["paywall.error.generic"], { message: err.message || tx(account["paywall.error.unknown"]) }));
       setLoading(false);
     }
   };
@@ -75,27 +78,27 @@ export default function Paywall({ onClose, message }: PaywallProps) {
             id="paywall-title"
             className="mb-6 text-2xl font-bold leading-tight tracking-[-0.035em] text-[#49301e] sm:text-3xl [font-family:'Trebuchet_MS',Arial,sans-serif]"
           >
-            Dein persönlicher Raum für innere Ruhe
+            <T t={account["paywall.title"]} />
           </h2>
 
           {/* Monatliches Abo */}
           <div className="mx-auto mb-6 max-w-md">
             <div className="rounded-[26px] border border-[#e4ded6] border-t-[5px] border-t-[#9db36a] bg-white p-6 shadow-[0_4px_18px_#49301e05] md:p-8">
               <div className="mb-6 flex items-baseline justify-center gap-2">
-                <span className="text-4xl font-bold tracking-[-0.04em] text-[#49301e] [font-family:'Trebuchet_MS',Arial,sans-serif]">15 €</span>
-                <span className="text-base text-[#69594c]">/ Monat</span>
+                <span className="text-4xl font-bold tracking-[-0.04em] text-[#49301e] [font-family:'Trebuchet_MS',Arial,sans-serif]"><T t={account["paywall.amount"]} /></span>
+                <span className="text-base text-[#69594c]"><T t={account["paywall.period"]} /></span>
               </div>
               <ul className="space-y-4 text-left">
                 {[
-                  'Unbegrenzte personalisierte Power Storys',
-                  'Zugriff jederzeit',
-                  'Monatlich kündbar',
+                  account["paywall.benefit1"],
+                  account["paywall.benefit2"],
+                  account["paywall.benefit3"],
                 ].map((benefit) => (
-                  <li key={benefit} className="flex items-start gap-3">
+                  <li key={benefit.key} className="flex items-start gap-3">
                     <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#dfe7cd]">
                       <Check className="h-3.5 w-3.5 text-[#49301e]" strokeWidth={2.5} aria-hidden="true" />
                     </span>
-                    <span className="text-base leading-snug text-[#69594c]">{benefit}</span>
+                    <span className="text-base leading-snug text-[#69594c]"><T t={benefit} /></span>
                   </li>
                 ))}
               </ul>
@@ -115,7 +118,7 @@ export default function Paywall({ onClose, message }: PaywallProps) {
                 className="min-h-[52px] flex-1 rounded-full border border-[#d9cfc5] px-5 py-3 text-[15px] font-semibold text-[#69594c] transition-colors hover:bg-[#eee9e4] hover:text-[#49301e] focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-4 focus-visible:outline-[#7952b8] disabled:opacity-50"
                 disabled={loading}
               >
-                Später
+                <T t={account["paywall.later"]} />
               </button>
             )}
             <button
@@ -126,16 +129,16 @@ export default function Paywall({ onClose, message }: PaywallProps) {
               {loading ? (
                 <>
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Wird geladen...
+                  <T t={account["paywall.loading"]} />
                 </>
               ) : (
-                'Zugang freischalten'
+                <T t={account["paywall.cta"]} />
               )}
             </button>
           </div>
 
           <p className="mt-6 text-sm text-[#857465]">
-            Du kannst dir Zeit lassen.
+            <T t={account["paywall.calm"]} />
           </p>
         </div>
       </motion.div>

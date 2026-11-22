@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useText } from "@/components/site-text/T";
+import { dashboard } from "@/content/texts/dashboard";
 
 interface EditableTitleProps {
   value: string;
@@ -15,12 +17,14 @@ interface EditableTitleProps {
 export default function EditableTitle({
   value,
   onSave,
-  placeholder = "Neuer Name für diese Power Story",
+  placeholder: placeholderProp,
   maxLength = 40,
   className = "",
   autoEdit = false,
   onCancel
 }: EditableTitleProps) {
+  const defaultPlaceholder = useText(dashboard["title.placeholder"]);
+  const placeholder = placeholderProp ?? defaultPlaceholder;
   const [isEditing, setIsEditing] = useState(autoEdit);
   const [editValue, setEditValue] = useState(value);
   const [isSaving, setIsSaving] = useState(false);

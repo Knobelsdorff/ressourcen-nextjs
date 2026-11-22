@@ -2,6 +2,8 @@
 
 import { createSSRClient } from "@/lib/supabase/server";
 import { createServerAdminClient } from "@/lib/supabase/serverAdminClient";
+import { getText } from "@/lib/site-texts/server";
+import { admin } from "@/content/texts/admin";
 
 export interface AnalyticsEvent {
   id: string;
@@ -63,7 +65,7 @@ export async function getAnalyticsData(
           eventsByDay: [],
         },
         isAdmin: false,
-        error: "Bitte melde dich an, um auf das Admin-Dashboard zuzugreifen.",
+        error: await getText(admin["common.signInPrompt"]),
       };
     }
 
@@ -90,7 +92,7 @@ export async function getAnalyticsData(
           eventsByDay: [],
         },
         isAdmin: false,
-        error: "Du hast keine Berechtigung für das Admin-Dashboard.",
+        error: await getText(admin["common.noAdminAccess"]),
       };
     }
 
@@ -145,7 +147,7 @@ export async function getAnalyticsData(
             eventsByDay: [],
           },
           isAdmin: true,
-          error: "Fehler beim Laden der Analytics-Daten.",
+          error: await getText(admin["analytics.loadError"]),
         };
       }
 
@@ -254,7 +256,7 @@ export async function getAnalyticsData(
         eventsByDay: [],
       },
       isAdmin: false,
-      error: "Ein unerwarteter Fehler ist aufgetreten.",
+      error: await getText(admin["common.unexpected"]),
     };
   }
 }

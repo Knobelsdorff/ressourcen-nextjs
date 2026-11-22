@@ -16,6 +16,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ResourceFigure } from '@/lib/types/story';
 import FigureIcon from './story-flow/FigureIcon';
 import { useScrollFade } from './story-flow/useScrollFade';
+import { T, useTextFn, type TextFn } from "@/components/site-text/T";
+import { createStory } from "@/content/texts/createStory";
 
 interface Voice {
   id: string;
@@ -147,13 +149,14 @@ function voiceDescription(voice: Voice): string {
 }
 
 /** Was unter der Stimme steht, während die Hörprobe lädt. */
-function loadingNote(seconds: number) {
-  if (seconds < 2.5) return 'Hörprobe wird geladen …';
-  if (seconds < 10) return `Die Hörprobe wird erstellt – einen Moment noch (${Math.floor(seconds)} s)`;
-  return `Dauert heute etwas länger – gleich geht es los (${Math.floor(seconds)} s)`;
+function loadingNote(seconds: number, tx: TextFn) {
+  if (seconds < 2.5) return tx(createStory["voice.preview.loading"]);
+  if (seconds < 10) return tx(createStory["voice.preview.creating"], { seconds: Math.floor(seconds) });
+  return tx(createStory["voice.preview.slow"], { seconds: Math.floor(seconds) });
 }
 
 export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, selectedVoiceId, resourceFigure, onSparModusChange }: VoiceSelectionProps) {
+  const tx = useTextFn();
   const [voices, setVoices] = useState<Voice[]>(() => voicesLoaded ?? []);
   const [loading, setLoading] = useState(() => !voicesLoaded);
   const [sparModus, setSparModus] = useState(false);
@@ -612,98 +615,68 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
     void playVoicePreview(voice);
   };
 
-  // Generiere figurenspezifische Subline mit korrektem Artikel
-  const getFigureSubline = (figure: typeof resourceFigure): string => {
-    if (!figure) {
-      return 'Höre kurz hinein und wähle die Stimme, die sich im Moment stimmig anfühlt.';
-    }
-
+  // Figur mit dem passenden Artikel im Akkusativ ("deine Oma", "den Erzengel
+  // Michael"). Die Grammatik bleibt im Code, der Satz drumherum ist im
+  // Admin-Editor bearbeitbar (createStory.voice.subline mit {figure}).
+  const figureWithArticle = (figure: NonNullable<typeof resourceFigure>): string => {
     const figureId = figure.name.toLowerCase();
     const figureName = figure.name;
     const pronouns = figure.pronouns?.toLowerCase() || '';
 
     // Sonderfälle mit spezifischer Formulierung
-    if (figureId.includes('mutter erde')) {
-      return 'Höre kurz hinein und wähle die Stimme, die sich für Mutter Erde im Moment stimmig anfühlt.';
-    }
-    
-    if (figureId.includes('erzengel michael')) {
-      return 'Höre kurz hinein und wähle die Stimme, die sich für den Erzengel Michael im Moment stimmig anfühlt.';
-    }
-    
+    if (figureId.includes('mutter erde')) return 'Mutter Erde';
+    if (figureId.includes('erzengel michael')) return 'den Erzengel Michael';
     // Engel: spezielle Formulierung mit "Engelsfigur"
-    if (figureId.includes('engel') && !figureId.includes('erzengel')) {
-      return 'Höre kurz hinein und wähle die Stimme, die sich für die Engelsfigur im Moment stimmig anfühlt.';
-    }
-    
-    if (figureId.includes('krafttier')) {
-      return 'Höre kurz hinein und wähle die Stimme, die sich für dein Krafttier im Moment stimmig anfühlt.';
-    }
-    
+    if (figureId.includes('engel') && !figureId.includes('erzengel')) return 'die Engelsfigur';
+    if (figureId.includes('krafttier')) return 'dein Krafttier';
     if (figureId.includes('bester freund') || figureId.includes('beste freundin')) {
-      if (pronouns.includes('sie')) {
-        return 'Höre kurz hinein und wähle die Stimme, die sich für deine beste Freundin im Moment stimmig anfühlt.';
-      }
-      return 'Höre kurz hinein und wähle die Stimme, die sich für deinen besten Freund im Moment stimmig anfühlt.';
+      return pronouns.includes('sie') ? 'deine beste Freundin' : 'deinen besten Freund';
     }
-
     // Ideal-Vater / Ideal-Mutter: natürliche Formulierung ohne Bindestrich
-    if (figureId.includes('ideal-vater')) {
-      return 'Höre kurz hinein und wähle die Stimme, die sich für deinen idealen Vater im Moment stimmig anfühlt.';
-    }
-    
-    if (figureId.includes('ideal-mutter')) {
-      return 'Höre kurz hinein und wähle die Stimme, die sich für deine ideale Mutter im Moment stimmig anfühlt.';
-    }
-    
-    if (figureId.includes('ideal-großfamilie')) {
-      return 'Höre kurz hinein und wähle die Stimme, die sich für deine ideale Großfamilie im Moment stimmig anfühlt.';
-    }
+    if (figureId.includes('ideal-vater')) return 'deinen idealen Vater';
+    if (figureId.includes('ideal-mutter')) return 'deine ideale Mutter';
+    if (figureId.includes('ideal-großfamilie')) return 'deine ideale Großfamilie';
 
     // Familienmitglieder und nahe Beziehungen: Possessivartikel
-    if (figureId.includes('oma') || figureId.includes('mama') || figureId.includes('mutter') || 
+    if (figureId.includes('oma') || figureId.includes('mama') || figureId.includes('mutter') ||
         figureId.includes('tante') || figureId.includes('schwester') || figureId.includes('lehrerin') ||
         figureId.includes('partnerin') || figureId.includes('göttliche mutter')) {
-      return `Höre kurz hinein und wähle die Stimme, die sich für deine ${figureName} im Moment stimmig anfühlt.`;
+      return `deine ${figureName}`;
     }
-    
     if (figureId.includes('opa') || figureId.includes('papa') || figureId.includes('vater') ||
         figureId.includes('onkel') || figureId.includes('bruder') || figureId.includes('lehrer') ||
         figureId.includes('partner') || figureId.includes('göttlicher vater')) {
-      return `Höre kurz hinein und wähle die Stimme, die sich für deinen ${figureName} im Moment stimmig anfühlt.`;
+      return `deinen ${figureName}`;
     }
 
     // Standard: Artikel basierend auf Pronomen
-    if (pronouns.includes('er')) {
-      // Männlich: "den" für Akkusativ
-      return `Höre kurz hinein und wähle die Stimme, die sich für den ${figureName} im Moment stimmig anfühlt.`;
-    } else if (pronouns.includes('sie')) {
-      // Weiblich: "die" für Akkusativ
-      return `Höre kurz hinein und wähle die Stimme, die sich für die ${figureName} im Moment stimmig anfühlt.`;
-    } else if (pronouns.includes('es')) {
-      // Neutral: Possessivartikel
-      return `Höre kurz hinein und wähle die Stimme, die sich für dein ${figureName} im Moment stimmig anfühlt.`;
-    }
-
+    if (pronouns.includes('er')) return `den ${figureName}`; // männlich, Akkusativ
+    if (pronouns.includes('sie')) return `die ${figureName}`; // weiblich, Akkusativ
+    if (pronouns.includes('es')) return `dein ${figureName}`; // neutral, Possessivartikel
     // Fallback: ohne Artikel
-    return `Höre kurz hinein und wähle die Stimme, die sich für ${figureName} im Moment stimmig anfühlt.`;
+    return figureName;
   };
+
+  const getFigureSubline = (figure: typeof resourceFigure): string =>
+    figure
+      ? tx(createStory["voice.subline"], { figure: figureWithArticle(figure) })
+      : tx(createStory["voice.sublineNoFigure"]);
 
   const visibleVoices = showAllVoices ? filteredVoices : filteredVoices.slice(0, VISIBLE_VOICES);
 
   const statusNote = (voice: Voice) => {
     if (preview?.voiceId !== voice.id) return null;
     switch (preview.status) {
-      case 'loading': return loadingNote((now - preview.startedAt) / 1000);
-      case 'playing': return 'Hörprobe läuft';
-      case 'paused': return 'Hörprobe pausiert';
-      case 'blocked': return 'Bereit – tippe noch einmal auf Abspielen';
-      case 'error': return 'Hörprobe gerade nicht verfügbar – tippe zum erneuten Versuch';
+      case 'loading': return loadingNote((now - preview.startedAt) / 1000, tx);
+      case 'playing': return tx(createStory["voice.preview.playing"]);
+      case 'paused': return tx(createStory["voice.preview.paused"]);
+      case 'blocked': return tx(createStory["voice.preview.blocked"]);
+      case 'error': return tx(createStory["voice.preview.error"]);
     }
   };
 
   return (
-    <section className="story-first-stage story-voice-stage" aria-label="Stimme wählen">
+    <section className="story-first-stage story-voice-stage" aria-label={tx(createStory["voice.aria"])}>
       <div className="story-first-intro">
         {resourceFigure && (
           <div className="story-first-character">
@@ -713,22 +686,22 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
             <span>{resourceFigure.name}</span>
           </div>
         )}
-        <p className="story-stage-kicker">Deine Stimme</p>
+        <p className="story-stage-kicker"><T t={createStory["voice.kicker"]} /></p>
         <h1
           data-dev-tap-target="true"
           onClick={handleHeadlineTap}
           style={{ cursor: 'default' }}
         >
-          Eine Stimme für deine Geschichte
+          <T t={createStory["voice.title"]} />
         </h1>
         <p className="story-first-guidance">{getFigureSubline(resourceFigure)}</p>
-        <p className="story-stage-hint"><Leaf size={15} aria-hidden="true" /> Am schönsten in einem ruhigen Moment</p>
+        <p className="story-stage-hint"><Leaf size={15} aria-hidden="true" /> <T t={createStory["voice.hint"]} /></p>
       </div>
 
       <div className="story-first-response">
         <div className="story-first-response-heading">
-          <span>Wenn nichts anderes ruft, bleib bei der Empfehlung.</span>
-          {!loading && filteredVoices.length > 1 && <span>{filteredVoices.length} Stimmen</span>}
+          <span><T t={createStory["voice.recommendHint"]} /></span>
+          {!loading && filteredVoices.length > 1 && <span><T t={createStory["voice.count"]} vars={{ count: filteredVoices.length }} /></span>}
         </div>
 
         <div ref={scrollRef} className="story-first-scroll" data-more-below={moreBelow || undefined}>
@@ -740,16 +713,16 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
                   <span className="story-skeleton-dot" />
                 </div>
               ))}
-              <p className="story-voice-loading" role="status">Stimmen werden geladen …</p>
+              <p className="story-voice-loading" role="status"><T t={createStory["voice.loading"]} /></p>
             </div>
           ) : filteredVoices.length === 0 ? (
             <div className="story-voice-failed" role="alert">
-              <p>Die Stimmen konnten gerade nicht geladen werden.</p>
-              <button type="button" onClick={() => void fetchVoices()}><RotateCcw size={15} aria-hidden="true" /> Erneut versuchen</button>
+              <p><T t={createStory["voice.failed"]} /></p>
+              <button type="button" onClick={() => void fetchVoices()}><RotateCcw size={15} aria-hidden="true" /> <T t={createStory["voice.retry"]} /></button>
             </div>
           ) : (
             <div className="story-voice-list">
-              <div role="radiogroup" aria-label="Stimmen" className="story-voice-list">
+              <div role="radiogroup" aria-label={tx(createStory["voice.listAria"])} className="story-voice-list">
                 {visibleVoices.map((voice, idx) => {
                   const selected = selectedVoiceId === voice.id;
                   const state = preview?.voiceId === voice.id ? preview.status : null;
@@ -769,7 +742,7 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
                         <span className="story-voice-text">
                           <span className="story-voice-name">
                             {firstName}
-                            {idx === 0 && <span className="story-voice-badge">Empfohlen</span>}
+                            {idx === 0 && <span className="story-voice-badge"><T t={createStory["voice.recommended"]} /></span>}
                           </span>
                           <span className="story-voice-desc">{voiceDescription(voice)}</span>
                           <AnimatePresence initial={false}>
@@ -796,9 +769,9 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
                         data-state={state || undefined}
                         onClick={() => togglePreview(voice)}
                         aria-label={
-                          state === 'playing' ? `Hörprobe von ${firstName} pausieren`
-                            : state === 'loading' ? `Hörprobe von ${firstName} abbrechen`
-                              : `Hörprobe von ${firstName} anhören`
+                          state === 'playing' ? tx(createStory["voice.preview.ariaPause"], { name: firstName })
+                            : state === 'loading' ? tx(createStory["voice.preview.ariaCancel"], { name: firstName })
+                              : tx(createStory["voice.preview.ariaPlay"], { name: firstName })
                         }
                       >
                         <svg viewBox="0 0 44 44" className="story-voice-play-ring" aria-hidden="true">
@@ -828,7 +801,7 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
                   onClick={() => setShowAllVoices(!showAllVoices)}
                 >
                   {showAllVoices ? <ChevronUp size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}
-                  {showAllVoices ? 'Weniger anzeigen' : `Weitere ${filteredVoices.length - VISIBLE_VOICES} Stimmen anzeigen`}
+                  {showAllVoices ? <T t={createStory["voice.showLess"]} /> : <T t={createStory["voice.showMore"]} vars={{ count: filteredVoices.length - VISIBLE_VOICES }} />}
                 </button>
               )}
 
@@ -852,10 +825,10 @@ export default function VoiceSelection({ onVoiceSelect, onNext, onPrevious, sele
 
         <div className="story-first-actions">
           <button type="button" className="story-first-previous" onClick={onPrevious}>
-            <ChevronLeft size={17} aria-hidden="true" /> <span>Zurück</span>
+            <ChevronLeft size={17} aria-hidden="true" /> <span><T t={createStory["voice.back"]} /></span>
           </button>
           <button type="button" className="story-first-next" onClick={onNext} disabled={!selectedVoiceId}>
-            <span>Weiter</span>
+            <span><T t={createStory["voice.next"]} /></span>
             <ArrowRight size={17} aria-hidden="true" />
           </button>
         </div>

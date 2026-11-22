@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useStartFirstStory } from "@/hooks/useStartFirstStory";
 import { Quote } from "lucide-react";
+import { T } from "@/components/site-text/T";
+import { landing } from "@/content/texts/landing";
 
 export default function EmpathySection() {
   const startFirstStory = useStartFirstStory();
@@ -18,7 +20,7 @@ export default function EmpathySection() {
           transition={{ duration: 0.6 }}
           className="text-4xl md:text-5xl font-bold text-amber-900 text-center mb-4"
         >
-          Wenn innere Ruhe schwer erreichbar wird
+          <T t={landing["empathy.title"]} />
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 20 }}
@@ -27,7 +29,7 @@ export default function EmpathySection() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-xl md:text-2xl text-amber-700 text-center mb-16"
         >
-          Auch wenn im Außen alles weiterläuft
+          <T t={landing["empathy.subtitle"]} />
         </motion.p>
 
         <div className="grid md:grid-cols-2 gap-12 mb-16">
@@ -39,11 +41,10 @@ export default function EmpathySection() {
             className="landing-panel p-8 md:p-10"
           >
             <h3 className="text-2xl md:text-3xl font-semibold mb-4">
-              Es fühlt sich oft anders an, als es aussieht
+              <T t={landing["empathy.panel1.title"]} />
             </h3>
             <p className="landing-panel-copy text-lg md:text-xl leading-relaxed">
-              Viele Menschen funktionieren im Alltag zuverlässig –
-              und merken erst in stillen Momenten, wie viel Spannung innerlich eigentlich da ist.
+              <T t={landing["empathy.panel1.text"]} />
             </p>
           </motion.div>
 
@@ -55,11 +56,10 @@ export default function EmpathySection() {
             className="landing-panel p-8 md:p-10"
           >
             <h3 className="text-2xl md:text-3xl font-semibold mb-4">
-              Power Storys sind bewusst einfach gehalten
+              <T t={landing["empathy.panel2.title"]} />
             </h3>
             <p className="landing-panel-copy text-lg md:text-xl leading-relaxed">
-              Sie wurden so gestaltet, dass dein Inneres folgen kann –
-              ohne Analyse, ohne Technik, ohne etwas leisten zu müssen.
+              <T t={landing["empathy.panel2.text"]} />
             </p>
           </motion.div>
         </div>
@@ -73,11 +73,10 @@ export default function EmpathySection() {
         >
           <Quote className="w-12 h-12 mx-auto mb-4" aria-hidden="true" />
           <p className="text-xl md:text-2xl mb-6 italic leading-relaxed text-center">
-            "Ich war skeptisch, ob eine kurze Geschichte wirklich etwas verändern kann.
-            Aber schon nach den ersten Minuten wurde es spürbar ruhiger in mir."
+            <T t={landing["empathy.quote"]} />
           </p>
           <p className="landing-quote-author text-center font-semibold">
-            Linda R.
+            <T t={landing["empathy.quoteAuthor"]} />
           </p>
         </motion.div>
 
@@ -93,7 +92,7 @@ export default function EmpathySection() {
                 size="lg"
                 className="landing-primary-button"
               >
-                Einfach selbst erleben
+                <T t={landing["empathy.cta"]} />
               </Button>
             </motion.div>
       </div>

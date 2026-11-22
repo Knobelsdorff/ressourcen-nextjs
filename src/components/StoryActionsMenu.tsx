@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MoreVertical } from "lucide-react";
+import { T, useText } from "@/components/site-text/T";
+import { dashboard } from "@/content/texts/dashboard";
 
 interface StoryActionsMenuProps {
   onRename: () => void;
@@ -37,6 +39,8 @@ export default function StoryActionsMenu({
     }
   }, [isOpen]);
 
+  const actionsLabel = useText(dashboard["actions.label"]);
+
   const handleRename = () => {
     setIsOpen(false);
     onRename();
@@ -52,7 +56,7 @@ export default function StoryActionsMenu({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="p-1.5 text-primary-400 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
-        aria-label="Story-Aktionen"
+        aria-label={actionsLabel}
       >
         <MoreVertical className="w-5 h-5" />
       </button>
@@ -70,7 +74,7 @@ export default function StoryActionsMenu({
               onClick={handleRename}
               className="w-full text-left px-4 py-2 text-sm text-primary-900 hover:bg-primary-50 transition-colors"
             >
-              Umbenennen
+              <T t={dashboard["actions.rename"]} />
             </button>
             {onEditSubtitle && (
               <button
@@ -80,7 +84,7 @@ export default function StoryActionsMenu({
                 }}
                 className="w-full text-left px-4 py-2 text-sm text-primary-900 hover:bg-primary-50 transition-colors"
               >
-                {hasSubtitle ? "Beschreibung bearbeiten" : "Beschreibung hinzufügen"}
+                <T t={hasSubtitle ? dashboard["actions.editSubtitle"] : dashboard["actions.addSubtitle"]} />
               </button>
             )}
             {canDelete && (
@@ -88,7 +92,7 @@ export default function StoryActionsMenu({
                 onClick={handleDelete}
                 className="w-full text-left px-4 py-2 text-sm text-primary-900 hover:bg-primary-50 transition-colors"
               >
-                Power Story entfernen
+                <T t={dashboard["actions.delete"]} />
               </button>
             )}
           </motion.div>

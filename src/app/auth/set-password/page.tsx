@@ -4,6 +4,8 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { createSPAClient } from "@/lib/supabase/client";
 import WellnessMark from '@/components/WellnessMark';
+import { T, useTextFn } from "@/components/site-text/T";
+import { account } from "@/content/texts/account";
 
 // Verhindere Prerendering/Static Export für diese Seite
 export const dynamic = 'force-dynamic';
@@ -12,6 +14,7 @@ function SetPasswordInner() {
   const supabase = createSPAClient();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const tx = useTextFn();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -30,7 +33,7 @@ function SetPasswordInner() {
 
         if (sessionError || !sessionData?.session?.user) {
           console.error('[Set Password] No active session:', sessionError);
-          setError('Keine aktive Sitzung gefunden. Bitte klicke erneut auf den Link in deiner Email.');
+          setError(tx(account["setPassword.noSession"]));
           setReady(true);
           return;
         }
@@ -55,13 +58,13 @@ function SetPasswordInner() {
         setReady(true);
       } catch (e) {
         console.error('[Set Password] Error checking session:', e);
-        setError('Fehler beim Laden der Sitzung. Bitte versuche es erneut.');
+        setError(tx(account["setPassword.sessionError"]));
         setReady(true);
       }
     };
 
     checkSession();
-  }, [supabase, router, resourceId]);
+  }, [supabase, router, resourceId, tx]);
 
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,11 +72,11 @@ function SetPasswordInner() {
     setError(null);
 
     if (password.length < 6) {
-      setError("Passwort muss mindestens 6 Zeichen lang sein");
+      setError(tx(account["common.passwordTooShort"]));
       return;
     }
     if (password !== confirm) {
-      setError("Passwörter stimmen nicht überein");
+      setError(tx(account["common.passwordMismatch"]));
       return;
     }
 
@@ -99,7 +102,7 @@ function SetPasswordInner() {
           console.warn('[Set Password] Zugangslink konnte nicht entwertet werden:', e);
         }
 
-        setMessage("Passwort wurde erfolgreich eingerichtet! Du wirst weitergeleitet...");
+        setMessage(tx(account["setPassword.success"]));
 
         // Weiterleitung zum Dashboard mit resource falls vorhanden
         setTimeout(() => {
@@ -110,7 +113,7 @@ function SetPasswordInner() {
         }, 1500);
       }
     } catch (e) {
-      setError("Passwort konnte nicht gespeichert werden");
+      setError(tx(account["setPassword.failed"]));
     } finally {
       setSubmitting(false);
     }
@@ -122,20 +125,19 @@ function SetPasswordInner() {
         <WellnessMark />
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold text-primary-900 mb-2">
-            Willkommen!
+            <T t={account["setPassword.title"]} />
           </h1>
           <p className="text-primary-700">
-            Bitte richte dein Passwort ein, um fortzufahren.
+            <T t={account["setPassword.text"]} />
           </p>
           <p className="text-primary-600 text-sm mt-3">
-            Der E-Mail-Link funktioniert nur einmal. Speichere danach{' '}
-            <strong>www.power-storys.de/zugang</strong> als Lesezeichen für deinen nächsten Besuch.
+            <T t={account["setPassword.bookmark"]} />
           </p>
         </div>
 
         {!ready && (
           <div className="mb-4 p-4 rounded-lg bg-primary-50 border border-primary-200 text-primary-800 text-sm">
-            Prüfe deinen Link...
+            <T t={account["setPassword.checking"]} />
           </div>
         )}
 
@@ -160,7 +162,7 @@ function SetPasswordInner() {
         <form onSubmit={handleSetPassword} className="space-y-5">
           <div>
             <label htmlFor="new-password" className="block text-sm font-medium text-primary-900 mb-2">
-              Neues Passwort
+              <T t={account["common.newPassword"]} />
             </label>
             <input
               id="new-password"
@@ -168,7 +170,7 @@ function SetPasswordInner() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 border-2 border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-              placeholder="Mindestens 6 Zeichen"
+              placeholder={tx(account["setPassword.newPlaceholder"])}
               autoComplete="new-password"
               required
               disabled={!ready || !sessionValid || submitting}
@@ -177,7 +179,7 @@ function SetPasswordInner() {
 
           <div>
             <label htmlFor="confirm-password" className="block text-sm font-medium text-primary-900 mb-2">
-              Passwort bestätigen
+              <T t={account["common.confirmPassword"]} />
             </label>
             <input
               id="confirm-password"
@@ -185,7 +187,7 @@ function SetPasswordInner() {
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               className="w-full px-4 py-3 border-2 border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-              placeholder="Passwort wiederholen"
+              placeholder={tx(account["setPassword.confirmPlaceholder"])}
               autoComplete="new-password"
               required
               disabled={!ready || !sessionValid || submitting}
@@ -197,12 +199,12 @@ function SetPasswordInner() {
             disabled={submitting || !ready || !sessionValid}
             className="w-full px-6 py-3 bg-gradient-to-r from-primary-500 to-orange-500 text-white font-semibold rounded-lg hover:from-primary-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
           >
-            {submitting ? "Passwort wird eingerichtet..." : "Passwort einrichten"}
+            <T t={submitting ? account["setPassword.saving"] : account["setPassword.save"]} />
           </button>
         </form>
 
         <div className="mt-6 text-center text-sm text-primary-700">
-          Nach dem Einrichten kannst du dich jederzeit mit deiner E-Mail und diesem Passwort anmelden.
+          <T t={account["setPassword.after"]} />
         </div>
       </div>
     </div>
@@ -213,7 +215,7 @@ export default function SetPasswordPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center wellness-page-background p-4">
-        <div className="text-primary-900 text-lg">Lade...</div>
+        <div className="text-primary-900 text-lg"><T t={account["common.loading"]} /></div>
       </div>
     }>
       <SetPasswordInner />

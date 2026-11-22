@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useText } from "@/components/site-text/T";
+import { dashboard } from "@/content/texts/dashboard";
 
 interface EditableSubtitleProps {
   value: string | null | undefined;
@@ -21,11 +23,14 @@ export default function EditableSubtitle({
   autoSubtitle,
   customSubtitle,
   onSave,
-  placeholder = "Wofür ist diese Power Story für dich?",
+  placeholder: placeholderProp,
   className = "",
   autoEdit = false,
   onDone,
 }: EditableSubtitleProps) {
+  const defaultPlaceholder = useText(dashboard["subtitle.placeholder"]);
+  const emptyText = useText(dashboard["subtitle.empty"]);
+  const placeholder = placeholderProp ?? defaultPlaceholder;
   const [isEditing, setIsEditing] = useState(autoEdit);
 
   useEffect(() => {
@@ -95,7 +100,7 @@ export default function EditableSubtitle({
   };
 
   const hasValue = !!value;
-  const displayText = hasValue ? value : "Noch ohne Beschreibung";
+  const displayText = hasValue ? value : emptyText;
 
   if (isEditing) {
     return (

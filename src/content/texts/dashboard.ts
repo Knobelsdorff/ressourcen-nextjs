@@ -1,0 +1,237 @@
+import { defineTexts } from "@/lib/site-texts/define";
+
+/** Dashboard ("Mein Raum"): Begrüßung, Story-Karten, Dialoge, Einstellungen. */
+export const dashboard = defineTexts("dashboard", {
+  // Seite
+  "page.loadingArea": { text: "Lade deinen Bereich…", label: "Laden (Anmeldung wird geprüft)", multiline: false },
+  "page.loadingStories": { text: "Lade Geschichten...", label: "Laden der Storys", multiline: false },
+  "page.errorUnexpected": { text: "Ein unerwarteter Fehler ist aufgetreten", label: "Fehler: Storys konnten nicht geladen werden" },
+  "page.empty.title": { text: "Noch keine Geschichten gespeichert.", label: "Leeres Dashboard: Titel" },
+  "page.empty.text": { text: "Erstelle deine erste persönliche Ressource, um sie hier zu sehen.", label: "Leeres Dashboard: Text" },
+  "page.empty.cta": { text: "Erstelle deine erste Ressource", label: "Leeres Dashboard: Button", multiline: false },
+  "page.settings": { text: "Einstellungen", label: "Button Einstellungen", multiline: false },
+  "page.library.title": { text: "Meine Power Storys", label: "Bibliothek: Überschrift", multiline: false },
+  "page.library.subtitle": { text: "Deine Geschichten. In deinem Tempo.", label: "Bibliothek: Unterzeile" },
+  "page.library.emptyTitle": { text: "Noch keine persönlichen Geschichten.", label: "Bibliothek leer: Titel" },
+  "page.library.emptyText": { text: "Erstelle deine erste personalisierte Power Story.", label: "Bibliothek leer: Text" },
+  "page.library.listTitle": { text: "Deine Geschichten", label: "Liste: Überschrift", multiline: false },
+  "page.library.count": { one: "1 Story", other: "{count} Storys", label: "Liste: Anzahl", multiline: false },
+  "page.createNew": { text: "Neue Power Story erstellen", label: "Button neue Story (unter den Storys / nach dem Hören)", multiline: false },
+  "page.unlockMore": { text: "Weitere Power Storys freischalten", label: "Button, wenn keine Story mehr frei ist", multiline: false },
+  "page.paywallMessage": { text: "Fühle dich jeden Tag sicher, geborgen und beschützt", label: "Bezahl-Dialog: Überschrift" },
+  "page.paymentActivated": {
+    text: "Dein Zugang wurde aktiviert! Du kannst jetzt unbegrenzt Power Storys erstellen.",
+    label: "Nach der Zahlung: Zugang aktiv",
+  },
+  "page.paymentPending": {
+    text: "Zahlung erfolgreich! Der Zugang wird in Kürze aktiviert. Bitte lade die Seite in ein paar Minuten neu.",
+    label: "Nach der Zahlung: Zugang wird noch aktiviert",
+  },
+  "page.deleteError": { text: "Fehler beim Löschen der Power Story", label: "Fehler beim Entfernen einer Story" },
+  "page.audioGenerateError": { text: "Fehler beim Generieren des Audios. Bitte versuche es erneut.", label: "Fehler: Audio erstellen" },
+
+  // Begrüßung
+  "welcome.eyebrow": { text: "DEIN PERSÖNLICHER RUHEPOL", label: "Begrüßung: Zeile über der Überschrift", multiline: false },
+  "welcome.titleFirstVisit": { text: "Willkommen in deinem Raum.", label: "Begrüßung: Überschrift beim ersten Besuch" },
+  "welcome.title": { text: "Ein Moment. Nur für dich.", label: "Begrüßung: Überschrift" },
+  "welcome.text": {
+    text: "Ankommen, durchatmen und neue Kraft schöpfen. Deine Power Storys begleiten dich dabei.",
+    label: "Begrüßung: Text",
+  },
+  "welcome.intentionsLabel": { text: "Raum für dein Wohlbefinden", label: "Begrüßung: Screenreader-Text der drei Stichworte", multiline: false },
+  "welcome.intention1": { text: "Zur Ruhe kommen", label: "Begrüßung: Stichwort 1", multiline: false },
+  "welcome.intention2": { text: "Kraft schöpfen", label: "Begrüßung: Stichwort 2", multiline: false },
+  "welcome.intention3": { text: "Bei dir sein", label: "Begrüßung: Stichwort 3", multiline: false },
+  "welcome.caption": { text: "Schön, dass du da bist.", label: "Begrüßung: Satz am Bild", multiline: false },
+
+  // Erststory entsteht noch
+  "firstStory.eyebrowFirst": { text: "DEINE ERSTE POWER STORY", label: "Story entsteht: Zeile oben (erste Story)", multiline: false },
+  "firstStory.eyebrowNew": { text: "DEINE NEUE POWER STORY", label: "Story entsteht: Zeile oben (weitere Story)", multiline: false },
+  "firstStory.preparingTitle": { text: "Willkommen! Dein Engel ist fast bereit.", label: "Story entsteht: Überschrift" },
+  "firstStory.preparingText": {
+    text: "Wir erstellen gerade deine persönliche Power Story aus deinen Antworten.",
+    label: "Story entsteht: Text, solange der Text geschrieben wird",
+  },
+  "firstStory.preparingAudio": {
+    text: "Dein Text ist fertig – Kerstins Stimme wird gerade aufgenommen.",
+    label: "Story entsteht: Text, solange die Stimme aufgenommen wird",
+  },
+  "firstStory.duration": { text: "Das dauert etwa eine Minute. Sie erscheint hier automatisch.", label: "Story entsteht: Hinweis zur Dauer" },
+  "firstStory.statusText": { text: "Geschichte entsteht …", label: "Story entsteht: Status (Text)", multiline: false },
+  "firstStory.statusAudio": { text: "Stimme wird aufgenommen …", label: "Story entsteht: Status (Stimme)", multiline: false },
+  "firstStory.failedTitle": { text: "Deine Story braucht noch einen Moment.", label: "Story fehlgeschlagen: Überschrift" },
+  "firstStory.failedText": {
+    text: "Beim Erstellen ist etwas schiefgelaufen. Deine Antworten sind gespeichert – versuche es einfach noch einmal.",
+    label: "Story fehlgeschlagen: Text",
+  },
+  "firstStory.retry": { text: "Erneut versuchen", label: "Story fehlgeschlagen: Button", multiline: false },
+
+  // "Deine Power Story ist bereit!"
+  "ready.title": { text: "Deine Power Story ist bereit!", label: "Story bereit: Überschrift" },
+  "ready.text": {
+    text: "Mach es dir bequem, schließe deine Augen, wenn du magst, und höre dir deine persönliche Geschichte an.",
+    label: "Story bereit: Text",
+  },
+  "ready.listen": { text: "Jetzt anhören", label: "Story bereit: Button", multiline: false },
+  "ready.close": { text: "Hinweis schließen", label: "Story bereit: Schließen (Screenreader)", multiline: false },
+
+  // Abo-Angebot
+  "offer.title": { text: "Mehr Ruhe. Mehr Sicherheit. Jeden Tag.", label: "Abo-Angebot: Überschrift" },
+  "offer.text": {
+    text: "Erstelle persönliche Power Storys, die dich dabei unterstützen, innere Ruhe, Halt und neue Kraft zu finden.",
+    label: "Abo-Angebot: Text",
+  },
+  "offer.amount": { text: "15 €", label: "Abo-Angebot: Preis", multiline: false },
+  "offer.period": { text: "/ Monat", label: "Abo-Angebot: Zeitraum", multiline: false },
+  "offer.cancel": { text: "Jederzeit kündbar.", label: "Abo-Angebot: Hinweis Kündigung", multiline: false },
+  "offer.benefit": { text: "Unbegrenzt neue Geschichten erstellen und dauerhaft anhören.", label: "Abo-Angebot: Vorteil" },
+  "offer.cta": { text: "Meine Power Storys freischalten", label: "Abo-Angebot: Haupt-Button", multiline: false },
+  "offer.loading": { text: "Einen Moment …", label: "Abo-Angebot: Button während des Ladens", multiline: false },
+  "offer.error": { text: "Das hat gerade nicht geklappt. Bitte versuche es gleich noch einmal.", label: "Abo-Angebot: Fehler" },
+  "offer.secondaryAfterFirst": { text: "Meine Power Story kostenlos weiter anhören", label: "Abo-Angebot nach der ersten Story: zweiter Button", multiline: false },
+  "offer.footnoteAfterFirst": {
+    text: "Deine erste Power Story bleibt 7 Tage kostenlos – so oft du möchtest.",
+    label: "Abo-Angebot nach der ersten Story: Hinweis",
+  },
+  "offer.later": { text: "Später", label: "Abo-Angebot (gesperrte Story / mehr Storys): zweiter Button", multiline: false },
+
+  // Story-Karte
+  "card.trial": { one: "Noch 1 Tag kostenlos", other: "Noch {count} Tage kostenlos", label: "Story-Karte: Testphase", multiline: false },
+  "card.noAudio": { text: "Für diese Power Story ist noch kein Audio vorhanden.", label: "Story-Karte: ohne Audio" },
+  "card.audioCreating": { text: "Audio wird erstellt…", label: "Story-Karte: Audio entsteht", multiline: false },
+  "card.audioCreate": { text: "Audio erstellen", label: "Story-Karte: Button Audio erstellen", multiline: false },
+  "locked.trialEnded.title": { text: "Deine 7 kostenlosen Tage sind vorbei.", label: "Gesperrt (Testphase vorbei): Titel" },
+  "locked.trialEnded.text": {
+    text: "Deine Power Story bleibt hier für dich gespeichert. Mit Power Storys kannst du sie jederzeit wieder anhören.",
+    label: "Gesperrt (Testphase vorbei): Text",
+  },
+  "locked.trialEnded.cta": { text: "Power Storys freischalten", label: "Gesperrt (Testphase vorbei): Button", multiline: false },
+  "locked.inactive.title": { text: "Dein Abo ist beendet.", label: "Gesperrt (Abo beendet): Titel" },
+  "locked.inactive.text": {
+    text: "Deine Power Story bleibt für dich gespeichert. Sobald du Power Storys wieder freischaltest, kannst du sie sofort anhören.",
+    label: "Gesperrt (Abo beendet): Text",
+  },
+  "locked.inactive.cta": { text: "Power Storys freischalten", label: "Gesperrt (Abo beendet): Button", multiline: false },
+  "locked.paymentFailed.title": { text: "Deine letzte Zahlung hat nicht geklappt.", label: "Gesperrt (Zahlung fehlgeschlagen): Titel" },
+  "locked.paymentFailed.text": {
+    text: "Deine Power Storys pausieren, bis die Zahlung erfolgreich ist. Aktualisiere deine Zahlungsmethode – danach kannst du sofort weiterhören.",
+    label: "Gesperrt (Zahlung fehlgeschlagen): Text",
+  },
+  "locked.paymentFailed.cta": { text: "Zahlungsmethode aktualisieren", label: "Gesperrt (Zahlung fehlgeschlagen): Button", multiline: false },
+
+  // Abspielzeile in der Karte
+  "player.preparing": { text: "Wird vorbereitet …", label: "Abspielzeile: Audio wird vorbereitet", multiline: false },
+  "player.playing": { text: "Läuft", label: "Abspielzeile: läuft", multiline: false },
+  "player.resume": { text: "Weiterhören", label: "Abspielzeile: angefangen", multiline: false },
+  "player.listen": { text: "Anhören", label: "Abspielzeile: noch nicht gehört", multiline: false },
+  "player.ariaOpen": { text: "{title} – Player öffnen", vars: { title: "Titel der Story" }, label: "Abspielzeile (läuft): Screenreader", multiline: false },
+  "player.ariaResume": { text: "{title} weiterhören", vars: { title: "Titel der Story" }, label: "Abspielzeile (angefangen): Screenreader", multiline: false },
+  "player.ariaListen": { text: "{title} anhören", vars: { title: "Titel der Story" }, label: "Abspielzeile: Screenreader", multiline: false },
+  "player.endMessage": { text: "Schön, dass du dir diese Zeit genommen hast.", label: "Nach dem Hören: Satz" },
+  "player.again": { text: "Nochmal hören", label: "Nach dem Hören: Link", multiline: false },
+
+  // Datum an der Karte
+  "date.today": { text: "Heute", label: "Datum: heute", multiline: false },
+  "date.yesterday": { text: "Gestern", label: "Datum: gestern", multiline: false },
+  "date.daysAgo": { text: "vor {count} Tagen", vars: { count: "Anzahl Tage" }, label: "Datum: vor einigen Tagen", multiline: false },
+  "date.oneWeekAgo": { text: "vor einer Woche", label: "Datum: vor einer Woche", multiline: false },
+  "date.weeksAgo": { text: "vor {count} Wochen", vars: { count: "Anzahl Wochen" }, label: "Datum: vor einigen Wochen", multiline: false },
+  "date.createdOn": { text: "Erstellt am {date}", vars: { date: "Datum, z. B. 4. November 2026" }, label: "Datum: Tooltip", multiline: false },
+
+  // Story-Menü
+  "actions.label": { text: "Story-Aktionen", label: "Story-Menü: Screenreader", multiline: false },
+  "actions.rename": { text: "Umbenennen", label: "Story-Menü: Umbenennen", multiline: false },
+  "actions.editSubtitle": { text: "Beschreibung bearbeiten", label: "Story-Menü: Beschreibung bearbeiten", multiline: false },
+  "actions.addSubtitle": { text: "Beschreibung hinzufügen", label: "Story-Menü: Beschreibung hinzufügen", multiline: false },
+  "actions.delete": { text: "Power Story entfernen", label: "Story-Menü: Entfernen", multiline: false },
+  "title.placeholder": { text: "Neuer Name für diese Power Story", label: "Umbenennen: Platzhalter", multiline: false },
+  "subtitle.placeholder": { text: "Wofür ist diese Power Story für dich?", label: "Beschreibung: Platzhalter", multiline: false },
+  "subtitle.empty": { text: "Noch ohne Beschreibung", label: "Beschreibung: leer", multiline: false },
+
+  // Entfernen-Dialog
+  "delete.title": { text: "Power Story entfernen?", label: "Entfernen-Dialog: Überschrift" },
+  "delete.close": { text: "Schließen", label: "Entfernen-Dialog: Schließen (Screenreader)", multiline: false },
+  "delete.text1": { text: "Diese Power Story wird aus deinem Raum entfernt.", label: "Entfernen-Dialog: Text Zeile 1" },
+  "delete.text2": { text: "Du kannst jederzeit eine neue erstellen.", label: "Entfernen-Dialog: Text Zeile 2" },
+  "delete.cancel": { text: "Abbrechen", label: "Entfernen-Dialog: Abbrechen", multiline: false },
+  "delete.confirm": { text: "Entfernen", label: "Entfernen-Dialog: Bestätigen", multiline: false },
+
+  // Einstellungen
+  "settings.title": { text: "Einstellungen", label: "Einstellungen: Überschrift", multiline: false },
+  "settings.close": { text: "Einstellungen schließen", label: "Einstellungen: Schließen (Screenreader)", multiline: false },
+  "settings.name.title": { text: "Dein Name in den Geschichten", label: "Name: Überschrift" },
+  "settings.name.description": {
+    text: "Deine Power Storys sprechen dich ab und zu mit Namen an. Hör dir an, wie er klingt – so oft du magst.",
+    label: "Name: Beschreibung",
+  },
+  "settings.name.label": { text: "Wie dürfen wir dich nennen?", label: "Name: Feld", multiline: false },
+  "settings.name.placeholder": { text: "z. B. Julia", label: "Name: Platzhalter", multiline: false },
+  "settings.pronunciation.label": { text: "So soll er klingen", label: "Aussprache: Feld", multiline: false },
+  "settings.pronunciation.optional": { text: "(optional)", label: "Aussprache: Zusatz", multiline: false },
+  "settings.pronunciation.placeholder": { text: "z. B. Juh-lia", label: "Aussprache: Platzhalter", multiline: false },
+  "settings.pronunciation.help": {
+    text: "Schreib deinen Namen so, wie er klingen soll – als ein Wort, gern mit Bindestrichen.",
+    label: "Aussprache: Hilfetext",
+  },
+  "settings.pronunciation.ignored": {
+    text: "Bitte nur ein Wort, so geschrieben, wie es klingen soll – z. B. „Juh-lia“. Sonst verwenden wir deinen Namen.",
+    label: "Aussprache: Hinweis bei ungültiger Eingabe",
+  },
+  "settings.saving": { text: "Speichern …", label: "Button während des Speicherns", multiline: false },
+  "settings.name.save": { text: "Name speichern", label: "Name: Button", multiline: false },
+  "settings.name.saved": { text: "Gespeichert. Neue Power Storys verwenden ab jetzt diesen Namen.", label: "Name: gespeichert" },
+  "settings.name.error": { text: "Speichern hat nicht geklappt. Bitte versuche es erneut.", label: "Name: Fehler" },
+  "settings.email.title": { text: "E-Mail-Adresse", label: "E-Mail: Überschrift", multiline: false },
+  "settings.email.description": { text: "Für die Anmeldung und wichtige Hinweise.", label: "E-Mail: Beschreibung" },
+  "settings.email.newLabel": { text: "Neue E-Mail-Adresse", label: "E-Mail: Feld", multiline: false },
+  "settings.email.cancel": { text: "Abbrechen", label: "E-Mail: Abbrechen", multiline: false },
+  "settings.email.sending": { text: "Wird gesendet …", label: "E-Mail: Button während des Sendens", multiline: false },
+  "settings.email.send": { text: "Bestätigung senden", label: "E-Mail: Button", multiline: false },
+  "settings.email.change": { text: "E-Mail-Adresse ändern", label: "E-Mail: Link ändern", multiline: false },
+  "settings.email.sent": { text: "Wir haben dir eine Bestätigung an die neue Adresse geschickt.", label: "E-Mail: Bestätigung verschickt" },
+  "settings.email.error": { text: "Die E-Mail-Adresse konnte nicht geändert werden.", label: "E-Mail: Fehler" },
+  "settings.password.titleChange": { text: "Passwort ändern", label: "Passwort: Überschrift (Passwort vorhanden)", multiline: false },
+  "settings.password.titleSet": { text: "Passwort festlegen", label: "Passwort: Überschrift (noch kein Passwort)", multiline: false },
+  "settings.password.descriptionSet": {
+    text: "Optional – damit kannst du dich auch ohne Link aus der E-Mail anmelden.",
+    label: "Passwort: Beschreibung (noch kein Passwort)",
+  },
+  "settings.password.current": { text: "Aktuelles Passwort", label: "Passwort: Feld aktuell", multiline: false },
+  "settings.password.new": { text: "Neues Passwort", label: "Passwort: Feld neu", multiline: false },
+  "settings.password.repeat": { text: "Passwort wiederholen", label: "Passwort: Feld wiederholen", multiline: false },
+  "settings.password.save": { text: "Passwort speichern", label: "Passwort: Button", multiline: false },
+  "settings.password.tooShort": { text: "Das Passwort braucht mindestens 8 Zeichen.", label: "Passwort: zu kurz" },
+  "settings.password.mismatch": { text: "Die beiden Passwörter stimmen nicht überein.", label: "Passwort: stimmt nicht überein" },
+  "settings.password.wrongCurrent": { text: "Das aktuelle Passwort stimmt nicht.", label: "Passwort: aktuelles falsch" },
+  "settings.password.error": { text: "Das Passwort konnte nicht gespeichert werden.", label: "Passwort: Fehler" },
+  "settings.password.changed": { text: "Dein Passwort wurde geändert.", label: "Passwort: geändert" },
+  "settings.password.set": {
+    text: "Dein Passwort ist gespeichert. Du kannst dich jetzt auch damit anmelden.",
+    label: "Passwort: neu festgelegt",
+  },
+  "settings.music.title": { text: "Hintergrundmusik", label: "Musik: Überschrift", multiline: false },
+  "settings.music.description": {
+    text: "Wie laut die Musik unter der Stimme liegt – gilt für alle deine Power Storys.",
+    label: "Musik: Beschreibung",
+  },
+  "settings.access.title": { text: "Dein Zugang", label: "Abo: Überschrift", multiline: false },
+  "settings.access.description": {
+    text: "Power Storys – {amount} / Monat. Jederzeit kündbar.",
+    vars: { amount: "Preis des Abos, z. B. 15 €" },
+    label: "Abo: Beschreibung",
+  },
+  "settings.access.opening": { text: "Wird geöffnet …", label: "Abo: Button während des Öffnens", multiline: false },
+  "settings.access.manage": { text: "Abo verwalten", label: "Abo: Button", multiline: false },
+  "settings.access.error": {
+    text: "Die Abo-Verwaltung konnte nicht geöffnet werden. Bitte versuche es erneut.",
+    label: "Abo: Fehler",
+  },
+  "settings.feedback.title": { text: "Feedback & Wünsche", label: "Feedback: Überschrift", multiline: false },
+  "settings.feedback.description": { text: "Was wünschst du dir für Power Storys? Wir lesen jede Nachricht.", label: "Feedback: Beschreibung" },
+  "settings.feedback.label": { text: "Deine Nachricht", label: "Feedback: Feld (Screenreader)", multiline: false },
+  "settings.feedback.placeholder": { text: "Eine Figur, ein Thema, eine Idee …", label: "Feedback: Platzhalter", multiline: false },
+  "settings.feedback.sending": { text: "Wird gesendet …", label: "Feedback: Button während des Sendens", multiline: false },
+  "settings.feedback.send": { text: "Nachricht senden", label: "Feedback: Button", multiline: false },
+  "settings.feedback.sent": { text: "Danke! Deine Nachricht ist bei uns angekommen.", label: "Feedback: gesendet" },
+  "settings.feedback.error": { text: "Senden hat nicht geklappt. Bitte versuche es erneut.", label: "Feedback: Fehler" },
+});

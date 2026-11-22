@@ -101,7 +101,7 @@
   letter-spacing: 0.14em;
   color: #69594c;
 }
-.landing-eyebrow > span { width: 8px; height: 8px; border-radius: 50%; background: #6d803f; }
+.landing-eyebrow > span:empty { width: 8px; height: 8px; border-radius: 50%; background: #6d803f; }
 
 /* -------------------------------------------------------------- Buttons */
 

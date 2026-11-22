@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle, Sparkles } from "lucide-react";
+import { T } from "@/components/site-text/T";
+import { account } from "@/content/texts/account";
 
 interface PaymentSuccessModalProps {
   onClose: () => void;
@@ -59,7 +61,7 @@ export default function PaymentSuccessModal({ onClose, message }: PaymentSuccess
             transition={{ delay: 0.3 }}
             className="mb-3 text-2xl font-bold tracking-[-0.035em] text-[#49301e] [font-family:'Trebuchet_MS',Arial,sans-serif]"
           >
-            Zahlung erfolgreich!
+            <T t={account["paymentSuccess.title"]} />
           </motion.h2>
 
           {/* Message */}
@@ -70,7 +72,7 @@ export default function PaymentSuccessModal({ onClose, message }: PaymentSuccess
             className="mb-6 leading-relaxed text-[#69594c]"
             role="status"
           >
-            {message || "Dein Zugang wurde aktiviert. Die Seite wird automatisch aktualisiert..."}
+            {message || <T t={account["paymentSuccess.text"]} />}
           </motion.p>
 
           {/* Loading Indicator */}
@@ -81,7 +83,7 @@ export default function PaymentSuccessModal({ onClose, message }: PaymentSuccess
             className="flex items-center justify-center gap-2 text-[#857465]"
           >
             <Sparkles className="h-5 w-5 animate-pulse text-[#ff891f]" aria-hidden="true" />
-            <span className="text-sm font-medium">Aktualisiere...</span>
+            <span className="text-sm font-medium"><T t={account["paymentSuccess.updating"]} /></span>
           </motion.div>
         </div>
       </motion.div>

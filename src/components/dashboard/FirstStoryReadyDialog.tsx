@@ -10,6 +10,8 @@
 import { useEffect, useRef } from "react";
 import { Play, X } from "lucide-react";
 import AngelIconFinal from "@/components/AngelIconFinal";
+import { T, useText } from "@/components/site-text/T";
+import { dashboard } from "@/content/texts/dashboard";
 
 interface FirstStoryReadyDialogProps {
   onListen: () => void;
@@ -18,6 +20,7 @@ interface FirstStoryReadyDialogProps {
 
 export default function FirstStoryReadyDialog({ onListen, onDismiss }: FirstStoryReadyDialogProps) {
   const primaryRef = useRef<HTMLButtonElement>(null);
+  const closeLabel = useText(dashboard["ready.close"]);
 
   useEffect(() => {
     primaryRef.current?.focus();
@@ -38,19 +41,19 @@ export default function FirstStoryReadyDialog({ onListen, onDismiss }: FirstStor
         className="story-ready"
         onClick={(event) => event.stopPropagation()}
       >
-        <button type="button" className="story-ready-close" onClick={onDismiss} aria-label="Hinweis schließen">
+        <button type="button" className="story-ready-close" onClick={onDismiss} aria-label={closeLabel}>
           <X size={18} aria-hidden="true" />
         </button>
         <div className="story-ready-icon" aria-hidden="true">
           <AngelIconFinal size={56} />
         </div>
-        <h2 id="story-ready-title">Deine Power Story ist bereit!</h2>
+        <h2 id="story-ready-title"><T t={dashboard["ready.title"]} /></h2>
         <p id="story-ready-text">
-          Mach es dir bequem, schließe deine Augen, wenn du magst, und höre dir deine persönliche Geschichte an.
+          <T t={dashboard["ready.text"]} />
         </p>
         <button ref={primaryRef} type="button" className="story-ready-primary" onClick={onListen}>
           <Play className="h-5 w-5" fill="currentColor" aria-hidden="true" />
-          Jetzt anhören
+          <T t={dashboard["ready.listen"]} />
         </button>
       </section>
     </div>

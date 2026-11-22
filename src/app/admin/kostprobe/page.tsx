@@ -6,6 +6,8 @@ import { ArrowLeft, Headphones, Trash2, Upload } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import AudioPlayer from "@/components/audio/AudioPlayer";
 import { createSPAClient } from "@/lib/supabase/client";
+import { T, useTextFn, type TextFn } from "@/components/site-text/T";
+import { admin } from "@/content/texts/admin";
 
 const DEFAULT_TITLE = "Wohlwollende Präsenz";
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
@@ -18,26 +20,25 @@ interface SampleState {
   path: string | null;
 }
 
-async function parseJsonResponse(response: Response) {
+async function parseJsonResponse(response: Response, tx: TextFn) {
   const text = await response.text();
   try {
     return text ? JSON.parse(text) : {};
   } catch {
     if (response.status === 413) {
-      throw new Error(
-        "Die Datei ist zu groß für den Server-Upload. Bitte Seite neu laden – der Upload geht direkt zu Supabase."
-      );
+      throw new Error(tx(admin["kostprobe.serverTooLarge"]));
     }
     throw new Error(
       text?.startsWith("Request Entity")
-        ? "Upload zu groß für den Server. Bitte Seite neu laden und erneut versuchen."
-        : `Unerwartete Server-Antwort (Status ${response.status})`
+        ? tx(admin["kostprobe.uploadTooLarge"])
+        : tx(admin["kostprobe.unexpectedResponse"], { status: response.status })
     );
   }
 }
 
 export default function AdminKostprobePage() {
   const { user, loading: authLoading } = useAuth();
+  const tx = useTextFn();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -61,9 +62,9 @@ export default function AdminKostprobePage() {
       setLoading(true);
       setError(null);
       const response = await fetch("/api/admin/homepage-sample");
-      const data = await parseJsonResponse(response);
+      const data = await parseJsonResponse(response, tx);
       if (!response.ok) {
-        throw new Error(data.error || "Fehler beim Laden");
+        throw new Error(data.error || tx(admin["kostprobe.loadError"]));
       }
       if (data.sample) {
         setSample(data.sample);
@@ -73,7 +74,7 @@ export default function AdminKostprobePage() {
         setTitle(DEFAULT_TITLE);
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Fehler beim Laden";
+      const msg = err instanceof Error ? err.message : tx(admin["kostprobe.loadError"]);
       setError(msg);
     } finally {
       setLoading(false);
@@ -90,17 +91,17 @@ export default function AdminKostprobePage() {
 
   const handleSave = async () => {
     if (!file && !sample) {
-      setError("Bitte eine MP3-Datei auswählen.");
+      setError(tx(admin["kostprobe.pickMp3"]));
       return;
     }
 
     if (file) {
       if (!file.name.toLowerCase().endsWith(".mp3")) {
-        setError("Nur MP3-Dateien sind erlaubt.");
+        setError(tx(admin["kostprobe.onlyMp3"]));
         return;
       }
       if (file.size > MAX_FILE_SIZE) {
-        setError(`Die Datei ist zu groß (${(file.size / 1024 / 1024).toFixed(2)} MB). Maximum: 50 MB.`);
+        setError(tx(admin["kostprobe.tooLarge"], { size: (file.size / 1024 / 1024).toFixed(2) }));
         return;
       }
     }
@@ -119,13 +120,13 @@ export default function AdminKostprobePage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title: resolvedTitle }),
         });
-        const data = await parseJsonResponse(response);
+        const data = await parseJsonResponse(response, tx);
         if (!response.ok) {
-          throw new Error(data.error || "Speichern fehlgeschlagen");
+          throw new Error(data.error || tx(admin["kostprobe.saveFailed"]));
         }
         setSample(data.sample);
         setTitle(data.sample.title || DEFAULT_TITLE);
-        setMessage("Titel aktualisiert.");
+        setMessage(tx(admin["kostprobe.titleSaved"]));
         return;
       }
 
@@ -149,14 +150,12 @@ export default function AdminKostprobePage() {
       if (uploadError) {
         const msg = uploadError.message?.toLowerCase() || "";
         if (msg.includes("row-level security") || msg.includes("permission") || msg.includes("forbidden")) {
-          throw new Error(
-            "Zugriff auf Storage verweigert. Bitte als Admin neu einloggen und erneut versuchen."
-          );
+          throw new Error(tx(admin["kostprobe.storageDenied"]));
         }
         if (msg.includes("bucket")) {
-          throw new Error('Der Storage-Bucket "audio-files" wurde nicht gefunden.');
+          throw new Error(tx(admin["kostprobe.bucketMissing"]));
         }
-        throw new Error(`Upload-Fehler: ${uploadError.message}`);
+        throw new Error(tx(admin["kostprobe.uploadError"], { message: uploadError.message }));
       }
 
       const {
@@ -172,7 +171,7 @@ export default function AdminKostprobePage() {
           storagePath,
         }),
       });
-      const data = await parseJsonResponse(response);
+      const data = await parseJsonResponse(response, tx);
 
       if (!response.ok) {
         // Orphan-Datei entfernen, falls Metadaten-Speichern scheitert
@@ -181,15 +180,15 @@ export default function AdminKostprobePage() {
         } catch {
           /* ignore */
         }
-        throw new Error(data.error || "Speichern fehlgeschlagen");
+        throw new Error(data.error || tx(admin["kostprobe.saveFailed"]));
       }
 
       setSample(data.sample);
       setTitle(data.sample.title || DEFAULT_TITLE);
       setFile(null);
-      setMessage("Kostprobe gespeichert.");
+      setMessage(tx(admin["kostprobe.saved"]));
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Speichern fehlgeschlagen";
+      const msg = err instanceof Error ? err.message : tx(admin["kostprobe.saveFailed"]);
       setError(msg);
     } finally {
       setSaving(false);
@@ -198,7 +197,7 @@ export default function AdminKostprobePage() {
 
   const handleDelete = async () => {
     if (!sample) return;
-    if (!confirm("Kostprobe wirklich löschen? Die Startseite fällt dann auf die bisherige Beispiel-Ressource zurück.")) {
+    if (!confirm(tx(admin["kostprobe.confirmDelete"]))) {
       return;
     }
 
@@ -208,16 +207,16 @@ export default function AdminKostprobePage() {
 
     try {
       const response = await fetch("/api/admin/homepage-sample", { method: "DELETE" });
-      const data = await parseJsonResponse(response);
+      const data = await parseJsonResponse(response, tx);
       if (!response.ok) {
-        throw new Error(data.error || "Löschen fehlgeschlagen");
+        throw new Error(data.error || tx(admin["kostprobe.deleteFailed"]));
       }
       setSample(null);
       setTitle(DEFAULT_TITLE);
       setFile(null);
-      setMessage("Kostprobe gelöscht.");
+      setMessage(tx(admin["kostprobe.deleted"]));
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Löschen fehlgeschlagen";
+      const msg = err instanceof Error ? err.message : tx(admin["kostprobe.deleteFailed"]);
       setError(msg);
     } finally {
       setDeleting(false);
@@ -229,7 +228,7 @@ export default function AdminKostprobePage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto" />
-          <p className="mt-4 text-secondary-600">Lade...</p>
+          <p className="mt-4 text-secondary-600"><T t={admin["common.loading"]} /></p>
         </div>
       </div>
     );
@@ -239,9 +238,9 @@ export default function AdminKostprobePage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-secondary-700 mb-4">Bitte melde dich an, um auf das Admin-Dashboard zuzugreifen.</p>
+          <p className="text-secondary-700 mb-4"><T t={admin["common.signInPrompt"]} /></p>
           <Link href="/dashboard" className="text-primary-500 hover:underline">
-            Zum Dashboard
+            <T t={admin["common.toDashboard"]} />
           </Link>
         </div>
       </div>
@@ -252,9 +251,9 @@ export default function AdminKostprobePage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-secondary-700 mb-4">Du hast keine Berechtigung für die Kostprobe-Verwaltung.</p>
+          <p className="text-secondary-700 mb-4"><T t={admin["kostprobe.noPermission"]} /></p>
           <Link href="/dashboard" className="text-primary-500 hover:underline">
-            Zum Dashboard
+            <T t={admin["common.toDashboard"]} />
           </Link>
         </div>
       </div>
@@ -270,21 +269,21 @@ export default function AdminKostprobePage() {
             className="inline-flex items-center text-secondary-600 hover:text-secondary-900 mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Zurück zum Dashboard
+            <T t={admin["common.backToDashboard"]} />
           </Link>
           <div className="flex max-sm:flex-col max-sm:gap-2 sm:items-center gap-3">
             <Headphones className="w-8 h-8 text-primary-500" />
-            <h1 className="sm:text-3xl text-xl font-bold text-secondary-900">Startseiten-Kostprobe</h1>
+            <h1 className="sm:text-3xl text-xl font-bold text-secondary-900"><T t={admin["kostprobe.title"]} /></h1>
           </div>
           <p className="mt-2 text-secondary-600 max-sm:text-sm">
-            MP3 für die Hörprobe auf der Startseite hochladen, ersetzen oder löschen. Die Datei enthält bereits Stimme und Musik – keine zusätzliche Hintergrundmusik.
+            <T t={admin["kostprobe.intro"]} />
           </p>
         </div>
 
         <div className="wellness-panel bg-white rounded-lg shadow sm:p-6 p-4 space-y-6">
           <div>
             <label htmlFor="kostprobe-title" className="block text-sm font-medium text-secondary-700 mb-2">
-              Titel
+              <T t={admin["kostprobe.titleLabel"]} />
             </label>
             <input
               id="kostprobe-title"
@@ -298,7 +297,7 @@ export default function AdminKostprobePage() {
 
           <div>
             <label htmlFor="kostprobe-file" className="block text-sm font-medium text-secondary-700 mb-2">
-              MP3-Datei {sample ? "(zum Ersetzen)" : ""}
+              <T t={admin["kostprobe.fileLabel"]} /> {sample ? <T t={admin["kostprobe.fileReplace"]} /> : ""}
             </label>
             <input
               id="kostprobe-file"
@@ -307,10 +306,10 @@ export default function AdminKostprobePage() {
               onChange={(e) => setFile(e.target.files?.[0] || null)}
               className="w-full text-sm text-secondary-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
             />
-            <p className="mt-2 text-xs text-secondary-500">Nur MP3, maximal 50 MB. Speicherort: audio-files/homepage-sample/</p>
+            <p className="mt-2 text-xs text-secondary-500"><T t={admin["kostprobe.fileHint"]} /></p>
             {file && (
               <p className="mt-1 text-sm text-secondary-600">
-                Ausgewählt: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                <T t={admin["kostprobe.selected"]} vars={{ name: file.name, size: (file.size / 1024 / 1024).toFixed(2) }} />
               </p>
             )}
           </div>
@@ -334,7 +333,7 @@ export default function AdminKostprobePage() {
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50"
             >
               <Upload className="w-4 h-4" />
-              {saving ? "Speichern…" : sample && !file ? "Titel speichern" : sample ? "Ersetzen & speichern" : "Hochladen & speichern"}
+              <T t={saving ? admin["kostprobe.saving"] : sample && !file ? admin["kostprobe.saveTitle"] : sample ? admin["kostprobe.replace"] : admin["kostprobe.upload"]} />
             </button>
             {sample && (
               <button
@@ -344,7 +343,7 @@ export default function AdminKostprobePage() {
                 className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
               >
                 <Trash2 className="w-4 h-4" />
-                {deleting ? "Löschen…" : "Löschen"}
+                <T t={deleting ? admin["kostprobe.deleting"] : admin["kostprobe.delete"]} />
               </button>
             )}
           </div>
@@ -352,9 +351,9 @@ export default function AdminKostprobePage() {
 
         {sample?.audio_url && (
           <div className="wellness-panel bg-white rounded-lg shadow sm:p-6 p-4 mt-6">
-            <h2 className="text-lg font-semibold text-secondary-900 mb-1">Vorschau</h2>
+            <h2 className="text-lg font-semibold text-secondary-900 mb-1"><T t={admin["kostprobe.preview"]} /></h2>
             <p className="text-sm text-secondary-600 mb-4">
-              Ohne zusätzliche Hintergrundmusik – so wie auf der Startseite.
+              <T t={admin["kostprobe.previewNote"]} />
             </p>
             <AudioPlayer
               audioUrl={sample.audio_url}

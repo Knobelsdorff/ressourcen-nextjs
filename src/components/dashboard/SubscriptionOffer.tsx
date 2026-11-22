@@ -20,26 +20,25 @@ import AngelIconFinal from "@/components/AngelIconFinal";
 import { useAuth } from "@/components/providers/auth-provider";
 import { createCheckoutSession } from "@/lib/access";
 import { track } from "@/lib/product-analytics/client";
+import { T, useTextFn } from "@/components/site-text/T";
+import type { TextDef } from "@/lib/site-texts/define";
+import { dashboard } from "@/content/texts/dashboard";
 import "./subscription-offer.css";
 
 export type SubscriptionOfferVariant = "after-first-story" | "locked" | "more-stories";
 
-const TITLE = "Mehr Ruhe. Mehr Sicherheit. Jeden Tag.";
-const TEXT = "Erstelle persönliche Power Storys, die dich dabei unterstützen, innere Ruhe, Halt und neue Kraft zu finden.";
-const BENEFIT = "Unbegrenzt neue Geschichten erstellen und dauerhaft anhören.";
-
 // Gesperrte Storys: Weiterhören ist dort nicht mehr möglich, daher nur "Später".
-const COPY: Record<SubscriptionOfferVariant, { secondary: string; footnote?: string }> = {
+const COPY: Record<SubscriptionOfferVariant, { secondary: TextDef; footnote?: TextDef }> = {
   "after-first-story": {
-    secondary: "Meine Power Story kostenlos weiter anhören",
-    footnote: "Deine erste Power Story bleibt 7 Tage kostenlos – so oft du möchtest.",
+    secondary: dashboard["offer.secondaryAfterFirst"],
+    footnote: dashboard["offer.footnoteAfterFirst"],
   },
   locked: {
-    secondary: "Später",
+    secondary: dashboard["offer.later"],
   },
   // Über "Weitere Power Storys freischalten" unter den Storys – jederzeit, so oft man will.
   "more-stories": {
-    secondary: "Später",
+    secondary: dashboard["offer.later"],
   },
 };
 
@@ -55,6 +54,7 @@ export default function SubscriptionOffer({ variant, onClose, location = "dashbo
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const primaryRef = useRef<HTMLButtonElement>(null);
+  const tx = useTextFn();
 
   // Funnel: einmal pro Öffnen.
   useEffect(() => {
@@ -87,7 +87,7 @@ export default function SubscriptionOffer({ variant, onClose, location = "dashbo
       return;
     }
     setLoading(false);
-    setError("Das hat gerade nicht geklappt. Bitte versuche es gleich noch einmal.");
+    setError(tx(dashboard["offer.error"]));
   };
 
   return (
@@ -103,28 +103,28 @@ export default function SubscriptionOffer({ variant, onClose, location = "dashbo
         <div className="subscription-offer-icon" aria-hidden="true">
           <AngelIconFinal size={60} />
         </div>
-        <h2 id="subscription-offer-title">{TITLE}</h2>
-        <p id="subscription-offer-text">{TEXT}</p>
+        <h2 id="subscription-offer-title"><T t={dashboard["offer.title"]} /></h2>
+        <p id="subscription-offer-text"><T t={dashboard["offer.text"]} /></p>
 
         <div className="subscription-offer-price">
-          <span className="subscription-offer-amount">15 €</span>
-          <span className="subscription-offer-period">/ Monat</span>
+          <span className="subscription-offer-amount"><T t={dashboard["offer.amount"]} /></span>
+          <span className="subscription-offer-period"><T t={dashboard["offer.period"]} /></span>
         </div>
         <p className="subscription-offer-note">
-          <Check size={15} aria-hidden="true" /> Jederzeit kündbar.
+          <Check size={15} aria-hidden="true" /> <T t={dashboard["offer.cancel"]} />
         </p>
-        <p className="subscription-offer-benefit">{BENEFIT}</p>
+        <p className="subscription-offer-benefit"><T t={dashboard["offer.benefit"]} /></p>
 
         {error && <p className="subscription-offer-error" role="alert">{error}</p>}
 
         <div className="subscription-offer-actions">
           <button ref={primaryRef} type="button" className="subscription-offer-primary" onClick={() => void startCheckout()} disabled={loading}>
-            {loading ? <><Loader2 size={18} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> Einen Moment …</> : "Meine Power Storys freischalten"}
+            {loading ? <><Loader2 size={18} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> <T t={dashboard["offer.loading"]} /></> : <T t={dashboard["offer.cta"]} />}
           </button>
           <button type="button" className="subscription-offer-secondary" onClick={onClose}>
-            {copy.secondary}
+            <T t={copy.secondary} />
           </button>
-          {copy.footnote && <p className="subscription-offer-footnote">{copy.footnote}</p>}
+          {copy.footnote && <p className="subscription-offer-footnote"><T t={copy.footnote} /></p>}
         </div>
       </section>
     </div>

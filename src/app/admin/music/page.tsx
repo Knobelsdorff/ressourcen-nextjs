@@ -9,6 +9,8 @@ import { motion } from "framer-motion";
 import { Music, Upload, Trash2, Play, Pause, CheckCircle, XCircle, ArrowLeft, Edit2, Save, X, Volume2, TestTube } from "lucide-react";
 import Link from "next/link";
 import { AnimatePresence } from "framer-motion";
+import { T, useTextFn } from "@/components/site-text/T";
+import { admin } from "@/content/texts/admin";
 
 interface MusicTrack {
   id: string;
@@ -26,6 +28,7 @@ interface MusicTrack {
 
 export default function AdminMusicPage() {
   const { user, loading: authLoading } = useAuth();
+  const tx = useTextFn();
   const [figures, setFigures] = useState<any[]>([]);
   const [selectedFigure, setSelectedFigure] = useState<string>("");
   const [tracks, setTracks] = useState<MusicTrack[]>([]);
@@ -84,23 +87,14 @@ export default function AdminMusicPage() {
       if (error) {
         // Prüfe ob es ein "Tabelle nicht gefunden" Fehler ist
         if (error.message?.includes("Could not find the table") || error.message?.includes("relation") || error.code === "PGRST116") {
-          throw new Error(
-            "Die Datenbank-Tabelle 'background_music_tracks' existiert noch nicht.\n\n" +
-            "Bitte führe das SQL-Skript 'supabase-music-setup.sql' in deinem Supabase SQL Editor aus.\n\n" +
-            "Schritte:\n" +
-            "1. Gehe zu deinem Supabase-Projekt\n" +
-            "2. Öffne den SQL Editor\n" +
-            "3. Öffne die Datei 'supabase-music-setup.sql'\n" +
-            "4. Ersetze 'deine-admin-email@example.com' mit deiner Admin-Email (3x)\n" +
-            "5. Führe das Skript aus"
-          );
+          throw new Error(tx(admin["music.alert.tableMissing"]));
         }
         throw error;
       }
       setTracks(data || []);
     } catch (error: any) {
       console.error("Error loading tracks:", error);
-      alert("Fehler beim Laden der Tracks:\n\n" + error.message);
+      alert(tx(admin["music.alert.loadTracks"], { message: error.message }));
     }
   }, [selectedFigure]);
 
@@ -114,13 +108,13 @@ export default function AdminMusicPage() {
 
   const handleUpload = async () => {
     if (!uploadFile || !selectedFigure) {
-      alert("Bitte wähle eine Figur und eine Datei aus.");
+      alert(tx(admin["music.alert.pickFigureFile"]));
       return;
     }
 
     // Validierung
     if (!uploadFile.name.toLowerCase().endsWith(".mp3")) {
-      alert("Bitte lade nur MP3-Dateien hoch.");
+      alert(tx(admin["music.alert.onlyMp3"]));
       return;
     }
 
@@ -129,7 +123,7 @@ export default function AdminMusicPage() {
     const fileSizeMB = (uploadFile.size / 1024 / 1024).toFixed(2);
     
     if (uploadFile.size > maxFileSize) {
-      alert(`Die Datei ist zu groß (${fileSizeMB} MB). Maximale Dateigröße: 100 MB.\n\nBitte komprimiere die Datei oder verwende eine kleinere Version.`);
+      alert(tx(admin["music.alert.tooLarge"], { size: fileSizeMB }));
       return;
     }
 
@@ -138,7 +132,7 @@ export default function AdminMusicPage() {
       try {
         new URL(sourceLink);
       } catch {
-        alert("Bitte gib eine gültige URL für den Quell-Link ein.");
+        alert(tx(admin["music.alert.invalidUrl"]));
         return;
       }
     }
@@ -197,7 +191,7 @@ export default function AdminMusicPage() {
           });
           
           // Prüfe spezifische Fehler
-          let errorMessage = 'Fehler beim direkten Upload zu Storage';
+          let errorMessage = tx(admin["music.alert.directUpload"]);
           const errorMessageLower = uploadError.message?.toLowerCase() || '';
           const statusCode = (uploadError as any).statusCode;
           
@@ -207,16 +201,16 @@ export default function AdminMusicPage() {
               errorMessageLower.includes('forbidden') ||
               statusCode === '403' ||
               statusCode === 403) {
-            errorMessage = `Zugriff verweigert (403). Bitte stelle sicher, dass:\n\n1. Deine Email (${user?.email}) in der music_admins Tabelle eingetragen ist\n2. Du dich neu eingeloggt hast\n3. Die Storage Policies korrekt eingerichtet sind\n\nFalls das Problem weiterhin besteht, kontaktiere den Administrator.`;
+            errorMessage = tx(admin["music.alert.forbidden"], { email: user?.email ?? "" });
           } else if (errorMessageLower.includes('bucket not found') || 
                      errorMessageLower.includes('bucket')) {
-            errorMessage = 'Der Storage-Bucket "background-music" existiert nicht. Bitte kontaktiere den Administrator.';
+            errorMessage = tx(admin["music.alert.bucketMissing"]);
           } else if (errorMessageLower.includes('file size') || 
                      errorMessageLower.includes('too large') ||
                      errorMessageLower.includes('exceeds')) {
-            errorMessage = `Die Datei ist zu groß (${fileSizeMB} MB). Bitte komprimiere die Datei oder verwende eine kleinere Version.`;
+            errorMessage = tx(admin["music.alert.tooLargeShort"], { size: fileSizeMB });
           } else {
-            errorMessage = `Upload-Fehler: ${uploadError.message || 'Unbekannter Fehler'}\n\nDatei: ${uploadFile.name} (${fileSizeMB} MB)\nStatus-Code: ${statusCode || 'unbekannt'}`;
+            errorMessage = tx(admin["music.alert.uploadError"], { message: uploadError.message || tx(admin["common.unknownError"]), file: uploadFile.name, size: fileSizeMB, status: statusCode || tx(admin["music.alert.unknownStatus"]) });
           }
           
           throw new Error(errorMessage);
@@ -243,11 +237,11 @@ export default function AdminMusicPage() {
           });
 
           if (!saveResponse.ok) {
-            const errorData = await saveResponse.json().catch(() => ({ error: "Unbekannter Fehler" }));
-            throw new Error(errorData.error || "Fehler beim Speichern der Track-Metadaten");
+            const errorData = await saveResponse.json().catch(() => ({ error: tx(admin["common.unknownError"]) }));
+            throw new Error(errorData.error || tx(admin["music.alert.metadata"]));
           }
 
-          alert("Track erfolgreich hochgeladen!");
+          alert(tx(admin["music.alert.uploaded"]));
           setUploadFile(null);
           setSourceLink("");
           setIsDefault(false);
@@ -269,12 +263,12 @@ export default function AdminMusicPage() {
         } catch (jsonError) {
           // Wenn JSON-Parsing fehlschlägt, könnte es ein Body-Size-Limit-Problem sein
           if (response.status === 413 || response.status === 0) {
-            throw new Error(`Die Datei ist zu groß (${fileSizeMB} MB) für den Standard-Upload über die API-Route. Bitte versuche es erneut - das System sollte automatisch einen direkten Upload verwenden.`);
+            throw new Error(tx(admin["music.alert.apiTooLarge"], { size: fileSizeMB }));
           }
-          errorData = { error: `Upload fehlgeschlagen (Status: ${response.status})` };
+          errorData = { error: tx(admin["music.alert.uploadFailed"], { status: response.status }) };
         }
         
-        const errorMessage = errorData.error || errorData.details || `Upload fehlgeschlagen (Status: ${response.status})`;
+        const errorMessage = errorData.error || errorData.details || tx(admin["music.alert.uploadFailed"], { status: response.status });
         const suggestion = errorData.suggestion ? `\n\n${errorData.suggestion}` : '';
         throw new Error(errorMessage + suggestion);
       }
@@ -282,24 +276,27 @@ export default function AdminMusicPage() {
       const result = await response.json();
 
       // Erfolg - lade Tracks neu
-      alert("Track erfolgreich hochgeladen!");
+      alert(tx(admin["music.alert.uploaded"]));
       setUploadFile(null);
       setSourceLink("");
       setIsDefault(false);
       loadTracks();
     } catch (error: any) {
       console.error("Upload error:", error);
-      const errorMessage = error.message || "Unbekannter Fehler beim Hochladen";
+      const errorMessage = error.message || tx(admin["music.alert.uploadUnknown"]);
       
       // Zeige detaillierte Fehlermeldung
-      alert(`Fehler beim Hochladen:\n\n${errorMessage}\n\n${uploadFile ? `Datei: ${uploadFile.name} (${(uploadFile.size / 1024 / 1024).toFixed(2)} MB)` : ''}\n\nTipp: Falls die Datei zu groß ist, versuche sie zu komprimieren oder eine kleinere Version zu verwenden.`);
+      alert(tx(admin["music.alert.uploadSummary"], {
+        message: errorMessage,
+        fileInfo: uploadFile ? tx(admin["music.alert.fileInfo"], { name: uploadFile.name, size: (uploadFile.size / 1024 / 1024).toFixed(2) }) : "",
+      }));
     } finally {
       setUploading(false);
     }
   };
 
   const handleDelete = async (trackId: string) => {
-    if (!confirm("Möchtest du diesen Track wirklich löschen?")) return;
+    if (!confirm(tx(admin["music.alert.confirmDelete"]))) return;
 
     try {
       const track = tracks.find((t) => t.id === trackId);
@@ -322,11 +319,11 @@ export default function AdminMusicPage() {
         throw new Error(errorData.error || `Delete failed with status ${response.status}`);
       }
 
-      alert("Track erfolgreich gelöscht!");
+      alert(tx(admin["music.alert.deleted"]));
       loadTracks();
     } catch (error: any) {
       console.error("Delete error:", error);
-      alert("Fehler beim Löschen: " + (error.message || "Unbekannter Fehler"));
+      alert(tx(admin["music.alert.deleteFailed"], { message: error.message || tx(admin["common.unknownError"]) }));
     }
   };
 
@@ -354,7 +351,7 @@ export default function AdminMusicPage() {
       loadTracks();
     } catch (error: any) {
       console.error("Toggle default error:", error);
-      alert("Fehler: " + (error.message || "Unbekannter Fehler"));
+      alert(tx(admin["music.alert.generic"], { message: error.message || tx(admin["common.unknownError"]) }));
     }
   };
 
@@ -378,14 +375,14 @@ export default function AdminMusicPage() {
       try {
         new URL(editSourceLink);
       } catch {
-        alert("Bitte gib eine gültige URL für den Quell-Link ein.");
+        alert(tx(admin["music.alert.invalidUrl"]));
         return;
       }
     }
 
     // Validierung: Lautstärke muss zwischen 0.01 und 0.25 sein (1% - 25%)
     if (editingVolume < 0.01 || editingVolume > 0.25) {
-      alert("Lautstärke muss zwischen 1% und 25% liegen.");
+      alert(tx(admin["music.alert.volumeRange"]));
       return;
     }
 
@@ -408,14 +405,14 @@ export default function AdminMusicPage() {
       }
 
       // Erfolg - lade Tracks neu
-      alert("Track erfolgreich aktualisiert!");
+      alert(tx(admin["music.alert.updated"]));
       setEditingTrackId(null);
       setEditSourceLink("");
       setEditingVolume(0.12);
       loadTracks();
     } catch (error: any) {
       console.error("Update error:", error);
-      alert("Fehler beim Aktualisieren: " + (error.message || "Unbekannter Fehler"));
+      alert(tx(admin["music.alert.updateFailed"], { message: error.message || tx(admin["common.unknownError"]) }));
     }
   };
 
@@ -967,14 +964,14 @@ export default function AdminMusicPage() {
           });
 
           if (!response.ok) {
-            throw new Error('Fehler beim Generieren der Test-Stimme');
+            throw new Error(tx(admin["music.alert.testVoice"]));
           }
 
           const data = await response.json();
           voiceUrl = data.audioUrl;
         } catch (error) {
           console.error('Error generating test voice:', error);
-          alert('Fehler beim Generieren der Test-Stimme. Bitte versuche es erneut.');
+          alert(tx(admin["music.alert.testVoiceRetry"]));
           setLoadingTestResource(false);
           return;
         } finally {
@@ -1114,7 +1111,7 @@ export default function AdminMusicPage() {
       }
     } catch (error) {
       console.error('Error in handleTestPlay:', error);
-      alert('Fehler beim Abspielen des Tests. Bitte versuche es erneut.');
+      alert(tx(admin["music.alert.testPlay"]));
     }
   };
 
@@ -1149,7 +1146,7 @@ export default function AdminMusicPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Fehler beim Speichern der Lautstärke");
+        throw new Error(tx(admin["music.alert.volumeSave"]));
       }
 
       // Aktualisiere lokalen Track
@@ -1170,7 +1167,7 @@ export default function AdminMusicPage() {
       }, 1500); // 1.5 Sekunden anzeigen, dann schließen
     } catch (error: any) {
       console.error("Error saving volume:", error);
-      alert("Fehler beim Speichern: " + (error.message || "Unbekannter Fehler"));
+      alert(tx(admin["music.alert.saveFailed"], { message: error.message || tx(admin["common.unknownError"]) }));
     }
   };
 
@@ -1179,7 +1176,7 @@ export default function AdminMusicPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto"></div>
-          <p className="mt-4 text-secondary-600">Lade...</p>
+          <p className="mt-4 text-secondary-600"><T t={admin["common.loading"]} /></p>
         </div>
       </div>
     );
@@ -1189,9 +1186,9 @@ export default function AdminMusicPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-secondary-700 mb-4">Bitte melde dich an, um auf das Admin-Dashboard zuzugreifen.</p>
+          <p className="text-secondary-700 mb-4"><T t={admin["common.signInPrompt"]} /></p>
           <Link href="/dashboard" className="text-primary-500 hover:underline">
-            Zum Dashboard
+            <T t={admin["common.toDashboard"]} />
           </Link>
         </div>
       </div>
@@ -1202,9 +1199,9 @@ export default function AdminMusicPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-secondary-700 mb-4">Du hast keine Berechtigung für die Musik-Verwaltung.</p>
+          <p className="text-secondary-700 mb-4"><T t={admin["music.noPermission"]} /></p>
           <Link href="/dashboard" className="text-primary-500 hover:underline">
-            Zum Dashboard
+            <T t={admin["common.toDashboard"]} />
           </Link>
         </div>
       </div>
@@ -1222,7 +1219,7 @@ export default function AdminMusicPage() {
               className="inline-flex items-center text-secondary-600 hover:text-secondary-900 mb-4"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Zurück zu Admin Analytics
+              <T t={admin["music.backToAnalytics"]} />
             </Link>
           )}
           {!isFullAdmin && (
@@ -1231,15 +1228,15 @@ export default function AdminMusicPage() {
               className="inline-flex items-center text-secondary-600 hover:text-secondary-900 mb-4"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Zurück zum Dashboard
+              <T t={admin["common.backToDashboard"]} />
             </Link>
           )}
           <div className="flex max-sm:flex-col max-sm:gap-2 sm:items-center gap-3">
             <Music className="w-8 h-8 text-primary-500" />
-            <h1 className="sm:text-3xl text-xl font-bold text-secondary-900">Hintergrundmusik verwalten</h1>
+            <h1 className="sm:text-3xl text-xl font-bold text-secondary-900"><T t={admin["music.title"]} /></h1>
           </div>
           <p className="mt-2 text-secondary-600 max-sm:text-sm">
-            Lade Musik-Tracks für Ressourcen hoch und verwalte sie hier.
+            <T t={admin["music.intro"]} />
           </p>
         </div>
 
@@ -1250,22 +1247,22 @@ export default function AdminMusicPage() {
           className="wellness-panel bg-white rounded-lg shadow sm:p-6 p-3 sm:mb-6 mb-3"
         >
           <label className="block text-sm font-medium text-secondary-700 mb-2">
-            Ressource auswählen:
+            <T t={admin["music.pickResource"]} />
           </label>
           <select
             value={selectedFigure}
             onChange={(e) => setSelectedFigure(e.target.value)}
             className="w-full border border-secondary-300 rounded-md sm:px-4 px-2 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 max-sm:text-sm"
           >
-            <option value="">-- Bitte wählen --</option>
-            <optgroup label="Echte Personen">
+            <option value="">{tx(admin["music.pickPlaceholder"])}</option>
+            <optgroup label={tx(admin["music.realPeople"])}>
               {realFigures.map((f) => (
                 <option className="max-sm:text-sm" key={f.id} value={f.id}>
                   {f.emoji} {f.name}
                 </option>
               ))}
             </optgroup>
-            <optgroup label="Fiktive Figuren">
+            <optgroup label={tx(admin["music.fictional"])}>
               {fictionalFigures.map((f) => (
                 <option className="max-sm:text-sm" key={f.id} value={f.id}>
                   {f.emoji} {f.name}
@@ -1285,13 +1282,13 @@ export default function AdminMusicPage() {
             >
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                 <Upload className="w-5 h-5" />
-                Neuen Track hochladen
+                <T t={admin["music.uploadTitle"]} />
               </h2>
 
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-secondary-700 mb-2">
-                    MP3-Datei: <span className="text-red-500">*</span>
+                    <T t={admin["music.fileLabel"]} /> <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="file"
@@ -1302,25 +1299,25 @@ export default function AdminMusicPage() {
                   />
                   {uploadFile && (
                     <p className="mt-1 text-sm text-secondary-500">
-                      Ausgewählt: {uploadFile.name} ({(uploadFile.size / 1024 / 1024).toFixed(2)} MB)
+                      <T t={admin["music.selected"]} vars={{ name: uploadFile.name, size: (uploadFile.size / 1024 / 1024).toFixed(2) }} />
                     </p>
                   )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-secondary-700 mb-2">
-                    Link zur Quelle (optional):
+                    <T t={admin["music.sourceLabel"]} />
                   </label>
                   <input
                     type="url"
                     value={sourceLink}
                     onChange={(e) => setSourceLink(e.target.value)}
                     className="w-full border border-secondary-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    placeholder="https://www.premiumbeat.com/..."
+                    placeholder={tx(admin["music.sourcePlaceholder"])}
                     disabled={uploading}
                   />
                   <p className="mt-1 text-sm text-secondary-500">
-                    Optional: Link zur Quelle des Tracks (z.B. PremiumBeat) für Referenz.
+                    <T t={admin["music.sourceHint"]} />
                   </p>
                 </div>
 
@@ -1334,7 +1331,7 @@ export default function AdminMusicPage() {
                     disabled={uploading}
                   />
                   <label htmlFor="isDefault" className="ml-2 block text-sm text-secondary-700">
-                    Als Standard-Track setzen (wird automatisch abgespielt)
+                    <T t={admin["music.defaultLabel"]} />
                   </label>
                 </div>
 
@@ -1346,12 +1343,12 @@ export default function AdminMusicPage() {
                   {uploading ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Wird hochgeladen...
+                      <T t={admin["music.uploading"]} />
                     </>
                   ) : (
                     <>
                       <Upload className="w-4 h-4" />
-                      Track hochladen
+                      <T t={admin["music.upload"]} />
                     </>
                   )}
                 </button>
@@ -1366,12 +1363,12 @@ export default function AdminMusicPage() {
             >
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                 <Music className="w-5 h-5" />
-                Vorhandene Tracks ({tracks.length})
+                <T t={admin["music.existing"]} vars={{ count: tracks.length }} />
               </h2>
 
               {tracks.length === 0 ? (
                 <p className="text-secondary-500 text-center py-8">
-                  Noch keine Tracks für diese Ressource vorhanden.
+                  <T t={admin["music.noTracks"]} />
                 </p>
               ) : (
                 <div className="space-y-4">
@@ -1389,7 +1386,7 @@ export default function AdminMusicPage() {
                             {track.is_default && (
                               <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
                                 <CheckCircle className="w-3 h-3" />
-                                Standard
+                                <T t={admin["music.default"]} />
                               </span>
                             )}
                           </div>
@@ -1401,19 +1398,19 @@ export default function AdminMusicPage() {
                             <div className="mb-3 space-y-3">
                               <div>
                                 <label className="block text-xs font-medium text-secondary-700 mb-1">
-                                  Link zur Quelle (optional):
+                                  <T t={admin["music.sourceLabel"]} />
                                 </label>
                                 <input
                                   type="url"
                                   value={editSourceLink}
                                   onChange={(e) => setEditSourceLink(e.target.value)}
                                   className="w-full border border-secondary-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                                  placeholder="https://www.premiumbeat.com/..."
+                                  placeholder={tx(admin["music.sourcePlaceholder"])}
                                 />
                               </div>
                               <div>
                                 <label className="block text-xs font-medium text-secondary-700 mb-1">
-                                  Lautstärke: {(editingVolume * 100).toFixed(0)}%
+                                  <T t={admin["music.volume"]} vars={{ percent: (editingVolume * 100).toFixed(0) }} />
                                 </label>
                                 <input
                                   type="range"
@@ -1435,14 +1432,14 @@ export default function AdminMusicPage() {
                                   className="flex items-center gap-2 px-3 py-1.5 text-sm bg-primary-500 text-white hover:bg-primary-600 rounded-md transition-colors"
                                 >
                                   <Save className="w-4 h-4" />
-                                  Speichern
+                                  <T t={admin["music.save"]} />
                                 </button>
                                 <button
                                   onClick={handleCancelEdit}
                                   className="flex items-center gap-2 px-3 py-1.5 text-sm bg-secondary-100 text-secondary-700 hover:bg-secondary-200 rounded-md transition-colors"
                                 >
                                   <X className="w-4 h-4" />
-                                  Abbrechen
+                                  <T t={admin["music.cancel"]} />
                                 </button>
                               </div>
                             </div>
@@ -1450,15 +1447,15 @@ export default function AdminMusicPage() {
                             <div className="mb-3 space-y-1">
                               {track.track_title ? (
                                 <p className="text-xs text-secondary-400">
-                                  Quelle: <a href={track.track_title} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline break-all">{track.track_title}</a>
+                                  <T t={admin["music.source"]} /> <a href={track.track_title} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline break-all">{track.track_title}</a>
                                 </p>
                               ) : (
                                 <p className="text-xs text-secondary-400 italic">
-                                  Kein Quell-Link gesetzt. Klicke auf "Bearbeiten", um einen Link hinzuzufügen.
+                                  <T t={admin["music.noSource"]} />
                                 </p>
                               )}
                               <p className="text-xs text-secondary-500">
-                                Lautstärke: {((track.volume || 0.12) * 100).toFixed(0)}%
+                                <T t={admin["music.volume"]} vars={{ percent: ((track.volume || 0.12) * 100).toFixed(0) }} />
                               </p>
                             </div>
                           )}
@@ -1474,29 +1471,29 @@ export default function AdminMusicPage() {
                                   {playingTrack === track.id ? (
                                     <>
                                       <Pause className="w-4 h-4" />
-                                      Pausieren
+                                      <T t={admin["music.pause"]} />
                                     </>
                                   ) : (
                                     <>
                                       <Play className="w-4 h-4" />
-                                      Abspielen
+                                      <T t={admin["music.play"]} />
                                     </>
                                   )}
                                 </button>
                                 <button
                                   onClick={() => handleOpenTest(track)}
                                   className="flex items-center gap-2 px-3 py-1.5 text-sm bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-md transition-colors"
-                                  title="Mit Ressource testen"
+                                  title={tx(admin["music.testTitle"])}
                                 >
                                   <TestTube className="w-4 h-4" />
-                                  Testen
+                                  <T t={admin["music.test"]} />
                                 </button>
                                 <button
                                   onClick={() => handleStartEdit(track)}
                                   className="flex items-center gap-2 px-3 py-1.5 text-sm bg-primary-100 text-primary-700 hover:bg-primary-200 rounded-md transition-colors"
                                 >
                                   <Edit2 className="w-4 h-4" />
-                                  Bearbeiten
+                                  <T t={admin["music.edit"]} />
                                 </button>
                                 <button
                                   onClick={() => handleToggleDefault(track.id, track.is_default)}
@@ -1506,14 +1503,14 @@ export default function AdminMusicPage() {
                                       : "bg-secondary-100 text-secondary-700 hover:bg-secondary-200"
                                   }`}
                                 >
-                                  {track.is_default ? "Standard entfernen" : "Als Standard setzen"}
+                                  <T t={track.is_default ? admin["music.removeDefault"] : admin["music.setDefault"]} />
                                 </button>
                                 <button
                                   onClick={() => handleDelete(track.id)}
                                   className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-100 text-red-700 hover:bg-red-200 rounded-md transition-colors"
                                 >
                                   <Trash2 className="w-4 h-4" />
-                                  Löschen
+                                  <T t={admin["music.delete"]} />
                                 </button>
                               </>
                             )}
@@ -1553,7 +1550,7 @@ export default function AdminMusicPage() {
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b">
                   <h2 className="text-2xl font-bold text-secondary-900">
-                    Hintergrundmusik testen
+                    <T t={admin["music.testModal.title"]} />
                   </h2>
                   <button
                     onClick={handleCloseTest}
@@ -1567,17 +1564,17 @@ export default function AdminMusicPage() {
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
                   <div>
                     <h3 className="text-lg font-semibold mb-2">
-                      Track: {track.track_title || track.track_id}
+                      <T t={admin["music.testModal.track"]} vars={{ name: track.track_title || track.track_id }} />
                     </h3>
                     <p className="text-sm text-secondary-600">
-                      Figur: {track.figure_name || track.figure_id}
+                      <T t={admin["music.testModal.figure"]} vars={{ name: track.figure_name || track.figure_id }} />
                     </p>
                   </div>
 
                   {/* Lautstärke-Slider */}
                   <div>
                     <label className="block text-sm font-medium text-secondary-700 mb-2">
-                      Musik-Lautstärke: {(testMusicVolume * 100).toFixed(0)}%
+                      <T t={admin["music.testModal.volume"]} vars={{ percent: (testMusicVolume * 100).toFixed(0) }} />
                     </label>
                     <input
                       type="range"
@@ -1612,10 +1609,10 @@ export default function AdminMusicPage() {
                       <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
                       <div>
                         <p className="text-green-800 font-medium">
-                          Lautstärke erfolgreich gespeichert!
+                          <T t={admin["music.testModal.saved"]} />
                         </p>
                         <p className="text-green-700 text-sm mt-1">
-                          Die Einstellung wurde auf {(testMusicVolume * 100).toFixed(0)}% gesetzt.
+                          <T t={admin["music.testModal.savedDetail"]} vars={{ percent: (testMusicVolume * 100).toFixed(0) }} />
                         </p>
                       </div>
                     </motion.div>
@@ -1625,14 +1622,14 @@ export default function AdminMusicPage() {
                   {loadingTestResource ? (
                     <div className="text-center py-4">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto"></div>
-                      <p className="mt-2 text-sm text-secondary-600">Lade Test-Ressource...</p>
+                      <p className="mt-2 text-sm text-secondary-600"><T t={admin["music.testModal.loading"]} /></p>
                     </div>
                   ) : testResource ? (
                     <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
                       <p className="text-sm text-primary-800">
-                        {testResource.audioUrl 
-                          ? `✅ Test-Ressource gefunden: "${testResource.title}"`
-                          : `ℹ️ Keine eigene Ressource gefunden. Verwende generische Test-Stimme.`
+                        {testResource.audioUrl
+                          ? <T t={admin["music.testModal.found"]} vars={{ title: testResource.title }} />
+                          : <T t={admin["music.testModal.generic"]} />
                         }
                       </p>
                     </div>
@@ -1646,7 +1643,7 @@ export default function AdminMusicPage() {
                         className="flex items-center gap-2 px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-full font-semibold transition-colors"
                       >
                         <Pause className="w-5 h-5" />
-                        Stoppen
+                        <T t={admin["music.testModal.stop"]} />
                       </button>
                     ) : (
                       <button
@@ -1655,7 +1652,7 @@ export default function AdminMusicPage() {
                         className="flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-full font-semibold transition-colors disabled:opacity-50"
                       >
                         <Play className="w-5 h-5" />
-                        Test abspielen
+                        <T t={admin["music.testModal.play"]} />
                       </button>
                     )}
                   </div>
@@ -1667,13 +1664,13 @@ export default function AdminMusicPage() {
                     onClick={handleCloseTest}
                     className="px-6 py-3 text-secondary-700 hover:bg-secondary-200 rounded-xl font-medium transition-colors"
                   >
-                    Schließen
+                    <T t={admin["music.testModal.close"]} />
                   </button>
                   <button
                     onClick={() => handleSaveTestVolume(track)}
                     className="px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium transition-colors"
                   >
-                    Lautstärke speichern
+                    <T t={admin["music.testModal.saveVolume"]} />
                   </button>
                 </div>
               </motion.div>

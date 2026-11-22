@@ -6,9 +6,12 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { supabase } from '@/lib/supabase';
 import ChangePassword from '@/components/ChangePassword';
 import { Loader2, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
+import { T, useTextFn } from "@/components/site-text/T";
+import { account } from "@/content/texts/account";
 
 export default function ProfilPage() {
   const { user } = useAuth();
+  const tx = useTextFn();
   const [loading, setLoading] = useState(true);
   
   // Name-Sektion
@@ -124,7 +127,7 @@ export default function ProfilPage() {
       // Gleicher Tab: window.open nach await wird auf iOS blockiert.
       window.location.assign(url);
     } catch (err) {
-      alert('Fehler beim Öffnen des Verwaltungsportals');
+      alert(tx(account["profile.access.portalError"]));
     } finally {
       setManagingPortal(false);
     }
@@ -152,13 +155,13 @@ export default function ProfilPage() {
         .eq('id', user.id);
 
       if (error) {
-        setNameError('Fehler beim Speichern');
+        setNameError(tx(account["profile.saveError"]));
       } else {
-        setNameSuccess('Name erfolgreich gespeichert');
+        setNameSuccess(tx(account["profile.name.saved"]));
         setTimeout(() => setNameSuccess(''), 3000);
       }
     } catch (err) {
-      setNameError('Fehler beim Speichern');
+      setNameError(tx(account["profile.saveError"]));
     } finally {
       setSavingName(false);
     }
@@ -188,15 +191,15 @@ export default function ProfilPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setFeedbackError(data.error || 'Fehler beim Senden');
+        setFeedbackError(data.error || tx(account["profile.feedback.error"]));
         return;
       }
 
-      setFeedbackSuccess('Vielen Dank für dein Feedback!');
+      setFeedbackSuccess(tx(account["profile.feedback.sent"]));
       setFeedback('');
       setTimeout(() => setFeedbackSuccess(''), 5000);
     } catch (err) {
-      setFeedbackError('Unerwarteter Fehler');
+      setFeedbackError(tx(account["profile.unexpected"]));
     } finally {
       setSendingFeedback(false);
     }
@@ -217,9 +220,9 @@ export default function ProfilPage() {
       });
 
       if (error) {
-        setEmailError(error.message || 'Fehler beim Ändern der E-Mail-Adresse');
+        setEmailError(error.message || tx(account["profile.email.error"]));
       } else {
-        setEmailSuccess('Wir haben dir eine Bestätigungs-E-Mail an die neue Adresse gesendet. Bitte bestätige die Änderung.');
+        setEmailSuccess(tx(account["profile.email.sent"]));
         setNewEmail('');
         setTimeout(() => {
           setShowEmailDialog(false);
@@ -227,7 +230,7 @@ export default function ProfilPage() {
         }, 3000);
       }
     } catch (err) {
-      setEmailError('Unerwarteter Fehler');
+      setEmailError(tx(account["profile.unexpected"]));
     } finally {
       setChangingEmail(false);
     }
@@ -250,38 +253,38 @@ export default function ProfilPage() {
         className="bg-white rounded-xl border border-amber-200 shadow-sm p-6 md:p-8"
       >
         <h2 className="text-xl font-light text-amber-900 mb-6">
-          Dein Name in den Geschichten
+          <T t={account["profile.name.title"]} />
         </h2>
 
         <form onSubmit={handleSaveName} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-amber-900 mb-2">
-              Wie darfst du in den Geschichten angesprochen werden?
+              <T t={account["profile.name.label"]} />
             </label>
             <input
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="z. B. Anna"
+              placeholder={tx(account["profile.name.placeholder"])}
               className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-amber-900 mb-2">
-              Aussprache oder Betonung <span className="text-gray-400 font-normal">(optional)</span>
+              <T t={account["profile.pronunciation.label"]} /> <span className="text-gray-400 font-normal"><T t={account["profile.optional"]} /></span>
             </label>
             <input
               type="text"
               value={pronunciationHint}
               onChange={(e) => setPronunciationHint(e.target.value)}
-              placeholder="z. B. Ah-na, Betonung auf der ersten Silbe"
+              placeholder={tx(account["profile.pronunciation.placeholder"])}
               className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base"
             />
           </div>
 
           <p className="text-sm text-gray-600 leading-relaxed">
-            Dein Name wird dezent (1–2×) in neuen Power Storys verwendet – nur wenn du ihn hier angibst.
+            <T t={account["profile.name.note"]} />
           </p>
 
           {nameError && (
@@ -303,7 +306,7 @@ export default function ProfilPage() {
             disabled={savingName}
             className="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           >
-            {savingName ? 'Speichere...' : 'Name speichern'}
+            <T t={savingName ? account["profile.name.saving"] : account["profile.name.save"]} />
           </button>
         </form>
       </motion.div>
@@ -316,13 +319,13 @@ export default function ProfilPage() {
         className="bg-white rounded-xl border border-amber-200 shadow-sm p-6 md:p-8"
       >
         <h2 className="text-xl font-light text-amber-900 mb-6">
-          Kontakt & Zugang
+          <T t={account["profile.contact.title"]} />
         </h2>
 
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-amber-900 mb-2">
-              E-Mail-Adresse
+              <T t={account["profile.email.label"]} />
             </label>
             <p className="text-base text-gray-700 mb-4">{user?.email}</p>
           </div>
@@ -336,7 +339,7 @@ export default function ProfilPage() {
             }}
             className="px-6 py-3 border border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors font-medium"
           >
-            E-Mail-Adresse ändern
+            <T t={account["profile.email.change"]} />
           </button>
           
           {/* E-Mail-Änderungs-Dialog */}
@@ -348,19 +351,19 @@ export default function ProfilPage() {
                 className="bg-white rounded-xl shadow-xl max-w-md w-full p-6"
               >
                 <h3 className="text-xl font-light text-amber-900 mb-4">
-                  E-Mail-Adresse ändern
+                  <T t={account["profile.email.change"]} />
                 </h3>
                 
                 <form onSubmit={handleChangeEmail} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-amber-900 mb-2">
-                      Neue E-Mail-Adresse
+                      <T t={account["profile.email.new"]} />
                     </label>
                     <input
                       type="email"
                       value={newEmail}
                       onChange={(e) => setNewEmail(e.target.value)}
-                      placeholder="neue@email.de"
+                      placeholder={tx(account["profile.email.placeholder"])}
                       className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base"
                       required
                     />
@@ -391,14 +394,14 @@ export default function ProfilPage() {
                       }}
                       className="flex-1 px-4 py-2 border border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors font-medium"
                     >
-                      Abbrechen
+                      <T t={account["profile.email.cancel"]} />
                     </button>
                     <button
                       type="submit"
                       disabled={changingEmail || !newEmail.trim()}
                       className="flex-1 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                     >
-                      {changingEmail ? 'Wird geändert...' : 'Ändern'}
+                      <T t={changingEmail ? account["profile.email.changing"] : account["profile.email.submit"]} />
                     </button>
                   </div>
                 </form>
@@ -407,7 +410,7 @@ export default function ProfilPage() {
           )}
 
           <p className="text-sm text-gray-600 leading-relaxed">
-            Diese E-Mail wird für Anmeldung und wichtige Hinweise verwendet.
+            <T t={account["profile.email.note"]} />
           </p>
         </div>
       </motion.div>
@@ -420,13 +423,13 @@ export default function ProfilPage() {
         className="bg-white rounded-xl border border-amber-200 shadow-sm p-6 md:p-8"
       >
         <h2 className="text-xl font-light text-amber-900 mb-6">
-          Sicherheit
+          <T t={account["profile.security.title"]} />
         </h2>
 
         <div className="space-y-4">
           <ChangePassword />
           <p className="text-sm text-gray-600 leading-relaxed">
-            Du kannst dein Passwort jederzeit neu setzen.
+            <T t={account["profile.security.note"]} />
           </p>
         </div>
       </motion.div>
@@ -440,13 +443,13 @@ export default function ProfilPage() {
           className="bg-white rounded-xl border border-amber-200 shadow-sm p-6 md:p-8"
         >
           <h2 className="text-xl font-light text-amber-900 mb-6">
-            Dein Zugang
+            <T t={account["profile.access.title"]} />
           </h2>
 
           <div className="space-y-4">
             <div>
               <p className="text-base text-amber-900 mb-4">
-                Aktives Abo: Power Storys – {subscriptionAmount} / Monat
+                <T t={account["profile.access.active"]} vars={{ amount: subscriptionAmount }} />
               </p>
             </div>
 
@@ -458,18 +461,18 @@ export default function ProfilPage() {
               {managingPortal ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Wird geöffnet...
+                  <T t={account["profile.access.opening"]} />
                 </>
               ) : (
                 <>
-                  Abo verwalten
+                  <T t={account["profile.access.manage"]} />
                   <ExternalLink className="w-4 h-4" />
                 </>
               )}
             </button>
 
             <p className="text-sm text-gray-600 leading-relaxed">
-              Du kannst dein Abo jederzeit anpassen oder kündigen.
+              <T t={account["profile.access.note"]} />
             </p>
           </div>
         </motion.div>
@@ -483,18 +486,18 @@ export default function ProfilPage() {
         className="bg-white rounded-xl border border-amber-200 shadow-sm p-6 md:p-8"
       >
         <h2 className="text-xl font-light text-amber-900 mb-6">
-          Feedback & Wünsche
+          <T t={account["profile.feedback.title"]} />
         </h2>
 
         <form onSubmit={handleSendFeedback} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-amber-900 mb-2">
-              Was wünschst du dir für Power Storys?
+              <T t={account["profile.feedback.label"]} />
             </label>
             <textarea
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
-              placeholder="Gibt es etwas, das dir wichtig ist oder das wir künftig besser berücksichtigen können?"
+              placeholder={tx(account["profile.feedback.placeholder"])}
               rows={6}
               className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base resize-none"
             />
@@ -519,7 +522,7 @@ export default function ProfilPage() {
             disabled={sendingFeedback || !feedback.trim()}
             className="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           >
-            {sendingFeedback ? 'Wird gesendet...' : 'Feedback senden'}
+            <T t={sendingFeedback ? account["profile.feedback.sending"] : account["profile.feedback.send"]} />
           </button>
         </form>
       </motion.div>

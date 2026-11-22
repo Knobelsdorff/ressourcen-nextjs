@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useStartFirstStory } from "@/hooks/useStartFirstStory";
+import { T } from "@/components/site-text/T";
+import { landing } from "@/content/texts/landing";
 
 export default function ExplanatoryParagraphSection() {
   const startFirstStory = useStartFirstStory();
@@ -19,7 +21,7 @@ export default function ExplanatoryParagraphSection() {
           transition={{ duration: 0.6 }}
           className="text-4xl md:text-5xl font-bold text-amber-900 text-center mb-4"
         >
-          Was eine <span className="whitespace-nowrap">Power Story</span> möglich macht
+          <T t={landing["explain.title"]} />
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 20 }}
@@ -28,7 +30,7 @@ export default function ExplanatoryParagraphSection() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-xl md:text-2xl text-amber-700 text-center mb-8"
         >
-          Nicht alles lässt sich über Denken lösen
+          <T t={landing["explain.subtitle"]} />
         </motion.p>
 
         <motion.div
@@ -39,26 +41,19 @@ export default function ExplanatoryParagraphSection() {
           className="landing-prose prose prose-lg max-w-none text-center mb-12"
         >
           <p className="text-lg md:text-xl leading-relaxed mb-4">
-            Viele Menschen erleben, dass innere Anspannung nicht verschwindet,
-            nur weil man sie verstanden hat.
+            <T t={landing["explain.p1"]} />
           </p>
           <p className="text-lg md:text-xl leading-relaxed mb-4">
-            Der Körper bleibt oft auf Spannung,
-            auch wenn im Kopf längst alles klar ist.
+            <T t={landing["explain.p2"]} />
           </p>
           <p className="text-lg md:text-xl leading-relaxed mb-4">
-            Ruhig erzählte Geschichten können einen anderen Zugang öffnen.
-            Sie sprechen nicht den Verstand an,
-            sondern laden den Körper ein, langsamer zu werden.
+            <T t={landing["explain.p3"]} />
           </p>
           <p className="text-lg md:text-xl leading-relaxed mb-4">
-            Nicht durch Nachdenken –
-            sondern durch Zuhören.
+            <T t={landing["explain.p4"]} />
           </p>
           <p className="text-lg md:text-xl leading-relaxed">
-            Manchmal reicht genau das,
-            damit etwas weicher wird
-            und wieder mehr Raum entsteht.
+            <T t={landing["explain.p5"]} />
           </p>
         </motion.div>
 
@@ -70,22 +65,19 @@ export default function ExplanatoryParagraphSection() {
           className="landing-prose prose prose-lg max-w-none text-center mb-12"
         >
           <p className="text-lg md:text-xl leading-relaxed mb-4 font-semibold">
-            Manchmal zeigt sich die Wirkung ganz leise.
+            <T t={landing["explain.effect.title"]} />
           </p>
           <p className="text-lg md:text-xl leading-relaxed mb-4">
-            Manche Menschen berichten,
-            dass Gedanken langsamer werden.
+            <T t={landing["explain.effect.p1"]} />
           </p>
           <p className="text-lg md:text-xl leading-relaxed mb-4">
-            Dass der Körper für einen Moment loslässt.
+            <T t={landing["explain.effect.p2"]} />
           </p>
           <p className="text-lg md:text-xl leading-relaxed mb-4">
-          Oder dass sich innerlich mehr Raum öffnet.
+          <T t={landing["explain.effect.p3"]} />
           </p>
           <p className="text-lg md:text-xl leading-relaxed mb-4">
-            Nicht immer gleich.
-            Nicht immer stark.
-            Aber oft spürbar.
+            <T t={landing["explain.effect.p4"]} />
           </p>
         </motion.div>
 
@@ -101,7 +93,7 @@ export default function ExplanatoryParagraphSection() {
                 size="lg"
                 className="landing-primary-button"
               >
-                Einfach selbst erleben
+                <T t={landing["explain.cta"]} />
               </Button>
             </motion.div>
       </div>

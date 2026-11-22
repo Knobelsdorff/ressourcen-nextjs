@@ -9,6 +9,32 @@
 
 const MS_PER_DAY = 86_400_000;
 
+/**
+ * Beschriftungen – Standard sind die bisherigen Texte. Das Dashboard reicht die
+ * im Admin-Editor gepflegten Texte herein (dashboard.date.*); {count}/{date}
+ * werden hier eingesetzt.
+ */
+export interface RelativeDateLabels {
+  today: string;
+  yesterday: string;
+  daysAgo: string;
+  oneWeekAgo: string;
+  weeksAgo: string;
+  createdOn: string;
+}
+
+const DEFAULT_LABELS: RelativeDateLabels = {
+  today: "Heute",
+  yesterday: "Gestern",
+  daysAgo: "vor {count} Tagen",
+  oneWeekAgo: "vor einer Woche",
+  weeksAgo: "vor {count} Wochen",
+  createdOn: "Erstellt am {date}",
+};
+
+const fill = (template: string, values: Record<string, string | number>) =>
+  template.replace(/\{(\w+)\}/g, (m, name: string) => (name in values ? String(values[name]) : m));
+
 /** Kalendertage zwischen zwei Zeitpunkten (Uhrzeit ignoriert). */
 function daysBetween(a: Date, b: Date): number {
   const startA = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime();
@@ -42,18 +68,18 @@ export function formatDateShort(input: string | Date): string {
  * "Heute" · "Gestern" · "vor 3 Tagen" · "vor 2 Wochen" · sonst das Datum.
  * Für Zeitpunkte in der Zukunft wird auf das Datum zurückgefallen.
  */
-export function formatDateRelative(input: string | Date): string {
+export function formatDateRelative(input: string | Date, labels: RelativeDateLabels = DEFAULT_LABELS): string {
   const date = typeof input === "string" ? new Date(input) : input;
   if (isNaN(date.getTime())) return "";
 
   const days = daysBetween(date, new Date());
 
   if (days < 0) return formatDateLong(date);
-  if (days === 0) return "Heute";
-  if (days === 1) return "Gestern";
-  if (days < 7) return `vor ${days} Tagen`;
-  if (days < 14) return "vor einer Woche";
-  if (days < 31) return `vor ${Math.floor(days / 7)} Wochen`;
+  if (days === 0) return labels.today;
+  if (days === 1) return labels.yesterday;
+  if (days < 7) return fill(labels.daysAgo, { count: days });
+  if (days < 14) return labels.oneWeekAgo;
+  if (days < 31) return fill(labels.weeksAgo, { count: Math.floor(days / 7) });
   return formatDateLong(date);
 }
 
@@ -61,7 +87,7 @@ export function formatDateRelative(input: string | Date): string {
  * Kombiniert beides: relativ als Anzeige, absolut als Tooltip/Vorlesetext –
  * so bleibt „vor 3 Tagen" lesbar, ohne die genaue Angabe zu verlieren.
  */
-export function formatDateWithTitle(input: string | Date): {
+export function formatDateWithTitle(input: string | Date, labels: RelativeDateLabels = DEFAULT_LABELS): {
   label: string;
   title: string;
   dateTime: string;
@@ -70,8 +96,8 @@ export function formatDateWithTitle(input: string | Date): {
   if (isNaN(date.getTime())) return { label: "", title: "", dateTime: "" };
 
   return {
-    label: formatDateRelative(date),
-    title: `Erstellt am ${formatDateLong(date)}`,
+    label: formatDateRelative(date, labels),
+    title: fill(labels.createdOn, { date: formatDateLong(date) }),
     dateTime: date.toISOString(),
   };
 }

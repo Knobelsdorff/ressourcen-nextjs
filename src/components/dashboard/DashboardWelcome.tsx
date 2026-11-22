@@ -1,17 +1,20 @@
 import Image from 'next/image';
 import { Heart, Leaf, Sparkles } from 'lucide-react';
+import { T, useText } from "@/components/site-text/T";
+import { dashboard } from "@/content/texts/dashboard";
 
 export default function DashboardWelcome({ firstVisit }: { firstVisit: boolean }) {
+  const intentionsLabel = useText(dashboard["welcome.intentionsLabel"]);
   return (
     <section className="dashboard-welcome" aria-labelledby="dashboard-title">
       <div className="dashboard-welcome-copy">
-        <span className="dashboard-eyebrow"><span /> DEIN PERSÖNLICHER RUHEPOL</span>
-        <h1 id="dashboard-title">{firstVisit ? 'Willkommen in deinem Raum.' : 'Ein Moment. Nur für dich.'}</h1>
-        <p>Ankommen, durchatmen und neue Kraft schöpfen. Deine Power Storys begleiten dich dabei.</p>
-        <div className="dashboard-intentions" aria-label="Raum für dein Wohlbefinden">
-          <span><Leaf size={15} aria-hidden="true" /> Zur Ruhe kommen</span>
-          <span><Sparkles size={15} aria-hidden="true" /> Kraft schöpfen</span>
-          <span><Heart size={15} aria-hidden="true" /> Bei dir sein</span>
+        <span className="dashboard-eyebrow"><span /> <T t={dashboard["welcome.eyebrow"]} /></span>
+        <h1 id="dashboard-title"><T t={firstVisit ? dashboard["welcome.titleFirstVisit"] : dashboard["welcome.title"]} /></h1>
+        <p><T t={dashboard["welcome.text"]} /></p>
+        <div className="dashboard-intentions" aria-label={intentionsLabel}>
+          <span><Leaf size={15} aria-hidden="true" /> <T t={dashboard["welcome.intention1"]} /></span>
+          <span><Sparkles size={15} aria-hidden="true" /> <T t={dashboard["welcome.intention2"]} /></span>
+          <span><Heart size={15} aria-hidden="true" /> <T t={dashboard["welcome.intention3"]} /></span>
         </div>
       </div>
       <div className="dashboard-garden" aria-hidden="true">
@@ -28,7 +31,7 @@ export default function DashboardWelcome({ firstVisit }: { firstVisit: boolean }
             priority
           />
         </div>
-        <span className="garden-caption">Schön, dass du da bist.</span>
+        <span className="garden-caption"><T t={dashboard["welcome.caption"]} /></span>
       </div>
     </section>
   );

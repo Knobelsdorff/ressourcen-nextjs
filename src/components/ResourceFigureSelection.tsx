@@ -16,6 +16,9 @@ import { realFigures, fictionalFigures } from '@/data/figures';
 import { ResourceFigure } from '@/lib/types/story';
 import FigureIcon from './story-flow/FigureIcon';
 import { useScrollFade } from './story-flow/useScrollFade';
+import { T, useTextFn } from "@/components/site-text/T";
+import type { TextDef } from "@/lib/site-texts/define";
+import { createStory } from "@/content/texts/createStory";
 
 interface ResourceFigureSelectionProps {
   selectedFigure: ResourceFigure | null;
@@ -56,20 +59,20 @@ const FIGURES: Record<Section, ResourceFigure[]> = {
   places: PLACE_FIGURES,
 };
 
-const SECTIONS: { id: Section; label: string }[] = [
-  { id: 'fictional', label: 'Fiktiv' },
-  { id: 'real', label: 'Real' },
-  { id: 'places', label: 'Orte' },
+const SECTIONS: { id: Section; label: TextDef }[] = [
+  { id: 'fictional', label: createStory["figure.tab.fictional"] },
+  { id: 'real', label: createStory["figure.tab.real"] },
+  { id: 'places', label: createStory["figure.tab.places"] },
 ];
 
 // Figuren, bei denen erst die Form (sie/er) feststehen muss.
-const PRONOUN_CHOICES: Record<string, [string, string]> = {
-  'partner': ['Partnerin', 'Partner'],
-  'teacher': ['Lieblingslehrerin', 'Lieblingslehrer'],
-  'sibling': ['Schwester', 'Bruder'],
-  'best-friend': ['Beste Freundin', 'Bester Freund'],
-  'pet-dog': ['Weiblich', 'Männlich'],
-  'pet-cat': ['Weiblich', 'Männlich'],
+const PRONOUN_CHOICES: Record<string, [TextDef, TextDef]> = {
+  'partner': [createStory["figure.choice.partner.she"], createStory["figure.choice.partner.he"]],
+  'teacher': [createStory["figure.choice.teacher.she"], createStory["figure.choice.teacher.he"]],
+  'sibling': [createStory["figure.choice.sibling.she"], createStory["figure.choice.sibling.he"]],
+  'best-friend': [createStory["figure.choice.bestFriend.she"], createStory["figure.choice.bestFriend.he"]],
+  'pet-dog': [createStory["figure.choice.pet.she"], createStory["figure.choice.pet.he"]],
+  'pet-cat': [createStory["figure.choice.pet.she"], createStory["figure.choice.pet.he"]],
 };
 
 const PRONOUN_OPTIONS = [
@@ -93,6 +96,7 @@ export default function ResourceFigureSelection({
   onNext,
   busy = false,
 }: ResourceFigureSelectionProps) {
+  const tx = useTextFn();
   const [section, setSection] = useState<Section>(() => sectionOf(selectedFigure));
   const [panel, setPanel] = useState<Panel>({ kind: 'grid' });
   const [preview, setPreview] = useState<ResourceFigure | null>(null);
@@ -161,11 +165,11 @@ export default function ResourceFigureSelection({
   };
 
   return (
-    <section className="story-first-stage story-figure-stage" aria-label="Figur wählen">
+    <section className="story-first-stage story-figure-stage" aria-label={tx(createStory["figure.aria"])}>
       <div className="story-first-intro">
-        <p className="story-stage-kicker">Deine Figur</p>
-        <h1>Wer soll in deiner Power Story an deiner Seite sein?</h1>
-        <p className="story-first-guidance">Eine Figur, ein lieber Mensch oder ein sicherer Ort – wähle, was dir gerade Halt gibt.</p>
+        <p className="story-stage-kicker"><T t={createStory["figure.kicker"]} /></p>
+        <h1><T t={createStory["figure.title"]} /></h1>
+        <p className="story-first-guidance"><T t={createStory["figure.guidance"]} /></p>
 
         <AnimatePresence mode="wait">
           {shown && (
@@ -190,7 +194,7 @@ export default function ResourceFigureSelection({
       </div>
 
       <div className="story-first-response story-figure-response">
-        <div className="story-figure-tabs" role="tablist" aria-label="Art der Figur">
+        <div className="story-figure-tabs" role="tablist" aria-label={tx(createStory["figure.tabsAria"])}>
           {SECTIONS.map((item) => (
             <button
               key={item.id}
@@ -199,7 +203,7 @@ export default function ResourceFigureSelection({
               aria-selected={section === item.id}
               onClick={() => changeSection(item.id)}
             >
-              {item.label}
+              <T t={item.label} />
             </button>
           ))}
         </div>
@@ -208,7 +212,7 @@ export default function ResourceFigureSelection({
           <AnimatePresence mode="wait" initial={false}>
             {panel.kind === 'grid' && (
               <motion.div key={`grid-${section}`} {...panelMotion}>
-                <div className="story-figure-grid" role="group" aria-label={SECTIONS.find((s) => s.id === section)?.label}>
+                <div className="story-figure-grid" role="group" aria-label={tx(SECTIONS.find((s) => s.id === section)!.label)}>
                   {FIGURES[section].map((figure) => {
                     const selected = selectedFigure?.id === figure.id;
                     return (
@@ -240,7 +244,7 @@ export default function ResourceFigureSelection({
                       {customSelected && selectedFigure ? <FigureIcon figure={selectedFigure} size={44} /> : <Plus size={22} strokeWidth={2} />}
                     </span>
                     <span className="story-figure-tile-name">
-                      {customSelected && selectedFigure ? selectedFigure.name : isPlaces ? 'Eigener Ort' : 'Eigene Figur'}
+                      {customSelected && selectedFigure ? selectedFigure.name : <T t={isPlaces ? createStory["figure.customPlace"] : createStory["figure.customFigure"]} />}
                     </span>
                     {customSelected && <span className="story-figure-tile-check" aria-hidden="true"><Check size={12} strokeWidth={3} /></span>}
                   </button>
@@ -256,10 +260,10 @@ export default function ResourceFigureSelection({
                   </span>
                   <div>
                     <p className="story-stage-kicker">{panel.figure.name}</p>
-                    <h2>Welche Form passt für dich?</h2>
+                    <h2><T t={createStory["figure.pronounsTitle"]} /></h2>
                   </div>
                 </div>
-                <p className="story-figure-panel-text">Damit deine Geschichte die richtigen Worte findet.</p>
+                <p className="story-figure-panel-text"><T t={createStory["figure.pronounsText"]} /></p>
                 <div className="story-first-options">
                   {(['sie/ihr', 'er/ihm'] as const).map((pronouns, i) => (
                     <button
@@ -275,26 +279,26 @@ export default function ResourceFigureSelection({
                       <span className="story-first-option-mark" aria-hidden="true">
                         {selectedFigure?.id === panel.figure.id && selectedFigure.pronouns === pronouns && <Check size={15} strokeWidth={2.5} />}
                       </span>
-                      <span>{PRONOUN_CHOICES[panel.figure.id][i]} <span className="story-option-note">({pronouns.replace('/', ' / ')})</span></span>
+                      <span><T t={PRONOUN_CHOICES[panel.figure.id][i]} /> <span className="story-option-note">({pronouns.replace('/', ' / ')})</span></span>
                     </button>
                   ))}
                 </div>
                 <button type="button" className="story-figure-panel-back" onClick={() => setPanel({ kind: 'grid' })}>
-                  <ChevronLeft size={16} aria-hidden="true" /> Andere Figur wählen
+                  <ChevronLeft size={16} aria-hidden="true" /> <T t={createStory["figure.otherFigure"]} />
                 </button>
               </motion.div>
             )}
 
             {panel.kind === 'custom' && (
               <motion.form key="custom" className="story-figure-panel story-figure-form" onSubmit={submitCustom} {...panelMotion}>
-                <h2>{isPlaces ? 'Dein eigener sicherer Ort' : 'Deine eigene Figur'}</h2>
+                <h2><T t={isPlaces ? createStory["figure.custom.placeTitle"] : createStory["figure.custom.figureTitle"]} /></h2>
                 <label>
-                  <span>{isPlaces ? 'Name des Ortes' : 'Name der Figur'}</span>
+                  <span><T t={isPlaces ? createStory["figure.custom.placeName"] : createStory["figure.custom.figureName"]} /></span>
                   <input
                     type="text"
                     value={custom.name}
                     onChange={(e) => setCustom((prev) => ({ ...prev, name: e.target.value }))}
-                    placeholder={isPlaces ? 'z. B. Mein Strand' : 'z. B. Tante Anna'}
+                    placeholder={tx(isPlaces ? createStory["figure.custom.placeNamePlaceholder"] : createStory["figure.custom.figureNamePlaceholder"])}
                     maxLength={60}
                     required
                     autoFocus
@@ -303,30 +307,30 @@ export default function ResourceFigureSelection({
                 {isPlaces ? (
                   <>
                     <label>
-                      <span>Art des Ortes <em>(optional)</em></span>
+                      <span><T t={createStory["figure.custom.placeType"]} /> <em><T t={createStory["figure.custom.optional"]} /></em></span>
                       <input
                         type="text"
                         value={custom.placeType}
                         onChange={(e) => setCustom((prev) => ({ ...prev, placeType: e.target.value }))}
-                        placeholder="z. B. Strand, Berg, Garten"
+                        placeholder={tx(createStory["figure.custom.placeTypePlaceholder"])}
                         maxLength={80}
                       />
                     </label>
                     <label>
-                      <span>Was macht ihn sicher für dich? <em>(optional)</em></span>
+                      <span><T t={createStory["figure.custom.placeSafety"]} /> <em><T t={createStory["figure.custom.optional"]} /></em></span>
                       <input
                         type="text"
                         value={custom.safetyFeatures}
                         onChange={(e) => setCustom((prev) => ({ ...prev, safetyFeatures: e.target.value }))}
-                        placeholder="z. B. Niemand kann mich hier stören"
+                        placeholder={tx(createStory["figure.custom.placeSafetyPlaceholder"])}
                         maxLength={160}
                       />
                     </label>
                   </>
                 ) : (
                   <>
-                    <div className="story-figure-form-row" role="group" aria-label="Pronomen">
-                      <span>Pronomen</span>
+                    <div className="story-figure-form-row" role="group" aria-label={tx(createStory["figure.custom.pronouns"])}>
+                      <span><T t={createStory["figure.custom.pronouns"]} /></span>
                       <div className="story-segmented">
                         {PRONOUN_OPTIONS.map((option) => (
                           <button
@@ -341,12 +345,12 @@ export default function ResourceFigureSelection({
                       </div>
                     </div>
                     <label>
-                      <span>Was macht sie besonders? <em>(optional)</em></span>
+                      <span><T t={createStory["figure.custom.special"]} /> <em><T t={createStory["figure.custom.optional"]} /></em></span>
                       <input
                         type="text"
                         value={custom.description}
                         onChange={(e) => setCustom((prev) => ({ ...prev, description: e.target.value }))}
-                        placeholder="z. B. Warm, geduldig, immer für mich da"
+                        placeholder={tx(createStory["figure.custom.specialPlaceholder"])}
                         maxLength={160}
                       />
                     </label>
@@ -354,10 +358,10 @@ export default function ResourceFigureSelection({
                 )}
                 <div className="story-figure-form-actions">
                   <button type="button" className="story-figure-panel-back" onClick={() => setPanel({ kind: 'grid' })}>
-                    <ChevronLeft size={16} aria-hidden="true" /> Abbrechen
+                    <ChevronLeft size={16} aria-hidden="true" /> <T t={createStory["figure.custom.cancel"]} />
                   </button>
                   <button type="submit" className="story-figure-form-submit" disabled={!custom.name.trim()}>
-                    Übernehmen
+                    <T t={createStory["figure.custom.submit"]} />
                   </button>
                 </div>
               </motion.form>
@@ -370,14 +374,14 @@ export default function ResourceFigureSelection({
             {selectedFigure ? (
               <>
                 <span className="story-picked-icon" aria-hidden="true"><FigureIcon figure={selectedFigure} size={26} /></span>
-                <span><span className="story-picked-label">Gewählt:</span> {selectedFigure.name}</span>
+                <span><span className="story-picked-label"><T t={createStory["figure.picked"]} /></span> {selectedFigure.name}</span>
               </>
             ) : (
-              <span className="story-picked-empty">Wähle eine Figur</span>
+              <span className="story-picked-empty"><T t={createStory["figure.pickPrompt"]} /></span>
             )}
           </div>
           <button type="button" className="story-first-next" onClick={onNext} disabled={!selectedFigure || busy || panel.kind !== 'grid'}>
-            <span>{busy ? 'Einen Moment …' : 'Weiter'}</span>
+            <span><T t={busy ? createStory["figure.busy"] : createStory["figure.next"]} /></span>
             <ArrowRight size={17} aria-hidden="true" />
           </button>
         </div>

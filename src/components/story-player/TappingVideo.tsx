@@ -15,14 +15,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Play } from "lucide-react";
+import { T, useText } from "@/components/site-text/T";
+import { player } from "@/content/texts/player";
 
 export const TAPPING_VIDEO_URL = "/videos/butterfly-hug.mp4";
 export const TAPPING_POSTER_URL = "/videos/butterfly-hug-poster.jpg";
 
 /** Klopf-Rhythmus als CSS/SVG: überkreuzte Arme, Hände klopfen abwechselnd (~1×/s je Seite). */
 export function TapAnimation({ compact = false }: { compact?: boolean }) {
+  const animationLabel = useText(player["tapping.animationAria"]);
   return (
-    <div className="sp-tap" data-compact={compact || undefined} role="img" aria-label="Animation: abwechselnd links und rechts klopfen">
+    <div className="sp-tap" data-compact={compact || undefined} role="img" aria-label={animationLabel}>
       <svg viewBox="0 0 200 150" focusable="false" aria-hidden="true">
         <circle className="sp-tap-head" cx="100" cy="40" r="21" />
         <path className="sp-tap-body" d="M34 150C34 104 62 80 100 80C138 80 166 104 166 150Z" />
@@ -35,7 +38,7 @@ export function TapAnimation({ compact = false }: { compact?: boolean }) {
       </svg>
       {!compact && (
         <p className="sp-tap-beat" aria-hidden="true">
-          <span className="sp-tap-dot sp-tap-dot--l" /> links <span className="sp-tap-sep">·</span> rechts <span className="sp-tap-dot sp-tap-dot--r" />
+          <span className="sp-tap-dot sp-tap-dot--l" /> <T t={player["tapping.left"]} /> <span className="sp-tap-sep">·</span> <T t={player["tapping.right"]} /> <span className="sp-tap-dot sp-tap-dot--r" />
         </p>
       )}
     </div>
@@ -44,6 +47,7 @@ export function TapAnimation({ compact = false }: { compact?: boolean }) {
 
 export default function TappingVideo() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const videoLabel = useText(player["tapping.videoAria"]);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const [userStarted, setUserStarted] = useState(false);
   const showFallback = autoplayBlocked && !userStarted;
@@ -79,7 +83,7 @@ export default function TappingVideo() {
         <>
           <TapAnimation />
           <button type="button" className="sp-media-play" onClick={() => setUserStarted(true)}>
-            <Play size={14} aria-hidden="true" /> Video ansehen
+            <Play size={14} aria-hidden="true" /> <T t={player["tapping.watchVideo"]} />
           </button>
         </>
       ) : (
@@ -94,7 +98,7 @@ export default function TappingVideo() {
           preload="auto"
           disablePictureInPicture
           disableRemotePlayback
-          aria-label="Video: Klopfen mit vor der Brust überkreuzten Armen, abwechselnd links und rechts"
+          aria-label={videoLabel}
         />
       )}
     </div>

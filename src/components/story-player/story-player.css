@@ -147,7 +147,7 @@
 .sp-bar-music { justify-self: end; width: min(100%, 220px); }
 .sp-bar-music:empty { display: none; }
 .sp-music-label { display: flex; justify-content: space-between; gap: 8px; color: var(--sp-ink-2); font-size: 11.5px; font-weight: 600; }
-.sp-music-label span { color: var(--sp-ink-3); font-weight: 500; font-variant-numeric: tabular-nums; }
+.sp-music-value { color: var(--sp-ink-3); font-weight: 500; font-variant-numeric: tabular-nums; }
 .sp-music-row { display: flex; align-items: center; gap: 6px; }
 .sp-music-mute { display: grid; place-items: center; flex: none; width: 32px; height: 32px; margin-left: -6px; border-radius: 50% !important; color: var(--sp-ink); }
 @media (hover: hover) { .sp-music-mute:hover { background: #49301e0a !important; } }
@@ -158,7 +158,7 @@
 @media (max-width: 899px), (max-height: 560px) {
   .sp-bar { grid-template-columns: minmax(0, 1fr) minmax(220px, 1.3fr) minmax(150px, 1fr); gap: 16px; padding-top: 8px; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
   .sp-bar-music { width: min(100%, 180px); }
-  .sp-bar-music .sp-music-inline .sp-music-label span { display: none; }
+  .sp-bar-music .sp-music-inline .sp-music-value { display: none; }
   .sp-transport { gap: 16px; }
 }
 @media (orientation: landscape) and (max-height: 560px) {

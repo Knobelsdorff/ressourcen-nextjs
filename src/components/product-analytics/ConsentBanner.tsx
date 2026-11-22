@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { type ConsentState, onConsentSettingsOpen } from "@/lib/product-analytics/consent";
+import { T, useTextFn } from "@/components/site-text/T";
+import { common } from "@/content/texts/common";
 import "./consent-banner.css";
 
 interface ConsentBannerProps {
@@ -19,6 +21,7 @@ interface ConsentBannerProps {
  */
 export default function ConsentBanner({ consent, onChoose, withGoogleAnalytics }: ConsentBannerProps) {
   const [reopened, setReopened] = useState(false);
+  const tx = useTextFn();
   const firstButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => onConsentSettingsOpen(() => setReopened(true)), []);
@@ -34,24 +37,22 @@ export default function ConsentBanner({ consent, onChoose, withGoogleAnalytics }
     onChoose(state);
   };
 
-  const tools = withGoogleAnalytics ? "PostHog (Server in der EU) und Google Analytics" : "PostHog (Server in der EU)";
+  const tools = tx(withGoogleAnalytics ? common["consent.toolsWithGa"] : common["consent.toolsPosthog"]);
 
   return (
     <section className="consent-banner" role="region" aria-labelledby="consent-banner-title" aria-describedby="consent-banner-text">
-      <h2 id="consent-banner-title">Hilfst du uns, Power Storys besser zu machen?</h2>
+      <h2 id="consent-banner-title"><T t={common["consent.title"]} /></h2>
       <p id="consent-banner-text">
-        Mit deiner Erlaubnis messen wir mit {tools}, welche Schritte beim Erstellen erreicht werden – nie deine Antworten,
-        Texte oder Geschichten. Dafür speichern wir eine zufällige Kennung in deinem Browser.{" "}
-        <a href="/Datenschutz">Mehr dazu</a>
+        <T t={common["consent.text"]} vars={{ tools }} />
       </p>
       {consent && (
         <p className="consent-banner-current">
-          Aktuell: {consent === "granted" ? "Messung erlaubt" : "Messung abgelehnt"}. Du kannst das jederzeit ändern.
+          <T t={consent === "granted" ? common["consent.currentGranted"] : common["consent.currentDenied"]} />
         </p>
       )}
       <div className="consent-banner-actions">
-        <button ref={firstButtonRef} type="button" onClick={() => choose("denied")}>Ablehnen</button>
-        <button type="button" onClick={() => choose("granted")}>Einverstanden</button>
+        <button ref={firstButtonRef} type="button" onClick={() => choose("denied")}><T t={common["consent.deny"]} /></button>
+        <button type="button" onClick={() => choose("granted")}><T t={common["consent.accept"]} /></button>
       </div>
     </section>
   );

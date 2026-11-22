@@ -33,6 +33,8 @@ import { storyTimeline } from "@/lib/story-progress";
 import { track } from "@/lib/product-analytics/client";
 import { figureProps } from "@/lib/product-analytics/events";
 import { type StoryPlayContext, storyPlayCompleted, storyPlayStarted } from "@/lib/product-analytics/story-plays";
+import { T, useTextFn } from "@/components/site-text/T";
+import { createStory } from "@/content/texts/createStory";
 
 interface Voice {
   id: string;
@@ -68,25 +70,19 @@ interface AudioPlaybackProps {
 // Voices will be loaded dynamically from API
 
 /**
- * Generiert einen figurenspezifischen Text mit korrektem Artikel
- * Sonderfall: Engel → "Die Engelsfigur ist nun für dich da."
- * Alle anderen: Artikel basierend auf Pronomen + Figurenname
+ * Figur mit Artikel am Satzanfang für "{figure} ist nun für dich da."
+ * Sonderfall: Engel → "Die Engelsfigur". Sonst Artikel nach Pronomen.
+ * Der Satz selbst steht im Text-Katalog (createStory.playback.leadFirst).
  */
-function getFigurePresenceText(figure: ResourceFigure): string {
-  // Sonderfall: Engel
-  if (figure.id === 'angel') {
-    return 'Die Engelsfigur ist nun für dich da.';
-  }
-  
-  // Artikel basierend auf Pronomen bestimmen
+function figureSubject(figure: ResourceFigure): string {
+  if (figure.id === 'angel') return 'Die Engelsfigur';
   let article = 'Die'; // Default
   if (figure.pronouns === 'er/ihm') {
     article = 'Der';
   } else if (figure.pronouns === 'es/sein') {
     article = 'Das';
   }
-  
-  return `${article} ${figure.name} ist nun für dich da.`;
+  return `${article} ${figure.name}`;
 }
 
 export default function AudioPlayback({
@@ -227,6 +223,7 @@ export default function AudioPlayback({
   const [showPostAudioCTA, setShowPostAudioCTA] = useState(false); // Show CTA after delay
   const [isFirstStoryPlayback, setIsFirstStoryPlayback] = useState<boolean | null>(null); // null = noch nicht geprüft
   const { user, session, signIn, signUp } = useAuth();
+  const tx = useTextFn();
   const router = useRouter();
 
   // Prüfe Cookie-basiertes Trust beim Mount (für zukünftige Sessions)
@@ -416,7 +413,7 @@ export default function AudioPlayback({
         await saveStoryToDatabase();
         if (onFirstStorySaved && !firstStorySaveFinished.current) {
           firstStorySaveStarted.current = false;
-          setError('Deine Story ist fertig, konnte aber noch nicht gespeichert werden. Bitte versuche es erneut.');
+          setError(tx(createStory["playback.saveFailed"]));
         }
         console.log('[AutoSave] Ressource wurde automatisch in Datenbank gespeichert');
       } catch (error) {
@@ -1085,14 +1082,14 @@ export default function AudioPlayback({
 
             
       // Spezifische Fehlermeldungen basierend auf dem Fehlertyp
-      let errorMessage = 'Failed to generate audio. Please try again.';
+      let errorMessage = tx(createStory["playback.error.generate"]);
       
       if (err.message?.includes('timeout')) {
-        errorMessage = 'Audio generation timed out. Please try again.';
+        errorMessage = tx(createStory["playback.error.timeout"]);
       } else if (err.message?.includes('network') || err.message?.includes('fetch')) {
-        errorMessage = 'Network error. Please check your connection and try again.';
+        errorMessage = tx(createStory["playback.error.network"]);
       } else if (err.message?.includes('HTTP')) {
-        errorMessage = `Server error: ${err.message}`;
+        errorMessage = tx(createStory["playback.error.server"], { message: err.message });
       } else if (err.message && err.message !== 'Failed to generate audio') {
         errorMessage = err.message;
       }
@@ -1439,7 +1436,7 @@ export default function AudioPlayback({
     };
     const updateBuffered = () => setBufferedRanges(audio.buffered);
     const handleError = () => {
-      setError('Failed to load audio. Please try regenerating.');
+      setError(tx(createStory["playback.error.load"]));
       setIsLoading(false);
     };
 
@@ -1585,7 +1582,7 @@ export default function AudioPlayback({
     const voiceAudio = audioRef.current;
     if (!voiceAudio) {
       console.error('[AudioPlayback] Audio element not found');
-      setError('Audio-Element nicht gefunden. Bitte Seite neu laden.');
+      setError(tx(createStory["playback.error.element"]));
       return;
     }
 
@@ -1641,9 +1638,9 @@ export default function AudioPlayback({
     } catch (err: any) {
       console.error('[AudioPlayback] Voice audio play failed:', err);
       if (err.name === 'NotAllowedError') {
-        setError('Bitte erlaube Audio-Wiedergabe in deinem Browser.');
+        setError(tx(createStory["playback.error.blocked"]));
       } else {
-        setError('Fehler beim Abspielen. Bitte versuche es erneut.');
+        setError(tx(createStory["playback.error.play"]));
       }
       setIsPlaying(false);
       return;
@@ -2092,7 +2089,7 @@ export default function AudioPlayback({
   useMediaSession({
     active: view === 'player',
     title: selectedFigure.name,
-    subtitle: 'Deine Power Story',
+    subtitle: tx(createStory["playback.mediaSubtitle"]),
     playing: isPlaying,
     time: currentTime,
     duration: effectiveDuration,
@@ -2117,20 +2114,18 @@ export default function AudioPlayback({
               <span className="story-first-avatar" aria-hidden="true">
                 <FigureIcon figure={selectedFigure} size={52} className="story-first-avatar-image" />
               </span>
-              <p className="story-stage-kicker">Einen Moment bitte</p>
+              <p className="story-stage-kicker"><T t={createStory["playback.errorKicker"]} /></p>
               <h1>
-                {storyGenerationError
-                  ? 'Deine Geschichte konnte gerade nicht geschrieben werden.'
-                  : 'Die Stimme konnte gerade nicht aufgenommen werden.'}
+                <T t={storyGenerationError ? createStory["playback.errorStory"] : createStory["playback.errorVoice"]} />
               </h1>
-              <p>Deine Antworten sind sicher. Meist klappt es beim zweiten Versuch.</p>
+              <p><T t={createStory["playback.errorText"]} /></p>
               <div className="story-stage-message-actions">
                 <button type="button" className="story-first-next" onClick={retryAfterFailure}>
-                  <RotateCcw size={16} aria-hidden="true" /> <span>Erneut versuchen</span>
+                  <RotateCcw size={16} aria-hidden="true" /> <span><T t={createStory["playback.retry"]} /></span>
                 </button>
                 {onChangeVoice && (
                   <button type="button" className="story-first-previous" onClick={onChangeVoice}>
-                    <span>Andere Stimme wählen</span>
+                    <span><T t={createStory["playback.otherVoice"]} /></span>
                   </button>
                 )}
               </div>
@@ -2147,7 +2142,7 @@ export default function AudioPlayback({
             <div className="sp-inline sp-root">
               <StoryPlayerLayout
                 title={selectedFigure.name}
-                subtitle="Deine Power Story"
+                subtitle={tx(createStory["playback.mediaSubtitle"])}
                 playing={isPlaying}
                 busy={audioBusy}
                 playDisabled={audioBusy}
@@ -2162,8 +2157,8 @@ export default function AudioPlayback({
                 hideTapping={showPostAudioPanel}
                 lead={!hasStartedPlayback && !showPostAudioPanel
                   ? (isFirstStoryPlayback === false
-                    ? 'Deine Power Story ist da. Du kannst dich jetzt einfach begleiten lassen – in deinem eigenen Rhythmus.'
-                    : <>Deine Power Story ist da. Du musst nichts tun. {getFigurePresenceText(selectedFigure)} Du kannst einfach zuhören – oder jederzeit pausieren.</>)
+                    ? <T t={createStory["playback.leadReturning"]} />
+                    : <T t={createStory["playback.leadFirst"]} vars={{ figure: figureSubject(selectedFigure) }} />)
                   : undefined}
                 extra={
                   <>
@@ -2177,33 +2172,29 @@ export default function AudioPlayback({
                           void saveStoryToDatabase().then(() => {
                             if (!firstStorySaveFinished.current) {
                               firstStorySaveStarted.current = false;
-                              setError('Deine Story ist fertig, konnte aber noch nicht gespeichert werden. Bitte versuche es erneut.');
+                              setError(tx(createStory["playback.saveFailed"]));
                             }
                           });
-                        }}>Speichern erneut versuchen</button>
+                        }}><T t={createStory["playback.saveRetry"]} /></button>
                       </>
                     )}
 
                     {error && !saveError && (
                       <>
                         <p className="sp-message sp-message--error" role="alert">{error}</p>
-                        <button type="button" className="sp-link sp-link--strong" onClick={() => selectedVoice && generateAudio(generatedStory, selectedVoice.id)}>Erneut versuchen</button>
+                        <button type="button" className="sp-link sp-link--strong" onClick={() => selectedVoice && generateAudio(generatedStory, selectedVoice.id)}><T t={createStory["playback.retry"]} /></button>
                       </>
                     )}
 
                     {showPostAudioPanel && (
                       <>
                         <p className="sp-message">
-                          {isFirstStoryPlayback === false
-                            ? 'Vielleicht magst du dem Gehörten noch einen Moment Raum geben.'
-                            : 'Lass das Gehörte einen Moment nachwirken.'}
+                          <T t={isFirstStoryPlayback === false ? createStory["playback.afterReturning1"] : createStory["playback.afterFirst1"]} />
                         </p>
                         <p className="sp-message sp-message--soft">
-                          {isFirstStoryPlayback === false
-                            ? 'Oder du gehst einfach weiter, wenn es sich stimmig anfühlt.'
-                            : 'Du musst nichts festhalten oder verstehen. Manchmal reicht es, etwas wirken zu lassen.'}
+                          <T t={isFirstStoryPlayback === false ? createStory["playback.afterReturning2"] : createStory["playback.afterFirst2"]} />
                         </p>
-                        <button type="button" className="sp-link" onClick={() => void restart()}>Nochmal hören</button>
+                        <button type="button" className="sp-link" onClick={() => void restart()}><T t={createStory["playback.again"]} /></button>
                         {/* Eingeloggt erst nach der Zugangsprüfung zeigen – sonst stünde kurz die falsche Beschriftung da. */}
                         {showPostAudioCTA && (!user || canCreateMore !== null) && (
                           <motion.button
@@ -2214,11 +2205,11 @@ export default function AudioPlayback({
                             transition={{ duration: 0.4 }}
                             onClick={() => void handleMoreStoriesClick()}
                           >
-                            {!user
-                              ? 'Diese Geschichte für mich behalten'
+                            <T t={!user
+                              ? createStory["playback.keepStory"]
                               : canCreateMore
-                                ? 'Neue Power Story erstellen'
-                                : 'Weitere Power Storys freischalten'}
+                                ? createStory["playback.createNew"]
+                                : createStory["playback.unlockMore"]} />
                           </motion.button>
                         )}
                       </>

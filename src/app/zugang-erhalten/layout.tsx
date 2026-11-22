@@ -1,9 +1,13 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
+import { getText } from "@/lib/site-texts/server";
+import { meta } from "@/content/texts/meta";
 
-export const metadata: Metadata = {
-  title: "Dein persönlicher Raum – Power Story",
-  description: "Erhalte Zugang zu deinem persönlichen Raum, damit deine Geschichten gespeichert bleiben.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: await getText(meta["zugangErhalten.title"]),
+    description: await getText(meta["zugangErhalten.description"]),
+  };
+}
 
 export default function ZugangErhaltenLayout({
   children,

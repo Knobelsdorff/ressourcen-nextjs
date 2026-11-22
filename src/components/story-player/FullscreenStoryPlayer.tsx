@@ -25,6 +25,8 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useDragControls, useReducedMotion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import StoryPlayerLayout, { type StoryPlayerLayoutProps } from "./StoryPlayerLayout";
+import { useTextFn } from "@/components/site-text/T";
+import { player } from "@/content/texts/player";
 
 type Rect = { top: number; right: number; bottom: number; left: number };
 
@@ -62,6 +64,7 @@ interface FullscreenStoryPlayerProps {
 }
 
 export default function FullscreenStoryPlayer({ open, onClose, originRef, returnFocusRef, layout }: FullscreenStoryPlayerProps) {
+  const tx = useTextFn();
   const [mounted, setMounted] = useState(false);
   const [rect, setRect] = useState<Rect | null>(null);
   const reduceMotion = useReducedMotion();
@@ -174,7 +177,7 @@ export default function FullscreenStoryPlayer({ open, onClose, originRef, return
               {...layout}
               top={
                 <div className="sp-handle-zone" onPointerDown={(event) => dragControls.start(event)}>
-                  <button ref={closeRef} type="button" className="sp-close" onClick={requestClose} aria-label="Player schließen">
+                  <button ref={closeRef} type="button" className="sp-close" onClick={requestClose} aria-label={tx(player["controls.close"])}>
                     <ChevronDown size={26} strokeWidth={1.8} aria-hidden="true" />
                   </button>
                 </div>

@@ -9,6 +9,8 @@
 
 import { useEffect, useRef } from "react";
 import { TAPPING_POSTER_URL } from "./TappingVideo";
+import { useText } from "@/components/site-text/T";
+import { player } from "@/content/texts/player";
 
 interface MediaSessionOptions {
   active: boolean;
@@ -34,6 +36,7 @@ export function useMediaSession(options: MediaSessionOptions) {
   const ref = useRef(options);
   ref.current = options;
   const { active, title, subtitle, playing, time, duration } = options;
+  const artist = useText(player["media.artist"]);
 
   useEffect(() => {
     const session = getSession();
@@ -43,7 +46,7 @@ export function useMediaSession(options: MediaSessionOptions) {
       if (Metadata) {
         session.metadata = new Metadata({
           title,
-          artist: "Power Storys",
+          artist,
           album: subtitle || undefined,
           artwork: [{ src: TAPPING_POSTER_URL, sizes: "748x556", type: "image/jpeg" }],
         });
@@ -67,7 +70,7 @@ export function useMediaSession(options: MediaSessionOptions) {
         try { session.setActionHandler(action, null); } catch { /* egal */ }
       }
     };
-  }, [active, title, subtitle]);
+  }, [active, title, subtitle, artist]);
 
   useEffect(() => {
     const session = getSession();

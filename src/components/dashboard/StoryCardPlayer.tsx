@@ -29,6 +29,8 @@ import { formatPlayerTime } from "@/components/story-player/StoryPlayerLayout";
 import { getActiveStory, setActiveStory, useActiveStory } from "@/components/story-player/activeStory";
 import { useMediaSession } from "@/components/story-player/useMediaSession";
 import { useTappingIntro } from "@/components/story-player/useTappingIntro";
+import { T, useTextFn } from "@/components/site-text/T";
+import { dashboard } from "@/content/texts/dashboard";
 
 export interface StoryEndAction {
   label: string;
@@ -69,6 +71,7 @@ export default function StoryCardPlayer({
   const [expanded, setExpanded] = useState(false);
   const [ended, setEnded] = useState(false);
   const rowRef = useRef<HTMLButtonElement | null>(null);
+  const tx = useTextFn();
 
   const playAnalyticsRef = useRef(playAnalytics);
   playAnalyticsRef.current = playAnalytics;
@@ -159,15 +162,16 @@ export default function StoryCardPlayer({
   });
 
   const started = isPlaying || currentTime > 0;
-  const rowLabel = isPreparingAudio ? "Wird vorbereitet …" : isPlaying ? "Läuft" : currentTime > 0 ? "Weiterhören" : "Anhören";
+  const rowLabel = <T t={isPreparingAudio ? dashboard["player.preparing"] : isPlaying ? dashboard["player.playing"] : currentTime > 0 ? dashboard["player.resume"] : dashboard["player.listen"]} />;
+  const rowAria = tx(isPlaying ? dashboard["player.ariaOpen"] : currentTime > 0 ? dashboard["player.ariaResume"] : dashboard["player.ariaListen"], { title });
   const rowTime = currentTime > 0 && duration > 0
     ? `${formatPlayerTime(currentTime)} / ${formatPlayerTime(duration)}`
     : duration > 0 ? formatPlayerTime(duration) : "";
 
   const extra = ended ? (
     <>
-      <p className="sp-message">Schön, dass du dir diese Zeit genommen hast.</p>
-      <button type="button" className="sp-link" onClick={toggle}>Nochmal hören</button>
+      <p className="sp-message"><T t={dashboard["player.endMessage"]} /></p>
+      <button type="button" className="sp-link" onClick={toggle}><T t={dashboard["player.again"]} /></button>
       {endAction && (
         <button type="button" className="sp-pill" onClick={endAction.onClick}>{endAction.label}</button>
       )}
@@ -183,7 +187,7 @@ export default function StoryCardPlayer({
         data-tour={tourAnchor}
         data-playing={isPlaying || undefined}
         onClick={() => open(!isPlaying)}
-        aria-label={`${title} ${isPlaying ? "– Player öffnen" : currentTime > 0 ? "weiterhören" : "anhören"}`}
+        aria-label={rowAria}
       >
         <span className="story-listen-play" aria-hidden="true">
           {isPlaying

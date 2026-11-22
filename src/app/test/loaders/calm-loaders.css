@@ -183,7 +183,7 @@
 .lc-card-text strong { color: var(--lc-choc); font-variant-numeric: tabular-nums; }
 .lc-card-copy { flex: 1; min-width: 0; }
 .lc-eyebrow { display: inline-flex; align-items: center; gap: 8px; color: var(--lc-choc); font-size: 10px; font-weight: 700; letter-spacing: .14em; }
-.lc-eyebrow > span { width: 8px; height: 8px; border-radius: 50%; background: var(--lc-sage-deep); }
+.lc-eyebrow > span:empty { width: 8px; height: 8px; border-radius: 50%; background: var(--lc-sage-deep); }
 .story-flow .lc-card-title { margin: 10px 0 8px; color: var(--lc-choc); font-size: clamp(20px, 2.2vw, 26px); font-weight: 700; letter-spacing: -.035em; line-height: 1.2; }
 .lc-card-text { max-width: 560px; margin: 0; color: var(--lc-text); font-size: 15px; line-height: 1.6; }
 .lc-card-breath { display: inline-flex; align-items: center; gap: 8px; margin: 16px 0 0; padding: 6px 14px 6px 10px; border-radius: 999px; background: #f3ebe1; color: var(--lc-text); font-size: 13px; font-weight: 600; }

@@ -7,9 +7,11 @@ import WellnessSurface from "./WellnessSurface";
 import AudioRecorder from "./AudioRecorder";
 import { createSPAClient } from "@/lib/supabase/client";
 import { indexedDBHelper } from "@/lib/indexedDB";
+import { T, useTextFn } from "@/components/site-text/T";
+import { adminClient } from "@/content/texts/adminClient";
 
 // Beschriftung der drei Schritte (links nach rechts)
-const STEPS = ["Aufnehmen", "Sammlung", "Versenden"] as const;
+const STEPS = [adminClient["client.step.record"], adminClient["client.step.collection"], adminClient["client.step.send"]] as const;
 
 interface ClientResourceModalProps {
   isOpen: boolean;
@@ -28,6 +30,7 @@ export default function ClientResourceModal({
   onClose,
   onSuccess
 }: ClientResourceModalProps) {
+  const tx = useTextFn();
   const [currentResourceName, setCurrentResourceName] = useState("");
   const [currentAudioBlob, setCurrentAudioBlob] = useState<Blob | null>(null);
   const [recordedResources, setRecordedResources] = useState<RecordedResource[]>([]);
@@ -199,12 +202,12 @@ export default function ClientResourceModal({
 
   const handleAddToQueue = () => {
     if (!currentResourceName.trim()) {
-      setError("Bitte gib einen Namen für die Ressource ein.");
+      setError(tx(adminClient["client.error.name"]));
       return;
     }
 
     if (!currentAudioBlob) {
-      setError("Bitte nimm zuerst eine Audio-Aufnahme auf.");
+      setError(tx(adminClient["client.error.recording"]));
       return;
     }
 
@@ -235,12 +238,12 @@ export default function ClientResourceModal({
 
   const handleSendAll = async () => {
     if (recordedResources.length === 0) {
-      setError("Bitte füge mindestens eine Ressource hinzu.");
+      setError(tx(adminClient["client.error.noResources"]));
       return;
     }
 
     if (!clientEmail.trim()) {
-      setError("Bitte gib eine Klienten-Email ein.");
+      setError(tx(adminClient["client.error.email"]));
       return;
     }
 
@@ -272,7 +275,7 @@ export default function ClientResourceModal({
 
           if (uploadError) {
             console.error(`Storage upload error for ${resource.name}:`, uploadError);
-            throw new Error(`Fehler beim Hochladen von "${resource.name}": ${uploadError.message}`);
+            throw new Error(tx(adminClient["client.error.upload"], { name: resource.name, message: uploadError.message }));
           }
 
           // Hole öffentliche URL
@@ -285,7 +288,7 @@ export default function ClientResourceModal({
             audioUrl: publicUrl,
           });
         } catch (uploadErr: any) {
-          throw new Error(`Fehler beim Hochladen von "${resource.name}": ${uploadErr.message}`);
+          throw new Error(tx(adminClient["client.error.upload"], { name: resource.name, message: uploadErr.message }));
         }
       }
 
@@ -336,7 +339,7 @@ export default function ClientResourceModal({
           ? apiErrorsText
           : data.details
             ? `${data.error}: ${data.details}`
-            : data.error || "Fehler beim Versenden der Ressourcen.";
+            : data.error || tx(adminClient["client.error.send"]);
         throw new Error(errorMessage);
       }
 
@@ -345,7 +348,7 @@ export default function ClientResourceModal({
       if (created === 0) {
         const apiErrorsText = formatApiErrors(data.errors);
         throw new Error(
-          apiErrorsText || "Keine Ressource konnte gespeichert werden. Bitte erneut versuchen."
+          apiErrorsText || tx(adminClient["client.error.noneSaved"])
         );
       }
 
@@ -377,13 +380,13 @@ export default function ClientResourceModal({
       } else {
         const detail = data.emailError ? ` (${data.emailError})` : "";
         throw new Error(
-          `Ressource wurde gespeichert, aber die E-Mail konnte nicht versendet werden${detail}. Bitte prüfe Resend/Vercel-Logs oder sende den Link manuell erneut.`
+          tx(adminClient["client.error.emailFailed"], { detail })
         );
       }
 
     } catch (err: any) {
       console.error("Error sending resources:", err);
-      setError(err.message || "Fehler beim Versenden der Ressourcen. Bitte versuche es erneut.");
+      setError(err.message || tx(adminClient["client.error.sendRetry"]));
     } finally {
       setIsUploading(false);
     }
@@ -426,15 +429,15 @@ export default function ClientResourceModal({
             <div className="flex items-start justify-between sm:mb-6 mb-5">
               <div>
                 <h2 id="client-resource-title" className="sm:text-2xl text-lg font-light text-primary-900">
-                  Ressource für Klienten erstellen
+                  <T t={adminClient["client.title"]} />
                 </h2>
                 <p className="sm:text-sm text-xs text-primary-700 mt-1">
-                  Du kannst mehrere Aufnahmen sammeln und gemeinsam versenden.
+                  <T t={adminClient["client.intro"]} />
                 </p>
               </div>
               <button
                 onClick={handleClose}
-                aria-label="Schließen"
+                aria-label={tx(adminClient["client.close"])}
                 disabled={isUploading}
                 className="sm:p-2 p-1.5 -mr-1 text-primary-700 hover:text-primary-900 hover:bg-primary-50 rounded-full transition-colors disabled:opacity-50"
               >
@@ -443,7 +446,7 @@ export default function ClientResourceModal({
             </div>
 
             {/* Stepper: links nach rechts */}
-            <nav aria-label="Fortschritt">
+            <nav aria-label={tx(adminClient["client.progress"])}>
               <ol className="flex items-center gap-2">
                 {STEPS.map((label, index) => {
                   const stepNumber = (index + 1) as 1 | 2 | 3;
@@ -455,7 +458,7 @@ export default function ClientResourceModal({
 
                   return (
                     <li
-                      key={label}
+                      key={label.key}
                       className="flex items-center gap-2 flex-1 last:flex-none"
                     >
                       <button
@@ -487,7 +490,7 @@ export default function ClientResourceModal({
                               : "text-primary-400"
                           }`}
                         >
-                          {label}
+                          <T t={label} />
                         </span>
                       </button>
                       {index < STEPS.length - 1 && (
@@ -504,7 +507,7 @@ export default function ClientResourceModal({
               </ol>
               {/* Aktueller Schritt auf Mobile als Text */}
               <p className="sm:hidden text-sm text-primary-900 font-medium mt-3">
-                {STEPS[step - 1]}
+                <T t={STEPS[step - 1]} />
               </p>
             </nav>
           </div>
@@ -527,12 +530,12 @@ export default function ClientResourceModal({
                     <div className="min-w-0">
                       <p className="text-primary-900 max-sm:text-sm">
                         {sentCount > 1
-                          ? `${sentCount} Ressourcen erfolgreich versendet`
-                          : "Ressource erfolgreich versendet"}
+                          ? <T t={adminClient["client.sentMany"]} vars={{ count: sentCount }} />
+                          : <T t={adminClient["client.sentOne"]} />}
                       </p>
                       {sentEmail && (
                         <p className="text-primary-700 sm:text-sm text-xs mt-1 leading-snug">
-                          Eine Email wurde an {sentEmail} verschickt. Die Ressourcen erscheinen nicht in deinem Dashboard, sondern werden dem Klienten nach Login/Registrierung zugeordnet.
+                          <T t={adminClient["client.sentNote"]} vars={{ email: sentEmail }} />
                         </p>
                       )}
                     </div>
@@ -570,7 +573,7 @@ export default function ClientResourceModal({
                     htmlFor="resource-name"
                     className="block text-sm text-primary-700 mb-2"
                   >
-                    Name der Ressource
+                    <T t={adminClient["client.nameLabel"]} />
                   </label>
                   <input
                     id="resource-name"
@@ -580,7 +583,7 @@ export default function ClientResourceModal({
                       setCurrentResourceName(e.target.value);
                       setError("");
                     }}
-                    placeholder="z.B. Oma, Engel, Krafttier..."
+                    placeholder={tx(adminClient["client.namePlaceholder"])}
                     className="w-full sm:px-4 px-3 sm:py-2.5 py-2 bg-white border border-primary-400 rounded-lg text-primary-900 placeholder:text-primary-500/60 focus:outline-none focus:border-primary-700 focus:ring-1 focus:ring-primary-700 transition-colors max-sm:text-sm"
                   />
                 </div>
@@ -603,8 +606,7 @@ export default function ClientResourceModal({
               >
                 <div className="flex items-baseline justify-between mb-3">
                   <p className="text-sm text-primary-700">
-                    {recordedResources.length} Aufnahme
-                    {recordedResources.length !== 1 ? "n" : ""} gesammelt
+                    <T t={adminClient["client.collected"]} vars={{ count: recordedResources.length }} />
                   </p>
                   <button
                     type="button"
@@ -612,7 +614,7 @@ export default function ClientResourceModal({
                     className="inline-flex items-center gap-1.5 text-sm text-primary-700 hover:text-primary-900 font-medium transition-colors"
                   >
                     <Plus className="w-4 h-4" />
-                    Weitere aufnehmen
+                    <T t={adminClient["client.recordMore"]} />
                   </button>
                 </div>
 
@@ -640,7 +642,7 @@ export default function ClientResourceModal({
                           <button
                             onClick={() => handleRemoveFromQueue(resource.id)}
                             className="p-1.5 -mr-1 text-primary-600 hover:text-primary-900 hover:bg-primary-50 rounded-md transition-colors flex-shrink-0"
-                            title="Entfernen"
+                            title={tx(adminClient["client.remove"])}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -651,7 +653,7 @@ export default function ClientResourceModal({
                 ) : (
                   <div className="border border-primary-300 border-dashed rounded-lg sm:py-10 py-8 text-center">
                     <p className="text-sm text-primary-700">
-                      Noch keine Aufnahmen gesammelt.
+                      <T t={adminClient["client.noRecordings"]} />
                     </p>
                   </div>
                 )}
@@ -669,24 +671,22 @@ export default function ClientResourceModal({
                   htmlFor="client-email"
                   className="block text-sm text-primary-700 mb-2"
                 >
-                  E-Mail-Adresse des Klienten
+                  <T t={adminClient["client.emailLabel"]} />
                 </label>
                 <input
                   id="client-email"
                   type="email"
                   value={clientEmail}
                   onChange={(e) => setClientEmail(e.target.value)}
-                  placeholder="klient@beispiel.de"
+                  placeholder={tx(adminClient["client.emailPlaceholder"])}
                   className="w-full sm:px-4 px-3 sm:py-2.5 py-2 bg-white border border-primary-400 rounded-lg text-primary-900 placeholder:text-primary-500/60 focus:outline-none focus:border-primary-700 focus:ring-1 focus:ring-primary-700 transition-colors max-sm:text-sm"
                 />
                 <p className="mt-2 sm:text-sm text-xs text-primary-700 leading-snug">
-                  Der Klient erhält eine E‑Mail mit Zugangslink. Die Ressourcen
-                  erscheinen nicht in deinem Dashboard, sondern werden nach dem
-                  Login automatisch seinem Account zugeordnet.
+                  <T t={adminClient["client.emailNote"]} />
                 </p>
 
                 <div className="mt-6 pt-5 border-t border-primary-200">
-                  <p className="text-sm text-primary-700 mb-3">Wird versendet</p>
+                  <p className="text-sm text-primary-700 mb-3"><T t={adminClient["client.willSend"]} /></p>
                   <ul className="space-y-1.5">
                     {recordedResources.map((resource, index) => (
                       <li
@@ -716,7 +716,7 @@ export default function ClientResourceModal({
               disabled={isUploading}
               className="sm:px-4 px-3 py-2 text-primary-700 hover:text-primary-900 font-medium transition-colors disabled:opacity-50 max-sm:text-sm"
             >
-              {step === 1 ? "Abbrechen" : "Zurück"}
+              <T t={step === 1 ? adminClient["client.cancel"] : adminClient["client.back"]} />
             </button>
 
             {step === 1 && (
@@ -725,7 +725,7 @@ export default function ClientResourceModal({
                 disabled={!currentResourceName.trim() || !currentAudioBlob}
                 className="sm:px-5 px-4 py-2 bg-primary-700 hover:bg-primary-800 text-white rounded-md font-medium transition-colors disabled:bg-primary-200 disabled:text-primary-500 disabled:cursor-not-allowed flex items-center gap-2 max-sm:text-sm"
               >
-                <span>Aufnahme übernehmen</span>
+                <span><T t={adminClient["client.addRecording"]} /></span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             )}
@@ -736,7 +736,7 @@ export default function ClientResourceModal({
                 disabled={recordedResources.length === 0}
                 className="sm:px-5 px-4 py-2 bg-primary-700 hover:bg-primary-800 text-white rounded-md font-medium transition-colors disabled:bg-primary-200 disabled:text-primary-500 disabled:cursor-not-allowed flex items-center gap-2 max-sm:text-sm"
               >
-                <span>Weiter</span>
+                <span><T t={adminClient["client.next"]} /></span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             )}
@@ -754,11 +754,11 @@ export default function ClientResourceModal({
                 {isUploading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Wird versendet...</span>
+                    <span><T t={adminClient["client.sending"]} /></span>
                   </>
                 ) : (
                   <span>
-                    Versenden
+                    <T t={adminClient["client.send"]} />
                     {recordedResources.length > 0 && ` (${recordedResources.length})`}
                   </span>
                 )}

@@ -18,10 +18,9 @@ import Slider from "./Slider";
 import TappingVideo from "./TappingVideo";
 import MusicControl from "./MusicControl";
 import "./story-player.css";
+import { T, useTextFn } from "@/components/site-text/T";
+import { player } from "@/content/texts/player";
 
-export const TAPPING_TITLE = "Begleite deine Geschichte mit sanftem Klopfen";
-export const TAPPING_TEXT =
-  "Klopfe abwechselnd links und rechts, wie im Video gezeigt. Das kann dir helfen, noch bewusster in die Geschichte einzutauchen.";
 
 export function formatPlayerTime(seconds: number) {
   if (!isFinite(seconds) || seconds < 0) return "0:00";
@@ -85,6 +84,7 @@ export default function StoryPlayerLayout({
   hideTapping = false,
   top,
 }: StoryPlayerLayoutProps) {
+  const tx = useTextFn();
   const progress = duration > 0 ? Math.min(1, Math.max(0, time / duration)) : 0;
   const canSeek = duration > 0;
 
@@ -102,15 +102,15 @@ export default function StoryPlayerLayout({
             <TappingVideo />
           </motion.div>
 
-          <aside className="sp-hint" aria-label="Klopfen">
+          <aside className="sp-hint" aria-label={tx(player["tapping.aria"])}>
             {lead && <p className="sp-lead">{lead}</p>}
             {!hideTapping && (
               <>
-                <h2>{TAPPING_TITLE}</h2>
-                {explainOpen && <p className="sp-hint-text">{TAPPING_TEXT}</p>}
+                <h2><T t={player["tapping.title"]} /></h2>
+                {explainOpen && <p className="sp-hint-text"><T t={player["tapping.text"]} /></p>}
                 <button type="button" className="sp-hint-toggle" onClick={onToggleExplain} aria-expanded={explainOpen}>
                   <Info size={14} strokeWidth={2} aria-hidden="true" />
-                  {explainOpen ? "Weniger anzeigen" : "So geht's"}
+                  <T t={explainOpen ? player["tapping.less"] : player["tapping.how"]} />
                 </button>
               </>
             )}
@@ -119,7 +119,7 @@ export default function StoryPlayerLayout({
         </div>
       </main>
 
-      <footer className="sp-bar" aria-label="Wiedergabe">
+      <footer className="sp-bar" aria-label={tx(player["controls.bar"])}>
         <div className="sp-bar-info">
           <p className="sp-bar-title">{title}</p>
           {subtitle && <p className="sp-bar-sub">{subtitle}</p>}
@@ -127,7 +127,7 @@ export default function StoryPlayerLayout({
 
         <div className="sp-bar-center">
           <div className="sp-transport">
-            <button type="button" className="sp-glyph" onClick={() => onSkip(-15)} disabled={!canSeek} aria-label="15 Sekunden zurück">
+            <button type="button" className="sp-glyph" onClick={() => onSkip(-15)} disabled={!canSeek} aria-label={tx(player["controls.back15"])}>
               <SkipIcon direction="back" />
             </button>
             <button
@@ -135,14 +135,14 @@ export default function StoryPlayerLayout({
               className="sp-play"
               onClick={onToggle}
               disabled={playDisabled}
-              aria-label={busy && !playing ? "Wird geladen" : playing ? "Pause" : "Abspielen"}
+              aria-label={tx(busy && !playing ? player["controls.loading"] : playing ? player["controls.pause"] : player["controls.play"])}
               data-busy={busy || undefined}
             >
               {playing
                 ? <Pause size={22} fill="currentColor" strokeWidth={0} aria-hidden="true" />
                 : <Play size={22} fill="currentColor" strokeWidth={0} className="sp-play-icon" aria-hidden="true" />}
             </button>
-            <button type="button" className="sp-glyph" onClick={() => onSkip(15)} disabled={!canSeek} aria-label="15 Sekunden vor">
+            <button type="button" className="sp-glyph" onClick={() => onSkip(15)} disabled={!canSeek} aria-label={tx(player["controls.forward15"])}>
               <SkipIcon direction="forward" />
             </button>
           </div>
@@ -151,8 +151,8 @@ export default function StoryPlayerLayout({
             <Slider
               value={progress}
               onCommit={(value) => canSeek && onSeek(value * duration)}
-              label="Position in der Geschichte"
-              valueText={`${formatPlayerTime(time)} von ${formatPlayerTime(duration)}`}
+              label={tx(player["controls.position"])}
+              valueText={tx(player["controls.positionValue"], { time: formatPlayerTime(time), duration: formatPlayerTime(duration) })}
               disabled={!canSeek}
               step={15 / Math.max(duration, 15)}
               className="sp-progress-slider"

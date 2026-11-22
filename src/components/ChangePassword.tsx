@@ -3,6 +3,8 @@ import React, { useState } from 'react'
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/auth-provider";
+import { T, useTextFn } from "@/components/site-text/T";
+import { account } from "@/content/texts/account";
 
 const ChangePassword = () => {
     const [passwordLoading, setPasswordLoading] = useState(false);
@@ -13,6 +15,7 @@ const ChangePassword = () => {
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const { user } = useAuth();
+    const tx = useTextFn();
 
     // change password func
     const handleChangePassword = async (e: React.FormEvent) => {
@@ -21,17 +24,17 @@ const ChangePassword = () => {
         setPasswordSuccess('');
 
         if (!user?.email) {
-            setPasswordError('Nicht eingeloggt');
+            setPasswordError(tx(account["changePassword.notLoggedIn"]));
             return;
         }
 
         if (newPassword.length < 8) {
-            setPasswordError('Neues Passwort muss mindestens 8 Zeichen haben');
+            setPasswordError(tx(account["changePassword.tooShort"]));
             return;
         }
 
         if (newPassword !== confirmPassword) {
-            setPasswordError('Passwörter stimmen nicht überein');
+            setPasswordError(tx(account["changePassword.mismatch"]));
             return;
         }
 
@@ -45,7 +48,7 @@ const ChangePassword = () => {
             });
 
             if (signInError) {
-                setPasswordError('Aktuelles Passwort ist falsch');
+                setPasswordError(tx(account["changePassword.wrongCurrent"]));
                 return;
             }
 
@@ -60,7 +63,7 @@ const ChangePassword = () => {
             }
 
             // 3️⃣ Success
-            setPasswordSuccess('Passwort erfolgreich geändert');
+            setPasswordSuccess(tx(account["changePassword.success"]));
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
@@ -69,7 +72,7 @@ const ChangePassword = () => {
                 setPasswordSuccess('')
             }, 500);
         } catch (err) {
-            setPasswordError('Unerwarteter Fehler');
+            setPasswordError(tx(account["changePassword.unexpected"]));
         } finally {
             setPasswordLoading(false);
         }
@@ -88,8 +91,8 @@ const ChangePassword = () => {
             <button onClick={() => setChangePassword(true)} className="flex items-center gap-3 sm:p-4 px-4 py-3 w-full bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
                 <Key className="w-5 h-5 text-blue-600" />
                 <div className="text-left">
-                    <p className="font-medium text-blue-900">Passwort ändern</p>
-                    <p className="text-blue-700 text-sm">Sicherheitseinstellungen</p>
+                    <p className="font-medium text-blue-900"><T t={account["changePassword.button"]} /></p>
+                    <p className="text-blue-700 text-sm"><T t={account["changePassword.buttonSub"]} /></p>
                 </div>
             </button>
             {changePassword && (
@@ -104,12 +107,12 @@ const ChangePassword = () => {
                         </div>
             
                         <h2 className="sm:text-2xl text-xl font-bold text-amber-900 mb-2 text-center">
-                        Passwort ändern
+                        <T t={account["changePassword.title"]} />
                         </h2>
                         <form onSubmit={handleChangePassword} className="space-y-3">
                             <input
                                 type="password"
-                                placeholder="Aktuelles Passwort"
+                                placeholder={tx(account["changePassword.current"])}
                                 value={currentPassword}
                                 onChange={(e) => setCurrentPassword(e.target.value)}
                                 className="w-full p-2 border sm:text-base text-sm rounded"
@@ -117,7 +120,7 @@ const ChangePassword = () => {
 
                             <input
                                 type="password"
-                                placeholder="Neues Passwort"
+                                placeholder={tx(account["changePassword.new"])}
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
                                 className="w-full p-2 border sm:text-base text-sm rounded"
@@ -125,7 +128,7 @@ const ChangePassword = () => {
 
                             <input
                                 type="password"
-                                placeholder="Neues Passwort bestätigen"
+                                placeholder={tx(account["changePassword.confirm"])}
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 className="w-full p-2 border sm:text-base text-sm rounded"
@@ -139,14 +142,14 @@ const ChangePassword = () => {
                                     className="text-amber-600 px-6 py-2 rounded-lg border border-amber-600 hover:bg-slate-200 transition-all duration-300 font-medium max-sm:text-sm max-sm:w-full"
                                     onClick={handleClose}
                                 >
-                                    {'Cancel'}
+                                    <T t={account["changePassword.cancel"]} />
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={passwordLoading}
                                     className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-2.5 rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-300 font-medium max-sm:text-sm max-sm:w-full"
                                 >
-                                    {passwordLoading ? 'Speichern...' : 'Passwort ändern'}
+                                    <T t={passwordLoading ? account["changePassword.saving"] : account["changePassword.submit"]} />
                                 </button>
                             </div>
                         </form>

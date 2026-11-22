@@ -1,102 +1,147 @@
-# Inline text editor for admins – plan
+# Bearbeitbare Seitentexte (Admin-Texteditor)
 
-Status: **prototype** at `/test/text-editor` (localStorage instead of the DB). Waiting for go-ahead.
+Jeder sichtbare Text der Website kann von Admins bearbeitet werden – direkt auf
+der Seite oder unter `/admin/texte`. Änderungen werden zuerst als **Entwurf**
+gespeichert und erst mit **Veröffentlichen** für alle sichtbar.
 
-## What the admin experiences
+## Einrichten (einmalig)
 
-1. Admin is logged in → small "Texte bearbeiten" button bottom-left (visitors see nothing).
-2. Click → dark bar on top: *Bearbeitungsmodus · Weitere Texte · Verlauf · N Änderungen · Verwerfen · Speichern · Fertig*.
-3. Every editable text gets a faint outline. Hover → blue outline + pencil. Click pencil (or the text, needed on phones) → type directly in place, in the real layout.
-4. Enter = apply, Shift+Enter = new line, Esc = cancel, click elsewhere = apply. Changed texts are highlighted yellow.
-5. "N Änderungen" shows old → new for each change, with undo per item. **Speichern** (or Ctrl+S) publishes everything at once.
-6. Texts without a visible spot (input placeholders, error messages, success messages) are edited in the "Weitere Texte" panel.
-7. "Verlauf" lists past saves and can bring back any previous version. Every text has "Original" to go back to the text in the code.
+1. In Supabase (SQL Editor) ausführen:
+   `supabase/migrations/20261120120000_site_texts.sql`
+   – zurück: `supabase/rollback/20261120120000_site_texts_down.sql`
+2. Fertig. Bearbeiten dürfen alle E-Mails aus `NEXT_PUBLIC_ADMIN_EMAILS`
+   (volle Admins, keine Musik-Admins). Optional `ADMIN_EMAILS` (nur Server) setzen –
+   dann gilt diese Liste. Wer dort steht, muss aktuell auch in
+   `NEXT_PUBLIC_ADMIN_EMAILS` stehen, sonst erscheint der Knopf nicht.
 
-Unsaved changes survive navigating between pages (dashboard → create-story) and the browser warns before closing the tab.
+Ohne Migration läuft die Seite normal weiter: überall erscheinen die
+Original-Texte, der Editor meldet „Text-Tabellen fehlen“.
 
-## Why explicit keys instead of "detect all text on the page"
+## Für Admins
 
-Auto-detecting DOM text (by path or by the text itself) breaks as soon as a developer changes markup or copy, and React re-renders overwrite DOM edits. Instead each text gets a stable key once:
+- Angemeldet erscheint unten links **„Texte bearbeiten“**.
+- Text anklicken (oder Stift) → direkt tippen → **Enter** übernimmt
+  (Shift+Enter = neue Zeile, Esc = abbrechen). Übernommen = Entwurf, automatisch gespeichert.
+- **Diese Seite**: alle Texte der Seite, auch ohne festen Platz (Platzhalter,
+  Fehlermeldungen, Alternativtexte, andere Zustände).
+- **Vorschau**: Seite mit Entwürfen so ansehen, wie Besucher sie sehen würden.
+- **Veröffentlichen**: Liste alt → neu mit „von wem · wann“. Vorausgewählt sind
+  nur die eigenen Entwürfe (Entwürfe anderer Admins sind markiert; „Alle“ /
+  „Nur meine“ / „Keine“), dann live.
+- **Verlauf**: wer hat wann was veröffentlicht; jede frühere Version lässt sich
+  als Entwurf zurückholen. **Original** setzt auf den Text aus dem Code zurück.
+- **Buttons/Links benutzen**: Ein Klick auf einen Text öffnet den Editor. Liegt
+  der Text in einem Button oder Link, erscheint beim Überfahren zusätzlich
+  **„Klicken“ / „Link öffnen“** (auch in der Werkzeugleiste, für Touch) – so
+  lassen sich Menüs, Player und andere Seiten im Bearbeitungsmodus öffnen.
+- Offene Eingaben gehen nicht verloren: Vorschau, Fertig und „Alle Texte“
+  übernehmen sie zuerst; beim Schließen/Neuladen fragt der Browser nach.
+- Ist ein Fenster der Seite offen (Player, Einstellungen …), wird die Leiste
+  zu einer kleinen Pille oben in der Mitte, damit dessen Knöpfe frei bleiben.
+- **Browser-Übersetzung**: Bearbeiten/Vorschau sperren die Übersetzung. Ist die
+  Seite schon übersetzt, startet der Editor nicht (Hinweis „Original anzeigen“
+  + neu laden) – sonst würden Texte doppelt erscheinen oder übersetzt gespeichert.
+- Variablen wie `{name}` erscheinen als Chips mit Erklärung – Klick fügt ein.
+  Unbekannte Variablen werden abgelehnt, fehlende als Hinweis gemeldet.
+- Fett/Links (`**fett**`, `[Text](/pfad)`) nur bei Texten, die das erlauben.
+  Impressum/Datenschutz haben einen großen Editor mit Vorschau
+  (Überschriften, Listen).
+- `/admin/texte`: alle Texte, Suche, Filter (Entwürfe, geändert,
+  „Original im Code geändert“), Veröffentlichen, Verlauf.
+- Ausprobieren ohne Risiko: `/test/text-editor` (speichert nur im Browser).
 
-```tsx
-<motion.h1 variants={item} className="font-bold">
-  <T k="landing.hero.title">Finde innere Ruhe und fühl dich sicher und geborgen</T>
-</motion.h1>
+## Wie es funktioniert
 
-const placeholder = useSiteText("createStory.figure.placeholder", "Eine Figur, ein Thema, eine Idee …");
+```
+src/content/texts/<bereich>.ts   Katalog: Schlüssel + Original-Text (Code)
+src/content/texts/index.ts       alle Bereiche (nur Server + Editor)
+src/lib/site-texts/              define, format (Prüfung, Auszeichnung), render, server, API-Helfer
+src/components/site-text/        SiteTextProvider, <T>, useText, Editor (lazy, nur Admins)
+src/app/api/admin/site-texts/    session, GET, drafts, publish, history
+src/app/admin/texte/             Übersicht
 ```
 
-- The text in the code stays the **default**. If no override exists, nothing changes.
-- Surrounding markup, animations, classes stay as they are. Migration is pure wrapping.
-- Placeholders like `{name}` are supported (`vars={{ name }}`); the editor refuses to save if one is deleted.
-- Key naming: `page.section.element` (e.g. `dashboard.welcome.title`).
+- **Datenbank** speichert nur Abweichungen: `site_texts` (live),
+  `site_text_drafts` (Entwürfe, `value = NULL` = zurück aufs Original),
+  `site_text_revisions` (Verlauf). RLS an, keine Policies – nur der Server
+  (Service Role) liest und schreibt.
+- **Lesen kostet nichts**: Das Root-Layout holt die veröffentlichten Texte über
+  `unstable_cache` (Tag `site-texts`). Besucher lösen keine DB-Abfrage aus;
+  gelesen wird erst nach dem nächsten Veröffentlichen wieder
+  (`revalidateTag`). Seiten bleiben statisch (stündliche Auffrischung als Netz).
+- **Schreiben**: eine API-Route pro Aktion, Admin-Prüfung über die
+  Supabase-Session (Cookie), Prüfung gegen den Katalog (Schlüssel existiert,
+  Variablen, Länge, Link-Ziele), Veröffentlichen in **einer** Transaktion
+  (`publish_site_texts`).
+- **Besucher-Bundle**: `<T>` rendert nur den String, kein Wrapper-Element.
+  Editor-Code und der Gesamtkatalog werden nur für Admins nachgeladen. Jede
+  Seite lädt nur die Katalogdateien, die sie importiert.
+- **Sicherheit**: Texte werden nie als HTML eingefügt. Auszeichnung wird in
+  React-Elemente übersetzt; Links nur `/pfad`, `#anker`, `https://`, `mailto:`, `tel:`.
 
-## Database (Supabase)
+## Neue Texte / neue Seite (für Entwickler)
 
-```sql
-create table public.site_texts (
-  key              text primary key check (key ~ '^[a-zA-Z0-9_.-]{3,120}$'),
-  value            text not null check (char_length(value) between 1 and 5000),
-  default_snapshot text,               -- code default at time of edit
-  updated_at       timestamptz not null default now(),
-  updated_by       uuid references auth.users(id)
-);
+1. Text in den passenden Katalog schreiben (oder neuen Bereich anlegen und in
+   `src/content/texts/index.ts` eintragen):
 
-create table public.site_text_revisions (
-  id         bigint generated always as identity primary key,
-  key        text not null,
-  old_value  text,                     -- null = was the code default
-  new_value  text,                     -- null = reset to code default
-  changed_by uuid references auth.users(id),
-  changed_at timestamptz not null default now()
-);
+   ```ts
+   export const beispiel = defineTexts("beispiel", {
+     "hero.title": { text: "Willkommen", label: "Hero: Überschrift" },
+     "hero.hint": { text: "Hallo {name}!", vars: { name: "Vorname" }, label: "Hero: Gruß" },
+     "list.count": { one: "1 Eintrag", other: "{count} Einträge" },          // Plural
+     "legal.block": { text: "## Titel\nAbsatz", format: "markdown" },          // langer Text
+     "cta.note": { text: "Mehr unter [FAQ](/faq)", format: "inline" },        // fett/Links
+   });
+   ```
 
-alter table public.site_texts enable row level security;
-alter table public.site_text_revisions enable row level security;
-create policy "site_texts readable by everyone" on public.site_texts for select using (true);
--- no insert/update/delete policies: writes only through the API route (service role)
-```
+2. Im Code verwenden:
 
-Saving uses one RPC (`save_site_texts(changes jsonb, actor uuid)`) so upserts, deletes (reset to original) and revision rows commit in a single transaction. A rollback SQL file goes into `supabase/rollback/` like the other migrations.
+   ```tsx
+   <T t={beispiel["hero.title"]} />
+   <T t={beispiel["hero.hint"]} vars={{ name }} />
+   <T t={beispiel["list.count"]} vars={{ count }} />
+   <TextBlock t={beispiel["legal.block"]} classNames={{ h2: "…", p: "…" }} />
+   const placeholder = useText(beispiel["hero.title"]);      // String (placeholder, aria-label …)
+   const tx = useTextFn(); alert(tx(beispiel["hero.hint"], { name }));   // in Callbacks
+   const title = await getText(meta["site.title"]);            // Server (Metadaten, Server Actions)
+   ```
 
-## Data flow
+Regeln:
 
-- **Read:** root `layout.tsx` (server) loads all overrides with `unstable_cache(..., { tags: ["site-texts"] })` and passes them to `<SiteTextProvider>`. That's a few hundred short rows, a few KB, cached, so visitors see the final text in the first HTML. No flicker, and correct for SEO.
-- **Write:** `POST /api/admin/site-texts` → server checks the session user against a **server-only** `ADMIN_EMAILS` (the current `NEXT_PUBLIC_ADMIN_EMAILS` is visible in the browser bundle, so it's fine for showing UI but not for authorizing writes) → validates keys, length, placeholders → RPC → `revalidateTag("site-texts")`. All visitors get the new text immediately.
-- **Conflicts:** the request sends the `updated_at` each text had when loaded. If another admin saved the same key in between, the API returns 409 and the editor shows "was changed by someone else – reload or overwrite".
-- **Code default changed later:** if `default_snapshot` ≠ current default, the editor shows a badge "Original im Code wurde geändert" so nobody silently keeps outdated copy.
-- **Bundle size:** the editor (bar, panels, contentEditable logic) is loaded with `next/dynamic` only when the user is an admin. Visitors only get the tiny `<T>` that renders a string.
+- **Schlüssel nie umbenennen**, wenn der Text schon bearbeitet sein könnte – die
+  Änderung hinge sonst am alten Schlüssel (erscheint in `/admin/texte` als
+  „nicht mehr verwendet“). Original-Text ändern ist dagegen gefahrlos: Der
+  Editor zeigt dann „Original im Code geändert“.
+- Grammatik bleibt im Code: Wo Artikel von der Figur abhängen („deine Oma“,
+  „den Erzengel Michael“), setzt der Code eine Variable ein und nur der Satz ist
+  bearbeitbar (siehe `createStory.voice.subline`).
+- `label` kurz und für Admins verständlich halten – es steht in Panels und Verlauf.
+- `multiline: false` für Buttons und Überschriften, die keine Zeilenumbrüche haben dürfen.
 
-## Safety details already solved in the prototype
+## Bewusst nicht enthalten
 
-- Clicking a text inside a button or link opens the editor and does **not** trigger the button. That includes Chrome firing a parent `<button>` on space keyup.
-- Paste inserts plain text only. Rendering is always plain text (no `dangerouslySetInnerHTML`), so no XSS.
-- Empty texts and removed `{placeholders}` are rejected.
-- The same key rendered twice (mobile + desktop variants of a section) updates everywhere.
+- Inhalte aus `src/data` (Figuren, Fragen, Antwortvorschläge, FAQ-Daten) und
+  KI-Prompts – das sind strukturierte Inhalte; eigener Schritt bei Bedarf.
+- E-Mails (`src/lib/email.ts`) und die Auth-E-Mail-Vorlagen im Supabase-Dashboard.
+- Seiten, die nirgends verlinkt sind (`/faq` auf Englisch, `/dashboard/user-settings`,
+  `/subscription`, alte Landing-Varianten) und toter Code (z. B. `AccountCreated`,
+  das alte Anmelde-Modal in `AudioPlayback`, `playAudio` im Dashboard).
+- Technische Diagnosemeldungen im Musik-Test des Admin-Bereichs (mit URLs/Status).
+- Die Oberfläche des Editors selbst.
 
-## Scope
+## Status (2026-11-21)
 
-| Area | Approx. strings | Notes |
-|---|---|---|
-| Landing page sections | ~160 | first, highest value |
-| Dashboard + onboarding dialog | ~80 | `dashboard/page.tsx` is 3600 lines, so wrap carefully |
-| Create-story flow, voice/figure selection | ~40 | incl. placeholders and error messages via panel |
-| Header, footer, FAQ | ~40 | |
-| Later / optional | | page `<title>`/OG meta, email templates, Impressum/Datenschutz as long blocks |
+Umgesetzt auf Branch `feature/site-texts` (nicht committet): Startseite, Kopf-/Fußzeile,
+Einwilligungs-Banner, Dashboard inkl. Einstellungen und Dialogen, Story-Erstellung
+(Figur, Fragen, Stimme, Name, Warten, Player), Engel-Flow (E-Mail-Schritt), Player &
+Musik, Zugang/Passwort/Bezahl-Dialoge, Profil, `/figur`, Seitentitel & Link-Vorschau,
+Impressum & Datenschutz, Admin-Bereich (Menü, Kostprobe, Analytics, Musik, manuelle
+Ressource). Rund 1.000 Texte in 12 Bereichen.
 
-Not in scope: AI-generated story content, AI prompts, user data.
-
-**Formatting in v1:** plain text + line breaks. If bold words or links inside a sentence are needed, v2 adds a tiny markup (`**fett**`, `[Text](/link)`) rendered safely, never raw HTML.
-
-## Phases
-
-1. **Foundation** (~2 days): migration + rollback, RPC, API route with server-side admin check, provider in root layout, `<T>`/`useSiteText`, edit bar, history, conflict check. Move the prototype from `src/app/test/text-editor/_site-text/` to `src/components/site-text/`.
-2. **Landing page** (~0.5–1 day): wrap all sections. Copy stays byte-identical until someone edits.
-3. **Dashboard + create-story + header/footer** (~2 days).
-4. **Optional:** inline markup, meta tags, emails, "who changed what" in history.
-
-## Open questions
-
-1. Who may edit: only `NEXT_PUBLIC_ADMIN_EMAILS` admins, or music admins too?
-2. Is plain text enough for v1, or are bold words or links inside sentences needed right away?
-3. Should Impressum and Datenschutz be editable too (legal texts, long)?
+QA-Runde 2026-11-22 behoben: Doppelte Texte bei Browser-Übersetzung, übersetzter Text
+als Entwurf, verlorene Eingabe bei „Vorschau“, Seiten-CSS traf den Bearbeitungsrahmen
+(neutraler Reset auf `.st-text`), Leiste verdeckte Player/Dialoge, hängender Stift,
+„Alles veröffentlicht“ während des Ladens (jetzt „Lädt Entwürfe …“ + Tab-Cache),
+Veröffentlichen mit Autor/eigener Auswahl, Buttons/Links im Bearbeitungsmodus,
+Verlauf lud bei jedem Speichern neu, Vorschau im großen Editor mit den Klassen der Seite,
+doppelte Leiste auf `/test/text-editor` für angemeldete Admins.

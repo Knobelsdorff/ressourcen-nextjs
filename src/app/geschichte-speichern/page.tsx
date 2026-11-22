@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Mail } from "lucide-react";
+import { T, useTextFn } from "@/components/site-text/T";
+import { account } from "@/content/texts/account";
 import { track } from "@/lib/product-analytics/client";
 
 type ViewState = "save-story" | "magic-link-sent";
@@ -17,6 +19,7 @@ export default function GeschichteSpeichernPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [viewState, setViewState] = useState<ViewState>("save-story");
+  const tx = useTextFn();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -42,7 +45,7 @@ export default function GeschichteSpeichernPage() {
       const normalizedEmail = email.toLowerCase().trim();
 
       if (!normalizedEmail || !normalizedEmail.includes("@")) {
-        setError("Bitte gib eine gültige E-Mail-Adresse ein.");
+        setError(tx(account["common.invalidEmail"]));
         setIsLoading(false);
         return;
       }
@@ -60,7 +63,7 @@ export default function GeschichteSpeichernPage() {
       });
 
       if (magicLinkError) {
-        setError(magicLinkError.message || "Fehler beim Senden des Links.");
+        setError(magicLinkError.message || tx(account["save.error.send"]));
         setIsLoading(false);
         return;
       }
@@ -69,7 +72,7 @@ export default function GeschichteSpeichernPage() {
       setViewState("magic-link-sent");
       setIsLoading(false);
     } catch (err: any) {
-      setError(err.message || "Ein unerwarteter Fehler ist aufgetreten.");
+      setError(err.message || tx(account["common.unexpected"]));
       setIsLoading(false);
     }
   };
@@ -155,17 +158,15 @@ export default function GeschichteSpeichernPage() {
                 </motion.div>
 
                 <h1 className="text-2xl md:text-3xl font-medium text-amber-900 mb-4">
-                  Link ist unterwegs
+                  <T t={account["common.linkSentTitle"]} />
                 </h1>
 
                 <p className="text-base md:text-lg text-amber-700 mb-2 leading-relaxed">
-                  Schau kurz in dein Postfach.
-                  <br />
-                  Manchmal landet er im Spam.
+                  <T t={account["save.sentText"]} />
                 </p>
 
                 <p className="text-sm text-amber-600/70 mt-6">
-                  Öffne den Link am besten auf diesem Gerät.
+                  <T t={account["common.openOnDevice"]} />
                 </p>
 
                 <Button
@@ -176,7 +177,7 @@ export default function GeschichteSpeichernPage() {
                   variant="outline"
                   className="w-full mt-8 border-amber-200 text-amber-700 hover:bg-amber-50"
                 >
-                  Nochmal versuchen
+                  <T t={account["save.retry"]} />
                 </Button>
               </div>
             </motion.div>
@@ -191,29 +192,22 @@ export default function GeschichteSpeichernPage() {
             >
               {/* Save Story Form */}
               <h1 className="text-2xl md:text-3xl font-medium text-amber-900 mb-3">
-                Dein persönlicher Raum
+                <T t={account["save.title"]} />
               </h1>
 
               <p className="text-base md:text-lg text-amber-700 mb-8 leading-relaxed">
-                Wenn du möchtest,
-                <br />
-                kannst du diese Geschichte für dich behalten
-                <br />
-                und jederzeit darauf zugreifen.
-                <br />
-                <br />
-                Dafür brauchst du einen Zugang.
+                <T t={account["save.text"]} />
               </p>
 
               <form onSubmit={handleSaveStory}>
                 <div className="mb-6">
                   <Label htmlFor="email" className="text-amber-900 mb-2 block">
-                    E-Mail
+                    <T t={account["save.emailLabel"]} />
                   </Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="deine@email.de"
+                    placeholder={tx(account["common.emailPlaceholder"])}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isLoading}
@@ -242,19 +236,15 @@ export default function GeschichteSpeichernPage() {
                   {isLoading ? (
                     <>
                       <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Wird gesendet...
+                      <T t={account["common.sending"]} />
                     </>
                   ) : (
-                    "Geschichte für mich speichern"
+                    <T t={account["save.submit"]} />
                   )}
                 </Button>
 
                 <p className="text-sm text-amber-600/70 text-center leading-relaxed">
-                  Kein Newsletter.
-                  <br />
-                  Kein Spam.
-                  <br />
-                  Nur dein Raum.
+                  <T t={account["save.fineprint"]} />
                 </p>
               </form>
             </motion.div>

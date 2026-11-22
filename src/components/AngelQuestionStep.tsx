@@ -18,6 +18,8 @@ import { motion } from "framer-motion";
 import { ArrowRight, Check, ChevronLeft, Plus } from "lucide-react";
 import FigureIcon from "./story-flow/FigureIcon";
 import { ResourceFigure } from "@/lib/types/story";
+import { T, useTextFn } from "@/components/site-text/T";
+import { createStory } from "@/content/texts/createStory";
 
 interface AngelQuestionStepProps {
   figure: ResourceFigure;
@@ -52,6 +54,7 @@ export default function AngelQuestionStep({
   onNext,
   onExit,
 }: AngelQuestionStepProps) {
+  const tx = useTextFn();
   const selectedCount = selectedBlocks.length;
   const isLast = index === total - 1;
   const customLimitReached = customBlocks.length >= maxSelections;
@@ -101,10 +104,10 @@ export default function AngelQuestionStep({
 
   // "Dein Engel" wie im Entwurf. Für andere Figuren nur der Name – ein
   // allgemeines "Dein/Deine" passt nicht zu jedem Namen (z.B. "Bester Freund / Beste Freundin").
-  const characterTitle = figure.id === "angel" ? "Dein Engel" : figure.name;
+  const characterTitle = figure.id === "angel" ? tx(createStory["question.angelTitle"]) : figure.name;
 
   return (
-    <section className="story-first-stage story-question" aria-label={`${figure.name} – Frage ${index + 1} von ${total}`}>
+    <section className="story-first-stage story-question" aria-label={tx(createStory["question.aria"], { figure: figure.name, current: index + 1, total })}>
       <div className="story-first-intro">
         <div className="story-first-character">
           <span className="story-first-avatar" aria-hidden="true">
@@ -120,7 +123,7 @@ export default function AngelQuestionStep({
           transition={{ duration: 0.22, ease: "easeOut" }}
         >
           <h1>{question.question}</h1>
-          <p className="story-first-guidance">Wähle, was sich für dich stimmig anfühlt.</p>
+          <p className="story-first-guidance"><T t={createStory["question.guidance"]} /></p>
         </motion.div>
       </div>
 
@@ -137,7 +140,7 @@ export default function AngelQuestionStep({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
           >
-            <div className="story-first-options" data-dense={dense || undefined} role="group" aria-label="Antwortmöglichkeiten">
+            <div className="story-first-options" data-dense={dense || undefined} role="group" aria-label={tx(createStory["question.optionsAria"])}>
               {options.map((block, i) => {
                 const selected = selectedBlocks.includes(block);
                 return (
@@ -158,12 +161,12 @@ export default function AngelQuestionStep({
               <details ref={customRef} className="story-first-custom" onToggle={showCustomField}>
                 <summary>
                   <span className="story-first-option-mark" aria-hidden="true"><Plus size={14} strokeWidth={2.5} /></span>
-                  <span>Eigene Worte hinzufügen</span>
+                  <span><T t={createStory["question.customAdd"]} /></span>
                 </summary>
                 <div className="story-first-custom-fields">
                   <input
                     type="text"
-                    aria-label="Eigene Worte"
+                    aria-label={tx(createStory["question.customAria"])}
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
                     onKeyDown={(event) => {
@@ -173,11 +176,11 @@ export default function AngelQuestionStep({
                       }
                     }}
                     disabled={customLimitReached}
-                    placeholder="Deine Formulierung"
+                    placeholder={tx(createStory["question.customPlaceholder"])}
                     maxLength={120}
                   />
                   <button type="button" onClick={submitCustom} disabled={customLimitReached || !draft.trim()}>
-                    Hinzufügen
+                    <T t={createStory["question.customSubmit"]} />
                   </button>
                 </div>
               </details>
@@ -192,14 +195,14 @@ export default function AngelQuestionStep({
               aria-live="polite"
             >
               {selectedCount === 0
-                ? `Bis zu ${maxSelections} Antworten möglich`
-                : <>{selectedCount} von {maxSelections} Antworten<span className="sr-only"> gewählt</span></>}
+                ? <T t={createStory["question.maxHint"]} vars={{ max: maxSelections }} />
+                : <><T t={createStory["question.count"]} vars={{ selected: selectedCount, max: maxSelections }} /><span className="sr-only"> <T t={createStory["question.countSr"]} /></span></>}
             </p>
           )}
         </div>
 
         <div className="story-first-progress">
-          <p className="story-first-step-count">Frage {index + 1} von {total}</p>
+          <p className="story-first-step-count"><T t={createStory["question.step"]} vars={{ current: index + 1, total }} /></p>
           <ol className="story-first-segments" aria-hidden="true">
             {Array.from({ length: total }).map((_, i) => (
               <li key={i} data-state={i < index ? "done" : i === index ? "current" : "todo"} />
@@ -209,10 +212,10 @@ export default function AngelQuestionStep({
 
         <div className="story-first-actions">
           <button type="button" className="story-first-previous" onClick={index === 0 ? onExit : onPrevious} disabled={index === 0 && !onExit}>
-            <ChevronLeft size={17} aria-hidden="true" /> <span>Zurück</span>
+            <ChevronLeft size={17} aria-hidden="true" /> <span><T t={createStory["question.back"]} /></span>
           </button>
           <button type="button" className="story-first-next" onClick={onNext} disabled={!canProceed}>
-            <span>{isLast ? "Abschließen" : "Weiter"}</span>
+            <span><T t={isLast ? createStory["question.finish"] : createStory["question.next"]} /></span>
             <ArrowRight size={17} aria-hidden="true" />
           </button>
         </div>

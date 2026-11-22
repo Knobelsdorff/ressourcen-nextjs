@@ -8,6 +8,8 @@ import { supabase } from "@/lib/supabase";
 import { usablePronunciationHint } from "@/lib/spoken-name";
 import NamePreviewPlayer from "./NamePreviewPlayer";
 import FigureIcon from './story-flow/FigureIcon';
+import { T, useTextFn } from "@/components/site-text/T";
+import { createStory } from "@/content/texts/createStory";
 
 interface NamePronunciationFormProps {
   onNext: () => void;
@@ -30,6 +32,7 @@ export default function NamePronunciationForm({
   voiceId
 }: NamePronunciationFormProps) {
   const { user } = useAuth();
+  const tx = useTextFn();
 
   const [fullName, setFullName] = useState(userFullName || '');
   const [pronunciationHint, setPronunciationHint] = useState(userPronunciationHint || '');
@@ -100,7 +103,7 @@ export default function NamePronunciationForm({
       onUserDataUpdate(name, hint);
       return true;
     } catch {
-      setError('Fehler beim Speichern');
+      setError(tx(createStory["name.saveError"]));
       return false;
     } finally {
       setLoading(false);
@@ -112,7 +115,7 @@ export default function NamePronunciationForm({
     const empty = !fullName.trim() && !pronunciationHint.trim();
     if (!(await persist())) return;
     if (user && !empty) {
-      setSuccess('Gespeichert.');
+      setSuccess(tx(createStory["name.saved"]));
       setTimeout(onNext, 500);
       return;
     }
@@ -129,7 +132,7 @@ export default function NamePronunciationForm({
   const empty = !fullName.trim() && !pronunciationHint.trim();
 
   return (
-    <section className="story-first-stage story-name-stage" aria-label="Dein Name">
+    <section className="story-first-stage story-name-stage" aria-label={tx(createStory["name.aria"])}>
       <div className="story-first-intro">
         <div className="story-first-character">
           <span className="story-first-avatar" aria-hidden="true">
@@ -137,48 +140,46 @@ export default function NamePronunciationForm({
           </span>
           <span>{selectedFigure.name}</span>
         </div>
-        <p className="story-stage-kicker">Dein Name</p>
-        <h1>Wie darf deine Power Story dich nennen?</h1>
+        <p className="story-stage-kicker"><T t={createStory["name.kicker"]} /></p>
+        <h1><T t={createStory["name.title"]} /></h1>
         <p className="story-first-guidance">
-          Ganz freiwillig. Deine Geschichte spricht dich ab und zu mit Namen an – nur wenn es sich stimmig anfühlt.
+          <T t={createStory["name.guidance"]} />
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="story-first-response story-name-form">
         <div className="story-first-response-heading">
-          <span>Beides optional</span>
+          <span><T t={createStory["name.optional"]} /></span>
         </div>
 
         <div className="story-name-fields">
           <label className="story-field">
-            <span>Dein Vorname</span>
+            <span><T t={createStory["name.firstName"]} /></span>
             <input
               type="text"
               id="fullName"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="z. B. Julia"
+              placeholder={tx(createStory["name.firstNamePlaceholder"])}
               autoComplete="given-name"
               maxLength={60}
             />
           </label>
 
           <label className="story-field">
-            <span>So soll er klingen</span>
+            <span><T t={createStory["name.pronunciation"]} /></span>
             <input
               ref={pronunciationRef}
               type="text"
               id="pronunciationHint"
               value={pronunciationHint}
               onChange={(e) => setPronunciationHint(e.target.value)}
-              placeholder="z. B. Juh-lia"
+              placeholder={tx(createStory["name.pronunciationPlaceholder"])}
               aria-describedby="pronunciationHint-help"
               maxLength={60}
             />
             <small id="pronunciationHint-help" data-tone={hintIgnored ? 'warn' : undefined}>
-              {hintIgnored
-                ? 'Bitte nur ein Wort, so geschrieben, wie es klingen soll – z. B. „Juh-lia“. Sonst verwenden wir deinen Namen.'
-                : 'Schreib deinen Namen so, wie er klingen soll – als ein Wort, gern mit Bindestrichen.'}
+              <T t={hintIgnored ? createStory["name.pronunciationIgnored"] : createStory["name.pronunciationHelp"]} />
             </small>
           </label>
 
@@ -200,10 +201,10 @@ export default function NamePronunciationForm({
 
         <div className="story-first-actions">
           <button type="button" className="story-first-previous" onClick={handleBack} disabled={loading}>
-            <ChevronLeft size={17} aria-hidden="true" /> <span>Zurück</span>
+            <ChevronLeft size={17} aria-hidden="true" /> <span><T t={createStory["name.back"]} /></span>
           </button>
           <button type="submit" className="story-first-next" disabled={loading}>
-            <span>{loading ? 'Speichern …' : empty ? 'Ohne Namen weiter' : 'Weiter'}</span>
+            <span><T t={loading ? createStory["name.saving"] : empty ? createStory["name.skip"] : createStory["name.next"]} /></span>
             <ArrowRight size={17} aria-hidden="true" />
           </button>
         </div>

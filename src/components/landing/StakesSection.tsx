@@ -4,15 +4,18 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useStartFirstStory } from "@/hooks/useStartFirstStory";
 import Image from "next/image";
+import { T, useText } from "@/components/site-text/T";
+import { landing } from "@/content/texts/landing";
 
 export default function StakesSection() {
   const startFirstStory = useStartFirstStory();
   
+  const imageAlt = useText(landing["stakes.imageAlt"]);
   const stakes = [
-    "Innere Unruhe klingt nicht immer von selbst ab",
-    "Selbst freie Momente bringen oft kaum Entlastung",
-    "Der Körper bleibt angespannt, auch ohne klaren Anlass",
-    "Erholung fühlt sich oft oberflächlich an",
+    landing["stakes.bullet1"],
+    landing["stakes.bullet2"],
+    landing["stakes.bullet3"],
+    landing["stakes.bullet4"],
   ];
 
   return (
@@ -26,7 +29,7 @@ export default function StakesSection() {
           transition={{ duration: 0.6 }}
           className="text-4xl md:text-5xl font-bold text-amber-900 text-center mb-4"
         >
-          Anspannung bleibt oft länger, als nötig
+          <T t={landing["stakes.title"]} />
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 20 }}
@@ -35,7 +38,7 @@ export default function StakesSection() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-xl md:text-2xl text-amber-700 text-center mb-8 lg:mb-12"
         >
-          Im Alltag bleibt oft wenig Raum, um kurz innezuhalten und wieder bei sich anzukommen
+          <T t={landing["stakes.subtitle"]} />
         </motion.p>
       </div>
 
@@ -50,7 +53,7 @@ export default function StakesSection() {
         >
           <Image
             src="/images/Power-Storys_Stakes_Mobile.webp"
-            alt="Power Stories Stakes"
+            alt={imageAlt}
             width={1200}
             height={600}
             className="w-full h-auto object-cover"
@@ -75,7 +78,7 @@ export default function StakesSection() {
                 className="landing-bullet"
               >
                 <span />
-                <p className="text-lg">{stake}</p>
+                <p className="text-lg"><T t={stake} /></p>
               </motion.div>
             ))}
             {/* Desktop CTA unter Stichpunkten */}
@@ -91,7 +94,7 @@ export default function StakesSection() {
                 size="lg"
                 className="landing-primary-button"
               >
-                Jetzt ausprobieren
+                <T t={landing["stakes.cta"]} />
               </Button>
             </motion.div>
           </div>
@@ -106,7 +109,7 @@ export default function StakesSection() {
           >
             <Image
               src="/images/Power-Storys_Stakes.webp"
-              alt="Power Stories Stakes"
+              alt={imageAlt}
               width={1200}
               height={600}
               className="rounded-[30px] object-cover w-full"
@@ -127,7 +130,7 @@ export default function StakesSection() {
               className="landing-bullet"
             >
               <span />
-              <p className="text-lg">{stake}</p>
+              <p className="text-lg"><T t={stake} /></p>
             </motion.div>
           ))}
         </div>
@@ -145,7 +148,7 @@ export default function StakesSection() {
             size="lg"
             className="landing-primary-button"
           >
-            Jetzt ausprobieren
+            <T t={landing["stakes.cta"]} />
           </Button>
         </motion.div>
       </div>

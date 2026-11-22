@@ -19,6 +19,9 @@ import StoryActionsMenu from "@/components/StoryActionsMenu";
 import StoryScene from "./StoryScene";
 import { formatDateWithTitle } from "@/lib/format-date";
 import { StoryAccess, StoryLockReason, trialDaysLeft } from "@/lib/story-access/shared";
+import { T, useTextFn } from "@/components/site-text/T";
+import type { TextDef } from "@/lib/site-texts/define";
+import { dashboard } from "@/content/texts/dashboard";
 
 export interface StoryCardStory {
   id: string;
@@ -34,21 +37,21 @@ export interface StoryCardStory {
   first_completed_at?: string | null;
 }
 
-const LOCKED_COPY: Record<StoryLockReason, { title: string; text: string; cta: string }> = {
+const LOCKED_COPY: Record<StoryLockReason, { title: TextDef; text: TextDef; cta: TextDef }> = {
   trial_ended: {
-    title: "Deine 7 kostenlosen Tage sind vorbei.",
-    text: "Deine Power Story bleibt hier für dich gespeichert. Mit Power Storys kannst du sie jederzeit wieder anhören.",
-    cta: "Power Storys freischalten",
+    title: dashboard["locked.trialEnded.title"],
+    text: dashboard["locked.trialEnded.text"],
+    cta: dashboard["locked.trialEnded.cta"],
   },
   subscription_inactive: {
-    title: "Dein Abo ist beendet.",
-    text: "Deine Power Story bleibt für dich gespeichert. Sobald du Power Storys wieder freischaltest, kannst du sie sofort anhören.",
-    cta: "Power Storys freischalten",
+    title: dashboard["locked.inactive.title"],
+    text: dashboard["locked.inactive.text"],
+    cta: dashboard["locked.inactive.cta"],
   },
   payment_failed: {
-    title: "Deine letzte Zahlung hat nicht geklappt.",
-    text: "Deine Power Storys pausieren, bis die Zahlung erfolgreich ist. Aktualisiere deine Zahlungsmethode – danach kannst du sofort weiterhören.",
-    cta: "Zahlungsmethode aktualisieren",
+    title: dashboard["locked.paymentFailed.title"],
+    text: dashboard["locked.paymentFailed.text"],
+    cta: dashboard["locked.paymentFailed.cta"],
   },
 };
 
@@ -75,7 +78,7 @@ function TrialBadge({ endsAt, tourId }: { endsAt: string | null; tourId?: string
 
   return (
     <span data-tour={tourId} className="dashboard-badge-trial rounded-full px-2 py-0.5 text-xs font-medium">
-      {daysLeft === 1 ? "Noch 1 Tag kostenlos" : `Noch ${daysLeft} Tage kostenlos`}
+      <T t={dashboard["card.trial"]} vars={{ count: daysLeft }} />
     </span>
   );
 }
@@ -122,7 +125,15 @@ export default function StoryCard({
   analytics = true,
   tour,
 }: StoryCardProps) {
-  const created = formatDateWithTitle(story.created_at);
+  const tx = useTextFn();
+  const created = formatDateWithTitle(story.created_at, {
+    today: tx(dashboard["date.today"]),
+    yesterday: tx(dashboard["date.yesterday"]),
+    daysAgo: tx(dashboard["date.daysAgo"]),
+    oneWeekAgo: tx(dashboard["date.oneWeekAgo"]),
+    weeksAgo: tx(dashboard["date.weeksAgo"]),
+    createdOn: tx(dashboard["date.createdOn"]),
+  });
   /** Aus dieser Karte wächst der Vollbild-Player. */
   const cardRef = useRef<HTMLElement | null>(null);
   // Ohne Beschreibung keine Platzhalterzeile – hinzufügen geht übers Menü.
@@ -199,12 +210,12 @@ export default function StoryCard({
           </span>
           <div className="min-w-0">
             <p id={`locked-${story.id}`} className="dashboard-story-locked-title">
-              {LOCKED_COPY[lockReason].title}
+              <T t={LOCKED_COPY[lockReason].title} />
             </p>
-            <p className="dashboard-story-locked-text">{LOCKED_COPY[lockReason].text}</p>
+            <p className="dashboard-story-locked-text"><T t={LOCKED_COPY[lockReason].text} /></p>
             {onUnlock && (
               <button type="button" className="dashboard-primary-button mt-4" onClick={() => onUnlock(lockReason)}>
-                {LOCKED_COPY[lockReason].cta}
+                <T t={LOCKED_COPY[lockReason].cta} />
               </button>
             )}
           </div>
@@ -231,7 +242,7 @@ export default function StoryCard({
       ) : (
         <div className="rounded-xl bg-secondary-50 px-4 py-6 text-center">
           <p className="mb-4 text-sm text-secondary-600">
-            Für diese Power Story ist noch kein Audio vorhanden.
+            <T t={dashboard["card.noAudio"]} />
           </p>
           {isGeneratingAudio ? (
             <p
@@ -242,7 +253,7 @@ export default function StoryCard({
                 className="block h-4 w-4 animate-spin rounded-full border-2 border-primary-600 border-t-transparent motion-reduce:animate-none"
                 aria-hidden="true"
               />
-              Audio wird erstellt…
+              <T t={dashboard["card.audioCreating"]} />
             </p>
           ) : (
             onGenerateAudio && (
@@ -252,7 +263,7 @@ export default function StoryCard({
                 className="inline-flex items-center gap-2 rounded-full bg-primary-700 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2"
               >
                 <Volume2 className="h-4 w-4" aria-hidden="true" />
-                Audio erstellen
+                <T t={dashboard["card.audioCreate"]} />
               </button>
             )
           )}

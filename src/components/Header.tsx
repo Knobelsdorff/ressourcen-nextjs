@@ -16,6 +16,8 @@ import type { CSSProperties } from "react";
 const staggerDelay = (index: number) => ({ "--i": index } as CSSProperties);
 import { TOUR_ANCHORS } from "@/components/onboarding/firstStoryTour";
 import { openSettings } from "@/components/dashboard/settings-events";
+import { T, useTextFn } from "@/components/site-text/T";
+import { common } from "@/content/texts/common";
 
 // useSearchParams() im Root-Layout braucht eine Suspense-Grenze, sonst
 // scheitert `next build` beim statischen Rendern jeder Seite. Der Fallback
@@ -47,10 +49,12 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
   const firstMenuItemRef = useRef<HTMLElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
+  const tx = useTextFn();
   const profileName = user?.user_metadata?.full_name ||
     user?.user_metadata?.name ||
     user?.email?.split('@')[0] ||
-    'Mein Zugang';
+    tx(common["header.access"]);
+  const logoAlt = tx(common["header.logoAlt"]);
   const profileInitials = profileName
     .split(/\s+/)
     .map((part: string) => part[0])
@@ -168,7 +172,7 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
     // Bei jedem Seitenwechsel neu prüfen: Story erstellt, Abo abgeschlossen …
   }, [userId, pathname]);
 
-  const createLabel = canCreateStory === false ? "Weitere Power Storys freischalten" : "Neue Power Story erstellen";
+  const createLabel = <T t={canCreateStory === false ? common["header.unlockMore"] : common["header.createNew"]} />;
 
   const handleCreateStory = async () => {
     setIsMobileMenuOpen(false);
@@ -260,7 +264,7 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
               >
                 <Image
                   src="/images/power-storys_logo.webp"
-                  alt="Power Storys Logo"
+                  alt={logoAlt}
                   width={200}
                   height={60}
                   className="h-12 md:h-14 w-auto object-contain"
@@ -283,7 +287,7 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
               >
                 <Image
                   src="/images/power-storys_logo.webp"
-                  alt="Power Storys Logo"
+                  alt={logoAlt}
                   width={200}
                   height={60}
                   className="h-12 md:h-14 w-auto object-contain"
@@ -302,7 +306,7 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
                   href="/dashboard"
                   className="text-amber-900/90 font-medium hover:text-amber-900 transition-colors py-2"
                 >
-                  Mein Raum
+                  <T t={common["header.myRoom"]} />
                 </Link>
                 {/* Handlung: CTA klar vom Text getrennt. Erst nach der Zugangsprüfung,
                     sonst stünde kurz die falsche Beschriftung da. */}
@@ -312,7 +316,7 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
                     data-dashboard-action="create"
                     className="bg-amber-600/90 hover:bg-amber-600 text-white text-sm font-medium px-4 py-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400/20 focus:ring-offset-2 ml-2 self-center mt-0.5"
                   >
-                    {canCreateStory ? "+ Neue Power Story erstellen" : createLabel}
+                    {canCreateStory ? <T t={common["header.createNewButton"]} /> : createLabel}
                   </button>
                 )}
                 <div ref={profileMenuRef} className="relative ml-2">
@@ -338,12 +342,12 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
                         <p className="mt-0.5 truncate text-xs text-gray-500">{user.email}</p>
                       </div>
                       <div className="py-2">
-                        <Link role="menuitem" href="/dashboard" onClick={() => setIsProfileMenuOpen(false)} className="block rounded-xl px-3 py-2.5 text-sm text-amber-900 hover:bg-amber-50">Mein Raum</Link>
-                        <button role="menuitem" type="button" onClick={handleOpenSettings} className="block w-full rounded-xl px-3 py-2.5 text-left text-sm text-amber-900 hover:bg-amber-50">Einstellungen</button>
+                        <Link role="menuitem" href="/dashboard" onClick={() => setIsProfileMenuOpen(false)} className="block rounded-xl px-3 py-2.5 text-sm text-amber-900 hover:bg-amber-50"><T t={common["header.myRoom"]} /></Link>
+                        <button role="menuitem" type="button" onClick={handleOpenSettings} className="block w-full rounded-xl px-3 py-2.5 text-left text-sm text-amber-900 hover:bg-amber-50"><T t={common["header.settings"]} /></button>
                         <button role="menuitem" type="button" onClick={handleCreateStory} className="block w-full rounded-xl px-3 py-2.5 text-left text-sm text-amber-900 hover:bg-amber-50">{createLabel}</button>
                       </div>
                       <div className="border-t border-amber-100 pt-2">
-                        <button role="menuitem" type="button" onClick={handleLogout} className="block w-full rounded-xl px-3 py-2.5 text-left text-sm text-amber-800/60 hover:bg-amber-50 hover:text-amber-900">Abmelden</button>
+                        <button role="menuitem" type="button" onClick={handleLogout} className="block w-full rounded-xl px-3 py-2.5 text-left text-sm text-amber-800/60 hover:bg-amber-50 hover:text-amber-900"><T t={common["header.logout"]} /></button>
                       </div>
                     </div>
                   )}
@@ -357,20 +361,20 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
                   onClick={handleWhatIsPowerStory}
                   className="text-amber-800/65 text-sm hover:text-amber-900/80 transition-colors py-2"
                 >
-                  Was ist eine Power Story?
+                  <T t={common["header.whatIs"]} />
                 </button>
                 <button
                   type="button"
                   data-analytics-cta="header" onClick={handleDiscoverPowerStory}
                   className="bg-amber-600/90 hover:bg-amber-600 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:ring-offset-2"
                 >
-                  Eine Power Story entdecken
+                  <T t={common["header.discover"]} />
                 </button>
                 <Link
                   href="/zugang"
                   className="text-amber-900/90 font-medium hover:text-amber-900 transition-colors py-2"
                 >
-                  Mein Zugang
+                  <T t={common["header.access"]} />
                 </Link>
               </>
             )}
@@ -383,7 +387,7 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
               data-tour={TOUR_ANCHORS.account}
               onClick={() => setIsMobileMenuOpen(true)}
               className="header-menu-button"
-              aria-label="Menü öffnen"
+              aria-label={tx(common["header.menuOpen"])}
               aria-expanded={isMobileMenuOpen}
               aria-haspopup="dialog"
             >
@@ -409,13 +413,13 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
           className="mobile-drawer-panel"
           role="dialog"
           aria-modal="true"
-          aria-label="Menü"
+          aria-label={tx(common["header.menuLabel"])}
         >
           {/* Kopfbereich mit Logo und Close-Button */}
           <div className="drawer-head">
             <Image
               src="/images/power-storys_logo.webp"
-              alt="Power Storys Logo"
+              alt={logoAlt}
               width={160}
               height={48}
               className="h-10 w-auto object-contain"
@@ -424,7 +428,7 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
               type="button"
               onClick={closeMobileMenu}
               className="drawer-close"
-              aria-label="Menü schließen"
+              aria-label={tx(common["header.menuClose"])}
             >
               <X className="w-5 h-5" strokeWidth={2} />
             </button>
@@ -444,7 +448,7 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
                   </div>
                 </div>
 
-                <nav aria-label="Hauptnavigation" className="drawer-list">
+                <nav aria-label={tx(common["header.mainNav"])} className="drawer-list">
                   <Link
                     ref={firstMenuItemRef as React.Ref<HTMLAnchorElement>}
                     href="/dashboard"
@@ -454,7 +458,7 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
                     style={staggerDelay(1)}
                   >
                     <span className="drawer-icon drawer-icon--sage"><Home aria-hidden="true" /></span>
-                    <span className="drawer-link-label">Mein Raum</span>
+                    <span className="drawer-link-label"><T t={common["header.myRoom"]} /></span>
                     <ChevronRight className="drawer-chevron" aria-hidden="true" />
                   </Link>
                   <button
@@ -464,7 +468,7 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
                     style={staggerDelay(2)}
                   >
                     <span className="drawer-icon drawer-icon--lavender"><Settings aria-hidden="true" /></span>
-                    <span className="drawer-link-label">Einstellungen</span>
+                    <span className="drawer-link-label"><T t={common["header.settings"]} /></span>
                     <ChevronRight className="drawer-chevron" aria-hidden="true" />
                   </button>
                 </nav>
@@ -490,14 +494,14 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
                   style={staggerDelay(4)}
                 >
                   <LogOut aria-hidden="true" />
-                  Abmelden
+                  <T t={common["header.logout"]} />
                 </button>
               </div>
             </>
           ) : (
             <>
               {/* Nicht eingeloggte User */}
-              <nav aria-label="Hauptnavigation" className="drawer-body">
+              <nav aria-label={tx(common["header.mainNav"])} className="drawer-body">
                 <div className="drawer-list">
                   <button
                     type="button"
@@ -506,7 +510,7 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
                     style={staggerDelay(0)}
                   >
                     <span className="drawer-icon drawer-icon--sage"><Sparkles aria-hidden="true" /></span>
-                    <span className="drawer-link-label">Was ist eine Power Story?</span>
+                    <span className="drawer-link-label"><T t={common["header.whatIs"]} /></span>
                     <ChevronRight className="drawer-chevron" aria-hidden="true" />
                   </button>
                   <button
@@ -516,7 +520,7 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
                     style={staggerDelay(1)}
                   >
                     <span className="drawer-icon drawer-icon--peach"><KeyRound aria-hidden="true" /></span>
-                    <span className="drawer-link-label">Mein Zugang</span>
+                    <span className="drawer-link-label"><T t={common["header.access"]} /></span>
                     <ChevronRight className="drawer-chevron" aria-hidden="true" />
                   </button>
                 </div>
@@ -532,7 +536,7 @@ function HeaderContent({ isFirstStoryFlow }: { isFirstStoryFlow: boolean }) {
                   className="drawer-cta drawer-anim"
                   style={staggerDelay(2)}
                 >
-                  Eine Power Story entdecken
+                  <T t={common["header.discover"]} />
                   <ArrowRight aria-hidden="true" />
                 </button>
               </div>

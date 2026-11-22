@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { T, useTextFn } from "@/components/site-text/T";
+import { admin } from "@/content/texts/admin";
 import {
   ChevronDown,
   ChevronUp,
@@ -43,9 +45,11 @@ export function DataTable<T extends Record<string, any>>({
   searchable = true,
   exportable = true,
   title,
-  emptyMessage = "Keine Daten verfügbar",
+  emptyMessage: emptyMessageProp,
   className = "",
 }: DataTableProps<T>) {
+  const tx = useTextFn();
+  const emptyMessage = emptyMessageProp ?? tx(admin["table.empty"]);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -185,7 +189,7 @@ export function DataTable<T extends Record<string, any>>({
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Suchen..."
+                  placeholder={tx(admin["table.search"])}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
@@ -203,7 +207,7 @@ export function DataTable<T extends Record<string, any>>({
               }`}
             >
               <Filter className="w-4 h-4" />
-              Filter
+              <T t={admin["table.filter"]} />
               {hasActiveFilters && (
                 <span className="ml-1 px-1.5 py-0.5 bg-primary-700 text-white text-xs rounded-full">
                   !
@@ -218,7 +222,7 @@ export function DataTable<T extends Record<string, any>>({
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 text-sm"
               >
                 <Download className="w-4 h-4" />
-                Export
+                <T t={admin["table.export"]} />
               </button>
             )}
           </div>
@@ -229,7 +233,7 @@ export function DataTable<T extends Record<string, any>>({
           <div className="mt-4 pt-4 border-t">
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-medium text-gray-700">
-                Spalten-Filter
+                <T t={admin["table.columnFilter"]} />
               </p>
               {hasActiveFilters && (
                 <button
@@ -237,7 +241,7 @@ export function DataTable<T extends Record<string, any>>({
                   className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
                 >
                   <X className="w-4 h-4" />
-                  Filter zurücksetzen
+                  <T t={admin["table.resetFilter"]} />
                 </button>
               )}
             </div>
@@ -270,11 +274,11 @@ export function DataTable<T extends Record<string, any>>({
         {/* Stats */}
         <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-600">
           <span>
-            Zeige {startIndex + 1} - {endIndex} von {sortedData.length}{" "}
-            {sortedData.length !== data.length && `(${data.length} gesamt)`}
+            <T t={admin["table.showing"]} vars={{ from: startIndex + 1, to: endIndex, count: sortedData.length }} />{" "}
+            {sortedData.length !== data.length && <T t={admin["table.total"]} vars={{ count: data.length }} />}
           </span>
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">Zeilen pro Seite:</label>
+            <label className="text-sm text-gray-600"><T t={admin["table.rowsPerPage"]} /></label>
             <select
               value={rowsPerPage}
               onChange={(e) => {
@@ -382,7 +386,7 @@ export function DataTable<T extends Record<string, any>>({
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             {/* Page info */}
             <div className="text-sm text-gray-600">
-              Seite {currentPage} von {totalPages}
+              <T t={admin["table.page"]} vars={{ page: currentPage, pages: totalPages }} />
             </div>
 
             {/* Pagination controls */}
@@ -392,7 +396,7 @@ export function DataTable<T extends Record<string, any>>({
                 onClick={() => setCurrentPage(1)}
                 disabled={currentPage === 1}
                 className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                title="Erste Seite"
+                title={tx(admin["table.first"])}
               >
                 <ChevronsLeft className="w-4 h-4" />
               </button>
@@ -402,7 +406,7 @@ export function DataTable<T extends Record<string, any>>({
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
                 className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                title="Vorherige Seite"
+                title={tx(admin["table.prev"])}
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -444,7 +448,7 @@ export function DataTable<T extends Record<string, any>>({
                 }
                 disabled={currentPage === totalPages}
                 className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                title="Nächste Seite"
+                title={tx(admin["table.next"])}
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -454,7 +458,7 @@ export function DataTable<T extends Record<string, any>>({
                 onClick={() => setCurrentPage(totalPages)}
                 disabled={currentPage === totalPages}
                 className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                title="Letzte Seite"
+                title={tx(admin["table.last"])}
               >
                 <ChevronsRight className="w-4 h-4" />
               </button>

@@ -15,15 +15,17 @@ import { Check } from "lucide-react";
 import FigureIcon from "./FigureIcon";
 import { ResourceFigure } from "@/lib/types/story";
 import { computeProgress, formatRemaining, readTiming, storyTimeline, StoryPhase } from "@/lib/story-progress";
+import { T, useTextFn, type TextFn } from "@/components/site-text/T";
+import { createStory } from "@/content/texts/createStory";
 
 const R = 48;
 const C = 2 * Math.PI * R;
-const STEPS = ["Antworten", "Geschichte", "Stimme"];
+const STEPS = [createStory["loader.step.answers"], createStory["loader.step.story"], createStory["loader.step.voice"]];
 
-function headline(phase: StoryPhase, voiceName: string | null) {
-  if (phase === "text") return "Deine Geschichte wird geschrieben";
-  if (phase === "audio") return voiceName ? `${voiceName} spricht deine Geschichte ein` : "Deine Geschichte wird eingesprochen";
-  return "Deine Power Story ist bereit";
+function headline(phase: StoryPhase, voiceName: string | null, tx: TextFn) {
+  if (phase === "text") return tx(createStory["loader.headline.text"]);
+  if (phase === "audio") return voiceName ? tx(createStory["loader.headline.audioVoice"], { voice: voiceName }) : tx(createStory["loader.headline.audio"]);
+  return tx(createStory["loader.headline.ready"]);
 }
 
 interface StoryGenerationLoaderProps {
@@ -36,6 +38,7 @@ interface StoryGenerationLoaderProps {
 
 export default function StoryGenerationLoader({ figure, voiceName, ready }: StoryGenerationLoaderProps) {
   const timeline = useSyncExternalStore(storyTimeline.subscribe, storyTimeline.get, storyTimeline.getServer);
+  const tx = useTextFn();
   // Kalibrierung einmal pro Lauf lesen, damit sich die Schätzung nicht mittendrin verschiebt.
   const [timing] = useState(readTiming);
   const [now, setNow] = useState(() => Date.now());
@@ -56,7 +59,14 @@ export default function StoryGenerationLoader({ figure, voiceName, ready }: Stor
 
   const active = raw.phase === "text" ? 1 : raw.phase === "audio" ? 2 : 3;
   const fills = [1, raw.phase === "text" ? raw.stepFill : 1, raw.phase === "audio" ? raw.stepFill : raw.phase === "ready" ? 1 : 0];
-  const remainingLabel = formatRemaining(remaining);
+  const remainingLabel = formatRemaining(remaining, {
+    almost: tx(createStory["loader.remaining.almost"]),
+    seconds: tx(createStory["loader.remaining.seconds"]),
+    oneMinute: tx(createStory["loader.remaining.oneMinute"]),
+    minutes: tx(createStory["loader.remaining.minutes"]),
+  });
+  const tabTitleReady = tx(createStory["loader.tabTitleReady"]);
+  const tabTitleProgress = tx(createStory["loader.tabTitleProgress"], { percent });
 
   // Im Tab-Titel mitzählen – wer kurz woanders ist, sieht trotzdem den Stand.
   useEffect(() => {
@@ -64,20 +74,20 @@ export default function StoryGenerationLoader({ figure, voiceName, ready }: Stor
     return () => { document.title = previous; };
   }, []);
   useEffect(() => {
-    document.title = ready ? "Fertig · Deine Power Story" : `${percent} % · Deine Power Story`;
-  }, [percent, ready]);
+    document.title = ready ? tabTitleReady : tabTitleProgress;
+  }, [ready, tabTitleReady, tabTitleProgress]);
 
   return (
-    <section className="story-loader" aria-label="Deine Power Story wird erstellt">
+    <section className="story-loader" aria-label={tx(createStory["loader.aria"])}>
       <div
         className="story-loader-halo"
         data-ready={ready || undefined}
         role="progressbar"
-        aria-label="Fortschritt deiner Power Story"
+        aria-label={tx(createStory["loader.progressAria"])}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={percent}
-        aria-valuetext={ready ? "Fertig" : `${percent} Prozent, ${remainingLabel}`}
+        aria-valuetext={ready ? tx(createStory["loader.progressValueReady"]) : tx(createStory["loader.progressValue"], { percent, remaining: remainingLabel })}
       >
         <svg viewBox="0 0 100 100" className="story-loader-ring" aria-hidden="true">
           <circle cx="50" cy="50" r={R} className="story-loader-ring-track" />
@@ -98,9 +108,9 @@ export default function StoryGenerationLoader({ figure, voiceName, ready }: Stor
       </div>
 
       <span className="story-loader-cue" data-hidden={ready || undefined} aria-hidden="true">
-        <span className="story-loader-cue-in">Einatmen</span>
-        <span className="story-loader-cue-out">Ausatmen</span>
-        <span className="story-loader-cue-still">Atme in deinem Rhythmus</span>
+        <span className="story-loader-cue-in"><T t={createStory["loader.inhale"]} /></span>
+        <span className="story-loader-cue-out"><T t={createStory["loader.exhale"]} /></span>
+        <span className="story-loader-cue-still"><T t={createStory["loader.breathe"]} /></span>
       </span>
 
       <AnimatePresence mode="wait">
@@ -112,19 +122,19 @@ export default function StoryGenerationLoader({ figure, voiceName, ready }: Stor
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.4 }}
         >
-          {headline(raw.phase, voiceName)}
+          {headline(raw.phase, voiceName, tx)}
         </motion.p>
       </AnimatePresence>
-      <h1 className="story-loader-title" role="status">{ready ? "Fertig." : remainingLabel}</h1>
-      <p className="story-loader-lead">{ready ? `${figure.name} ist jetzt bei dir.` : "Atme mit, wenn du magst."}</p>
+      <h1 className="story-loader-title" role="status">{ready ? <T t={createStory["loader.done"]} /> : remainingLabel}</h1>
+      <p className="story-loader-lead">{ready ? <T t={createStory["loader.figureReady"]} vars={{ figure: figure.name }} /> : <T t={createStory["loader.breatheAlong"]} />}</p>
 
-      <ol className="story-loader-steps" aria-label="Schritte deiner Power Story">
-        {STEPS.map((label, i) => {
+      <ol className="story-loader-steps" aria-label={tx(createStory["loader.stepsAria"])}>
+        {STEPS.map((step, i) => {
           const state = i < active ? "done" : i === active ? "active" : "todo";
           return (
-            <li key={label} data-state={state} aria-current={state === "active" ? "step" : undefined}>
+            <li key={step.key} data-state={state} aria-current={state === "active" ? "step" : undefined}>
               <span className="story-loader-step-bar"><i style={{ transform: `scaleX(${fills[i]})` }} /></span>
-              <span>{label}</span>
+              <span><T t={step} /></span>
             </li>
           );
         })}
@@ -139,7 +149,7 @@ export default function StoryGenerationLoader({ figure, voiceName, ready }: Stor
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.6 }}
           >
-            Heute dauert es etwas länger als sonst – sie ist gleich fertig. Deine Antworten sind sicher, bleib ganz in Ruhe hier.
+            <T t={createStory["loader.slow"]} />
           </motion.p>
         )}
       </AnimatePresence>

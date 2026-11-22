@@ -16,6 +16,8 @@ import { motion } from "framer-motion";
 import { Pause, Play, X } from "lucide-react";
 import { TAPPING_POSTER_URL } from "./TappingVideo";
 import "./story-player.css";
+import { useTextFn } from "@/components/site-text/T";
+import { player } from "@/content/texts/player";
 
 interface MiniPlayerProps {
   title: string;
@@ -29,6 +31,7 @@ interface MiniPlayerProps {
 
 export default function MiniPlayer({ title, subtitle, playing, progress, onToggle, onOpen, onDismiss }: MiniPlayerProps) {
   const [mounted, setMounted] = useState(false);
+  const tx = useTextFn();
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
@@ -45,21 +48,21 @@ export default function MiniPlayer({ title, subtitle, playing, progress, onToggl
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
       role="region"
-      aria-label="Laufende Power Story"
+      aria-label={tx(player["mini.region"])}
     >
-      <button type="button" className="sp-mini-open" onClick={onOpen} aria-label={`${title} – Player öffnen`}>
+      <button type="button" className="sp-mini-open" onClick={onOpen} aria-label={tx(player["mini.open"], { title })}>
         <img src={TAPPING_POSTER_URL} alt="" />
         <span>
           <strong>{title}</strong>
           {subtitle && <span>{subtitle}</span>}
         </span>
       </button>
-      <button type="button" className="sp-mini-btn" onClick={onToggle} aria-label={playing ? "Pause" : "Abspielen"}>
+      <button type="button" className="sp-mini-btn" onClick={onToggle} aria-label={tx(playing ? player["controls.pause"] : player["controls.play"])}>
         {playing
           ? <Pause size={24} fill="currentColor" strokeWidth={0} aria-hidden="true" />
           : <Play size={24} fill="currentColor" strokeWidth={0} className="sp-play-icon" aria-hidden="true" />}
       </button>
-      <button type="button" className="sp-mini-btn sp-mini-btn--close" onClick={onDismiss} aria-label="Wiedergabe beenden und Leiste ausblenden">
+      <button type="button" className="sp-mini-btn sp-mini-btn--close" onClick={onDismiss} aria-label={tx(player["mini.dismiss"])}>
         <X size={18} aria-hidden="true" />
       </button>
       <span className="sp-mini-progress" style={{ width: `${Math.min(1, Math.max(0, progress)) * 100}%` }} aria-hidden="true" />

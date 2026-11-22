@@ -28,6 +28,8 @@ import { ResourceFigure, AudioState, AppState } from "@/lib/types/story";
 import { generateStoryWithProgress } from "@/lib/generate-story-client";
 import { track } from "@/lib/product-analytics/client";
 import { figureProps } from "@/lib/product-analytics/events";
+import { T, useTextFn } from "@/components/site-text/T";
+import { createStory } from "@/content/texts/createStory";
 
 const FIRST_FLOW_VOICE_ID = FIRST_STORY_VOICE_ID;
 const FIRST_FLOW_STORAGE_KEY = "first-power-story-flow";
@@ -79,6 +81,7 @@ const initialAppState: AppState = {
 
 function CreateStoryInner() {
   const router = useRouter();
+  const tx = useTextFn();
   const searchParams = useSearchParams();
   const firstFlow = searchParams.get('first') === 'true';
   // Serverseitiger Erststory-Flow (Feature-Flag). Dann übernimmt der Server
@@ -317,10 +320,10 @@ function CreateStoryInner() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ selectedFigure: appState.resourceFigure, questionAnswers: appState.questionAnswers, sparModus: false }),
           });
-          if (!response.ok) throw new Error('Der Story-Text konnte nicht erstellt werden.');
+          if (!response.ok) throw new Error(tx(createStory["page.error.textFailed"]));
           const result = await response.json();
           story = typeof result.story === 'string' ? result.story.trim() : '';
-          if (!story) throw new Error('Der Story-Text ist leer.');
+          if (!story) throw new Error(tx(createStory["page.error.textEmpty"]));
           if (cancelled) return;
           setAppState((prev) => ({ ...prev, generatedStory: story }));
           try {
@@ -334,15 +337,15 @@ function CreateStoryInner() {
         setFirstPreparationStatus('audio');
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        if (!supabaseUrl || !anonKey) throw new Error('Audio ist momentan nicht verfügbar.');
+        if (!supabaseUrl || !anonKey) throw new Error(tx(createStory["page.error.audioUnavailable"]));
         const response = await fetch(`${supabaseUrl}/functions/v1/generate-audio`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${anonKey}`, apikey: anonKey },
           body: JSON.stringify({ text: story, voiceId: FIRST_FLOW_VOICE_ID, adminPreview: false }),
         });
-        if (!response.ok) throw new Error('Das Audio konnte nicht erstellt werden.');
+        if (!response.ok) throw new Error(tx(createStory["page.error.audioFailed"]));
         const result = await response.json();
-        if (typeof result.audioUrl !== 'string' || !result.audioUrl) throw new Error('Das Audio ist nicht verfügbar.');
+        if (typeof result.audioUrl !== 'string' || !result.audioUrl) throw new Error(tx(createStory["page.error.audioMissing"]));
         if (cancelled) return;
         const audioState: AudioState = {
           audioUrl: result.audioUrl,
@@ -363,7 +366,7 @@ function CreateStoryInner() {
         setFirstPreparationStatus('ready');
       } catch (error) {
         if (cancelled) return;
-        setStoryGenerationError(error instanceof Error ? error.message : 'Deine Story konnte noch nicht erstellt werden.');
+        setStoryGenerationError(error instanceof Error ? error.message : tx(createStory["page.error.generic"]));
         setFirstPreparationStatus('error');
       }
     };
@@ -782,14 +785,14 @@ function CreateStoryInner() {
 
   // Raus aus dem Flow. Unterwegs nachfragen – sonst gehen Antworten oder die
   // gerade entstehende Story verloren.
-  const exitLabel = user ? 'Meine Storys' : 'Startseite';
+  const exitLabel = tx(user ? createStory["page.exitDashboard"] : createStory["page.exitHome"]);
   const handleExit = useCallback(() => {
     const generating = appState.currentStep >= 5 && !appState.audioState?.audioUrl;
     const answering = appState.currentStep >= 2 && appState.currentStep < 5 && appState.questionAnswers.length > 0;
-    if (generating && !window.confirm('Deine Power Story wird gerade erstellt. Wenn du jetzt gehst, wird sie nicht fertig. Trotzdem verlassen?')) return;
-    if (answering && !window.confirm('Deine Antworten gehen verloren, wenn du jetzt gehst. Trotzdem verlassen?')) return;
+    if (generating && !window.confirm(tx(createStory["page.confirmLeaveGenerating"]))) return;
+    if (answering && !window.confirm(tx(createStory["page.confirmLeaveAnswers"]))) return;
     router.push(user ? '/dashboard' : '/');
-  }, [appState.currentStep, appState.audioState?.audioUrl, appState.questionAnswers.length, router, user]);
+  }, [appState.currentStep, appState.audioState?.audioUrl, appState.questionAnswers.length, router, user, tx]);
 
   const handleUserDataUpdate = useCallback((fullName: string, pronunciationHint: string | null) => {
     if (user) {
@@ -850,7 +853,7 @@ function CreateStoryInner() {
           setStoryGenerationError(null);
         } catch (error: any) {
           console.error('Story generation failed:', error);
-          const errorMessage = error.message || 'Failed to generate story. Please try again.';
+          const errorMessage = error.message || tx(createStory["page.error.generateFailed"]);
           setStoryGenerationError(errorMessage);
           // Reset the attempt flag so user can retry
           storyGenerationAttempted.current = false;
@@ -860,7 +863,7 @@ function CreateStoryInner() {
       }
     };
     run();
-  }, [firstFlow, appState.currentStep, appState.resourceFigure, appState.questionAnswers, appState.selectedVoice, appState.generatedStory, isGeneratingStory, handleStoryGenerated, userFullName, userPronunciationHint, anonymousUserName, anonymousUserPronunciationHint, sparModus, user]);
+  }, [firstFlow, appState.currentStep, appState.resourceFigure, appState.questionAnswers, appState.selectedVoice, appState.generatedStory, isGeneratingStory, handleStoryGenerated, userFullName, userPronunciationHint, anonymousUserName, anonymousUserPronunciationHint, sparModus, user, tx]);
 
   useEffect(() => {
     return () => {
@@ -879,7 +882,7 @@ function CreateStoryInner() {
       <div className={`min-h-screen story-flow-background story-flow-boot flex items-center justify-center ${firstFlow ? 'story-flow-first-loading' : ''}`}>
         <div className="story-boot" role="status">
           <span className="story-boot-breath" aria-hidden="true" />
-          <p>Einen Moment …</p>
+          <p><T t={createStory["page.loading"]} /></p>
         </div>
       </div>
     );
@@ -893,14 +896,14 @@ function CreateStoryInner() {
             type="button"
             className="story-first-flow-back"
             onClick={() => router.push('/')}
-            aria-label="Zurück zur Startseite"
+            aria-label={tx(createStory["page.backHome"])}
           >
             <ArrowLeft aria-hidden="true" />
-            <span>Zurück</span>
+            <span><T t={createStory["page.back"]} /></span>
           </button>
           <Image
             src="/images/power-storys_logo.webp"
-            alt="Power Storys"
+            alt={tx(createStory["page.logoAlt"])}
             width={160}
             height={48}
             className="story-first-flow-logo"
@@ -971,24 +974,24 @@ function CreateStoryInner() {
 
               {firstFlow && !serverFirstFlow && firstFlowComplete && (
                 <div className="story-first-handoff" role="status">
-                  <h1>Deine Power Story ist gespeichert.</h1>
-                  <p>Du findest sie jetzt in deinem Zugang.</p>
-                  <button type="button" onClick={() => router.push('/dashboard')}>Zu meinen Power Storys</button>
+                  <h1><T t={createStory["page.handoff.savedTitle"]} /></h1>
+                  <p><T t={createStory["page.handoff.savedText"]} /></p>
+                  <button type="button" onClick={() => router.push('/dashboard')}><T t={createStory["page.handoff.savedCta"]} /></button>
                 </div>
               )}
 
               {appState.currentStep >= 3 && firstFlow && !serverFirstFlow && !firstFlowComplete && !firstFlowOwner && (
                 <div className="story-first-handoff" role="status">
-                  <h1>Deine Power Story entsteht im anderen Tab.</h1>
-                  <p>Deine Antworten sind sicher. Wechsle zum Tab, in dem du deine Fragen beantwortet hast. Dort geht es nach dem Login automatisch weiter. Wenn dieser Tab geschlossen wird, übernehmen wir hier automatisch.</p>
+                  <h1><T t={createStory["page.handoff.otherTabTitle"]} /></h1>
+                  <p><T t={createStory["page.handoff.otherTabText"]} /></p>
                 </div>
               )}
 
               {appState.currentStep === 3 && firstFlow && !serverFirstFlow && firstFlowOwner && !firstFlowComplete && user && pendingEmail && user.email?.toLowerCase() !== pendingEmail && (
                 <div className="story-first-handoff" role="alert">
-                  <h1>Bitte nutze den richtigen Account.</h1>
-                  <p>Der Zugangslink wurde an {pendingEmail} geschickt. Melde dich mit diesem Account an, damit deine Antworten zugeordnet werden.</p>
-                  <button type="button" onClick={() => void supabase.auth.signOut()}>Anderen Account verwenden</button>
+                  <h1><T t={createStory["page.handoff.wrongAccountTitle"]} /></h1>
+                  <p><T t={createStory["page.handoff.wrongAccountText"]} vars={{ email: pendingEmail }} /></p>
+                  <button type="button" onClick={() => void supabase.auth.signOut()}><T t={createStory["page.handoff.wrongAccountCta"]} /></button>
                 </div>
               )}
 
@@ -1004,9 +1007,9 @@ function CreateStoryInner() {
 
               {appState.currentStep === 3 && firstFlow && !serverFirstFlow && firstFlowOwner && !firstFlowComplete && user && (!pendingEmail || user.email?.toLowerCase() === pendingEmail) && (
                 <div className="story-first-handoff" role="status">
-                  <h1>Deine Power Story wird vorbereitet.</h1>
-                  <p>{firstPreparationStatus === 'audio' ? 'Die Stimme von Kerstin wird gerade erstellt.' : 'Deine Antworten sind gespeichert. Einen Moment noch …'}</p>
-                  {firstPreparationStatus === 'error' && <button type="button" onClick={retryFirstPreparation}>Erneut versuchen</button>}
+                  <h1><T t={createStory["page.handoff.preparingTitle"]} /></h1>
+                  <p><T t={firstPreparationStatus === 'audio' ? createStory["page.handoff.preparingAudio"] : createStory["page.handoff.preparingText"]} /></p>
+                  {firstPreparationStatus === 'error' && <button type="button" onClick={retryFirstPreparation}><T t={createStory["page.handoff.retry"]} /></button>}
                 </div>
               )}
 
@@ -1066,7 +1069,7 @@ function CreateStoryInner() {
             setShowPaywall(false);
             router.push("/dashboard");
           }}
-          message="Deine kostenlose erste Ressource ist bereits erstellt. Fühle dich jeden Tag sicher, geborgen und beschützt"
+          message={tx(createStory["page.paywallMessage"])}
         />
       )}
     </div>
@@ -1077,7 +1080,7 @@ export default function CreateStory() {
   return (
     <Suspense fallback={
       <div className="min-h-screen story-flow-background flex items-center justify-center">
-        <div className="text-amber-600">Lade...</div>
+        <div className="text-amber-600"><T t={createStory["page.suspenseLoading"]} /></div>
       </div>
     }>
       <CreateStoryInner />

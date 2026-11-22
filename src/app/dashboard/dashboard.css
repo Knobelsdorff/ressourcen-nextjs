@@ -34,7 +34,7 @@
   font-weight: 700;
   letter-spacing: 0.14em;
 }
-.dashboard-eyebrow > span { width: 8px; height: 8px; border-radius: 50%; background: #6d803f; }
+.dashboard-eyebrow > span:empty { width: 8px; height: 8px; border-radius: 50%; background: #6d803f; }
 .dashboard-welcome h1 { max-width: 520px; margin: 16px 0 12px; font-size: clamp(30px, 3.5vw, 44px); font-weight: 700; line-height: 1.12; }
 .dashboard-welcome-copy > p { max-width: 430px; color: #69594c; font-size: 15px; line-height: 1.7; }
 .dashboard-intentions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }

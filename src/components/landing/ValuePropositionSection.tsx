@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useStartFirstStory } from "@/hooks/useStartFirstStory";
 import { Sparkles, AudioLines, Infinity, Heart } from "lucide-react";
+import { T } from "@/components/site-text/T";
+import { landing } from "@/content/texts/landing";
 
 export default function ValuePropositionSection() {
   const startFirstStory = useStartFirstStory();
@@ -11,23 +13,23 @@ export default function ValuePropositionSection() {
   const features = [
     {
       icon: Heart,
-      title: "Ein sicherer Raum",
-      description: "Du musst nichts leisten. Du darfst einfach da sein.",
+      title: landing["value.feature1.title"],
+      description: landing["value.feature1.text"],
     },
     {
       icon: Sparkles,
-      title: "Personalisierte Geschichten",
-      description: "Abgestimmt auf das, was du gerade brauchst.",
+      title: landing["value.feature2.title"],
+      description: landing["value.feature2.text"],
     },
     {
       icon: AudioLines,
-      title: "Ruhige Stimmen",
-      description: "Sanft getragen – damit du innerlich mitgehen kannst.",
+      title: landing["value.feature3.title"],
+      description: landing["value.feature3.text"],
     },
     {
       icon: Infinity,
-      title: "Jederzeit für dich da",
-      description: "Wenn du merkst, dass es viel wird – oder gar nicht erst so weit kommen soll.",
+      title: landing["value.feature4.title"],
+      description: landing["value.feature4.text"],
     },
   ];
 
@@ -41,7 +43,7 @@ export default function ValuePropositionSection() {
           transition={{ duration: 0.6 }}
           className="text-4xl md:text-5xl font-bold text-amber-900 text-center mb-4"
         >
-          Ein einfacher Weg, wieder bei dir anzukommen
+          <T t={landing["value.title"]} />
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 20 }}
@@ -50,7 +52,7 @@ export default function ValuePropositionSection() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-xl md:text-2xl text-amber-700 text-center mb-16"
         >
-          Kurze Geschichten, die dich sanft aus der Anspannung holen
+          <T t={landing["value.subtitle"]} />
         </motion.p>
 
         <div className="grid md:grid-cols-2 gap-8 mb-12">
@@ -71,9 +73,9 @@ export default function ValuePropositionSection() {
                   </div>
                   <div>
                     <h3 className="text-xl font-semibold mb-2">
-                      {feature.title}
+                      <T t={feature.title} />
                     </h3>
-                    <p className="text-[15px] leading-relaxed">{feature.description}</p>
+                    <p className="text-[15px] leading-relaxed"><T t={feature.description} /></p>
                   </div>
                 </div>
               </motion.div>
@@ -93,7 +95,7 @@ export default function ValuePropositionSection() {
                 size="lg"
                 className="landing-primary-button"
               >
-                Jetzt kurz eintauchen
+                <T t={landing["value.cta"]} />
               </Button>
             </motion.div>
 
@@ -104,7 +106,7 @@ export default function ValuePropositionSection() {
           transition={{ duration: 0.6, delay: 0.6 }}
           className="text-lg md:text-xl text-amber-700 text-center italic"
         >
-          Manchmal ist es genau diese Ruhe, die im Alltag am schwersten erreichbar ist
+          <T t={landing["value.closing"]} />
         </motion.p>
       </div>
     </section>

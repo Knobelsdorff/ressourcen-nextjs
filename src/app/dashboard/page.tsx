@@ -36,6 +36,8 @@ import AudioPlayer from "@/components/audio/AudioPlayer";
 import StoryCard from "@/components/dashboard/StoryCard";
 import { LotusMark } from "@/components/dashboard/StoryScene";
 import AdminMenu from "@/components/dashboard/AdminMenu";
+import { T, useTextFn } from "@/components/site-text/T";
+import { dashboard } from "@/content/texts/dashboard";
 import SubscriptionManagement from "@/components/SubscriptionManagement";
 import EditableSubtitle from "@/components/EditableSubtitle";
 import StoryActionsMenu from "@/components/StoryActionsMenu";
@@ -68,6 +70,7 @@ const FIRST_STORY_WELCOME_DAYS = 14;
 export default function Dashboard() {
   const { user, session, loading: authLoading } = useAuth();
   const router = useRouter();
+  const tx = useTextFn();
   
   // Prüfe ob User Full Admin ist (Analytics + Music)
   const isAdmin = (() => {
@@ -740,7 +743,7 @@ export default function Dashboard() {
       }
     } catch (err) {
       console.error('Error:', err);
-      setError('Ein unerwarteter Fehler ist aufgetreten');
+      setError(tx(dashboard["page.errorUnexpected"]));
     } finally {
       setLoading(false);
     }
@@ -1327,7 +1330,7 @@ export default function Dashboard() {
             // Erfolgsmeldung nur einmal anzeigen
             if (!alertShown) {
               alertShown = true;
-              setPaymentSuccessMessage('Dein Zugang wurde aktiviert! Du kannst jetzt unbegrenzt Power Storys erstellen.');
+              setPaymentSuccessMessage(tx(dashboard["page.paymentActivated"]));
               setShowPaymentSuccess(true);
             }
             // Stoppe Retry-Loop, da Zugang aktiv ist
@@ -1345,7 +1348,7 @@ export default function Dashboard() {
             }
             if (!alertShown) {
               alertShown = true;
-              setPaymentSuccessMessage('Zahlung erfolgreich! Der Zugang wird in Kürze aktiviert. Bitte lade die Seite in ein paar Minuten neu.');
+              setPaymentSuccessMessage(tx(dashboard["page.paymentPending"]));
               setShowPaymentSuccess(true);
             }
           }
@@ -1415,7 +1418,7 @@ export default function Dashboard() {
 
       if (error) {
         console.error('Error deleting story:', error);
-        alert('Fehler beim Löschen der Power Story');
+        alert(tx(dashboard["page.deleteError"]));
       } else {
         // Aktualisiere die lokale Liste
         setStories(stories.filter(story => story.id !== storyId));
@@ -1424,7 +1427,7 @@ export default function Dashboard() {
       }
     } catch (err) {
       console.error('Error:', err);
-      alert('Ein unerwarteter Fehler ist aufgetreten');
+      alert(tx(dashboard["page.errorUnexpected"]));
     }
   };
 
@@ -1677,7 +1680,7 @@ ${story.content}
       
     } catch (error) {
       console.error('Error generating audio:', error);
-      alert('Fehler beim Generieren des Audios. Bitte versuche es erneut.');
+      alert(tx(dashboard["page.audioGenerateError"]));
     } finally {
       setGeneratingAudioFor(null);
     }
@@ -3352,7 +3355,7 @@ ${story.content}
       <div className="min-h-screen bg-gradient-to-br from-primary-50 via-primary-50 to-primary-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4" />
-          <p className="text-secondary-600">Lade deinen Bereich…</p>
+          <p className="text-secondary-600"><T t={dashboard["page.loadingArea"]} /></p>
         </div>
       </div>
     );
@@ -3389,7 +3392,7 @@ ${story.content}
               {loading ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
-                  <p className="text-secondary-600 max-sm:text-sm">Lade Geschichten...</p>
+                  <p className="text-secondary-600 max-sm:text-sm"><T t={dashboard["page.loadingStories"]} /></p>
                 </div>
               ) : error ? (
                 <div className="text-center py-8">
@@ -3403,9 +3406,9 @@ ${story.content}
                 <div className="dashboard-empty bg-white rounded-2xl p-6 sm:p-10">
                   <div className="text-center py-8">
                     <BookOpen className="w-12 h-12 text-secondary-400 mx-auto mb-4" />
-                    <p className="text-secondary-600 max-sm:text-sm">Noch keine Geschichten gespeichert.</p>
+                    <p className="text-secondary-600 max-sm:text-sm"><T t={dashboard["page.empty.title"]} /></p>
                     <p className="text-secondary-500 text-sm max-sm:text-xs mt-2 mb-6">
-                      Erstelle deine erste persönliche Ressource, um sie hier zu sehen.
+                      <T t={dashboard["page.empty.text"]} />
                     </p>
                     <div className="flex flex-wrap items-center justify-center gap-3">
                       <button
@@ -3414,7 +3417,7 @@ ${story.content}
                         className="dashboard-primary-button"
                       >
                         <Plus className="w-5 h-5" />
-                        Erstelle deine erste Ressource
+                        <T t={dashboard["page.empty.cta"]} />
                       </button>
                       <button
                         type="button"
@@ -3423,7 +3426,7 @@ ${story.content}
                         className="dashboard-secondary-button"
                       >
                         <Settings className="w-5 h-5" aria-hidden="true" />
-                        Einstellungen
+                        <T t={dashboard["page.settings"]} />
                       </button>
                     </div>
                   </div>
@@ -3438,8 +3441,8 @@ ${story.content}
                       <div className="dashboard-library-title">
                         <LotusMark className="dashboard-library-mark" />
                         <div>
-                          <h2>Meine Power Storys</h2>
-                          <p>Deine Geschichten. In deinem Tempo.</p>
+                          <h2><T t={dashboard["page.library.title"]} /></h2>
+                          <p><T t={dashboard["page.library.subtitle"]} /></p>
                         </div>
                       </div>
                       <div className="dashboard-library-actions">
@@ -3455,7 +3458,7 @@ ${story.content}
                           className="dashboard-secondary-button"
                         >
                           <Settings className="w-5 h-5" aria-hidden="true" />
-                          Einstellungen
+                          <T t={dashboard["page.settings"]} />
                         </button>
                       </div>
                     </div>
@@ -3463,16 +3466,16 @@ ${story.content}
                     {personalStories.length === 0 ? (
                       <div className="text-center py-8">
                         <BookOpen className="w-12 h-12 text-secondary-400 mx-auto mb-4" />
-                        <p className="text-secondary-600 max-sm:text-sm">Noch keine persönlichen Geschichten.</p>
+                        <p className="text-secondary-600 max-sm:text-sm"><T t={dashboard["page.library.emptyTitle"]} /></p>
                         <p className="text-secondary-500 text-sm max-sm:text-xs mt-2">
-                          Erstelle deine erste personalisierte Power Story.
+                          <T t={dashboard["page.library.emptyText"]} />
                         </p>
                       </div>
                     ) : (
                       <>
                       <div className="dashboard-library-count">
-                        <h3>Deine Geschichten</h3>
-                        <span>{personalStories.length === 1 ? "1 Story" : `${personalStories.length} Storys`}</span>
+                        <h3><T t={dashboard["page.library.listTitle"]} /></h3>
+                        <span><T t={dashboard["page.library.count"]} vars={{ count: personalStories.length }} /></span>
                       </div>
                       <div className="dashboard-story-list">
                   {/* Temporäre Ressource anzeigen - nur wenn Benutzer nicht eingeloggt ist */}
@@ -3550,7 +3553,7 @@ ${story.content}
                       onUnlock={handleUnlockStory}
                       onCompleted={story.access?.policy === 'trial' ? () => void handleStoryCompleted(story.id) : undefined}
                       endAction={canCreateStory === null ? undefined : {
-                        label: canCreateStory ? 'Neue Power Story erstellen' : 'Weitere Power Storys freischalten',
+                        label: tx(canCreateStory ? dashboard["page.createNew"] : dashboard["page.unlockMore"]),
                         onClick: () => void handleCreateStoryClick(),
                       }}
                       tour={story.id === firstStoryId ? {
@@ -3574,8 +3577,8 @@ ${story.content}
                           className="dashboard-primary-button"
                         >
                           {canCreateStory
-                            ? <><Plus className="w-5 h-5" aria-hidden="true" /> Neue Power Story erstellen</>
-                            : <><Sparkles className="w-5 h-5" aria-hidden="true" /> Weitere Power Storys freischalten</>}
+                            ? <><Plus className="w-5 h-5" aria-hidden="true" /> <T t={dashboard["page.createNew"]} /></>
+                            : <><Sparkles className="w-5 h-5" aria-hidden="true" /> <T t={dashboard["page.unlockMore"]} /></>}
                         </button>
                       </div>
                     )}
@@ -3590,7 +3593,7 @@ ${story.content}
       {showPaywall && (
         <Paywall
           onClose={() => setShowPaywall(false)}
-          message="Fühle dich jeden Tag sicher, geborgen und beschützt"
+          message={tx(dashboard["page.paywallMessage"])}
         />
       )}
 

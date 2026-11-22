@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { useStartFirstStory } from "@/hooks/useStartFirstStory";
 import LandingStoryPreview from './LandingStoryPreview';
+import { T } from "@/components/site-text/T";
+import { landing } from "@/content/texts/landing";
 
 /*
  * Header nach dem StoryBrand-Wireframe – Text und Struktur von Andreas:
@@ -47,11 +49,11 @@ export default function HeroSection() {
           className="landing-hero-copy"
         >
           <motion.h1 variants={item} className="font-bold">
-            Finde innere Ruhe und fühl dich sicher und geborgen
+            <T t={landing["hero.title"]} />
           </motion.h1>
 
           <motion.p variants={item} className="landing-hero-lead">
-            Erstelle in 2&nbsp;Minuten deine persönliche Audio-Geschichte und erlebe Momente voller Wärme, Halt und Unterstützung.
+            <T t={landing["hero.lead"]} />
           </motion.p>
 
           <motion.div variants={item} className="landing-hero-actions">
@@ -60,7 +62,7 @@ export default function HeroSection() {
               size="lg"
               className="landing-primary-button"
             >
-              Meine Power Story erstellen
+              <T t={landing["hero.cta"]} />
               <ArrowRight size={18} aria-hidden="true" />
             </Button>
           </motion.div>

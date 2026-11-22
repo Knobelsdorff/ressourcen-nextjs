@@ -14,6 +14,8 @@
 import { useState, useEffect, useRef, useId } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useTextFn } from "@/components/site-text/T";
+import { player } from "@/content/texts/player";
 import {
   MUSIC_VOLUME_FACTOR_DEFAULT,
   MUSIC_VOLUME_FACTOR_MIN,
@@ -43,9 +45,11 @@ export default function MusicVolumeControl({
   compact = false,
   wide = false,
   className = "",
-  label = "Musik",
+  label: labelProp,
 }: MusicVolumeControlProps) {
   const { user } = useAuth();
+  const tx = useTextFn();
+  const label = labelProp ?? tx(player["music.short"]);
   const [factor, setFactor] = useState<number>(() => getMusicVolumeFactor());
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Wohin "Musik an" zurückkehrt – der letzte hörbare Wert, nicht pauschal 100 %. */
@@ -103,8 +107,8 @@ export default function MusicVolumeControl({
       <button
         type="button"
         onClick={toggleMute}
-        aria-label={isMuted ? "Hintergrundmusik einschalten" : "Hintergrundmusik ausschalten"}
-        title={isMuted ? "Musik einschalten" : "Musik ausschalten"}
+        aria-label={tx(isMuted ? player["music.unmute"] : player["music.switchOff"])}
+        title={tx(isMuted ? player["music.titleOn"] : player["music.titleOff"])}
         // 36px Tippfläche, per negativem Margin ohne Einfluss aufs Layout.
         className="-m-2.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:bg-secondary-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
       >
@@ -124,7 +128,7 @@ export default function MusicVolumeControl({
     <span
       className={`w-11 shrink-0 text-right tabular-nums text-secondary-500 ${wide ? "text-sm sm:order-3" : "text-xs"}`}
     >
-      {isMuted ? "Aus" : `${percent}%`}
+      {isMuted ? tx(player["music.valueOff"]) : `${percent}%`}
     </span>
   );
 
@@ -137,8 +141,8 @@ export default function MusicVolumeControl({
       step={0.05}
       value={factor}
       onChange={(e) => handleChange(parseFloat(e.target.value))}
-      aria-label="Lautstärke der Hintergrundmusik"
-      aria-valuetext={isMuted ? "Musik aus" : `${percent} Prozent`}
+      aria-label={tx(player["music.volume"])}
+      aria-valuetext={isMuted ? tx(player["music.volumeOff"]) : tx(player["music.volumeValue"], { percent })}
       className={`music-volume-slider w-full cursor-pointer appearance-none rounded-full bg-secondary-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 ${
         wide ? "music-volume-slider--wide col-span-2 h-2 sm:order-2 sm:flex-1" : "h-1.5 max-w-[9rem]"
       }`}

@@ -1,5 +1,7 @@
 import Image from 'next/image';
 import { ArrowLeft } from 'lucide-react';
+import { useTextFn } from "@/components/site-text/T";
+import { createStory } from "@/content/texts/createStory";
 
 /**
  * Kopfzeile des Story-Flows (wie im Engel-Flow): links raus, Mitte Logo,
@@ -16,12 +18,13 @@ export default function StoryFlowProgress({
   onExit: () => void;
   exitLabel: string;
 }) {
+  const tx = useTextFn();
   const steps = [
-    { step: 1, label: 'Deine Figur' },
-    { step: 2, label: 'Deine Wünsche' },
-    { step: 3, label: 'Deine Stimme' },
-    ...(showNameStep ? [{ step: 4, label: 'Dein Name' }] : []),
-    { step: 5, label: 'Deine Story' },
+    { step: 1, label: tx(createStory["progress.figure"]) },
+    { step: 2, label: tx(createStory["progress.wishes"]) },
+    { step: 3, label: tx(createStory["progress.voice"]) },
+    ...(showNameStep ? [{ step: 4, label: tx(createStory["progress.name"]) }] : []),
+    { step: 5, label: tx(createStory["progress.story"]) },
   ];
   const activeIndex = Math.max(0, steps.findIndex((item) => item.step === Math.min(currentStep, 5)));
 
@@ -33,13 +36,13 @@ export default function StoryFlowProgress({
       </button>
       <Image
         src="/images/power-storys_logo.webp"
-        alt="Power Storys"
+        alt={tx(createStory["page.logoAlt"])}
         width={160}
         height={48}
         className="story-first-flow-logo"
         priority
       />
-      <div className="story-flow-trail" aria-label={`Schritt ${activeIndex + 1} von ${steps.length}: ${steps[activeIndex].label}`}>
+      <div className="story-flow-trail" aria-label={tx(createStory["progress.aria"], { current: activeIndex + 1, total: steps.length, step: steps[activeIndex].label })}>
         <span className="story-flow-trail-label" aria-hidden="true">{steps[activeIndex].label}</span>
         <ol aria-hidden="true">
           {steps.map((item, index) => (

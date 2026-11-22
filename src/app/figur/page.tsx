@@ -7,6 +7,8 @@ import { realFigures, fictionalFigures } from "@/data/figures";
 import { ResourceFigure } from "@/lib/types/story";
 import { trackEvent } from "@/lib/analytics";
 import AngelIconFinal from "@/components/AngelIconFinal";
+import { T } from "@/components/site-text/T";
+import { createStory } from "@/content/texts/createStory";
 
 const CURATED_FIGURE_IDS = [
   "angel",
@@ -65,10 +67,10 @@ export default function FigurPage() {
           transition={{ duration: 0.65, ease }}
         >
           <h2 className="px-3">
-            Schau, welche Figur ein kleines inneres Ja auslöst
+            <T t={createStory["figurePage.title"]} />
           </h2>
           <p className="figur-lead">
-            Wenn nichts klar ist, kann der Engel ein guter Anfang sein.
+            <T t={createStory["figurePage.lead"]} />
           </p>
         </motion.div>
       </div>
@@ -118,7 +120,7 @@ export default function FigurPage() {
             onClick={() => router.push('/')}
             className="figur-skip"
           >
-            Ich schaue mich erst noch um
+            <T t={createStory["figurePage.skip"]} />
           </button>
         </div>
       </div>

@@ -224,9 +224,27 @@ export function computeProgress(tl: StoryTimeline, now: number, t: StoryTiming, 
   };
 }
 
-export function formatRemaining(seconds: number): string {
-  if (seconds <= 8) return 'Gleich fertig';
-  if (seconds < 55) return `Noch etwa ${Math.ceil(seconds / 5) * 5} Sekunden`;
-  if (seconds < 90) return 'Noch etwa 1 Minute';
-  return `Noch etwa ${Math.round(seconds / 60)} Minuten`;
+export interface RemainingLabels {
+  almost: string;
+  /** mit {count} */
+  seconds: string;
+  oneMinute: string;
+  /** mit {count} */
+  minutes: string;
+}
+
+const DEFAULT_REMAINING: RemainingLabels = {
+  almost: 'Gleich fertig',
+  seconds: 'Noch etwa {count} Sekunden',
+  oneMinute: 'Noch etwa 1 Minute',
+  minutes: 'Noch etwa {count} Minuten',
+};
+
+/** Beschriftungen kommen im Flow aus dem Text-Katalog (createStory.loader.remaining.*). */
+export function formatRemaining(seconds: number, labels: RemainingLabels = DEFAULT_REMAINING): string {
+  const withCount = (template: string, count: number) => template.replace('{count}', String(count));
+  if (seconds <= 8) return labels.almost;
+  if (seconds < 55) return withCount(labels.seconds, Math.ceil(seconds / 5) * 5);
+  if (seconds < 90) return labels.oneMinute;
+  return withCount(labels.minutes, Math.round(seconds / 60));
 }

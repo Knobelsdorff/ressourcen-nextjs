@@ -18,6 +18,8 @@ import { usablePronunciationHint } from "@/lib/spoken-name";
 import NamePreviewPlayer from "@/components/NamePreviewPlayer";
 import { TOUR_ANCHORS } from "@/components/onboarding/firstStoryTour";
 import MusicVolumeControl from "@/components/audio/MusicVolumeControl";
+import { T, useTextFn } from "@/components/site-text/T";
+import { dashboard } from "@/content/texts/dashboard";
 
 type Status = { kind: "ok" | "error"; text: string } | null;
 
@@ -30,7 +32,7 @@ function StatusLine({ status }: { status: Status }) {
   );
 }
 
-function Section({ title, description, tour, children }: { title: string; description?: string; tour?: string; children: ReactNode }) {
+function Section({ title, description, tour, children }: { title: ReactNode; description?: ReactNode; tour?: string; children: ReactNode }) {
   return (
     <section className="settings-section" data-tour={tour}>
       <h3>{title}</h3>
@@ -50,6 +52,7 @@ interface SettingsDialogProps {
 export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsDialogProps) {
   const { user } = useAuth();
   const closeRef = useRef<HTMLButtonElement>(null);
+  const tx = useTextFn();
 
   // Name & Aussprache
   const [fullName, setFullName] = useState("");
@@ -143,10 +146,10 @@ export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsD
       .eq("id", user.id);
     setSavingName(false);
     if (error) {
-      setNameStatus({ kind: "error", text: "Speichern hat nicht geklappt. Bitte versuche es erneut." });
+      setNameStatus({ kind: "error", text: tx(dashboard["settings.name.error"]) });
       return;
     }
-    setNameStatus({ kind: "ok", text: "Gespeichert. Neue Power Storys verwenden ab jetzt diesen Namen." });
+    setNameStatus({ kind: "ok", text: tx(dashboard["settings.name.saved"]) });
     onNameSaved?.(fullName.trim(), hint);
   };
 
@@ -158,10 +161,10 @@ export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsD
     const { error } = await supabase.auth.updateUser({ email: newEmail.trim() });
     setSavingEmail(false);
     if (error) {
-      setEmailStatus({ kind: "error", text: error.message || "Die E-Mail-Adresse konnte nicht geändert werden." });
+      setEmailStatus({ kind: "error", text: error.message || tx(dashboard["settings.email.error"]) });
       return;
     }
-    setEmailStatus({ kind: "ok", text: "Wir haben dir eine Bestätigung an die neue Adresse geschickt." });
+    setEmailStatus({ kind: "ok", text: tx(dashboard["settings.email.sent"]) });
     setEditingEmail(false);
     setNewEmail("");
   };
@@ -171,29 +174,29 @@ export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsD
     if (!user?.email) return;
     setPasswordStatus(null);
     if (newPassword.length < 8) {
-      setPasswordStatus({ kind: "error", text: "Das Passwort braucht mindestens 8 Zeichen." });
+      setPasswordStatus({ kind: "error", text: tx(dashboard["settings.password.tooShort"]) });
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordStatus({ kind: "error", text: "Die beiden Passwörter stimmen nicht überein." });
+      setPasswordStatus({ kind: "error", text: tx(dashboard["settings.password.mismatch"]) });
       return;
     }
     setSavingPassword(true);
     try {
       if (hasPassword) {
         const { error } = await supabase.auth.signInWithPassword({ email: user.email, password: currentPassword });
-        if (error) throw new Error("Das aktuelle Passwort stimmt nicht.");
+        if (error) throw new Error(tx(dashboard["settings.password.wrongCurrent"]));
       }
       const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw new Error(error.message || "Das Passwort konnte nicht gespeichert werden.");
+      if (error) throw new Error(error.message || tx(dashboard["settings.password.error"]));
       // Merkt sich, dass ein Passwort existiert (und beendet Zugangslinks).
       await fetch("/api/auth/complete-password-setup", { method: "POST", credentials: "include" }).catch(() => {});
-      setPasswordStatus({ kind: "ok", text: hasPassword ? "Dein Passwort wurde geändert." : "Dein Passwort ist gespeichert. Du kannst dich jetzt auch damit anmelden." });
+      setPasswordStatus({ kind: "ok", text: tx(hasPassword ? dashboard["settings.password.changed"] : dashboard["settings.password.set"]) });
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (e) {
-      setPasswordStatus({ kind: "error", text: e instanceof Error ? e.message : "Das Passwort konnte nicht gespeichert werden." });
+      setPasswordStatus({ kind: "error", text: e instanceof Error ? e.message : tx(dashboard["settings.password.error"]) });
     } finally {
       setSavingPassword(false);
     }
@@ -227,7 +230,7 @@ export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsD
       window.location.assign(data.url);
     } catch {
       setOpeningPortal(false);
-      setPortalStatus({ kind: "error", text: "Die Abo-Verwaltung konnte nicht geöffnet werden. Bitte versuche es erneut." });
+      setPortalStatus({ kind: "error", text: tx(dashboard["settings.access.error"]) });
     }
   };
 
@@ -245,9 +248,9 @@ export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsD
       const response = await fetch("/api/feedback", { method: "POST", body: formData });
       if (!response.ok) throw new Error();
       setFeedback("");
-      setFeedbackStatus({ kind: "ok", text: "Danke! Deine Nachricht ist bei uns angekommen." });
+      setFeedbackStatus({ kind: "ok", text: tx(dashboard["settings.feedback.sent"]) });
     } catch {
-      setFeedbackStatus({ kind: "error", text: "Senden hat nicht geklappt. Bitte versuche es erneut." });
+      setFeedbackStatus({ kind: "error", text: tx(dashboard["settings.feedback.error"]) });
     } finally {
       setSendingFeedback(false);
     }
@@ -265,37 +268,35 @@ export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsD
         onClick={(event) => event.stopPropagation()}
       >
         <header className="settings-header">
-          <h2 id="settings-title">Einstellungen</h2>
-          <button ref={closeRef} type="button" className="settings-close" onClick={onClose} aria-label="Einstellungen schließen">
+          <h2 id="settings-title"><T t={dashboard["settings.title"]} /></h2>
+          <button ref={closeRef} type="button" className="settings-close" onClick={onClose} aria-label={tx(dashboard["settings.close"])}>
             <X size={20} aria-hidden="true" />
           </button>
         </header>
 
         <div className="settings-body" data-tour-scroll>
           <Section
-            title="Dein Name in den Geschichten"
-            description="Deine Power Storys sprechen dich ab und zu mit Namen an. Hör dir an, wie er klingt – so oft du magst."
+            title={<T t={dashboard["settings.name.title"]} />}
+            description={<T t={dashboard["settings.name.description"]} />}
           >
             <form onSubmit={saveName} className="settings-form" data-tour={TOUR_ANCHORS.settingsName}>
-              <label htmlFor="settings-name">Wie dürfen wir dich nennen?</label>
-              <input id="settings-name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="z. B. Julia" autoComplete="given-name" maxLength={60} />
+              <label htmlFor="settings-name"><T t={dashboard["settings.name.label"]} /></label>
+              <input id="settings-name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={tx(dashboard["settings.name.placeholder"])} autoComplete="given-name" maxLength={60} />
 
               <label htmlFor="settings-pronunciation">
-                So soll er klingen <span className="settings-optional">(optional)</span>
+                <T t={dashboard["settings.pronunciation.label"]} /> <span className="settings-optional"><T t={dashboard["settings.pronunciation.optional"]} /></span>
               </label>
               <input
                 ref={pronunciationRef}
                 id="settings-pronunciation"
                 value={pronunciation}
                 onChange={(e) => setPronunciation(e.target.value)}
-                placeholder="z. B. Juh-lia"
+                placeholder={tx(dashboard["settings.pronunciation.placeholder"])}
                 aria-describedby="settings-pronunciation-help"
                 maxLength={60}
               />
               <p id="settings-pronunciation-help" className="settings-help">
-                {hintIgnored
-                  ? "Bitte nur ein Wort, so geschrieben, wie es klingen soll – z. B. „Juh-lia“. Sonst verwenden wir deinen Namen."
-                  : "Schreib deinen Namen so, wie er klingen soll – als ein Wort, gern mit Bindestrichen."}
+                <T t={hintIgnored ? dashboard["settings.pronunciation.ignored"] : dashboard["settings.pronunciation.help"]} />
               </p>
 
               <NamePreviewPlayer
@@ -309,65 +310,65 @@ export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsD
 
               <div className="settings-actions">
                 <button type="submit" className="dashboard-primary-button" disabled={savingName}>
-                  {savingName ? "Speichern …" : "Name speichern"}
+                  <T t={savingName ? dashboard["settings.saving"] : dashboard["settings.name.save"]} />
                 </button>
               </div>
               <StatusLine status={nameStatus} />
             </form>
           </Section>
 
-          <Section title="E-Mail-Adresse" description="Für die Anmeldung und wichtige Hinweise.">
+          <Section title={<T t={dashboard["settings.email.title"]} />} description={<T t={dashboard["settings.email.description"]} />}>
             <p className="settings-value">{user.email}</p>
             {editingEmail ? (
               <form onSubmit={saveEmail} className="settings-form">
-                <label htmlFor="settings-email">Neue E-Mail-Adresse</label>
+                <label htmlFor="settings-email"><T t={dashboard["settings.email.newLabel"]} /></label>
                 <input id="settings-email" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} autoComplete="email" required />
                 <div className="settings-actions">
-                  <button type="button" className="settings-link" onClick={() => setEditingEmail(false)}>Abbrechen</button>
+                  <button type="button" className="settings-link" onClick={() => setEditingEmail(false)}><T t={dashboard["settings.email.cancel"]} /></button>
                   <button type="submit" className="dashboard-primary-button" disabled={savingEmail || !newEmail.trim()}>
-                    {savingEmail ? "Wird gesendet …" : "Bestätigung senden"}
+                    <T t={savingEmail ? dashboard["settings.email.sending"] : dashboard["settings.email.send"]} />
                   </button>
                 </div>
               </form>
             ) : (
-              <button type="button" className="settings-link" onClick={() => setEditingEmail(true)}>E-Mail-Adresse ändern</button>
+              <button type="button" className="settings-link" onClick={() => setEditingEmail(true)}><T t={dashboard["settings.email.change"]} /></button>
             )}
             <StatusLine status={emailStatus} />
           </Section>
 
           <Section
             tour={TOUR_ANCHORS.settingsPassword}
-            title={hasPassword ? "Passwort ändern" : "Passwort festlegen"}
-            description={hasPassword ? undefined : "Optional – damit kannst du dich auch ohne Link aus der E-Mail anmelden."}
+            title={<T t={hasPassword ? dashboard["settings.password.titleChange"] : dashboard["settings.password.titleSet"]} />}
+            description={hasPassword ? undefined : <T t={dashboard["settings.password.descriptionSet"]} />}
           >
             <form onSubmit={savePassword} className="settings-form">
               {hasPassword && (
                 <>
-                  <label htmlFor="settings-current-password">Aktuelles Passwort</label>
+                  <label htmlFor="settings-current-password"><T t={dashboard["settings.password.current"]} /></label>
                   <input id="settings-current-password" type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} autoComplete="current-password" required />
                 </>
               )}
-              <label htmlFor="settings-new-password">Neues Passwort</label>
+              <label htmlFor="settings-new-password"><T t={dashboard["settings.password.new"]} /></label>
               <input id="settings-new-password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" minLength={8} required />
-              <label htmlFor="settings-confirm-password">Passwort wiederholen</label>
+              <label htmlFor="settings-confirm-password"><T t={dashboard["settings.password.repeat"]} /></label>
               <input id="settings-confirm-password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" minLength={8} required />
               <div className="settings-actions">
                 <button type="submit" className="dashboard-primary-button" disabled={savingPassword}>
-                  {savingPassword ? "Speichern …" : "Passwort speichern"}
+                  <T t={savingPassword ? dashboard["settings.saving"] : dashboard["settings.password.save"]} />
                 </button>
               </div>
               <StatusLine status={passwordStatus} />
             </form>
           </Section>
 
-          <Section title="Hintergrundmusik" description="Wie laut die Musik unter der Stimme liegt – gilt für alle deine Power Storys.">
+          <Section title={<T t={dashboard["settings.music.title"]} />} description={<T t={dashboard["settings.music.description"]} />}>
             <MusicVolumeControl />
           </Section>
 
           {subscription && (
-            <Section title="Dein Zugang" description={`Power Storys – ${subscription.amount} / Monat. Jederzeit kündbar.`}>
+            <Section title={<T t={dashboard["settings.access.title"]} />} description={<T t={dashboard["settings.access.description"]} vars={{ amount: subscription.amount }} />}>
               <button type="button" className="settings-link" onClick={() => void openPortal()} disabled={openingPortal}>
-                {openingPortal ? "Wird geöffnet …" : "Abo verwalten"} <ExternalLink size={14} aria-hidden="true" />
+                <T t={openingPortal ? dashboard["settings.access.opening"] : dashboard["settings.access.manage"]} /> <ExternalLink size={14} aria-hidden="true" />
               </button>
               <StatusLine status={portalStatus} />
             </Section>
@@ -375,15 +376,15 @@ export default function SettingsDialog({ open, onClose, onNameSaved }: SettingsD
 
           <Section
             tour={TOUR_ANCHORS.settingsFeedback}
-            title="Feedback & Wünsche"
-            description="Was wünschst du dir für Power Storys? Wir lesen jede Nachricht."
+            title={<T t={dashboard["settings.feedback.title"]} />}
+            description={<T t={dashboard["settings.feedback.description"]} />}
           >
             <form onSubmit={sendFeedback} className="settings-form">
-              <label htmlFor="settings-feedback" className="sr-only">Deine Nachricht</label>
-              <textarea id="settings-feedback" rows={4} value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Eine Figur, ein Thema, eine Idee …" />
+              <label htmlFor="settings-feedback" className="sr-only"><T t={dashboard["settings.feedback.label"]} /></label>
+              <textarea id="settings-feedback" rows={4} value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder={tx(dashboard["settings.feedback.placeholder"])} />
               <div className="settings-actions">
                 <button type="submit" className="dashboard-primary-button" disabled={sendingFeedback || !feedback.trim()}>
-                  {sendingFeedback ? "Wird gesendet …" : "Nachricht senden"}
+                  <T t={sendingFeedback ? dashboard["settings.feedback.sending"] : dashboard["settings.feedback.send"]} />
                 </button>
               </div>
               <StatusLine status={feedbackStatus} />

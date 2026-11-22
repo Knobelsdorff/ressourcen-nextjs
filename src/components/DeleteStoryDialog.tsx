@@ -2,6 +2,8 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
+import { T, useText } from "@/components/site-text/T";
+import { dashboard } from "@/content/texts/dashboard";
 
 interface DeleteStoryDialogProps {
   isOpen: boolean;
@@ -16,6 +18,7 @@ export default function DeleteStoryDialog({
   onConfirm,
   storyTitle
 }: DeleteStoryDialogProps) {
+  const closeLabel = useText(dashboard["delete.close"]);
   if (!isOpen) return null;
 
   return (
@@ -43,12 +46,12 @@ export default function DeleteStoryDialog({
               {/* Header */}
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-xl font-semibold text-primary-900">
-                  Power Story entfernen?
+                  <T t={dashboard["delete.title"]} />
                 </h3>
                 <button
                   onClick={onClose}
                   className="text-primary-600 hover:text-primary-900 transition-colors p-1"
-                  aria-label="Schließen"
+                  aria-label={closeLabel}
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -56,9 +59,9 @@ export default function DeleteStoryDialog({
 
               {/* Body */}
               <p className="text-primary-700 mb-6 leading-relaxed">
-                Diese Power Story wird aus deinem Raum entfernt.
+                <T t={dashboard["delete.text1"]} />
                 <br />
-                Du kannst jederzeit eine neue erstellen.
+                <T t={dashboard["delete.text2"]} />
               </p>
 
               {/* Actions */}
@@ -67,7 +70,7 @@ export default function DeleteStoryDialog({
                   onClick={onClose}
                   className="px-4 py-2 bg-primary-100 text-primary-900 rounded-lg hover:bg-primary-200 transition-colors font-medium"
                 >
-                  Abbrechen
+                  <T t={dashboard["delete.cancel"]} />
                 </button>
                 <button
                   onClick={() => {
@@ -76,7 +79,7 @@ export default function DeleteStoryDialog({
                   }}
                   className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
                 >
-                  Entfernen
+                  <T t={dashboard["delete.confirm"]} />
                 </button>
               </div>
             </div>

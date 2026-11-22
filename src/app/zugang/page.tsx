@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Mail, Clock, Check } from "lucide-react";
+import { T, useTextFn } from "@/components/site-text/T";
+import { account } from "@/content/texts/account";
 
 type Methode = "link" | "passwort";
 
@@ -23,6 +25,7 @@ function getSafeReturnTo(param: string | null): string {
 
 function ZugangPageInner() {
   const router = useRouter();
+  const tx = useTextFn();
   const searchParams = useSearchParams();
   const returnTo = getSafeReturnTo(searchParams.get('returnTo'));
   const { user } = useAuth();
@@ -67,7 +70,7 @@ function ZugangPageInner() {
       const normalizedEmail = email.toLowerCase().trim();
 
       if (!normalizedEmail || !normalizedEmail.includes("@")) {
-        setError("Bitte gib eine gültige E-Mail-Adresse ein.");
+        setError(tx(account["common.invalidEmail"]));
         setIsLoading(false);
         return;
       }
@@ -83,7 +86,7 @@ function ZugangPageInner() {
 
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          setError(data.error || "Fehler beim Senden des Zugangslinks.");
+          setError(data.error || tx(account["login.error.sendLink"]));
           setIsLoading(false);
           return;
         }
@@ -106,7 +109,7 @@ function ZugangPageInner() {
       });
 
       if (magicLinkError) {
-        setError(magicLinkError.message || "Fehler beim Senden des Zugangslinks.");
+        setError(magicLinkError.message || tx(account["login.error.sendLink"]));
         setIsLoading(false);
         return;
       }
@@ -114,7 +117,7 @@ function ZugangPageInner() {
       setLinkGesendet(true);
       setIsLoading(false);
     } catch (err: any) {
-      setError(err.message || "Ein unerwarteter Fehler ist aufgetreten.");
+      setError(err.message || tx(account["common.unexpected"]));
       setIsLoading(false);
     }
   };
@@ -128,13 +131,13 @@ function ZugangPageInner() {
       const normalizedEmail = email.toLowerCase().trim();
 
       if (!normalizedEmail || !normalizedEmail.includes("@")) {
-        setError("Bitte gib eine gültige E-Mail-Adresse ein.");
+        setError(tx(account["common.invalidEmail"]));
         setIsLoading(false);
         return;
       }
 
       if (!password) {
-        setError("Bitte gib dein Passwort ein.");
+        setError(tx(account["login.error.passwordMissing"]));
         setIsLoading(false);
         return;
       }
@@ -147,14 +150,14 @@ function ZugangPageInner() {
       });
 
       if (signInError) {
-        setError(signInError.message || "E-Mail oder Passwort falsch.");
+        setError(signInError.message || tx(account["login.error.wrongCredentials"]));
         setIsLoading(false);
         return;
       }
 
       router.push(returnTo);
     } catch (err: any) {
-      setError(err.message || "Ein unerwarteter Fehler ist aufgetreten.");
+      setError(err.message || tx(account["common.unexpected"]));
       setIsLoading(false);
     }
   };
@@ -163,7 +166,7 @@ function ZugangPageInner() {
     const normalizedEmail = email.toLowerCase().trim();
 
     if (!normalizedEmail || !normalizedEmail.includes("@")) {
-      setError("Bitte gib zuerst deine E-Mail-Adresse ein.");
+      setError(tx(account["login.error.emailFirst"]));
       return;
     }
 
@@ -179,7 +182,7 @@ function ZugangPageInner() {
       });
 
       if (resetError) {
-        setError(resetError.message || "Fehler beim Senden des Reset-Links.");
+        setError(resetError.message || tx(account["login.error.sendReset"]));
         setIsLoading(false);
         return;
       }
@@ -188,7 +191,7 @@ function ZugangPageInner() {
       setResetGesendet(true);
       setIsLoading(false);
     } catch (err: any) {
-      setError(err.message || "Ein unerwarteter Fehler ist aufgetreten.");
+      setError(err.message || tx(account["common.unexpected"]));
       setIsLoading(false);
     }
   };
@@ -215,15 +218,13 @@ function ZugangPageInner() {
                 <Mail className="w-7 h-7 text-primary-700" />
               </div>
               <h1 className="text-2xl font-medium text-primary-900 mb-3">
-                Link ist unterwegs
+                <T t={account["common.linkSentTitle"]} />
               </h1>
               <p className="text-primary-800 leading-relaxed mb-2">
-                Wir haben den Zugangslink an{" "}
-                <span className="font-medium break-all">{email.toLowerCase().trim()}</span>{" "}
-                geschickt.
+                <T t={account["login.sentText"]} vars={{ email: email.toLowerCase().trim() }} classNames={{ strong: "font-medium break-all" }} />
               </p>
               <p className="text-sm text-primary-700 leading-relaxed">
-                Öffne ihn am besten auf diesem Gerät. Manchmal landet er im Spam-Ordner.
+                <T t={account["login.sentHint"]} />
               </p>
 
               <div className="mt-8 pt-6 border-t border-primary-200">
@@ -236,7 +237,7 @@ function ZugangPageInner() {
                   }}
                   className="text-sm text-primary-700 hover:text-primary-900 font-medium transition-colors"
                 >
-                  Andere E-Mail-Adresse verwenden
+                  <T t={account["login.otherEmail"]} />
                 </button>
               </div>
             </motion.div>
@@ -244,12 +245,10 @@ function ZugangPageInner() {
             /* ---------- Anmeldung ---------- */
             <>
               <h1 className="sm:text-3xl text-2xl font-medium text-primary-900 mb-2">
-                Dein Zugang
+                <T t={account["login.title"]} />
               </h1>
               <p className="text-primary-800 leading-relaxed sm:mb-8 mb-6">
-                {zeigeLinkHinweis
-                  ? "Kein Problem – wir schicken dir einfach einen neuen Link."
-                  : "Melde dich an, um zu deinen Power Storys zu gelangen."}
+                <T t={zeigeLinkHinweis ? account["login.subtitleExpired"] : account["login.subtitle"]} />
               </p>
 
               {/* Hinweis nach einem abgelaufenen oder ungültigen Zugangslink */}
@@ -267,12 +266,10 @@ function ZugangPageInner() {
                       <Clock className="w-5 h-5 text-primary-700 shrink-0 mt-0.5" />
                       <div className="text-sm text-primary-900 leading-relaxed">
                         <p className="font-medium mb-1">
-                          {linkFehler === "fehler"
-                            ? "Dieser Link konnte nicht geöffnet werden."
-                            : "Dieser Link ist nicht mehr gültig."}
+                          <T t={linkFehler === "fehler" ? account["login.linkBroken"] : account["login.linkExpired"]} />
                         </p>
                         <p className="text-primary-800">
-                          Gib unten deine E-Mail-Adresse ein – du bekommst sofort einen neuen Zugang.
+                          <T t={account["login.linkHint"]} />
                         </p>
                       </div>
                     </div>
@@ -283,7 +280,7 @@ function ZugangPageInner() {
               {/* Methoden-Umschalter */}
               <div
                 role="tablist"
-                aria-label="Anmelde-Methode"
+                aria-label={tx(account["login.methodAria"])}
                 className="grid grid-cols-2 gap-1 p-1 bg-primary-50 border border-primary-200 rounded-lg mb-6"
               >
                 <button
@@ -297,7 +294,7 @@ function ZugangPageInner() {
                       : "text-primary-700 hover:text-primary-900"
                   }`}
                 >
-                  Per E-Mail-Link
+                  <T t={account["login.methodLink"]} />
                 </button>
                 <button
                   type="button"
@@ -310,7 +307,7 @@ function ZugangPageInner() {
                       : "text-primary-700 hover:text-primary-900"
                   }`}
                 >
-                  Mit Passwort
+                  <T t={account["login.methodPassword"]} />
                 </button>
               </div>
 
@@ -348,13 +345,13 @@ function ZugangPageInner() {
                   >
                     <div className="mb-5">
                       <Label htmlFor="email" className="text-primary-900 mb-2 block">
-                        E-Mail-Adresse
+                        <T t={account["login.emailLabel"]} />
                       </Label>
                       <Input
                         id="email"
                         type="email"
                         autoComplete="email"
-                        placeholder="deine@email.de"
+                        placeholder={tx(account["common.emailPlaceholder"])}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         disabled={isLoading}
@@ -372,17 +369,15 @@ function ZugangPageInner() {
                       {isLoading ? (
                         <>
                           <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                          Wird gesendet...
+                          <T t={account["common.sending"]} />
                         </>
                       ) : (
-                        zeigeLinkHinweis ? "Neuen Link anfordern" : "Zugangslink senden"
+                        <T t={zeigeLinkHinweis ? account["login.sendNewLink"] : account["login.sendLink"]} />
                       )}
                     </Button>
 
                     <p className="text-sm text-primary-700 text-center mt-4 leading-relaxed">
-                      Du bekommst eine E-Mail mit einem Link.
-                      <br />
-                      Kein Passwort nötig.
+                      <T t={account["login.linkInfo"]} />
                     </p>
                   </motion.form>
                 ) : (
@@ -397,13 +392,13 @@ function ZugangPageInner() {
                   >
                     <div className="mb-4">
                       <Label htmlFor="password-email" className="text-primary-900 mb-2 block">
-                        E-Mail-Adresse
+                        <T t={account["login.emailLabel"]} />
                       </Label>
                       <Input
                         id="password-email"
                         type="email"
                         autoComplete="email"
-                        placeholder="deine@email.de"
+                        placeholder={tx(account["common.emailPlaceholder"])}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         disabled={isLoading}
@@ -414,13 +409,13 @@ function ZugangPageInner() {
 
                     <div className="mb-4">
                       <Label htmlFor="password" className="text-primary-900 mb-2 block">
-                        Passwort
+                        <T t={account["login.passwordLabel"]} />
                       </Label>
                       <Input
                         id="password"
                         type="password"
                         autoComplete="current-password"
-                        placeholder="••••••••"
+                        placeholder={tx(account["login.passwordPlaceholder"])}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         disabled={isLoading}
@@ -441,7 +436,7 @@ function ZugangPageInner() {
                           htmlFor="remember"
                           className="text-sm text-primary-800 cursor-pointer"
                         >
-                          Angemeldet bleiben
+                          <T t={account["login.remember"]} />
                         </Label>
                       </div>
 
@@ -451,7 +446,7 @@ function ZugangPageInner() {
                         disabled={isLoading}
                         className="text-sm text-primary-700 hover:text-primary-900 transition-colors disabled:opacity-50"
                       >
-                        Passwort vergessen?
+                        <T t={account["login.forgot"]} />
                       </button>
                     </div>
 
@@ -469,8 +464,7 @@ function ZugangPageInner() {
                           <div className="flex items-start gap-2.5 p-3 mb-5 bg-primary-50 border border-primary-400 rounded-lg">
                             <Check className="w-4 h-4 text-primary-700 shrink-0 mt-0.5" />
                             <p className="text-sm text-primary-900 leading-relaxed">
-                              Wir haben dir einen Link zum Zurücksetzen geschickt.
-                              Schau in dein Postfach.
+                              <T t={account["login.resetSent"]} />
                             </p>
                           </div>
                         </motion.div>
@@ -486,21 +480,21 @@ function ZugangPageInner() {
                       {isLoading ? (
                         <>
                           <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                          Wird angemeldet...
+                          <T t={account["login.signingIn"]} />
                         </>
                       ) : (
-                        "Anmelden"
+                        <T t={account["login.signIn"]} />
                       )}
                     </Button>
 
                     <p className="text-sm text-primary-700 text-center mt-4">
-                      Noch kein Passwort?{" "}
+                      <T t={account["login.noPassword"]} />{" "}
                       <button
                         type="button"
                         onClick={() => wechsleMethode("link")}
                         className="text-primary-800 hover:text-primary-900 font-medium underline underline-offset-2 transition-colors"
                       >
-                        Per E-Mail-Link anmelden
+                        <T t={account["login.useLink"]} />
                       </button>
                     </p>
                   </motion.form>

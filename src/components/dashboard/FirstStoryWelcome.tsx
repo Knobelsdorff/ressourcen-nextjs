@@ -1,5 +1,7 @@
 import { Loader2 } from 'lucide-react';
 import AngelIconFinal from '@/components/AngelIconFinal';
+import { T } from "@/components/site-text/T";
+import { dashboard } from "@/content/texts/dashboard";
 
 export type FirstStoryWelcomeState = 'preparing-text' | 'preparing-audio' | 'failed';
 
@@ -28,30 +30,28 @@ export default function FirstStoryWelcome({ state, isFirstStory, onRetry }: Firs
       </div>
 
       <div className="dashboard-first-story-copy">
-        <span className="dashboard-eyebrow"><span /> {isFirstStory ? 'DEINE ERSTE POWER STORY' : 'DEINE NEUE POWER STORY'}</span>
+        <span className="dashboard-eyebrow"><span /> <T t={isFirstStory ? dashboard["firstStory.eyebrowFirst"] : dashboard["firstStory.eyebrowNew"]} /></span>
 
         {preparing && (
           <>
-            <h2 id="dashboard-first-story-title">Willkommen! Dein Engel ist fast bereit.</h2>
+            <h2 id="dashboard-first-story-title"><T t={dashboard["firstStory.preparingTitle"]} /></h2>
             <p>
-              {state === 'preparing-audio'
-                ? 'Dein Text ist fertig – Kerstins Stimme wird gerade aufgenommen.'
-                : 'Wir erstellen gerade deine persönliche Power Story aus deinen Antworten.'}{' '}
-              Das dauert etwa eine Minute. Sie erscheint hier automatisch.
+              <T t={state === 'preparing-audio' ? dashboard["firstStory.preparingAudio"] : dashboard["firstStory.preparingText"]} />{' '}
+              <T t={dashboard["firstStory.duration"]} />
             </p>
             <div className="dashboard-first-story-status" role="status">
               <Loader2 size={16} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
-              {state === 'preparing-audio' ? 'Stimme wird aufgenommen …' : 'Geschichte entsteht …'}
+              <T t={state === 'preparing-audio' ? dashboard["firstStory.statusAudio"] : dashboard["firstStory.statusText"]} />
             </div>
           </>
         )}
 
         {state === 'failed' && (
           <>
-            <h2 id="dashboard-first-story-title">Deine Story braucht noch einen Moment.</h2>
-            <p>Beim Erstellen ist etwas schiefgelaufen. Deine Antworten sind gespeichert – versuche es einfach noch einmal.</p>
+            <h2 id="dashboard-first-story-title"><T t={dashboard["firstStory.failedTitle"]} /></h2>
+            <p><T t={dashboard["firstStory.failedText"]} /></p>
             <div className="dashboard-first-story-actions">
-              <button type="button" className="dashboard-primary-button" onClick={onRetry}>Erneut versuchen</button>
+              <button type="button" className="dashboard-primary-button" onClick={onRetry}><T t={dashboard["firstStory.retry"]} /></button>
             </div>
           </>
         )}

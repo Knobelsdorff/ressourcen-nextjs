@@ -3,12 +3,15 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createSPAClient } from "@/lib/supabase/client";
+import { T, useTextFn } from "@/components/site-text/T";
+import { account } from "@/content/texts/account";
 
 // Verhindere Prerendering/Static Export für diese Seite
 export const dynamic = 'force-dynamic';
 
 function ResetPasswordInner() {
       const supabase = createSPAClient();
+      const tx = useTextFn();
       const searchParams = useSearchParams();
       const [password, setPassword] = useState("");
       const [confirm, setConfirm] = useState("");
@@ -41,9 +44,9 @@ function ResetPasswordInner() {
                 // Explizite Fehler aus Query anzeigen
                 if (errorCode) {
                   if (errorCode === 'otp_expired') {
-                    setError('Der Reset-Link ist abgelaufen. Bitte fordere einen neuen Link an.');
+                    setError(tx(account["reset.error.expired"]));
                   } else {
-                    setError(errorDescription || 'Der Reset-Link ist ungültig oder abgelaufen.');
+                    setError(errorDescription || tx(account["reset.error.invalid"]));
                   }
                   return;
                 }
@@ -139,11 +142,11 @@ function ResetPasswordInner() {
                     // Zeige spezifische Fehlermeldung
                     console.log('[Reset] ❌ All verification methods failed. Last error:', lastError);
                     if (lastError.includes('code verifier')) {
-                      setError('Der Reset-Link funktioniert nicht in diesem Browser. Bitte öffne den Link direkt aus der E-Mail oder fordere einen neuen Link an.');
+                      setError(tx(account["reset.error.browser"]));
                     } else if (lastError.includes('expired') || lastError.includes('invalid') || lastError.includes('expired')) {
-                      setError('Der Reset-Link ist abgelaufen oder ungültig. Bitte fordere einen neuen Link an.');
+                      setError(tx(account["reset.error.expiredOrInvalid"]));
                     } else {
-                      setError(`Reset-Link konnte nicht verifiziert werden: ${lastError}`);
+                      setError(tx(account["reset.error.verify"], { error: lastError }));
                     }
                   } else {
                     console.log('[Reset] ✅ Successfully verified reset link');
@@ -151,20 +154,20 @@ function ResetPasswordInner() {
                 } else if (tokenHash) {
                   const { error } = await supabase.auth.verifyOtp({ type: 'recovery', token_hash: tokenHash });
                   if (error) {
-                    setError(error.message || "Der Reset-Link ist ungültig oder abgelaufen.");
+                    setError(error.message || tx(account["reset.error.invalid"]));
                   }
                 } else {
                   // Kein Code vorhanden - zeige Hinweis
-                  setError('Kein Reset-Link gefunden. Bitte fordere einen neuen Link an.');
+                  setError(tx(account["reset.error.missing"]));
                 }
               } catch (e) {
-                setError("Der Reset-Link konnte nicht verifiziert werden.");
+                setError(tx(account["reset.error.verifyGeneric"]));
               } finally {
                 setReady(true);
               }
             };
             run();
-          }, [searchParams, supabase]);
+          }, [searchParams, supabase, tx]);
 
 
       const handleUpdate = async (e: React.FormEvent) => {
@@ -172,11 +175,11 @@ function ResetPasswordInner() {
         setMessage(null);
         setError(null);
         if (password.length < 6) {
-          setError("Passwort muss mindestens 6 Zeichen lang sein");
+          setError(tx(account["common.passwordTooShort"]));
           return;
         }
         if (password !== confirm) {
-          setError("Passwörter stimmen nicht überein");
+          setError(tx(account["common.passwordMismatch"]));
           return;
         }
         try {
@@ -198,15 +201,13 @@ function ResetPasswordInner() {
               console.warn('[Reset] Zugangslink konnte nicht entwertet werden:', e);
             }
 
-            setMessage(
-              "Passwort wurde aktualisiert. Du wirst weitergeleitet… Speichere www.power-storys.de/zugang als Lesezeichen für deinen nächsten Besuch."
-            );
+            setMessage(tx(account["reset.success"]));
             setTimeout(() => {
               window.location.href = '/dashboard';
             }, 1000);
           }
         } catch (e) {
-          setError("Aktualisierung fehlgeschlagen");
+          setError(tx(account["reset.failed"]));
         } finally {
           setSubmitting(false);
         }
@@ -215,9 +216,9 @@ function ResetPasswordInner() {
       return (
         <div className="min-h-screen flex items-center justify-center bg-amber-50 p-4">
           <div className="w-full max-w-md bg-white border border-orange-100 rounded-2xl p-6 shadow">
-            <h1 className="text-2xl font-semibold text-amber-900 mb-4">Neues Passwort setzen</h1>
+            <h1 className="text-2xl font-semibold text-amber-900 mb-4"><T t={account["reset.title"]} /></h1>
             {!ready && (
-              <div className="mb-3 p-3 rounded bg-amber-50 border border-amber-200 text-amber-800 text-sm">Prüfe Reset-Link…</div>
+              <div className="mb-3 p-3 rounded bg-amber-50 border border-amber-200 text-amber-800 text-sm"><T t={account["reset.checking"]} /></div>
             )}
             {message && (
               <div className="mb-3 p-3 rounded bg-green-50 border border-green-200 text-green-800 text-sm">{message}</div>
@@ -227,25 +228,25 @@ function ResetPasswordInner() {
             )}
             <form onSubmit={handleUpdate} className="space-y-4">
               <div>
-                <label className="block text-sm text-amber-800 mb-1">Neues Passwort</label>
+                <label className="block text-sm text-amber-800 mb-1"><T t={account["common.newPassword"]} /></label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-3 py-2 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400"
-                  placeholder="••••••••"
+                  placeholder={tx(account["login.passwordPlaceholder"])}
                   autoComplete="new-password"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm text-amber-800 mb-1">Passwort bestätigen</label>
+                <label className="block text-sm text-amber-800 mb-1"><T t={account["common.confirmPassword"]} /></label>
                 <input
                   type="password"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   className="w-full px-3 py-2 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400"
-                  placeholder="••••••••"
+                  placeholder={tx(account["login.passwordPlaceholder"])}
                   autoComplete="new-password"
                   required
                 />
@@ -255,7 +256,7 @@ function ResetPasswordInner() {
                 disabled={submitting || !ready}
                 className="w-full px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 disabled:opacity-50"
               >
-                {submitting ? "Aktualisiere…" : "Passwort speichern"}
+                <T t={submitting ? account["reset.saving"] : account["reset.save"]} />
               </button>
             </form>
           </div>
@@ -265,7 +266,7 @@ function ResetPasswordInner() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-amber-50 p-4">Lade…</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-amber-50 p-4"><T t={account["reset.loading"]} /></div>}>
       <ResetPasswordInner />
     </Suspense>
   );

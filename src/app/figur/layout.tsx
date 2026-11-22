@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
+import { getText } from "@/lib/site-texts/server";
+import { meta } from "@/content/texts/meta";
 import "../create-story/story-flow.css";
 import "./figur.css";
 
-export const metadata: Metadata = {
-  title: "Figur wählen – Power Story",
-  description: "Schau, welche Figur ein kleines inneres Ja auslöst",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: await getText(meta["figur.title"]),
+    description: await getText(meta["figur.description"]),
+  };
+}
 
 export default function FigurLayout({
   children,

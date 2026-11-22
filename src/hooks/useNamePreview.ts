@@ -11,7 +11,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const FALLBACK_ERROR = "Die Hörprobe konnte nicht erstellt werden.";
+/** Standardfehler; NamePreviewPlayer ersetzt ihn durch den Text aus dem Katalog. */
+export const NAME_PREVIEW_FALLBACK_ERROR = "Die Hörprobe konnte nicht erstellt werden.";
+const FALLBACK_ERROR = NAME_PREVIEW_FALLBACK_ERROR;
 
 export type NamePreviewStatus = "idle" | "loading" | "playing" | "paused" | "ended";
 

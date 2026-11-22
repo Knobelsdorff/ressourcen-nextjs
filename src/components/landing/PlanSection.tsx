@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useStartFirstStory } from "@/hooks/useStartFirstStory";
 import { Volume2, Sparkles, Leaf } from 'lucide-react';
+import { T } from "@/components/site-text/T";
+import { landing } from "@/content/texts/landing";
 
 export default function PlanSection() {
   const startFirstStory = useStartFirstStory();
@@ -11,20 +13,20 @@ export default function PlanSection() {
     {
       number: 1,
       icon: Volume2,
-      title: "Ankommen",
-      description: "Du hörst dir eine erste Power Story an – ruhig gesprochen, ohne etwas tun zu müssen.",
+      title: landing["plan.step1.title"],
+      description: landing["plan.step1.text"],
     },
     {
       number: 2,
       icon: Sparkles,
-      title: "Deine eigene Geschichte",
-      description: "Wenn du magst, beantwortest du ein paar einfache Fragen. Daraus entsteht eine Geschichte, die zu dir und deinem Moment passt.",
+      title: landing["plan.step2.title"],
+      description: landing["plan.step2.text"],
     },
     {
       number: 3,
       icon: Leaf,
-      title: "Nachwirken lassen",
-      description: "Du bleibst einen Moment bei dir und nimmst wahr, was sich verändert hat – ganz ohne Bewertung.",
+      title: landing["plan.step3.title"],
+      description: landing["plan.step3.text"],
     },
   ];
 
@@ -38,7 +40,7 @@ export default function PlanSection() {
           transition={{ duration: 0.6 }}
           className="text-4xl md:text-5xl font-bold text-amber-900 text-center mb-4"
         >
-          So einfach kann es sein
+          <T t={landing["plan.title"]} />
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 20 }}
@@ -47,7 +49,7 @@ export default function PlanSection() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-xl md:text-2xl text-amber-700 text-center mb-16"
         >
-          Du wirst Schritt für Schritt begleitet – ohne Vorbereitung, ohne Vorkenntnisse.
+          <T t={landing["plan.subtitle"]} />
         </motion.p>
 
         <div className="grid md:grid-cols-3 gap-8 mb-8">
@@ -66,9 +68,9 @@ export default function PlanSection() {
                 </div>
                 <div className="landing-step-art" aria-hidden="true"><step.icon size={38} strokeWidth={1.5} /></div>
                 <h3 className="text-xl font-semibold mb-2">
-                  {step.title}
+                  <T t={step.title} />
                 </h3>
-                <p className="text-[15px] leading-relaxed">{step.description}</p>
+                <p className="text-[15px] leading-relaxed"><T t={step.description} /></p>
               </motion.div>
             );
           })}
@@ -81,7 +83,7 @@ export default function PlanSection() {
           transition={{ duration: 0.6, delay: 0.4 }}
           className="text-lg md:text-xl text-amber-700 text-center mb-12 italic"
         >
-          Es gibt kein richtig oder falsch. Du darfst einfach erleben, was passiert.
+          <T t={landing["plan.note"]} />
         </motion.p>
 
             <motion.div
@@ -96,7 +98,7 @@ export default function PlanSection() {
                 size="lg"
                 className="landing-primary-button"
               >
-                Jetzt einfach beginnen
+                <T t={landing["plan.cta"]} />
               </Button>
             </motion.div>
       </div>

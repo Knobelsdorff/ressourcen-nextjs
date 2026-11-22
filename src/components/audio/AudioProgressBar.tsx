@@ -12,6 +12,8 @@
 
 import { useRef, useCallback, useEffect, useState } from "react";
 import { formatTime, formatTimeSpoken } from "@/hooks/useAudioPlayer";
+import { useText } from "@/components/site-text/T";
+import { player } from "@/content/texts/player";
 
 interface AudioProgressBarProps {
   currentTime: number;
@@ -31,6 +33,7 @@ export default function AudioProgressBar({
 }: AudioProgressBarProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const positionLabel = useText(player["controls.progressAria"]);
 
   const progress = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
 
@@ -112,7 +115,7 @@ export default function AudioProgressBar({
       ref={trackRef}
       role="slider"
       tabIndex={disabled ? -1 : 0}
-      aria-label="Wiedergabeposition"
+      aria-label={positionLabel}
       aria-valuemin={0}
       aria-valuemax={Math.round(duration)}
       aria-valuenow={Math.round(currentTime)}
